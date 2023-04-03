@@ -1,5 +1,7 @@
 package org.usf.traceapi.core;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
@@ -39,8 +41,12 @@ public class TraceConfiguration {
     }
     
     @Bean
-    public TraceSender traceSender(@Value("${tracing.server.url}") String url) {
-        return new RemoteTraceSender(url);
+    public TraceSender traceSender(
+    		@Value("${tracing.server.url}") String url,
+    		@Value("${tracing.delay:5}") int delay,
+    		@Value("${tracing.unit:SECONDS}") String unit) {
+    	
+        return new RemoteTraceSender(url, delay, TimeUnit.valueOf(unit));
     }
 
 }

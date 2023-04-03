@@ -3,11 +3,8 @@ package org.usf.traceapi.core;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
-import java.util.concurrent.ScheduledExecutorService;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -22,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class ApiTraceFilter implements Filter {
 
-	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 	static final ThreadLocal<MainRequest> localTrace = new InheritableThreadLocal<>();
 	static final String TRACE_HEADER = "trace-api";
 	
@@ -42,7 +38,7 @@ public final class ApiTraceFilter implements Filter {
     	finally {
     		mr.setEnd(currentTimeMillis());
 			mr.setStatus(response == null ? null : ((HttpServletResponse)response).getStatus());
-			executor.schedule(()-> sender.send(mr), 5, SECONDS); //wait 5s after sending results
+			sender.send(mr);
 		}
 	}
 }
