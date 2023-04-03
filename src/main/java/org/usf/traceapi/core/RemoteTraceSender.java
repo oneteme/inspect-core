@@ -38,7 +38,7 @@ public final class RemoteTraceSender implements TraceSender {
 			catch(Exception e) {
 				log.warn("error while tracing request : {}", mr.getUrl(), e);
 			}
-		}, delay, unit); //wait 5s after sending results)
+		}, delay, unit);
 	}
 	
 }
