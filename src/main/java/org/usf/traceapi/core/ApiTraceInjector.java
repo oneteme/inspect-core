@@ -26,7 +26,7 @@ public final class ApiTraceInjector implements ClientHttpRequestInterceptor {
 			finally {
 				var fin = currentTimeMillis();
 				var stt = res == null ? null : res.getRawStatusCode();
-				trace.getRequests().add(new SubRequest(request.getURI().toString(), request.getMethodValue(), beg, fin, stt));
+				trace.push(new SubRequest(request.getURI().toString(), request.getMethodValue(), beg, fin, stt));
 			}
 		}
 		return execution.execute(request, body);

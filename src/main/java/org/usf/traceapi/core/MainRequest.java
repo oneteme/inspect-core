@@ -24,4 +24,12 @@ public class MainRequest extends SubRequest {
 		this.requests = synchronizedCollection(new LinkedList<>());
 		this.queries = synchronizedCollection(new LinkedList<>());
 	}
+	
+	public void push(SubRequest request) {
+		requests.add(request);
+	}
+
+	public void push(MainQuery query) {
+		queries.add(query);
+	}
 }
