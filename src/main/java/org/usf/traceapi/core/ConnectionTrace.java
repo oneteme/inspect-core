@@ -24,8 +24,11 @@ public final class ConnectionTrace implements Connection {
 			failed = false;
 		}
 		finally {
-			var end = currentTimeMillis();
-			localTrace.get().getQueries().add(new MainQuery(start, end, failed));
+			var trc = localTrace.get();
+			if(trc != null) {
+				var end = currentTimeMillis();
+				trc.getQueries().add(new MainQuery(start, end, failed));
+			}
 		}
 	}
 

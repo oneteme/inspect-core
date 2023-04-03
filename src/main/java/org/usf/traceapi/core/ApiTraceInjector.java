@@ -16,7 +16,7 @@ public final class ApiTraceInjector implements ClientHttpRequestInterceptor {
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		var trace = localTrace.get();
-		if(trace !=null) {
+		if(trace != null) {
 			var beg = currentTimeMillis();
 			request.getHeaders().add(TRACE_HEADER, trace.getUuid());
 			ClientHttpResponse res = null;
