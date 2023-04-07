@@ -43,10 +43,13 @@ public class TraceConfiguration {
     @Bean
     public TraceSender traceSender(
     		@Value("${tracing.server.url:}") String url,
+    		@Value("${tracing.enabled:true}") boolean enabled,
     		@Value("${tracing.delay:5}") int delay,
     		@Value("${tracing.unit:SECONDS}") String unit) {
     	
-        return url.isBlank() ? res->{} : new RemoteTraceSender(url, delay, TimeUnit.valueOf(unit));
+        return !enabled || url.isBlank() 
+        		? res->{} 
+        		: new RemoteTraceSender(url, delay, TimeUnit.valueOf(unit));
     }
 
 }
