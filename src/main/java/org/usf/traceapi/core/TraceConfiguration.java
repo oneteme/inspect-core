@@ -1,5 +1,8 @@
 package org.usf.traceapi.core;
 
+import static java.util.Optional.ofNullable;
+
+import java.security.Principal;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
@@ -37,7 +40,7 @@ public class TraceConfiguration {
     
     @Bean
     public ClientSupplier clientSupplier() {
-        return req-> req.getUserPrincipal().getName(); //unknown
+        return req-> ofNullable(req.getUserPrincipal()).map(Principal::getName).orElse(null); //unknown
     }
     
     @Bean
@@ -48,7 +51,7 @@ public class TraceConfiguration {
     		@Value("${tracing.unit:SECONDS}") String unit) {
     	
         return !enabled || url.isBlank() 
-        		? res->{} 
+        		? res-> {} 
         		: new RemoteTraceSender(url, delay, TimeUnit.valueOf(unit));
     }
 
