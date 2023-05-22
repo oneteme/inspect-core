@@ -12,13 +12,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class TraceConfiguration {
+public class TraceConfiguration implements WebMvcConfigurer  {
 
     @Bean("trFilter")
-    public ApiTraceFilter requestTracer(ClientSupplier cs, TraceSender sender) {
-        return new ApiTraceFilter(cs, sender);
+    public ApiTraceFilter requestTracer(ClientSupplier cs, TraceSender sender, @Value("${tracing.application:}") String application) {
+        return new ApiTraceFilter(cs, sender, application);
     }
 
     @Bean("trInterceptor")
@@ -38,9 +40,16 @@ public class TraceConfiguration {
 		};
     }
     
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+    	registry.addInterceptor(new ApiTraceInterceptor());
+    }
+    
     @Bean
     public ClientSupplier clientSupplier() {
-        return req-> ofNullable(req.getUserPrincipal()).map(Principal::getName).orElse(null); //unknown
+        return req-> ofNullable(req.getUserPrincipal())
+        		.map(Principal::getName)
+        		.orElse(null); //custom request user
     }
     
     @Bean

@@ -11,11 +11,11 @@ import lombok.ToString;
 @ToString
 @AllArgsConstructor
 @RequiredArgsConstructor
-public class SubRequest {
+public class OutcomingRequest {
 
 	private final String url;
 	private final String method;
 	private final long start;
 	private long end;
-	private Integer status;
+	private Integer status; //nullable
 }

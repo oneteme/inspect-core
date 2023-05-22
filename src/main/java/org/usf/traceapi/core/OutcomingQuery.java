@@ -7,7 +7,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @RequiredArgsConstructor
-public class MainQuery {
+public class OutcomingQuery {
 	
 	//action SELECT | UPDATE
 	private final long start;

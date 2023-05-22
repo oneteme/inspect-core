@@ -19,26 +19,37 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class ApiTraceFilter implements Filter {
 
-	static final ThreadLocal<MainRequest> localTrace = new InheritableThreadLocal<>();
-	static final String TRACE_HEADER = "trace-api";
+	static final ThreadLocal<IncomingRequest> localTrace = new InheritableThreadLocal<>();
+	static final String TRACE_HEADER = "request-uuid";
 	
 	private final ClientSupplier clientSupp;
 	private final TraceSender sender;
+	
+	private final String application;
 	
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
     	var beg = currentTimeMillis();
     	var req = (HttpServletRequest) request;
     	var id  = ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(randomUUID()::toString);
-    	var mr  = new MainRequest(id, clientSupp.clientId(req), req.getRequestURL().toString(), req.getMethod(), beg);
-    	localTrace.set(mr);
+    	var ic  = new IncomingRequest(id, 
+    			req.getRequestURL().toString(), 
+    			req.getMethod(), beg);
+    	localTrace.set(ic);
     	try {
             chain.doFilter(req, response);
     	}
     	finally {
-    		mr.setEnd(currentTimeMillis());
-			mr.setStatus(response == null ? null : ((HttpServletResponse)response).getStatus());
-			sender.send(mr);
+    		ic.setEnd(currentTimeMillis());
+			localTrace.remove();
+    		if(response != null) {
+    			ic.setStatus(((HttpServletResponse)response).getStatus());
+    			ic.setContentType(response.getContentType());
+    		}
+			//if not set
+			ic.setPrincipal(clientSupp.clientId(req));
+			ic.setApplication(application);
+			sender.send(ic);
 		}
 	}
 }

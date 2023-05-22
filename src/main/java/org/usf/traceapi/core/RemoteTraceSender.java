@@ -22,16 +22,12 @@ public final class RemoteTraceSender implements TraceSender {
 	private final RestTemplate template;
 	
 	public RemoteTraceSender(String url, int delay, TimeUnit unit) {
-		this.url = url;
-		this.delay = delay;
-		this.unit = unit;
-		this.template = new RestTemplate();
+		this(url, delay, unit, new RestTemplate());
 	}
 
 	@Override
-	public void send(MainRequest mr) {
-		executor.schedule(()-> 
-		{
+	public void send(IncomingRequest mr) {
+		executor.schedule(()-> {
 			try {
 				template.put(url, mr);
 			}
