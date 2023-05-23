@@ -1,11 +1,19 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.joining;
+import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.traceapi.core.TraceConfiguration.idProvider;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -22,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class ApiTraceFilter implements Filter {
 
+	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	static final String TRACE_HEADER = "tracert";
 	
 	private final ClientProvider clientProvider;
@@ -49,9 +58,13 @@ public final class ApiTraceFilter implements Filter {
 			trc.setApplication(application);
     		trc.setStart(beg);
     		trc.setEnd(fin);
-    		if(response instanceof HttpServletResponse) {
-    			trc.setStatus(((HttpServletResponse)response).getStatus());
-    		}
+			trc.setStatus(((HttpServletResponse)response).getStatus());
+            if(isNull(trc.getEndpoint())) {
+            	trc.setEndpoint(defaultEndpoint(req));
+            }
+            if(isNull(trc.getResource())) {
+            	trc.setResource(defaultResource(req));
+            }
     		try {
     			traceSender.send(trc);
     		}
@@ -60,4 +73,21 @@ public final class ApiTraceFilter implements Filter {
     		}
 		}
 	}
+
+    @SuppressWarnings("unchecked")
+    private static String defaultResource(HttpServletRequest req) {
+    	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+    	return map.entrySet().stream()
+    			.map(Entry::getValue)
+    			.collect(joiner); //order ?
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String defaultEndpoint(HttpServletRequest req) {
+    	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+		return Stream.of(req.getRequestURI().split("/"))
+				.filter(not(String::isBlank))
+				.filter(not(map.values()::contains))
+				.collect(joiner);
+    }
 }

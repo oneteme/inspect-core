@@ -9,9 +9,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TraceableApi {
 	
-	String endpoint() default "";
+	String[] endpoint() default {};
 
-	String resource() default "";
+	String[] resource() default {};
 	
 	//boolean enabled() default true;
 }
