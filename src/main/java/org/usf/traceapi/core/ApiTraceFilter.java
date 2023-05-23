@@ -50,15 +50,15 @@ public final class ApiTraceFilter implements Filter {
     	finally {
     		var fin = currentTimeMillis();
     		localTrace.remove();
+    		trc.setMethod(req.getMethod());
     		trc.setUrl(req.getRequestURL().toString());
     		trc.setQuery(req.getQueryString());
-    		trc.setMethod(req.getMethod());
     		trc.setContentType(response.getContentType());
 			trc.setPrincipal(clientProvider.getClientId(req));
+			trc.setStatus(((HttpServletResponse)response).getStatus());
 			trc.setApplication(application);
     		trc.setStart(beg);
     		trc.setEnd(fin);
-			trc.setStatus(((HttpServletResponse)response).getStatus());
             if(isNull(trc.getEndpoint())) {
             	trc.setEndpoint(defaultEndpoint(req));
             }
@@ -75,19 +75,19 @@ public final class ApiTraceFilter implements Filter {
 	}
 
     @SuppressWarnings("unchecked")
+    private static String defaultEndpoint(HttpServletRequest req) {
+    	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+		return Stream.of(req.getRequestURI().split("/"))
+				.filter(not(String::isEmpty))
+				.filter(not(map.values()::contains))
+				.collect(joiner);
+    }
+
+    @SuppressWarnings("unchecked")
     private static String defaultResource(HttpServletRequest req) {
     	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
     	return map.entrySet().stream()
     			.map(Entry::getValue)
     			.collect(joiner); //order ?
-    }
-
-    @SuppressWarnings("unchecked")
-    private static String defaultEndpoint(HttpServletRequest req) {
-    	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-		return Stream.of(req.getRequestURI().split("/"))
-				.filter(not(String::isBlank))
-				.filter(not(map.values()::contains))
-				.collect(joiner);
     }
 }

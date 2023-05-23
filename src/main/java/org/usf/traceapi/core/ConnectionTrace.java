@@ -31,5 +31,5 @@ public final class ConnectionTrace implements Connection {
 			}
 		}
 	}
-
+	
 }

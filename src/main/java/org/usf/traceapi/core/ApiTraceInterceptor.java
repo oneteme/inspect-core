@@ -43,7 +43,7 @@ public final class ApiTraceInterceptor implements HandlerInterceptor { //AsyncHa
     @SuppressWarnings("unchecked")
 	private static String lookup(HttpServletRequest req, String[] keys, boolean parameter) {
     	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-    	return Stream.of(keys).map(key->{
+    	return Stream.of(keys).map(key-> {
         	var res = map.get(key); // variable
         	if(parameter && isNull(res)) {
         		res = req.getParameter(key); // parameter 
