@@ -25,17 +25,17 @@ public class TraceConfiguration implements WebMvcConfigurer  {
 	
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-    	registry.addInterceptor(new ApiTraceInterceptor());
+    	registry.addInterceptor(new IncomingRequestInterceptor());
     }
 	
     @Bean("trFilter")
-    public ApiTraceFilter requestTracer(ClientProvider cp, TraceSender ts, @Value("${api.tracing.application:}") String app) {
-        return new ApiTraceFilter(cp, ts, app);
+    public IncomingRequestFilter requestFilter(ClientProvider cp, TraceSender ts, @Value("${api.tracing.application:}") String app) {
+        return new IncomingRequestFilter(cp, ts, app);
     }
 
     @Bean("trInterceptor")
-    public ApiTraceInjector requestInterceptor() {
-        return new ApiTraceInjector();
+    public OutcomingRequestInterceptor requestInterceptor() {
+        return new OutcomingRequestInterceptor();
     }
 
     @Bean("trDataSource")
@@ -44,7 +44,7 @@ public class TraceConfiguration implements WebMvcConfigurer  {
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
 	            return bean instanceof DataSource 
-	            		? new DataSourceTrace((DataSource) bean) 
+	            		? new DataSourceWrapper((DataSource) bean) 
 	            		: bean;
     		}
 		};

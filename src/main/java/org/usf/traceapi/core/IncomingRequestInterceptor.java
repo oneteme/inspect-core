@@ -3,7 +3,7 @@ package org.usf.traceapi.core;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
-import static org.usf.traceapi.core.ApiTraceFilter.joiner;
+import static org.usf.traceapi.core.IncomingRequestFilter.joiner;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.util.Map;
@@ -15,7 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-public final class ApiTraceInterceptor implements HandlerInterceptor { //AsyncHandlerInterceptor ?
+public final class IncomingRequestInterceptor implements HandlerInterceptor { //AsyncHandlerInterceptor ?
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {

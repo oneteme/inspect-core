@@ -1,7 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
-import static org.usf.traceapi.core.ApiTraceFilter.TRACE_HEADER;
+import static org.usf.traceapi.core.IncomingRequestFilter.TRACE_HEADER;
 import static org.usf.traceapi.core.TraceConfiguration.idProvider;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
@@ -12,7 +12,7 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 
-public final class ApiTraceInjector implements ClientHttpRequestInterceptor {
+public final class OutcomingRequestInterceptor implements ClientHttpRequestInterceptor {
 	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
@@ -30,7 +30,7 @@ public final class ApiTraceInjector implements ClientHttpRequestInterceptor {
 			finally {
 				var fin = currentTimeMillis();
 				var stt = res == null ? null : res.getRawStatusCode();
-				trc.push(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), beg, fin, stt));
+				trc.push(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), stt, beg, fin));
 			}
 		}
 		return res;

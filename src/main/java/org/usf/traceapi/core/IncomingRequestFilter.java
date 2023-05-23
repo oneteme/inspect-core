@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public final class ApiTraceFilter implements Filter {
+public final class IncomingRequestFilter implements Filter {
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	static final String TRACE_HEADER = "tracert";

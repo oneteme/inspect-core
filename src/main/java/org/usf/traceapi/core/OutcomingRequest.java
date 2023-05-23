@@ -16,7 +16,7 @@ public class OutcomingRequest {
 	private final String id;
 	private String url;
 	private String method;
+	private Integer status; //nullable
 	private long start;
 	private long end;
-	private Integer status; //nullable
 }

@@ -3,6 +3,6 @@ package org.usf.traceapi.core;
 @FunctionalInterface
 public interface TraceSender {
 	
-	void send(IncomingRequest mr);
+	void send(IncomingRequest trc);
 
 }

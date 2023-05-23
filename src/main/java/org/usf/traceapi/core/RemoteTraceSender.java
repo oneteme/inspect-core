@@ -24,8 +24,8 @@ public final class RemoteTraceSender implements TraceSender {
 	}
 
 	@Override
-	public void send(IncomingRequest mr) {
-		executor.schedule(()-> template.put(url, mr), delay, unit); //wait for sending response
+	public void send(IncomingRequest trc) {
+		executor.schedule(()-> template.put(url, trc), delay, unit); //wait for sending response
 	}
 	
 }

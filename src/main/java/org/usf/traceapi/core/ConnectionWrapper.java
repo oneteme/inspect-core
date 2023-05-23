@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
 @RequiredArgsConstructor
-public final class ConnectionTrace implements Connection {
+public final class ConnectionWrapper implements Connection {
 	
 	@Delegate
 	private final Connection cn;

@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
 @RequiredArgsConstructor
-public final class DataSourceTrace implements DataSource {
+public final class DataSourceWrapper implements DataSource {
 
 	@Delegate
 	private final DataSource ds;
@@ -19,12 +19,12 @@ public final class DataSourceTrace implements DataSource {
 	@Override
 	public Connection getConnection() throws SQLException {
 		var beg = currentTimeMillis();
-		return new ConnectionTrace(ds.getConnection(), beg);
+		return new ConnectionWrapper(ds.getConnection(), beg);
 	}
 
 	@Override
 	public Connection getConnection(String username, String password) throws SQLException{
 		var beg = currentTimeMillis();
-		return new ConnectionTrace(ds.getConnection(username, password), beg);
+		return new ConnectionWrapper(ds.getConnection(username, password), beg);
 	}
 }
