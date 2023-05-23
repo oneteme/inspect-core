@@ -14,18 +14,17 @@ import lombok.ToString;
 @ToString
 public class IncomingRequest extends OutcomingRequest {
 
-	private final String uuid;
 	private String contentType;
 	private String application;
 	private String endpoint;
 	private String resource;
 	private String principal;
+	private String query;
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
  	
-	public IncomingRequest(String uuid, String url, String method, long start) {
-		super(url, method, start);
-		this.uuid = uuid;
+	public IncomingRequest(String uuid) {
+		super(uuid);
 		this.requests = synchronizedCollection(new LinkedList<>());
 		this.queries = synchronizedCollection(new LinkedList<>());
 	}

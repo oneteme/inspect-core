@@ -2,7 +2,8 @@ package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
 import static org.usf.traceapi.core.ApiTraceFilter.TRACE_HEADER;
-import static org.usf.traceapi.core.ApiTraceFilter.localTrace;
+import static org.usf.traceapi.core.TraceConfiguration.idProvider;
+import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.io.IOException;
 
@@ -15,20 +16,22 @@ public final class ApiTraceInjector implements ClientHttpRequestInterceptor {
 	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-		var trace = localTrace.get();
-		if(trace == null) {
-			return execution.execute(request, body);
-		}
-		var beg = currentTimeMillis();
-		request.getHeaders().add(TRACE_HEADER, trace.getUuid());
 		ClientHttpResponse res = null;
-		try {
+		var trc = localTrace.get();
+		if(trc == null) {
 			res = execution.execute(request, body);
 		}
-		finally {
-			var fin = currentTimeMillis();
-			var stt = res == null ? null : res.getRawStatusCode();
-			trace.push(new OutcomingRequest(request.getURI().toString(), request.getMethodValue(), beg, fin, stt));
+		else {
+			request.getHeaders().add(TRACE_HEADER, trc.getId());
+			var beg = currentTimeMillis();
+			try {
+				res = execution.execute(request, body);
+			}
+			finally {
+				var fin = currentTimeMillis();
+				var stt = res == null ? null : res.getRawStatusCode();
+				trc.push(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), beg, fin, stt));
+			}
 		}
 		return res;
 	}

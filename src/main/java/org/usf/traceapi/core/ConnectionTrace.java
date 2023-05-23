@@ -1,7 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
-import static org.usf.traceapi.core.ApiTraceFilter.localTrace;
+import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.sql.Connection;
 import java.sql.SQLException;

@@ -1,9 +1,11 @@
 package org.usf.traceapi.core;
 
 import static java.util.Optional.ofNullable;
+import static java.util.UUID.randomUUID;
 
 import java.security.Principal;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
@@ -17,10 +19,18 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class TraceConfiguration implements WebMvcConfigurer  {
-
+	
+	static final ThreadLocal<IncomingRequest> localTrace = new InheritableThreadLocal<>();
+	static final Supplier<String> idProvider = ()-> randomUUID().toString();
+	
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+    	registry.addInterceptor(new ApiTraceInterceptor());
+    }
+	
     @Bean("trFilter")
-    public ApiTraceFilter requestTracer(ClientSupplier cs, TraceSender sender, @Value("${tracing.application:}") String application) {
-        return new ApiTraceFilter(cs, sender, application);
+    public ApiTraceFilter requestTracer(ClientProvider cp, TraceSender ts, @Value("${api.tracing.application:}") String app) {
+        return new ApiTraceFilter(cp, ts, app);
     }
 
     @Bean("trInterceptor")
@@ -40,13 +50,8 @@ public class TraceConfiguration implements WebMvcConfigurer  {
 		};
     }
     
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-    	registry.addInterceptor(new ApiTraceInterceptor());
-    }
-    
     @Bean
-    public ClientSupplier clientSupplier() {
+    public ClientProvider clientSupplier() {
         return req-> ofNullable(req.getUserPrincipal())
         		.map(Principal::getName)
         		.orElse(null); //custom request user
@@ -54,10 +59,10 @@ public class TraceConfiguration implements WebMvcConfigurer  {
     
     @Bean
     public TraceSender traceSender(
-    		@Value("${tracing.server.url:}") String url,
-    		@Value("${tracing.enabled:true}") boolean enabled,
-    		@Value("${tracing.delay:5}") int delay,
-    		@Value("${tracing.unit:SECONDS}") String unit) {
+    		@Value("${api.tracing.server.url:}") String url,
+    		@Value("${api.tracing.enabled:true}") boolean enabled,
+    		@Value("${api.tracing.delay:5}") int delay,
+    		@Value("${api.tracing.unit:SECONDS}") String unit) {
     	
         return !enabled || url.isBlank() 
         		? res-> {} 

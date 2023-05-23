@@ -4,7 +4,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
-import static org.usf.traceapi.core.ApiTraceFilter.localTrace;
+import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -21,7 +21,7 @@ public final class ApiTraceInterceptor implements HandlerInterceptor { //AsyncHa
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        return true;
+        return true; //declared annotation 
     }
 
     @Override

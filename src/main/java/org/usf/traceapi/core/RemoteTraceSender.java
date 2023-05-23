@@ -8,9 +8,7 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.web.client.RestTemplate;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @RequiredArgsConstructor
 public final class RemoteTraceSender implements TraceSender {
 
@@ -27,14 +25,7 @@ public final class RemoteTraceSender implements TraceSender {
 
 	@Override
 	public void send(IncomingRequest mr) {
-		executor.schedule(()-> {
-			try {
-				template.put(url, mr);
-			}
-			catch(Exception e) {
-				log.warn("error while tracing request : {}", mr.getUrl(), e);
-			}
-		}, delay, unit); //wait for sending response
+		executor.schedule(()-> template.put(url, mr), delay, unit); //wait for sending response
 	}
 	
 }

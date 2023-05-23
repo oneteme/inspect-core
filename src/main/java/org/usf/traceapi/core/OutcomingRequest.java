@@ -13,9 +13,10 @@ import lombok.ToString;
 @RequiredArgsConstructor
 public class OutcomingRequest {
 
-	private final String url;
-	private final String method;
-	private final long start;
+	private final String id;
+	private String url;
+	private String method;
+	private long start;
 	private long end;
 	private Integer status; //nullable
 }

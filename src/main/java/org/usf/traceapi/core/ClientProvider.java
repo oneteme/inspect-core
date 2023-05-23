@@ -3,8 +3,8 @@ package org.usf.traceapi.core;
 import javax.servlet.http.HttpServletRequest;
 
 @FunctionalInterface
-public interface ClientSupplier {
+public interface ClientProvider {
 	
-	String clientId(HttpServletRequest req);
+	String getClientId(HttpServletRequest req);
 	
 }
