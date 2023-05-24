@@ -11,11 +11,11 @@ public final class ResultSetWrapper implements ResultSet {
 
 	@Delegate
 	private final ResultSet resultSet;
-	private final DatabaseActionTracer wrapper;
+	private final DatabaseActionTracer tracer;
 	private final long start;
 
 	@Override
 	public void close() throws SQLException {
-		wrapper.fetch(start, resultSet::close);
+		tracer.fetch(start, resultSet::close);
 	}
 }

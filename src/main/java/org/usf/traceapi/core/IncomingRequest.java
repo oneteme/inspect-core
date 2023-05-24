@@ -29,11 +29,11 @@ public class IncomingRequest extends OutcomingRequest {
 		this.queries = synchronizedCollection(new LinkedList<>());
 	}
 	
-	public void push(OutcomingRequest request) {
+	public void append(OutcomingRequest request) {
 		requests.add(request);
 	}
 
-	public void push(OutcomingQuery query) {
+	public void append(OutcomingQuery query) {
 		queries.add(query);
 	}
 }

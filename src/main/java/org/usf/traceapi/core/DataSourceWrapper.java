@@ -30,11 +30,11 @@ public final class DataSourceWrapper implements DataSource {
 	}
 	
 	private Connection getConnection(SQLSupplier<Connection> cnSupp) throws SQLException {
-		var ir = localTrace.get();
-		if(nonNull(ir)) {
+		var req = localTrace.get();
+		if(nonNull(req)) {
 			var oc = new OutcomingQuery();
-			ir.push(oc);
-			DatabaseActionTracer tracer = oc.getActions()::add;
+			req.append(oc);
+			DatabaseActionTracer tracer = oc::append;
 			return tracer.connection(cnSupp);
 		}
 		return cnSupp.get();

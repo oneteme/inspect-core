@@ -6,11 +6,15 @@ import java.util.List;
 import lombok.Getter;
 
 @Getter
-public class OutcomingQuery {
+public final class OutcomingQuery {
 
 	private final List<DatabaseAction> actions;
 	
 	public OutcomingQuery() {
 		this.actions = new LinkedList<>();
+	}
+	
+	public void append(DatabaseAction query) {
+		actions.add(query);
 	}
 }
