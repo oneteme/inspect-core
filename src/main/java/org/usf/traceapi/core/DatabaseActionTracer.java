@@ -33,7 +33,8 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	}
 	
 	default ResultSet select(SQLSupplier<ResultSet> supplier) throws SQLException {
-		return new ResultSetWrapper(trace(SELECT, supplier), this);
+		var rs = trace(SELECT, supplier);
+		return new ResultSetWrapper(rs, this, currentTimeMillis());
 	}
 	
 	default <T> T sql(SQLSupplier<T> supplier) throws SQLException {
@@ -65,8 +66,7 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 			return obj;
 		}
 		finally {
-			var fin = currentTimeMillis();
-			accept(new DatabaseAction(action, beg, fin, err));
+			accept(new DatabaseAction(action, beg, currentTimeMillis(), err));
 		}
 	}
 

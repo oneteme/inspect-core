@@ -1,7 +1,5 @@
 package org.usf.traceapi.core;
 
-import static java.lang.System.currentTimeMillis;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -15,10 +13,6 @@ public final class ResultSetWrapper implements ResultSet {
 	private final ResultSet resultSet;
 	private final DatabaseActionTracer wrapper;
 	private final long start;
-
-	public ResultSetWrapper(ResultSet resultSet, DatabaseActionTracer wrapper) {
-		this(resultSet, wrapper, currentTimeMillis());
-	}
 
 	@Override
 	public void close() throws SQLException {
