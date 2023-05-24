@@ -20,19 +20,19 @@ import java.util.function.LongSupplier;
 @FunctionalInterface
 public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	
-	default Connection connection(SQLSupplier<Connection> supplier) throws SQLException {
+	default ConnectionWrapper connection(SQLSupplier<Connection> supplier) throws SQLException {
 		return new ConnectionWrapper(trace(CONNECTION, supplier), this);
 	}
 
-	default Statement statement(SQLSupplier<Statement> supplier) throws SQLException {
+	default StatementWrapper statement(SQLSupplier<Statement> supplier) throws SQLException {
 		return new StatementWrapper(trace(STATEMENT, supplier), this);
 	}
 	
-	default PreparedStatement preparedStatement(SQLSupplier<PreparedStatement> supplier) throws SQLException {
+	default PreparedStatementWrapper preparedStatement(SQLSupplier<PreparedStatement> supplier) throws SQLException {
 		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this);
 	}
 	
-	default ResultSet select(SQLSupplier<ResultSet> supplier) throws SQLException {
+	default ResultSetWrapper select(SQLSupplier<ResultSet> supplier) throws SQLException {
 		var rs = trace(SELECT, supplier);
 		return new ResultSetWrapper(rs, this, currentTimeMillis());
 	}

@@ -1,19 +1,25 @@
 package org.usf.traceapi.core;
 
+import static java.util.Objects.nonNull;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.Delegate;
 
+@Setter(value = AccessLevel.PACKAGE)
 @RequiredArgsConstructor
 public final class ConnectionWrapper implements Connection {
 	
 	@Delegate
 	private final Connection cn;
 	private final DatabaseActionTracer tracer;
+	private Runnable onClose;
 
 	@Override
 	public Statement createStatement() throws SQLException {
@@ -58,5 +64,22 @@ public final class ConnectionWrapper implements Connection {
 	@Override
 	public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
 		return tracer.preparedStatement(()-> cn.prepareStatement(sql, columnNames));
-	}	
+	}
+	
+	@Override
+	public void close() throws SQLException {
+		try {
+			cn.close();
+		}
+		finally {
+			if(nonNull(onClose)) {
+				try {
+					onClose.run();
+				}
+				catch (Exception e) {
+					//do nothing
+				}
+			}
+		}
+	}
 }
