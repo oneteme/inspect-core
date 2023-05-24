@@ -1,17 +1,16 @@
 package org.usf.traceapi.core;
 
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import java.util.LinkedList;
+import java.util.List;
 
-@Setter
-@ToString
-@RequiredArgsConstructor
+import lombok.Getter;
+
+@Getter
 public class OutcomingQuery {
-	
-	//action SELECT | UPDATE
-	private final long start;
-	private final long end;
-	private final boolean failed;
 
+	private final List<DatabaseAction> actions;
+	
+	public OutcomingQuery() {
+		this.actions = new LinkedList<>();
+	}
 }
