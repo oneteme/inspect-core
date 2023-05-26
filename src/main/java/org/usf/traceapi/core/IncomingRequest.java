@@ -12,7 +12,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-public class IncomingRequest extends OutcomingRequest {
+public final class IncomingRequest extends OutcomingRequest {
 
 	private String contentType;
 	private String application;
@@ -23,8 +23,8 @@ public class IncomingRequest extends OutcomingRequest {
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
  	
-	public IncomingRequest(String uuid) {
-		super(uuid);
+	public IncomingRequest(String id) {
+		super(id);
 		this.requests = synchronizedCollection(new LinkedList<>());
 		this.queries = synchronizedCollection(new LinkedList<>());
 	}
