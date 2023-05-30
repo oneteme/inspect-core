@@ -19,17 +19,16 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        return handler instanceof HandlerMethod 
-        		&& ((HandlerMethod) handler).getMethod().isAnnotationPresent(TraceableApi.class);
+        return handler instanceof HandlerMethod; //important! !static resource 
     }
 
     @Override
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-        var trace = localTrace.get();
-        if(trace != null) {
-            HandlerMethod m = (HandlerMethod) handler;
-            TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
-            if(nonNull(a)) {
+        HandlerMethod m = (HandlerMethod) handler;
+        TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
+        if(nonNull(a)) {
+        	var trace = localTrace.get();
+            if(nonNull(trace)) {
             	if(a.endpoint().length > 0) {
             		trace.setEndpoint(lookup(req, a.endpoint(), false));
             	}

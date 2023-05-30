@@ -77,7 +77,7 @@ public final class IncomingRequestFilter implements Filter {
     @SuppressWarnings("unchecked")
     private static String defaultEndpoint(HttpServletRequest req) {
     	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-		return Stream.of(req.getRequestURI().split("/"))
+		return map == null ? null : Stream.of(req.getRequestURI().split("/"))
 				.filter(not(String::isEmpty))
 				.filter(not(map.values()::contains))
 				.collect(joiner);
@@ -86,7 +86,7 @@ public final class IncomingRequestFilter implements Filter {
     @SuppressWarnings("unchecked")
     private static String defaultResource(HttpServletRequest req) {
     	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-    	return map.entrySet().stream()
+    	return map == null ? null : map.entrySet().stream()
     			.map(Entry::getValue)
     			.collect(joiner); //order ?
     }
