@@ -32,10 +32,10 @@ public class TraceConfiguration implements WebMvcConfigurer  {
 	
     @Bean
     public IncomingRequestFilter incomingRequestFilter(
+    		@Value("${api.tracing.application:}") String app,
     		@Value("${api.tracing.server.url:}") String url,
     		@Value("${api.tracing.delay:5}") int delay,
-    		@Value("${api.tracing.unit:SECONDS}") String unit, 
-    		@Value("${api.tracing.application:}") String app) {
+    		@Value("${api.tracing.unit:SECONDS}") String unit) {
     	
     	ClientProvider cp = req-> ofNullable(req.getUserPrincipal())
         		.map(Principal::getName)
