@@ -7,11 +7,9 @@ import java.util.LinkedList;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 @Setter
 @Getter
-@ToString
 public final class IncomingRequest extends OutcomingRequest {
 
 	private String contentType;

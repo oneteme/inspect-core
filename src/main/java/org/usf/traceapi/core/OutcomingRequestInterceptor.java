@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.time.Instant.ofEpochMilli;
 import static org.usf.traceapi.core.IncomingRequestFilter.TRACE_HEADER;
 import static org.usf.traceapi.core.TraceConfiguration.idProvider;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
@@ -30,7 +31,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 			finally {
 				var fin = currentTimeMillis();
 				var stt = res == null ? null : res.getRawStatusCode();
-				trc.append(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), stt, beg, fin));
+				trc.append(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), stt, ofEpochMilli(beg), ofEpochMilli(fin)));
 			}
 		}
 		return res;

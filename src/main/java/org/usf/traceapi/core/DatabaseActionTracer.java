@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.time.Instant.ofEpochMilli;
 import static org.usf.traceapi.core.Action.BATCH;
 import static org.usf.traceapi.core.Action.CONNECTION;
 import static org.usf.traceapi.core.Action.FETCH;
@@ -66,7 +67,8 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 			return obj;
 		}
 		finally {
-			accept(new DatabaseAction(action, beg, currentTimeMillis(), err));
+			var fin = currentTimeMillis();
+			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), err));
 		}
 	}
 

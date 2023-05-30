@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
@@ -36,9 +37,9 @@ public final class DataSourceWrapper implements DataSource {
 			var oc = new OutcomingQuery();
 			req.append(oc);
 			DatabaseActionTracer tracer = oc::append;
-			oc.setStart(currentTimeMillis());
+			oc.setStart(ofEpochMilli(currentTimeMillis()));
 			var cn = tracer.connection(cnSupp); //differed end
-			cn.setOnClose(()-> oc.setEnd(currentTimeMillis()));
+			cn.setOnClose(()-> oc.setEnd(ofEpochMilli(currentTimeMillis())));
 			return cn;
 		}
 		return cnSupp.get();

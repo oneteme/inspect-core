@@ -1,14 +1,16 @@
 package org.usf.traceapi.core;
 
+import static java.time.Duration.between;
+
+import java.time.Instant;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
-@ToString
 @AllArgsConstructor
 @RequiredArgsConstructor
 public class OutcomingRequest {
@@ -17,6 +19,11 @@ public class OutcomingRequest {
 	private String url;
 	private String method;
 	private Integer status; //nullable
-	private long start;
-	private long end;
+	private Instant start;
+	private Instant end;
+	
+	@Override
+	public String toString() {
+		return "REQUEST {" + between(start, end).toMillis() + "ms}";
+	}
 }

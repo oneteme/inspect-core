@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
@@ -57,8 +58,8 @@ public final class IncomingRequestFilter implements Filter {
 			trc.setPrincipal(clientProvider.getClientId(req));
 			trc.setStatus(((HttpServletResponse)response).getStatus());
 			trc.setApplication(application);
-    		trc.setStart(beg);
-    		trc.setEnd(fin);
+    		trc.setStart(ofEpochMilli(beg));
+    		trc.setEnd(ofEpochMilli(fin));
             if(isNull(trc.getEndpoint())) {
             	trc.setEndpoint(defaultEndpoint(req));
             }
