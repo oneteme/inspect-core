@@ -12,12 +12,14 @@ import javax.sql.DataSource;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer  {
 	
 	static final ThreadLocal<IncomingRequest> localTrace = new InheritableThreadLocal<>();
@@ -28,18 +30,29 @@ public class TraceConfiguration implements WebMvcConfigurer  {
     	registry.addInterceptor(new IncomingRequestInterceptor());
     }
 	
-    @Bean("trFilter")
-    public IncomingRequestFilter requestFilter(ClientProvider cp, TraceSender ts, @Value("${api.tracing.application:}") String app) {
-        return new IncomingRequestFilter(cp, ts, app);
+    @Bean
+    public IncomingRequestFilter incomingRequestFilter(
+    		@Value("${api.tracing.server.url:}") String url,
+    		@Value("${api.tracing.delay:5}") int delay,
+    		@Value("${api.tracing.unit:SECONDS}") String unit, 
+    		@Value("${api.tracing.application:}") String app) {
+    	
+    	ClientProvider cp = req-> ofNullable(req.getUserPrincipal())
+        		.map(Principal::getName)
+        		.orElse(null);
+    	TraceSender ts = url.isBlank() 
+        		? res-> {} 
+        		: new RemoteTraceSender(url, delay, TimeUnit.valueOf(unit));
+    	return new IncomingRequestFilter(cp, ts, app);
     }
 
-    @Bean("trInterceptor")
-    public OutcomingRequestInterceptor requestInterceptor() {
+    @Bean
+    public OutcomingRequestInterceptor outcomingRequestInterceptor() {
         return new OutcomingRequestInterceptor();
     }
 
-    @Bean("trDataSource")
-    public BeanPostProcessor queryTracer() {
+    @Bean
+    public BeanPostProcessor dataSourceWrapper() {
     	return new BeanPostProcessor() {
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -50,23 +63,4 @@ public class TraceConfiguration implements WebMvcConfigurer  {
 		};
     }
     
-    @Bean
-    public ClientProvider clientSupplier() {
-        return req-> ofNullable(req.getUserPrincipal())
-        		.map(Principal::getName)
-        		.orElse(null); //custom request user
-    }
-    
-    @Bean
-    public TraceSender traceSender(
-    		@Value("${api.tracing.server.url:}") String url,
-    		@Value("${api.tracing.enabled:true}") boolean enabled,
-    		@Value("${api.tracing.delay:5}") int delay,
-    		@Value("${api.tracing.unit:SECONDS}") String unit) {
-    	
-        return !enabled || url.isBlank() 
-        		? res-> {} 
-        		: new RemoteTraceSender(url, delay, TimeUnit.valueOf(unit));
-    }
-
 }
