@@ -10,15 +10,16 @@ import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@EnableConfigurationProperties(TraceConfig.class)
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer  {
 	
@@ -31,19 +32,15 @@ public class TraceConfiguration implements WebMvcConfigurer  {
     }
 	
     @Bean
-    public IncomingRequestFilter incomingRequestFilter(
-    		@Value("${api.tracing.application:}") String app,
-    		@Value("${api.tracing.server.url:}") String url,
-    		@Value("${api.tracing.delay:5}") int delay,
-    		@Value("${api.tracing.unit:SECONDS}") String unit) {
+    public IncomingRequestFilter incomingRequestFilter(TraceConfig config) {
     	
     	ClientProvider cp = req-> ofNullable(req.getUserPrincipal())
         		.map(Principal::getName)
         		.orElse(null);
-    	TraceSender ts = url.isBlank() 
+    	TraceSender ts = config.getUrl().isBlank() 
         		? res-> {} 
-        		: new RemoteTraceSender(url, delay, TimeUnit.valueOf(unit));
-    	return new IncomingRequestFilter(cp, ts, app);
+        		: new RemoteTraceSender(config.getUrl(), config.getDelay(), TimeUnit.valueOf(config.getUnit()));
+    	return new IncomingRequestFilter(cp, ts, config.getApplication());
     }
 
     @Bean
