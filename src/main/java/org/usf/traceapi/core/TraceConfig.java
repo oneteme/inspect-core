@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "api.tracing")
-public class TraceConfig {
+public final class TraceConfig {
 	
 	private String application = "";
 	private String url = "";
