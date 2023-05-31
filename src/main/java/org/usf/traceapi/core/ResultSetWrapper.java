@@ -6,6 +6,11 @@ import java.sql.SQLException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @RequiredArgsConstructor
 public final class ResultSetWrapper implements ResultSet {
 

@@ -9,6 +9,11 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Getter
 @Setter
 @AllArgsConstructor
@@ -19,7 +24,8 @@ public class OutcomingRequest {
 	private String url;
 	private String method;
 	private Integer status; //nullable
-	private Instant start;
+	private int size;
+ 	private Instant start;
 	private Instant end;
 	
 	@Override

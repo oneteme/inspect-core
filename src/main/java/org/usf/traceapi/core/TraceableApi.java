@@ -5,6 +5,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TraceableApi {
@@ -12,6 +17,8 @@ public @interface TraceableApi {
 	String[] endpoint() default {};
 
 	String[] resource() default {};
+	
+	Class<ClientProvider> clientProvider(); //require no args constructor
 	
 	//boolean enabled() default true;
 }

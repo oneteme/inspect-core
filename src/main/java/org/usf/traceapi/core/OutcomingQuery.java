@@ -9,10 +9,16 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Getter
 @Setter
 public final class OutcomingQuery {
 
+	private String url;
 	private Instant start;
 	private Instant end;
 	private final List<DatabaseAction> actions;

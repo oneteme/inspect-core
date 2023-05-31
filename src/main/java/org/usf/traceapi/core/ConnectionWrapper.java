@@ -12,6 +12,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Delegate;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Setter(value = AccessLevel.PACKAGE)
 @RequiredArgsConstructor
 public final class ConnectionWrapper implements Connection {

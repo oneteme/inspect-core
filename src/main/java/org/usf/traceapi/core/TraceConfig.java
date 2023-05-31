@@ -5,6 +5,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "api.tracing")

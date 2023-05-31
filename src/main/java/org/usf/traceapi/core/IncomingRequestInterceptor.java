@@ -15,6 +15,14 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * 
+ * @author u$f
+ *
+ */
+@Slf4j
 public final class IncomingRequestInterceptor implements HandlerInterceptor { //AsyncHandlerInterceptor ?
 
     @Override
@@ -29,6 +37,9 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
         if(nonNull(a)) {
         	var trace = localTrace.get();
             if(nonNull(trace)) {
+            	if(nonNull(a.clientProvider())){
+            		trace.setClient(supplyClient(req, a.clientProvider()));
+            	}
             	if(a.endpoint().length > 0) {
             		trace.setEndpoint(lookup(req, a.endpoint(), false));
             	}
@@ -50,4 +61,14 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
         	return nonNull(res) ? res : key; // constant
     	}).collect(joiner);
     }
+    
+    private static String supplyClient(HttpServletRequest req, Class<ClientProvider> clasz) { //simple impl.
+		try {
+			return clasz.getDeclaredConstructor().newInstance().supply(req);
+		} catch (Exception e) {
+			log.warn("cannot instantiate class " + clasz, e);
+		}
+		return null;
+    }
+    
 }

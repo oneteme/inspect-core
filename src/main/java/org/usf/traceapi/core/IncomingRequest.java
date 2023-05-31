@@ -8,15 +8,20 @@ import java.util.LinkedList;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Setter
 @Getter
 public final class IncomingRequest extends OutcomingRequest {
 
 	private String contentType;
 	private String application;
-	private String endpoint;
-	private String resource;
-	private String principal;
+	private String endpoint; //nullable
+	private String resource; //nullable
+	private String client; 	 //nullable
 	private String query;
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;

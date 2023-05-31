@@ -15,6 +15,11 @@ import org.usf.traceapi.core.DatabaseActionTracer.SQLSupplier;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @RequiredArgsConstructor
 public final class DataSourceWrapper implements DataSource {
 
@@ -38,8 +43,9 @@ public final class DataSourceWrapper implements DataSource {
 			req.append(oc);
 			DatabaseActionTracer tracer = oc::append;
 			oc.setStart(ofEpochMilli(currentTimeMillis()));
-			var cn = tracer.connection(cnSupp); //differed end
-			cn.setOnClose(()-> oc.setEnd(ofEpochMilli(currentTimeMillis())));
+			var cn = tracer.connection(cnSupp);
+			oc.setUrl(cn.getMetaData().getURL());
+			cn.setOnClose(()-> oc.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
 			return cn;
 		}
 		return cnSupp.get();

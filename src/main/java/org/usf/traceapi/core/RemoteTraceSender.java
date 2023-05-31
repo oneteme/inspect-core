@@ -9,6 +9,11 @@ import org.springframework.web.client.RestTemplate;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @RequiredArgsConstructor
 public final class RemoteTraceSender implements TraceSender {
 
@@ -19,8 +24,8 @@ public final class RemoteTraceSender implements TraceSender {
 	private final TimeUnit unit;
 	private final RestTemplate template;
 	
-	public RemoteTraceSender(String url, int delay, TimeUnit unit) {
-		this(url, delay, unit, new RestTemplate());
+	public RemoteTraceSender(TraceConfig config) {
+		this(config.getUrl(), config.getDelay(), TimeUnit.valueOf(config.getUnit()), new RestTemplate());
 	}
 
 	@Override

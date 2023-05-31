@@ -18,6 +18,11 @@ import java.sql.Statement;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @FunctionalInterface
 public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	

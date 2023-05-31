@@ -13,6 +13,11 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 public final class OutcomingRequestInterceptor implements ClientHttpRequestInterceptor {
 	
 	@Override
@@ -31,7 +36,8 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 			finally {
 				var fin = currentTimeMillis();
 				var stt = res == null ? null : res.getRawStatusCode();
-				trc.append(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), stt, ofEpochMilli(beg), ofEpochMilli(fin)));
+				var siz = body == null ? -1 : body.length;
+				trc.append(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), stt, siz, ofEpochMilli(beg), ofEpochMilli(fin)));
 			}
 		}
 		return res;

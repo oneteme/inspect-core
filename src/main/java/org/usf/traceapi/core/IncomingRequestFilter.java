@@ -27,6 +27,11 @@ import javax.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Slf4j
 @RequiredArgsConstructor
 public final class IncomingRequestFilter implements Filter {
@@ -55,11 +60,15 @@ public final class IncomingRequestFilter implements Filter {
     		trc.setUrl(req.getRequestURL().toString());
     		trc.setQuery(req.getQueryString());
     		trc.setContentType(response.getContentType());
-			trc.setPrincipal(clientProvider.getClientId(req));
 			trc.setStatus(((HttpServletResponse)response).getStatus());
+			trc.setSize(req.getContentLength());
 			trc.setApplication(application);
     		trc.setStart(ofEpochMilli(beg));
     		trc.setEnd(ofEpochMilli(fin));
+    		//customizable data see IncomingRequestInterceptor
+    		if(isNull(trc.getClient())) {
+    			trc.setClient(clientProvider.supply(req));
+    		}
             if(isNull(trc.getEndpoint())) {
             	trc.setEndpoint(defaultEndpoint(req));
             }
