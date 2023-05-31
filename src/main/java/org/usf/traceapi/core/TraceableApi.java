@@ -18,7 +18,7 @@ public @interface TraceableApi {
 
 	String[] resource() default {};
 	
-	Class<ClientProvider> clientProvider(); //require no args constructor
+	Class<? extends ClientProvider> clientProvider() default ClientProvider.class; //require no args constructor
 	
 	//boolean enabled() default true;
 }

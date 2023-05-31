@@ -25,7 +25,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableConfigurationProperties(TraceConfig.class)
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
-public class TraceConfiguration implements WebMvcConfigurer  {
+public class TraceConfiguration implements WebMvcConfigurer {
 	
 	static final ThreadLocal<IncomingRequest> localTrace = new InheritableThreadLocal<>();
 	static final Supplier<String> idProvider = ()-> randomUUID().toString();

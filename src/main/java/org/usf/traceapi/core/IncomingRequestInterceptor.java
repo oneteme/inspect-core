@@ -37,7 +37,7 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
         if(nonNull(a)) {
         	var trace = localTrace.get();
             if(nonNull(trace)) {
-            	if(nonNull(a.clientProvider())){
+            	if(a.clientProvider() != ClientProvider.class){
             		trace.setClient(supplyClient(req, a.clientProvider()));
             	}
             	if(a.endpoint().length > 0) {
@@ -62,7 +62,7 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
     	}).collect(joiner);
     }
     
-    private static String supplyClient(HttpServletRequest req, Class<ClientProvider> clasz) { //simple impl.
+    private static String supplyClient(HttpServletRequest req, Class<? extends ClientProvider> clasz) { //simple impl.
 		try {
 			return clasz.getDeclaredConstructor().newInstance().supply(req);
 		} catch (Exception e) {
