@@ -47,6 +47,7 @@ public final class IncomingRequestFilter implements Filter {
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
     	var req = (HttpServletRequest) request;
+    	var res = (HttpServletResponse) response;
     	var trc = new IncomingRequest(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
     	localTrace.set(trc);
     	var beg = currentTimeMillis();
@@ -59,8 +60,8 @@ public final class IncomingRequestFilter implements Filter {
     		trc.setMethod(req.getMethod());
     		trc.setUrl(req.getRequestURL().toString());
     		trc.setQuery(req.getQueryString());
-    		trc.setContentType(response.getContentType());
-			trc.setStatus(((HttpServletResponse)response).getStatus());
+    		trc.setContentType(res.getContentType());
+			trc.setStatus(res.getStatus());
 			trc.setSize(req.getContentLength());
 			trc.setApplication(application);
     		trc.setStart(ofEpochMilli(beg));

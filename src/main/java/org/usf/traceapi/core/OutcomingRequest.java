@@ -24,7 +24,7 @@ public class OutcomingRequest {
 	private String url;
 	private String method;
 	private Integer status; //nullable
-	private int size;
+	private long size;
  	private Instant start;
 	private Instant end;
 	

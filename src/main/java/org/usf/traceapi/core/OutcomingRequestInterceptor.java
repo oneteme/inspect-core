@@ -36,7 +36,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 			finally {
 				var fin = currentTimeMillis();
 				var stt = res == null ? null : res.getRawStatusCode();
-				var siz = body == null ? -1 : body.length;
+				var siz = request.getHeaders().getContentLength();
 				trc.append(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), stt, siz, ofEpochMilli(beg), ofEpochMilli(fin)));
 			}
 		}

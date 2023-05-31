@@ -27,6 +27,7 @@
 	</licenses>
 	<properties>
 		<java.version>11</java.version>
+    <junit.version>5.8.1</junit.version>
 		<spring.version>2.6.4</spring.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -47,6 +48,18 @@
       <artifactId>spring-boot-starter-web</artifactId>
       <version>${spring.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
     </dependency>
 	</dependencies>
 	<build>
