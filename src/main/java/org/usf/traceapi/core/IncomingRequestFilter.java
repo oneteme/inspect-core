@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.lang.Thread.currentThread;
 import static java.net.URI.create;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
@@ -49,8 +50,8 @@ public final class IncomingRequestFilter implements Filter {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
     	var req = (HttpServletRequest) request;
     	var res = (HttpServletResponse) response;
-    	var trc = new IncomingRequest(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
-    	localTrace.set(trc);
+    	var in  = new IncomingRequest(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
+    	localTrace.set(in);
     	var beg = currentTimeMillis();
     	try {
             chain.doFilter(req, response);
@@ -59,30 +60,31 @@ public final class IncomingRequestFilter implements Filter {
     		var fin = currentTimeMillis();
     		localTrace.remove();
     		var uri = create(req.getRequestURL().toString());
-    		trc.setProtocol(uri.getScheme());
-    		trc.setHost(uri.getHost());
-    		trc.setPort(uri.getPort());
-    		trc.setMethod(req.getMethod());
-    		trc.setPath(req.getRequestURI()); // path
-    		trc.setQuery(req.getQueryString());
-    		trc.setContentType(res.getContentType());
-			trc.setStatus(res.getStatus());
-			trc.setSize(req.getContentLength());
-			trc.setApplication(application);
-    		trc.setStart(ofEpochMilli(beg));
-    		trc.setEnd(ofEpochMilli(fin));
+    		in.setProtocol(uri.getScheme());
+    		in.setHost(uri.getHost());
+    		in.setPort(uri.getPort());
+    		in.setMethod(req.getMethod());
+    		in.setPath(req.getRequestURI()); // path
+    		in.setQuery(req.getQueryString());
+    		in.setContentType(res.getContentType());
+			in.setStatus(res.getStatus());
+			in.setSize(req.getContentLength());
+			in.setApplication(application);
+    		in.setStart(ofEpochMilli(beg));
+    		in.setEnd(ofEpochMilli(fin));
+    		in.setThread(currentThread().getName());
     		//customizable data see IncomingRequestInterceptor
-    		if(isNull(trc.getClient())) {
-    			trc.setClient(clientProvider.supply(req));
+    		if(isNull(in.getClient())) {
+    			in.setClient(clientProvider.supply(req));
     		}
-            if(isNull(trc.getEndpoint())) {
-            	trc.setEndpoint(defaultEndpoint(req));
+            if(isNull(in.getEndpoint())) {
+            	in.setEndpoint(defaultEndpoint(req));
             }
-            if(isNull(trc.getResource())) {
-            	trc.setResource(defaultResource(req));
+            if(isNull(in.getResource())) {
+            	in.setResource(defaultResource(req));
             }
     		try {
-    			traceSender.send(trc);
+    			traceSender.send(in);
     		}
     		catch(Exception e) {
 				log.warn("error while tracing request : {}", request, e);

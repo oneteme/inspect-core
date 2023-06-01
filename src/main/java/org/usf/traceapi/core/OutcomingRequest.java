@@ -1,5 +1,6 @@
 package org.usf.traceapi.core;
 
+import static java.lang.String.format;
 import static java.time.Duration.between;
 
 import java.time.Instant;
@@ -29,9 +30,10 @@ public class OutcomingRequest {
 	private long size;
  	private Instant start;
 	private Instant end;
+	private String thread;
 	
 	@Override
 	public String toString() {
-		return "REQUEST {" + between(start, end).toMillis() + "ms}";
+		return format("%-20s", thread) + ": REQUEST {" +  format("%5s", between(start, end).toMillis()) + "ms}";
 	}
 }

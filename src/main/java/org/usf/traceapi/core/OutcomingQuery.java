@@ -1,5 +1,6 @@
 package org.usf.traceapi.core;
 
+import static java.lang.String.format;
 import static java.time.Duration.between;
 
 import java.time.Instant;
@@ -21,6 +22,7 @@ public final class OutcomingQuery {
 	private String url;
 	private Instant start;
 	private Instant end;
+	private String thread;
 	private final List<DatabaseAction> actions;
 	
 	public OutcomingQuery() {
@@ -33,6 +35,6 @@ public final class OutcomingQuery {
 	
 	@Override
 	public String toString() {
-		return "QUERY {" + between(start, end).toMillis() + "ms}";
+		return format("%-20s", thread) + ": QUERY   {" +  format("%5s", between(start, end).toMillis()) + "ms}";
 	}
 }

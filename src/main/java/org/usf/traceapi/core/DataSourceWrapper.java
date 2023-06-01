@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.lang.Thread.currentThread;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
@@ -48,13 +49,14 @@ public final class DataSourceWrapper implements DataSource {
 	private Connection getConnection(SQLSupplier<Connection> cnSupp) throws SQLException {
 		var req = localTrace.get();
 		if(nonNull(req)) {
-			var oc = new OutcomingQuery();
-			req.append(oc);
-			DatabaseActionTracer tracer = oc::append;
-			oc.setStart(ofEpochMilli(currentTimeMillis()));
+			var out = new OutcomingQuery();
+			req.append(out);
+			DatabaseActionTracer tracer = out::append;
+			out.setStart(ofEpochMilli(currentTimeMillis()));
 			var cn = tracer.connection(cnSupp);
-			oc.setUrl(shortURL(cn.getMetaData().getURL()));
-			cn.setOnClose(()-> oc.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
+			out.setUrl(shortURL(cn.getMetaData().getURL()));
+			out.setThread(currentThread().getName());
+			cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
 			return cn;
 		}
 		return cnSupp.get();

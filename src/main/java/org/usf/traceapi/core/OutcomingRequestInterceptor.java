@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.lang.Thread.currentThread;
 import static java.time.Instant.ofEpochMilli;
 import static org.usf.traceapi.core.IncomingRequestFilter.TRACE_HEADER;
 import static org.usf.traceapi.core.TraceConfiguration.idProvider;
@@ -35,18 +36,19 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 			}
 			finally {
 				var fin = currentTimeMillis();
-				var or = new OutcomingRequest(idProvider.get());
-				or.setMethod(request.getMethodValue());
-				or.setProtocol(request.getURI().getScheme());
-				or.setHost(request.getURI().getHost());
-				or.setPort(request.getURI().getPort());
-				or.setPath(request.getURI().getPath());
-				or.setQuery(request.getURI().getQuery());
-				or.setStatus(res == null ? null : res.getRawStatusCode());
-				or.setSize(request.getHeaders().getContentLength());
-				or.setStart(ofEpochMilli(beg));
-				or.setEnd(ofEpochMilli(fin));
-				trc.append(or);
+				var out = new OutcomingRequest(idProvider.get());
+				out.setMethod(request.getMethodValue());
+				out.setProtocol(request.getURI().getScheme());
+				out.setHost(request.getURI().getHost());
+				out.setPort(request.getURI().getPort());
+				out.setPath(request.getURI().getPath());
+				out.setQuery(request.getURI().getQuery());
+				out.setStatus(res == null ? null : res.getRawStatusCode());
+				out.setSize(request.getHeaders().getContentLength());
+				out.setStart(ofEpochMilli(beg));
+				out.setEnd(ofEpochMilli(fin));
+				out.setThread(currentThread().getName());
+				trc.append(out);
 			}
 		}
 		return res;
