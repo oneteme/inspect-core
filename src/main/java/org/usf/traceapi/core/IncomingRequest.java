@@ -18,10 +18,10 @@ import lombok.Setter;
 public final class IncomingRequest extends OutcomingRequest {
 
 	private String contentType;
-	private String application;
 	private String endpoint; //nullable
 	private String resource; //nullable
 	private String client; 	 //nullable
+	private String group;
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
  	

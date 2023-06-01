@@ -46,6 +46,9 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
             	if(a.resource().length > 0) {
             		trace.setResource(lookup(req, a.resource(), true));
             	}
+            	if(!a.group().isEmpty()) {
+            		trace.setGroup(a.group());
+            	}
             }
         }
     }

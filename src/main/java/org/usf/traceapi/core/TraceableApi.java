@@ -14,6 +14,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TraceableApi {
 	
+	String group() default "";
+	
 	String[] endpoint() default {};
 
 	String[] resource() default {};

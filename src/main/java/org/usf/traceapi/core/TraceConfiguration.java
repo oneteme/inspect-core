@@ -44,7 +44,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	TraceSender ts = config.getUrl().isBlank() 
         		? res-> {} 
         		: new RemoteTraceSender(config);
-    	return new IncomingRequestFilter(cp, ts, config.getApplication());
+    	return new IncomingRequestFilter(cp, ts);
     }
 
     @Bean

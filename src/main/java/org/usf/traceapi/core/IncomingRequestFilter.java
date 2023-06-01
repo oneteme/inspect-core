@@ -44,8 +44,6 @@ public final class IncomingRequestFilter implements Filter {
 	private final ClientProvider clientProvider;
 	private final TraceSender traceSender;
 	
-	private final String application;
-	
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
     	var req = (HttpServletRequest) request;
@@ -69,7 +67,6 @@ public final class IncomingRequestFilter implements Filter {
     		in.setContentType(res.getContentType());
 			in.setStatus(res.getStatus());
 			in.setSize(req.getContentLength());
-			in.setApplication(application);
     		in.setStart(ofEpochMilli(beg));
     		in.setEnd(ofEpochMilli(fin));
     		in.setThread(currentThread().getName());
@@ -83,6 +80,7 @@ public final class IncomingRequestFilter implements Filter {
             if(isNull(in.getResource())) {
             	in.setResource(defaultResource(req));
             }
+            //cannot override collection
     		try {
     			traceSender.send(in);
     		}

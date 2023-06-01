@@ -15,7 +15,6 @@ import lombok.Setter;
 @ConfigurationProperties(prefix = "api.tracing")
 public final class TraceConfig {
 	
-	private String application = "";
 	private String url = "";
 	private int delay = 5;
 	private String unit = "SECONDS";
