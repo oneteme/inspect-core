@@ -12,7 +12,6 @@ import static org.usf.traceapi.core.TraceConfiguration.idProvider;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collector;
