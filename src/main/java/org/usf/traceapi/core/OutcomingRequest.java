@@ -21,7 +21,7 @@ public class OutcomingRequest {
 	private final String id;
 	private String protocol;
 	private String host;
-	private Integer port;
+	private int port;
 	private String path;
 	private String query;
 	private String method;
