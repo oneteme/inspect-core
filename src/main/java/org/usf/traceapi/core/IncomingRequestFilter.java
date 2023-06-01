@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.net.URI.create;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
@@ -58,7 +59,7 @@ public final class IncomingRequestFilter implements Filter {
     	finally {
     		var fin = currentTimeMillis();
     		localTrace.remove();
-    		var uri = URI.create(req.getRequestURL().toString());
+    		var uri = create(req.getRequestURL().toString());
     		trc.setProtocol(uri.getScheme());
     		trc.setHost(uri.getHost());
     		trc.setPort(uri.getPort());
