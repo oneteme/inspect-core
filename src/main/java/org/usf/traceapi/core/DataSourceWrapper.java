@@ -30,7 +30,7 @@ import lombok.experimental.Delegate;
 public final class DataSourceWrapper implements DataSource {
 
 	private static final Pattern hostPattern =
-			compile("^jdbc[:\\w+]+@?//([\\w+\\.:]+)/(?:.*database=(\\w+).*||(\\w+)(?:\\?.*)?|.*)$", CASE_INSENSITIVE);
+			compile("^jdbc[:\\w+]+@?//([\\w+\\.:]+)/(?:.*database=(\\w+).*|(\\w+)(?:\\?.*)?|.*)$", CASE_INSENSITIVE);
 	
 	@Delegate
 	private final DataSource ds;
