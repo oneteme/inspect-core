@@ -22,7 +22,6 @@ public final class IncomingRequest extends OutcomingRequest {
 	private String endpoint; //nullable
 	private String resource; //nullable
 	private String client; 	 //nullable
-	private String query;
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
  	

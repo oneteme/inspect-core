@@ -35,9 +35,18 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 			}
 			finally {
 				var fin = currentTimeMillis();
-				var stt = res == null ? null : res.getRawStatusCode();
-				var siz = request.getHeaders().getContentLength();
-				trc.append(new OutcomingRequest(idProvider.get(), request.getURI().toString(), request.getMethodValue(), stt, siz, ofEpochMilli(beg), ofEpochMilli(fin)));
+				var or = new OutcomingRequest(idProvider.get());
+				or.setMethod(request.getMethodValue());
+				or.setProtocol(request.getURI().getScheme());
+				or.setHost(request.getURI().getHost());
+				or.setPort(request.getURI().getPort());
+				or.setPath(request.getURI().getPath());
+				or.setQuery(request.getURI().getQuery());
+				or.setStatus(res == null ? null : res.getRawStatusCode());
+				or.setSize(request.getHeaders().getContentLength());
+				or.setStart(ofEpochMilli(beg));
+				or.setEnd(ofEpochMilli(fin));
+				trc.append(or);
 			}
 		}
 		return res;

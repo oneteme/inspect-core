@@ -4,7 +4,6 @@ import static java.time.Duration.between;
 
 import java.time.Instant;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -16,12 +15,15 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@AllArgsConstructor
 @RequiredArgsConstructor
 public class OutcomingRequest {
 
 	private final String id;
-	private String url;
+	private String protocol;
+	private String host;
+	private Integer port;
+	private String path;
+	private String query;
 	private String method;
 	private Integer status; //nullable
 	private long size;

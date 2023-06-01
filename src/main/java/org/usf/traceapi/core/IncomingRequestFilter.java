@@ -11,6 +11,7 @@ import static org.usf.traceapi.core.TraceConfiguration.idProvider;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collector;
@@ -57,8 +58,12 @@ public final class IncomingRequestFilter implements Filter {
     	finally {
     		var fin = currentTimeMillis();
     		localTrace.remove();
+    		var uri = URI.create(req.getRequestURL().toString());
+    		trc.setProtocol(uri.getScheme());
+    		trc.setHost(uri.getHost());
+    		trc.setPort(uri.getPort());
     		trc.setMethod(req.getMethod());
-    		trc.setUrl(req.getRequestURL().toString());
+    		trc.setPath(req.getRequestURI()); // path
     		trc.setQuery(req.getQueryString());
     		trc.setContentType(res.getContentType());
 			trc.setStatus(res.getStatus());

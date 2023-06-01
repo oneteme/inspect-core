@@ -22,7 +22,7 @@ public class DatabaseAction {
 	private final Instant start;
 	private final Instant end;
 	private final boolean failed;
-	//private final long count;
+	//private final long rows;
 	
 	@Override
 	public String toString() {
