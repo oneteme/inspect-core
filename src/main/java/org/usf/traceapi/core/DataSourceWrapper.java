@@ -64,10 +64,7 @@ public final class DataSourceWrapper implements DataSource {
 	
 	static String shortURL(String url) {
 		var m = hostPattern.matcher(url);
-		return m.find() ? IntStream.range(1, m.groupCount()+1)
-				.mapToObj(m::group)
-				.filter(Objects::nonNull)
-				.collect(joining("/")) : null;
+		return m.find() ? IntStream.range(1, m.groupCount()+1).mapToObj(m::group).filter(Objects::nonNull).collect(joining("/")) : null;
 	}
 	
 }
