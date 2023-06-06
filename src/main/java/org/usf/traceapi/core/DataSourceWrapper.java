@@ -7,13 +7,13 @@ import static java.util.Objects.nonNull;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.IntStream.range;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
 
 import javax.sql.DataSource;
 
@@ -31,7 +31,7 @@ import lombok.experimental.Delegate;
 public final class DataSourceWrapper implements DataSource {
 
 	private static final Pattern hostPattern =
-			compile("^jdbc[:\\w+]+@?//([\\w+\\.:]+)/(?:.*database=(\\w+).*|(\\w+)(?:\\?.*)?|.*)$", CASE_INSENSITIVE);
+			compile("^jdbc[:\\w+]+@?//([\\w+-\\.:]+)/(?:.*database=(\\w+).*|(\\w+)(?:\\?.*)?|.*)$", CASE_INSENSITIVE);
 	
 	@Delegate
 	private final DataSource ds;
@@ -64,7 +64,7 @@ public final class DataSourceWrapper implements DataSource {
 	
 	static String shortURL(String url) {
 		var m = hostPattern.matcher(url);
-		return m.find() ? IntStream.range(1, m.groupCount()+1).mapToObj(m::group).filter(Objects::nonNull).collect(joining("/")) : null;
+		return m.find() ? range(1, m.groupCount()+1).mapToObj(m::group).filter(Objects::nonNull).collect(joining("/")) : null;
 	}
 	
 }
