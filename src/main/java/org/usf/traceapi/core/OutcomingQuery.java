@@ -17,7 +17,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class OutcomingQuery {
+public class OutcomingQuery {
 
 	private String url;
 	private Instant start;
