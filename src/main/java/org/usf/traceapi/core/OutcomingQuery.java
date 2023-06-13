@@ -23,14 +23,16 @@ public class OutcomingQuery {
 	private Instant start;
 	private Instant end;
 	private String thread;
+	private boolean failed;
 	private final List<DatabaseAction> actions;
 	
 	public OutcomingQuery() {
 		this.actions = new LinkedList<>();
 	}
 	
-	public void append(DatabaseAction query) {
-		actions.add(query);
+	public void append(DatabaseAction action) {
+		actions.add(action);
+		failed &= action.isFailed();
 	}
 	
 	@Override
