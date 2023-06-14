@@ -19,7 +19,8 @@ import lombok.Setter;
 @Setter
 public class OutcomingQuery {
 
-	private String url;
+	private String host;
+	private String schema;
 	private Instant start;
 	private Instant end;
 	private String thread;
