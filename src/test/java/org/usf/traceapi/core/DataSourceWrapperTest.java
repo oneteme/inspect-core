@@ -1,7 +1,7 @@
 package org.usf.traceapi.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.traceapi.core.DataSourceWrapper.shortURL;
+import static org.usf.traceapi.core.DataSourceWrapper.decodeURL;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -17,7 +17,7 @@ class DataSourceWrapperTest {
 	})
 	@ParameterizedTest
 	void testShortURL(String origin, String host, String schema) {
-		var arr = shortURL(origin);
+		var arr = decodeURL(origin);
 		assertEquals(host, arr[0]);
 		assertEquals(schema, arr[1]);
 	}

@@ -54,7 +54,7 @@ public final class DataSourceWrapper implements DataSource {
 			out.setStart(ofEpochMilli(currentTimeMillis()));
 			try {
 				var cn = tracer.connection(cnSupp);
-				var arr = shortURL(cn.getMetaData().getURL());
+				var arr = decodeURL(cn.getMetaData().getURL());
 				out.setHost(arr[0]);
 				out.setSchema(arr[1]);
 				cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
@@ -67,7 +67,7 @@ public final class DataSourceWrapper implements DataSource {
 		return cnSupp.get();
 	}
 	
-	static String[] shortURL(String url) {
+	static String[] decodeURL(String url) {
 		var m = hostPattern.matcher(url);
 		String[] arr = new String[2];
 		if(m.find()) {
