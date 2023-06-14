@@ -50,14 +50,19 @@ public final class DataSourceWrapper implements DataSource {
 			var out = new OutcomingQuery();
 			req.append(out);
 			DatabaseActionTracer tracer = out::append;
-			out.setStart(ofEpochMilli(currentTimeMillis()));
-			var cn = tracer.connection(cnSupp);
-			var arr = shortURL(cn.getMetaData().getURL());
-			out.setHost(arr[0]);
-			out.setSchema(arr[1]);
 			out.setThread(currentThread().getName());
-			cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
-			return cn;
+			out.setStart(ofEpochMilli(currentTimeMillis()));
+			try {
+				var cn = tracer.connection(cnSupp);
+				var arr = shortURL(cn.getMetaData().getURL());
+				out.setHost(arr[0]);
+				out.setSchema(arr[1]);
+				cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
+				return cn;
+			}
+			catch(SQLException e) {
+				out.setEnd(ofEpochMilli(currentTimeMillis()));
+			}
 		}
 		return cnSupp.get();
 	}
