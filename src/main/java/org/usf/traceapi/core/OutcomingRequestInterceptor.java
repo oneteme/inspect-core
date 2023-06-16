@@ -4,6 +4,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.IncomingRequestFilter.TRACE_HEADER;
 import static org.usf.traceapi.core.TraceConfiguration.idProvider;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
@@ -15,11 +16,14 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 
  * @author u$f
  *
  */
+@Slf4j
 public final class OutcomingRequestInterceptor implements ClientHttpRequestInterceptor {
 	
 	@Override
@@ -37,19 +41,29 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 		}
 		finally {
 			var fin = currentTimeMillis();
-			out.setMethod(request.getMethodValue());
-			out.setProtocol(request.getURI().getScheme());
-			out.setHost(request.getURI().getHost());
-			out.setPort(request.getURI().getPort());
-			out.setPath(request.getURI().getPath());
-			out.setQuery(request.getURI().getQuery());
-			out.setStatus(res == null ? null : res.getRawStatusCode());
-			out.setSize(request.getHeaders().getContentLength());
-			out.setStart(ofEpochMilli(beg));
-			out.setEnd(ofEpochMilli(fin));
-			out.setThread(currentThread().getName());
-			trc.append(out);
+			try {
+				out.setMethod(request.getMethodValue());
+				out.setProtocol(request.getURI().getScheme());
+				out.setHost(request.getURI().getHost());
+				out.setPort(request.getURI().getPort());
+				out.setPath(request.getURI().getPath());
+				out.setQuery(request.getURI().getQuery());
+				out.setStart(ofEpochMilli(beg));
+				out.setEnd(ofEpochMilli(fin));
+				out.setInDataSize(nonNull(body) ? body.length : 0); //not exact !?
+				out.setThread(currentThread().getName());
+				if(nonNull(res)) {
+					out.setStatus(res.getRawStatusCode());
+					out.setOutDataSize(res.getBody().available()); //not exact !?
+				}
+				trc.append(out);
+			}
+			catch(Exception e) {
+				log.warn("error while tracing : {}" + request, e);
+				//do not catch exception
+			}
 		}
 		return res;
 	}
+	
 }

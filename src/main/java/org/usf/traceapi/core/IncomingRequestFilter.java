@@ -26,6 +26,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.util.StreamUtils;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,40 +54,41 @@ public final class IncomingRequestFilter implements Filter {
     	localTrace.set(in);
     	var beg = currentTimeMillis();
     	try {
-            chain.doFilter(req, response);
+            chain.doFilter(request, response);
     	}
     	finally {
     		var fin = currentTimeMillis();
-    		localTrace.remove();
-    		var uri = create(req.getRequestURL().toString());
-    		in.setProtocol(uri.getScheme());
-    		in.setHost(uri.getHost());
-    		in.setPort(uri.getPort());
-    		in.setMethod(req.getMethod());
-    		in.setPath(req.getRequestURI()); // path
-    		in.setQuery(req.getQueryString());
-    		in.setContentType(res.getContentType());
-			in.setStatus(res.getStatus());
-			in.setSize(req.getContentLength());
-    		in.setStart(ofEpochMilli(beg));
-    		in.setEnd(ofEpochMilli(fin));
-    		in.setThread(currentThread().getName());
-    		//customizable data see IncomingRequestInterceptor
-    		if(isNull(in.getClient())) {
-    			in.setClient(clientProvider.supply(req));
-    		}
-            if(isNull(in.getEndpoint())) {
-            	in.setEndpoint(defaultEndpoint(req));
-            }
-            if(isNull(in.getResource())) {
-            	in.setResource(defaultResource(req));
-            }
-            //cannot override collection
     		try {
+	    		localTrace.remove();
+	    		var uri = create(req.getRequestURL().toString());
+	    		in.setProtocol(uri.getScheme());
+	    		in.setHost(uri.getHost());
+	    		in.setPort(uri.getPort());
+	    		in.setMethod(req.getMethod());
+	    		in.setPath(req.getRequestURI()); // path
+	    		in.setQuery(req.getQueryString());
+	    		in.setContentType(res.getContentType());
+				in.setStatus(res.getStatus());
+				in.setInDataSize(req.getInputStream().available()); //not exact !?
+				in.setOutDataSize(res.getBufferSize()); //not exact !?
+	    		in.setStart(ofEpochMilli(beg));
+	    		in.setEnd(ofEpochMilli(fin));
+	    		in.setThread(currentThread().getName());
+	    		//customizable data see IncomingRequestInterceptor
+	    		if(isNull(in.getClient())) {
+	    			in.setClient(clientProvider.supply(req));
+	    		}
+	            if(isNull(in.getEndpoint())) {
+	            	in.setEndpoint(defaultEndpoint(req));
+	            }
+	            if(isNull(in.getResource())) {
+	            	in.setResource(defaultResource(req));
+	            }
+	            //cannot override collection
     			traceSender.send(in);
     		}
     		catch(Exception e) {
-				log.warn("error while tracing request : {}", request, e);
+				log.warn("error while tracing : {}", request, e);
     		}
 		}
 	}

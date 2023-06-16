@@ -27,7 +27,8 @@ public class OutcomingRequest {
 	private String query;
 	private String method;
 	private Integer status; //nullable
-	private long size;
+	private long inDataSize;
+	private long outDataSize;
  	private Instant start;
 	private Instant end;
 	private String thread;
