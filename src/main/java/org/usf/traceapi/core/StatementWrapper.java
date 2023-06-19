@@ -13,11 +13,11 @@ import lombok.experimental.Delegate;
  *
  */
 @RequiredArgsConstructor
-public final class StatementWrapper implements Statement {
+public class StatementWrapper implements Statement {
 
 	@Delegate
-	private final Statement st;
-	private final DatabaseActionTracer tracer;
+	protected final Statement st;
+	protected final DatabaseActionTracer tracer;
 	
 	@Override
 	public boolean execute(String sql) throws SQLException {
