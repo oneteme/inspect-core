@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
 import static java.lang.String.format;
-import static java.time.Duration.between;
 
 import java.time.Instant;
 import java.util.LinkedList;
@@ -17,7 +16,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class OutcomingQuery {
+public class OutcomingQuery implements Metric {
 
 	private String host;
 	private String schema;
@@ -38,6 +37,6 @@ public class OutcomingQuery {
 	
 	@Override
 	public String toString() {
-		return format("%-20s", thread) + ": QUERY   {" +  format("%5s", between(start, end).toMillis()) + "ms}";
+		return format("%-20s", thread) + ": QUERY   {" +  format("%5s", duration()) + "ms}"; 
 	}
 }

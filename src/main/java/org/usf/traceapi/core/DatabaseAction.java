@@ -1,7 +1,5 @@
 package org.usf.traceapi.core;
 
-import static java.time.Duration.between;
-
 import java.time.Instant;
 
 import lombok.Getter;
@@ -16,7 +14,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @RequiredArgsConstructor
-public class DatabaseAction {
+public class DatabaseAction implements Metric {
 
 	private final Action type;
 	private final Instant start;
@@ -26,6 +24,6 @@ public class DatabaseAction {
 	
 	@Override
 	public String toString() {
-		return type + " {" + between(start, end).toMillis() + "ms}";
+		return type + " {" + duration() + "ms}";
 	}
 }

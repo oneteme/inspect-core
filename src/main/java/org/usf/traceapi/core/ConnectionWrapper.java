@@ -5,6 +5,7 @@ import static java.util.Objects.nonNull;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 
 import lombok.AccessLevel;
@@ -69,6 +70,21 @@ public final class ConnectionWrapper implements Connection {
 	@Override
 	public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
 		return tracer.preparedStatement(()-> cn.prepareStatement(sql, columnNames));
+	}
+	
+	@Override
+	public void commit() throws SQLException {
+		tracer.commit(cn::commit);
+	}
+	
+	@Override
+	public void rollback() throws SQLException {
+		tracer.rollback(cn::rollback);
+	}
+	
+	@Override
+	public void rollback(Savepoint savepoint) throws SQLException {
+		tracer.rollback(()-> cn.rollback(savepoint));
 	}
 	
 	@Override

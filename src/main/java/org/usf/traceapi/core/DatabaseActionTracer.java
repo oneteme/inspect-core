@@ -3,8 +3,10 @@ package org.usf.traceapi.core;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static org.usf.traceapi.core.Action.BATCH;
+import static org.usf.traceapi.core.Action.COMMIT;
 import static org.usf.traceapi.core.Action.CONNECTION;
 import static org.usf.traceapi.core.Action.FETCH;
+import static org.usf.traceapi.core.Action.ROLLBACK;
 import static org.usf.traceapi.core.Action.SELECT;
 import static org.usf.traceapi.core.Action.SQL;
 import static org.usf.traceapi.core.Action.STATEMENT;
@@ -53,6 +55,14 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 
 	default <T> T batch(SQLSupplier<T> supplier) throws SQLException {
 		return trace(BATCH, supplier);
+	}
+	
+	default void commit(SQLMethod method) throws SQLException {
+		trace(COMMIT, method::callAsSupplier);
+	}
+	
+	default void rollback(SQLMethod method) throws SQLException {
+		trace(ROLLBACK, method::callAsSupplier);
 	}
 	
 	default void fetch(long start, SQLMethod method) throws SQLException {
