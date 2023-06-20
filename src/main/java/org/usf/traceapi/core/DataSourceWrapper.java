@@ -54,9 +54,13 @@ public final class DataSourceWrapper implements DataSource {
 			out.setStart(ofEpochMilli(currentTimeMillis()));
 			try {
 				var cn = tracer.connection(cnSupp);
-				var arr = decodeURL(cn.getMetaData().getURL());
+				var meta = cn.getMetaData();
+				var arr = decodeURL(meta.getURL());
 				out.setHost(arr[0]);
 				out.setSchema(arr[1]);
+				out.setDatabaseName(meta.getDatabaseProductName());
+				out.setDatabaseVersion(meta.getDatabaseProductVersion());
+				out.setDriverVersion(meta.getDriverVersion());
 				cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
 				return cn;
 			}

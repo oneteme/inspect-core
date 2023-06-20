@@ -22,6 +22,9 @@ public class OutcomingQuery implements Metric {
 	private String schema;
 	private Instant start;
 	private Instant end;
+	private String databaseName;
+	private String databaseVersion;
+	private String driverVersion;
 	private String thread;
 	private boolean failed;
 	private final List<DatabaseAction> actions;
