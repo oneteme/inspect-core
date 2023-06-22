@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.lang.System.getProperty;
 import static java.lang.Thread.currentThread;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
@@ -56,6 +57,8 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
 				}
+				out.setOs(getProperty("os.name"));
+				out.setRe("java " + getProperty("java.version"));
 				var trc = localTrace.get();
 				if(isNull(trc)) { //main request
 					sender.send(out);

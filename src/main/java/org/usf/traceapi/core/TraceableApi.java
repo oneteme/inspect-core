@@ -26,5 +26,5 @@ public @interface TraceableApi {
 	 */
 	Class<? extends ClientProvider> clientProvider() default ClientProvider.class;
 	
-	//boolean enabled() default true;
+	//boolean enabled() default true
 }

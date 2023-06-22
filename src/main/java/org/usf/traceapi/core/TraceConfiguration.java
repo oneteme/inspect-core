@@ -62,7 +62,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 
     @Bean
     public TraceSender sender(TraceConfig config) {
-    	return config.getUrl().isBlank() 
+    	return config.getHost().isBlank() 
         		? res-> {} 
         		: new RemoteTraceSender(config);
     }
