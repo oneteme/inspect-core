@@ -5,6 +5,8 @@ import static java.util.Collections.synchronizedCollection;
 import java.util.Collection;
 import java.util.LinkedList;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,11 +26,16 @@ public final class IncomingRequest extends OutcomingRequest {
 	private String group;
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
- 	
+	
+	@JsonCreator
 	public IncomingRequest(String id) {
+		this(id, new LinkedList<>(), new LinkedList<>());
+	}
+	
+	IncomingRequest(String id, Collection<OutcomingRequest> requests, Collection<OutcomingQuery> queries) {
 		super(id);
-		this.requests = synchronizedCollection(new LinkedList<>());
-		this.queries = synchronizedCollection(new LinkedList<>());
+		this.requests = requests;
+		this.queries = queries; 
 	}
 	
 	public void append(OutcomingRequest request) {
@@ -38,4 +45,11 @@ public final class IncomingRequest extends OutcomingRequest {
 	public void append(OutcomingQuery query) {
 		queries.add(query);
 	}
+	
+	static IncomingRequest synchronizedIncomingRequest(String id) {
+		return new IncomingRequest(id, 
+				synchronizedCollection(new LinkedList<>()), 
+				synchronizedCollection(new LinkedList<>()));
+	}
+	
 }

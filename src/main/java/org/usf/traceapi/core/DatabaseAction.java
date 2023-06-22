@@ -4,23 +4,21 @@ import java.time.Instant;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 
 /**
  * 
  * @author u$f
  *
  */
-@Setter
 @Getter
 @RequiredArgsConstructor
-public class DatabaseAction implements Metric {
+public final class DatabaseAction implements Metric {
 
 	private final Action type;
 	private final Instant start;
 	private final Instant end;
 	private final boolean failed;
-	//private final long rows;
+	//private final long rows; Statment|Resultset|Update|Batch
 	
 	@Override
 	public String toString() {
