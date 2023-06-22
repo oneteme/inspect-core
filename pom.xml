@@ -28,7 +28,7 @@
 	<properties>
 		<java.version>11</java.version>
     <junit.version>5.8.1</junit.version>
-		<spring.version>2.6.4</spring.version>
+		<spring.version>3.0.5</spring.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.source>${java.version}</maven.compiler.source>

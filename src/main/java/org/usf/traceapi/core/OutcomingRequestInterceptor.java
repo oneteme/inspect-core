@@ -42,7 +42,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 		finally {
 			var fin = currentTimeMillis();
 			try {
-				out.setMethod(request.getMethodValue());
+				out.setMethod(request.getMethod().name());
 				out.setProtocol(request.getURI().getScheme());
 				out.setHost(request.getURI().getHost());
 				out.setPort(request.getURI().getPort());
@@ -53,8 +53,9 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
 				out.setThread(currentThread().getName());
 				if(nonNull(res)) {
-					out.setStatus(res.getRawStatusCode());
+					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
+					System.out.println(res.getHeaders().getContentLength() + "\t" + res.getBody().available()); //check
 				}
 				var trc = localTrace.get();
 				if(isNull(trc)) { //main request

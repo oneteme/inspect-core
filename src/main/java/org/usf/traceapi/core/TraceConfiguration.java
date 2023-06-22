@@ -43,7 +43,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	return new IncomingRequestFilter(cp, sender);
     }
 
-    @Bean
+    @Bean("outTracer")
     public OutcomingRequestInterceptor outcomingRequestInterceptor(TraceSender sender) {
         return new OutcomingRequestInterceptor(sender);
     }

@@ -20,14 +20,13 @@ import java.util.Map.Entry;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -85,7 +84,7 @@ public final class IncomingRequestFilter implements Filter {
 	            	in.setResource(defaultResource(req));
 	            }
 	            in.setOs(getProperty("os.name"));
-				in.setRe(getProperty("java.version"));
+				in.setRe("java " + getProperty("java.version"));
 	            //cannot override collection
     			traceSender.send(in);
     		}
