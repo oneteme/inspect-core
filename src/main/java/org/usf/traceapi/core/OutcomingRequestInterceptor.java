@@ -55,7 +55,6 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
-					System.out.println(res.getHeaders().getContentLength() + "\t" + res.getBody().available()); //check
 				}
 				var trc = localTrace.get();
 				if(isNull(trc)) { //main request
@@ -66,8 +65,8 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				}
 			}
 			catch(Exception e) {
-				log.warn("error while tracing : {}" + request, e);
 				//do not catch exception
+				log.warn("error while tracing : {}" + request, e);
 			}
 		}
 		return res;

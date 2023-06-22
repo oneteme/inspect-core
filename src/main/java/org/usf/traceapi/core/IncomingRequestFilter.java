@@ -89,6 +89,7 @@ public final class IncomingRequestFilter implements Filter {
     			traceSender.send(in);
     		}
     		catch(Exception e) {
+				//do not catch exception
 				log.warn("error while tracing : {}", request, e);
     		}
 		}
