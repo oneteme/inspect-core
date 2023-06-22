@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.lang.System.getProperty;
 import static java.lang.Thread.currentThread;
 import static java.net.URI.create;
 import static java.time.Instant.ofEpochMilli;
@@ -83,6 +84,8 @@ public final class IncomingRequestFilter implements Filter {
 	            if(isNull(in.getResource())) {
 	            	in.setResource(defaultResource(req));
 	            }
+	            in.setOs(getProperty("os.name"));
+				in.setRe(getProperty("java.version"));
 	            //cannot override collection
     			traceSender.send(in);
     		}

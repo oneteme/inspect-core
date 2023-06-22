@@ -29,7 +29,7 @@ public final class RemoteTraceSender implements TraceSender {
 	}
 
 	@Override
-	public void send(IncomingRequest trc) {
+	public void send(Metric trc) {
 		executor.schedule(()-> template.put(url, trc), delay, unit); //wait for sending response
 	}
 	

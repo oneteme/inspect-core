@@ -36,20 +36,16 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
 	
     @Bean
-    public IncomingRequestFilter incomingRequestFilter(TraceConfig config) {
-    	
+    public IncomingRequestFilter incomingRequestFilter(TraceSender sender) {
     	ClientProvider cp = req-> ofNullable(req.getUserPrincipal())
         		.map(Principal::getName)
         		.orElse(null);
-    	TraceSender ts = config.getUrl().isBlank() 
-        		? res-> {} 
-        		: new RemoteTraceSender(config);
-    	return new IncomingRequestFilter(cp, ts);
+    	return new IncomingRequestFilter(cp, sender);
     }
 
     @Bean
-    public OutcomingRequestInterceptor outcomingRequestInterceptor() {
-        return new OutcomingRequestInterceptor();
+    public OutcomingRequestInterceptor outcomingRequestInterceptor(TraceSender sender) {
+        return new OutcomingRequestInterceptor(sender);
     }
 
     @Bean
@@ -62,6 +58,13 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	            		: bean;
     		}
 		};
+    }
+
+    @Bean
+    public TraceSender sender(TraceConfig config) {
+    	return config.getUrl().isBlank() 
+        		? res-> {} 
+        		: new RemoteTraceSender(config);
     }
     
 }

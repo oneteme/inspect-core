@@ -33,6 +33,8 @@ public class OutcomingRequest implements Metric {
  	private Instant start;
 	private Instant end;
 	private String thread;
+	private String os; //operating system : Window, Linux, ...
+	private String re; //runtime environment : JAVA, JS, PHP, Browser, Postman ...
 	
 	@Override
 	public String toString() {
