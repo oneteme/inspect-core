@@ -27,7 +27,7 @@ public final class IncomingRequest extends OutcomingRequest {
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
 	
-	@JsonCreator
+	@JsonCreator //remove this
 	public IncomingRequest(String id) {
 		this(id, new LinkedList<>(), new LinkedList<>());
 	}

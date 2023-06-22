@@ -31,7 +31,7 @@ public class OutcomingQuery implements Metric {
 	private boolean failed;
 	private final List<DatabaseAction> actions;
 	
-	@JsonCreator
+	@JsonCreator //remove this
 	public OutcomingQuery() {
 		this.actions = new LinkedList<>();
 	}

@@ -32,6 +32,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 		if(isNull(trc)) {
 			return execution.execute(request, body);
 		}
+		//else main request
 		ClientHttpResponse res = null;
 		var out = new OutcomingRequest(idProvider.get());
 		request.getHeaders().add(TRACE_HEADER, out.getId());

@@ -17,7 +17,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@RequiredArgsConstructor(onConstructor_ =@JsonCreator)
+@RequiredArgsConstructor(onConstructor_ = @JsonCreator)
 public class OutcomingRequest implements Metric {
 
 	private final String id;
