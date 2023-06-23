@@ -5,6 +5,7 @@ import static java.lang.Thread.currentThread;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 import static org.usf.traceapi.core.TraceConfiguration.localTrace;
@@ -27,9 +28,9 @@ import lombok.experimental.Delegate;
  */
 @RequiredArgsConstructor
 public final class DataSourceWrapper implements DataSource {
-
-	private static final Pattern hostPattern =
-			compile("^jdbc[:\\w+]+@?//([\\w+-\\.:]+)/(?:.*database=(\\w+).*|(\\w+)(?:\\?.*)?|.*)$", CASE_INSENSITIVE);
+	
+	private static final Pattern hostPattern = compile("^jdbc:[\\w:]+@?//([-\\w\\.]+)(:(\\d+))?(/(\\w+)|/(\\w+)[\\?,;].*|.*)$", CASE_INSENSITIVE);
+	private static final Pattern schemaPattern = compile("database=(\\w+)", CASE_INSENSITIVE);
 	
 	@Delegate
 	private final DataSource ds;
@@ -55,9 +56,10 @@ public final class DataSourceWrapper implements DataSource {
 			try {
 				var cn = tracer.connection(cnSupp);
 				var meta = cn.getMetaData();
-				var arr = decodeURL(meta.getURL());
-				out.setHost(arr[0]);
-				out.setSchema(arr[1]);
+				var args = decodeURL(meta.getURL());
+				out.setHost(args[0]);
+				out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(null));
+				out.setSchema(args[2]);
 				out.setDatabaseName(meta.getDatabaseProductName());
 				out.setDatabaseVersion(meta.getDatabaseProductVersion());
 				out.setDriverVersion(meta.getDriverVersion());
@@ -73,11 +75,18 @@ public final class DataSourceWrapper implements DataSource {
 	
 	static String[] decodeURL(String url) {
 		var m = hostPattern.matcher(url);
-		String[] arr = new String[2];
+		String[] arr = new String[3];
 		if(m.find()) {
 			arr[0] = m.group(1);
-			int i = 2;
-			while(i<=m.groupCount() && isNull(arr[1] = m.group(i++)));
+			arr[1] = m.group(3);
+			int i = 5;
+			while(i<=m.groupCount() && isNull(arr[2] = m.group(i++)));
+		}
+		if(isNull(arr[2])) {
+			m = schemaPattern.matcher(url);
+			if(m.find()) {
+				arr[2] = m.group(1);
+			}
 		}
 		return arr;
 	}

@@ -21,7 +21,8 @@ import lombok.Setter;
 public class OutcomingQuery implements Metric {
 
 	private String host;
-	private String schema;
+	private Integer port; //nullable
+	private String schema; //nullable
 	private Instant start;
 	private Instant end;
 	private String databaseName;
