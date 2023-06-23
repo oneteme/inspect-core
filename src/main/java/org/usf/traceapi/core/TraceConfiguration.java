@@ -23,7 +23,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  *
  */
 @Configuration
-@EnableConfigurationProperties(TraceConfig.class)
+@EnableConfigurationProperties(TraceConfigurationProperties.class)
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
@@ -61,7 +61,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public TraceSender sender(TraceConfig config) {
+    public TraceSender sender(TraceConfigurationProperties config) {
     	return config.getHost().isBlank() 
         		? res-> {} 
         		: new RemoteTraceSender(config);

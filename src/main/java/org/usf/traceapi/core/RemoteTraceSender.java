@@ -4,7 +4,6 @@ import static java.lang.String.join;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import org.springframework.web.client.RestTemplate;
 
@@ -25,32 +24,26 @@ public final class RemoteTraceSender implements TraceSender {
 
 	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 
-	private final String host;
-	private final int delay;
-	private final TimeUnit unit;
+	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
 	
-	public RemoteTraceSender(TraceConfig config) {
-		this(normalizeHost(config.getHost()), config.getDelay(), TimeUnit.valueOf(config.getUnit()), new RestTemplate());
+	public RemoteTraceSender(TraceConfigurationProperties properties) {
+		this(properties, new RestTemplate());
 	}
-
+	
 	@Override
 	public void send(Metric trc) {
-		var uri = join("/", host, TRACE_ENDPOINT, endpointFor(trc));
-		executor.schedule(()-> template.put(uri, trc), delay, unit); //wait for sending response
+		var uri = join("/", properties.getHost(), TRACE_ENDPOINT, endpointFor(trc));
+		executor.schedule(()-> template.put(uri, trc), properties.getDelay(), properties.getUnit()); //wait for sending response
 	}
 	
 	private static String endpointFor(@NonNull Metric trc) {
 		if(trc.getClass() == IncomingRequest.class) {
 			return INCOMING_ENDPOINT;
 		}
-		else if(trc.getClass() ==  OutcomingRequest.class) { //super after
+		else if(trc.getClass() ==  OutcomingRequest.class) {
 			return OUTCOMING_ENDPOINT;
 		}
 		throw new UnsupportedOperationException(trc.getClass().getSimpleName() + " : " + trc);
-	}
-	
-	private static String normalizeHost(String host) {
-		return host.endsWith("/") ? host.substring(0, host.length()-1) : host;
 	}
 }
