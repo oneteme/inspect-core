@@ -4,6 +4,11 @@ import static java.time.Duration.between;
 
 import java.time.Instant;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 public interface Metric {
 	
 	Instant getStart();
