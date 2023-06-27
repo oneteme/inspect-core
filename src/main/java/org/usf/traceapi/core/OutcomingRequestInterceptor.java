@@ -1,18 +1,21 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
-import static java.lang.System.getProperty;
-import static java.lang.Thread.currentThread;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.Optional.ofNullable;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.usf.traceapi.core.Helper.extractAuthScheme;
+import static org.usf.traceapi.core.Helper.idProvider;
+import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.IncomingRequestFilter.TRACE_HEADER;
-import static org.usf.traceapi.core.TraceConfiguration.idProvider;
-import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.io.IOException;
 
 import org.springframework.http.HttpRequest;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
@@ -49,18 +52,18 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				out.setPort(request.getURI().getPort());
 				out.setPath(request.getURI().getPath());
 				out.setQuery(request.getURI().getQuery());
+				out.setAuthScheme(extractAuthScheme(request.getHeaders().get(AUTHORIZATION)));
 				out.setStart(ofEpochMilli(beg));
 				out.setEnd(ofEpochMilli(fin));
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
-				out.setThread(currentThread().getName());
+				out.setThread(threadName());
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
+					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
 				}
-				out.setOs(getProperty("os.name"));
-				out.setRe("java " + getProperty("java.version"));
 				var trc = localTrace.get();
-				if(isNull(trc)) { //main request
+				if(isNull(trc)) { //no session
 					sender.send(out);
 				}
 				else {
@@ -74,5 +77,4 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 		}
 		return res;
 	}
-	
 }

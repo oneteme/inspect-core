@@ -21,20 +21,20 @@ import lombok.Setter;
 public class OutcomingRequest implements Metric {
 
 	private final String id;
+	private String method;
 	private String protocol;
 	private String host;
 	private int port;
 	private String path;
-	private String query;
-	private String method;
+	private String query; //nullable
+	private String contentType; //nullable
+	private String authScheme; //nullable   Basic, Bearer, Digest, OAuth, ..
 	private Integer status; //nullable
 	private long inDataSize;
 	private long outDataSize;
  	private Instant start;
 	private Instant end;
 	private String thread;
-	private String os; //operating system : Window, Linux, ...
-	private String re; //runtime environment : JAVA, JS, PHP, Browser, Postman ...
 	
 	@Override
 	public String toString() {

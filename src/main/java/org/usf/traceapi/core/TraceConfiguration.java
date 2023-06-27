@@ -1,10 +1,8 @@
 package org.usf.traceapi.core;
 
 import static java.util.Optional.ofNullable;
-import static java.util.UUID.randomUUID;
 
 import java.security.Principal;
-import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
@@ -27,10 +25,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
-	static final ThreadLocal<IncomingRequest> localTrace = new InheritableThreadLocal<>();
-	static final Supplier<String> idProvider = ()-> randomUUID().toString();
-	
-    @Override
+	@Override
     public void addInterceptors(InterceptorRegistry registry) {
     	registry.addInterceptor(new IncomingRequestInterceptor());
     }
@@ -42,6 +37,12 @@ public class TraceConfiguration implements WebMvcConfigurer {
         		.orElse(null);
     	return new IncomingRequestFilter(cp, sender);
     }
+    
+    @Bean
+    public TraceableAspect traceableAspect(TraceSender sender) {
+    	return new TraceableAspect(sender);
+    }
+
 
     @Bean //do not rename this method see @Qualifier
     public OutcomingRequestInterceptor outcomingRequestInterceptor(TraceSender sender) {

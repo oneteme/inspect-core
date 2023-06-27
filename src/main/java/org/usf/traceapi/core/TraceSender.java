@@ -8,6 +8,6 @@ package org.usf.traceapi.core;
 @FunctionalInterface
 public interface TraceSender {
 	
-	void send(Metric metric);
+	void send(Metric session);
 
 }

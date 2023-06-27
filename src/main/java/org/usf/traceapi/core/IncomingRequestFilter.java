@@ -1,18 +1,21 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
-import static java.lang.System.getProperty;
-import static java.lang.Thread.currentThread;
 import static java.net.URI.create;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
+import static org.usf.traceapi.core.Helper.extractAuthScheme;
+import static org.usf.traceapi.core.Helper.idProvider;
+import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.Helper.operatingSystem;
+import static org.usf.traceapi.core.Helper.runtimeEnviroment;
+import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.IncomingRequest.synchronizedIncomingRequest;
-import static org.usf.traceapi.core.TraceConfiguration.idProvider;
-import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.io.IOException;
 import java.util.Map;
@@ -68,11 +71,12 @@ public final class IncomingRequestFilter implements Filter {
 	    		in.setQuery(req.getQueryString());
 	    		in.setContentType(res.getContentType());
 				in.setStatus(res.getStatus());
+				in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION)));
 				in.setInDataSize(req.getInputStream().available()); //not exact !?
 				in.setOutDataSize(res.getBufferSize()); //not exact !?
 	    		in.setStart(ofEpochMilli(beg));
 	    		in.setEnd(ofEpochMilli(fin));
-	    		in.setThread(currentThread().getName());
+	    		in.setThread(threadName());
 	    		//customizable data see IncomingRequestInterceptor
 	    		if(isNull(in.getClient())) {
 	    			in.setClient(clientProvider.supply(req));
@@ -83,8 +87,8 @@ public final class IncomingRequestFilter implements Filter {
 	            if(isNull(in.getResource())) {
 	            	in.setResource(defaultResource(req));
 	            }
-	            in.setOs(getProperty("os.name"));
-				in.setRe("java " + getProperty("java.version"));
+	            in.setOs(operatingSystem());
+				in.setRe(runtimeEnviroment());
 	            //cannot override collection
     			traceSender.send(in);
     		}
@@ -94,7 +98,7 @@ public final class IncomingRequestFilter implements Filter {
     		}
 		}
 	}
-
+	
     @SuppressWarnings("unchecked")
     private static String defaultEndpoint(HttpServletRequest req) {
     	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);

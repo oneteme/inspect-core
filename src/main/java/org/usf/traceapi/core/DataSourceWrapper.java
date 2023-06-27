@@ -1,14 +1,14 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
-import static java.lang.Thread.currentThread;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
-import static org.usf.traceapi.core.TraceConfiguration.localTrace;
+import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.Helper.threadName;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -51,7 +51,7 @@ public final class DataSourceWrapper implements DataSource {
 			var out = new OutcomingQuery();
 			req.append(out);
 			DatabaseActionTracer tracer = out::append;
-			out.setThread(currentThread().getName());
+			out.setThread(threadName());
 			out.setStart(ofEpochMilli(currentTimeMillis()));
 			try {
 				var cn = tracer.connection(cnSupp);

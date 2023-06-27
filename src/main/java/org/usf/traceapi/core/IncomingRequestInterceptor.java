@@ -4,11 +4,9 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.traceapi.core.IncomingRequestFilter.joiner;
-import static org.usf.traceapi.core.TraceConfiguration.localTrace;
 
 import java.util.Map;
 import java.util.stream.Stream;
-
 
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -35,7 +33,7 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
         HandlerMethod m = (HandlerMethod) handler;
         TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
         if(nonNull(a)) {
-        	var trace = localTrace.get();
+        	var trace = (IncomingRequest) Helper.localTrace.get();
             if(nonNull(trace)) {
             	if(a.clientProvider() != ClientProvider.class){
             		trace.setClient(supplyClient(req, a.clientProvider()));
