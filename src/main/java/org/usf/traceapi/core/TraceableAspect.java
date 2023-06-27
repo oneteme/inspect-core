@@ -4,15 +4,18 @@ import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.Helper.hostAddress;
+import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.operatingSystem;
 import static org.usf.traceapi.core.Helper.runtimeEnviroment;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.LaunchMode.BATCH;
+import static org.usf.traceapi.core.MainRequest.synchronizedMainRequest;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,12 +29,12 @@ public class TraceableAspect {
 	
     @Around("@annotation(TraceableBatch)")
     public Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
-    	if(nonNull(localTrace.get())) {
+    	if(nonNull(localTrace.get())) { //sub trace
     		return joinPoint.proceed();
     	}
     	Object proceed;
     	var failed = true;
-    	var main = new MainRequest(Helper.idProvider.get());
+    	var main = synchronizedMainRequest(idProvider.get());
     	localTrace.set(main);
     	var beg = currentTimeMillis();
     	try {
@@ -42,6 +45,7 @@ public class TraceableAspect {
     		var fin = currentTimeMillis();
     		try {
     			localTrace.remove();
+    			main.setName(batchName(joinPoint));
     			main.setLaunchMode(BATCH);
 	    		main.setStart(ofEpochMilli(beg));
 	    		main.setEnd(ofEpochMilli(fin));
@@ -58,6 +62,12 @@ public class TraceableAspect {
     		}
     	}
     	return proceed;
+    }
+    
+    private static String batchName(ProceedingJoinPoint joinPoint) {
+    	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+    	var ant = signature.getMethod().getAnnotation(TraceableBatch.class);
+    	return ant.name().isBlank() ? signature.getMethod().getName() : ant.name();
     }
 
 }

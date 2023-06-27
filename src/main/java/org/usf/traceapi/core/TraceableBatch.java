@@ -14,8 +14,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TraceableBatch {
 	
-	String name() default ""; 
-	
-	String group() default ""; 
+	String name() default "";
 	
 }

@@ -13,13 +13,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TraceableApi {
-	
-	String group() default "";
-	
-	String[] endpoint() default {};
 
-	String[] resource() default {};
-	
 	/**
 	 * require default constructor
 	 * 

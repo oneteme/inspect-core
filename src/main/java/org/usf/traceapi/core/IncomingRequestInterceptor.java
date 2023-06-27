@@ -1,12 +1,7 @@
 package org.usf.traceapi.core;
 
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
-import static org.usf.traceapi.core.IncomingRequestFilter.joiner;
-
-import java.util.Map;
-import java.util.stream.Stream;
+import static org.usf.traceapi.core.Helper.localTrace;
 
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -33,34 +28,11 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
         HandlerMethod m = (HandlerMethod) handler;
         TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
         if(nonNull(a)) {
-        	var trace = (IncomingRequest) Helper.localTrace.get();
-            if(nonNull(trace)) {
-            	if(a.clientProvider() != ClientProvider.class){
-            		trace.setClient(supplyClient(req, a.clientProvider()));
-            	}
-            	if(a.endpoint().length > 0) {
-            		trace.setEndpoint(lookup(req, a.endpoint(), false));
-            	}
-            	if(a.resource().length > 0) {
-            		trace.setResource(lookup(req, a.resource(), true));
-            	}
-            	if(!a.group().isEmpty()) {
-            		trace.setGroup(a.group());
-            	}
+        	var trace = (IncomingRequest) localTrace.get();
+            if(nonNull(trace) && a.clientProvider() != ClientProvider.class) {
+        		trace.setClient(supplyClient(req, a.clientProvider()));
             }
         }
-    }
-    
-    @SuppressWarnings("unchecked")
-	private static String lookup(HttpServletRequest req, String[] keys, boolean parameter) {
-    	var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-    	return Stream.of(keys).map(key-> {
-        	var res = map.get(key); // variable
-        	if(parameter && isNull(res)) {
-        		res = req.getParameter(key); // parameter 
-        	}
-        	return nonNull(res) ? res : key; // constant
-    	}).collect(joiner);
     }
     
     private static String supplyClient(HttpServletRequest req, Class<? extends ClientProvider> clasz) { //simple impl.

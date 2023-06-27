@@ -23,6 +23,7 @@ import lombok.Setter;
 public final class MainRequest implements Session {
 	
 	private final String id;
+	private String name; // methodName, viewTitle, ..
  	private Instant start;
 	private Instant end;
 	private String thread;
