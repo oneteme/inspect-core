@@ -13,6 +13,11 @@ import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class Helper {
 
