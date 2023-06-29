@@ -6,8 +6,6 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -30,12 +28,7 @@ public class OutcomingQuery implements Metric {
 	private String driverVersion;
 	private String thread;
 	private boolean failed;
-	private final List<DatabaseAction> actions;
-	
-	@JsonCreator //remove this
-	public OutcomingQuery() {
-		this.actions = new LinkedList<>();
-	}
+	private final List<DatabaseAction> actions = new LinkedList<>();
 	
 	public void append(DatabaseAction action) {
 		actions.add(action);

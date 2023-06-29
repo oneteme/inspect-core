@@ -26,12 +26,12 @@ public final class IncomingRequest extends OutcomingRequest implements Session {
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
 	
-	@JsonCreator //remove this
 	public IncomingRequest(String id) {
 		this(id, new LinkedList<>(), new LinkedList<>());
 	}
 	
-	IncomingRequest(String id, Collection<OutcomingRequest> requests, Collection<OutcomingQuery> queries) {
+	@JsonCreator
+	public IncomingRequest(String id, Collection<OutcomingRequest> requests, Collection<OutcomingQuery> queries) {
 		super(id);
 		this.requests = requests;
 		this.queries = queries; 

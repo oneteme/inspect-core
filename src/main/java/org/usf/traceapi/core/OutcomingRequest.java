@@ -7,7 +7,6 @@ import java.time.Instant;
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -17,7 +16,6 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@RequiredArgsConstructor(onConstructor_ = @JsonCreator)
 public class OutcomingRequest implements Metric {
 
 	private final String id;
@@ -35,6 +33,11 @@ public class OutcomingRequest implements Metric {
  	private Instant start;
 	private Instant end;
 	private String thread;
+	
+	@JsonCreator
+	public OutcomingRequest(String id) {
+		this.id = id;
+	}
 	
 	@Override
 	public String toString() {
