@@ -67,7 +67,7 @@ public class TraceableAspect {
     private static String batchName(ProceedingJoinPoint joinPoint) {
     	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
     	var ant = signature.getMethod().getAnnotation(TraceableBatch.class);
-    	return ant.name().isBlank() ? signature.getMethod().getName() : ant.name();
+    	return ant.value().isBlank() ? signature.getMethod().getName() : ant.value();
     }
 
 }

@@ -5,8 +5,10 @@ import static java.net.URI.create;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
@@ -16,7 +18,9 @@ import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.IncomingRequest.synchronizedIncomingRequest;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -72,6 +76,7 @@ public final class IncomingRequestFilter implements Filter {
 	    		in.setStart(ofEpochMilli(beg));
 	    		in.setEnd(ofEpochMilli(fin));
 	    		in.setThread(threadName());
+	    		in.setName(defaultEndpoint(req));
 	    		//customizable data see IncomingRequestInterceptor
 	    		if(isNull(in.getClient())) {
 	    			in.setClient(clientProvider.supply(req));
@@ -86,4 +91,14 @@ public final class IncomingRequestFilter implements Filter {
     		}
 		}
 	}
+	
+	@SuppressWarnings("unchecked")
+	private static String defaultEndpoint(HttpServletRequest req) {
+		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+		return map == null ? null : Stream.of(req.getRequestURI().split("/"))
+				.filter(not(String::isEmpty))
+				.filter(not(map.values()::contains))
+				.collect(joiner);
+	}
+	
 }
