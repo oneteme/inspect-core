@@ -1,5 +1,6 @@
 package org.usf.traceapi.core;
 
+import static java.lang.String.join;
 import static java.lang.System.currentTimeMillis;
 import static java.net.URI.create;
 import static java.time.Instant.ofEpochMilli;
@@ -94,8 +95,9 @@ public final class IncomingRequestFilter implements Filter {
 	
 	@SuppressWarnings("unchecked")
 	private static String defaultEndpoint(HttpServletRequest req) {
+		var arr = req.getRequestURI().split("/");
 		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-		return map == null ? null : Stream.of(req.getRequestURI().split("/"))
+		return map == null ? join("_", arr) : Stream.of(req.getRequestURI().split("/"))
 				.filter(not(String::isEmpty))
 				.filter(not(map.values()::contains))
 				.collect(joiner);
