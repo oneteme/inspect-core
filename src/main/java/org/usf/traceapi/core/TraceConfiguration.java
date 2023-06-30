@@ -33,14 +33,13 @@ import lombok.extern.slf4j.Slf4j;
 public class TraceConfiguration implements WebMvcConfigurer {
 	
 	public TraceConfiguration(Environment env) {
-		var springApp = "spring.application.";
 		application = new ApplicationInfo(
-				env.getProperty(springApp + "name"),
-				env.getProperty(springApp + "version"),
+				env.getProperty("spring.application.name"),
+				env.getProperty("spring.application.version"),
+				hostAddress(),
 				join(",", env.getActiveProfiles()),
 				getProperty("os.name"),
-				"java " + getProperty("java.version"),
-				hostAddress());
+				"java " + getProperty("java.version"));
 	}
 	
 	@Override
