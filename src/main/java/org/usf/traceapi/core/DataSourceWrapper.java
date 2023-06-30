@@ -48,7 +48,7 @@ public final class DataSourceWrapper implements DataSource {
 	private Connection getConnection(SQLSupplier<Connection> cnSupp) throws SQLException {
 		var out = new OutcomingQuery();
 		DatabaseActionTracer tracer = out::append;
-		out.setStart(ofEpochMilli(currentTimeMillis()));
+    	var beg = currentTimeMillis();
 		try {
 			var cn = tracer.connection(cnSupp);
 			var meta = cn.getMetaData();
@@ -67,6 +67,7 @@ public final class DataSourceWrapper implements DataSource {
 			out.setEnd(ofEpochMilli(currentTimeMillis()));
 		}
 		finally {
+			out.setStart(ofEpochMilli(beg));
 			out.setThreadName(threadName());
 			var req = localTrace.get();
 			if(nonNull(req)) {
