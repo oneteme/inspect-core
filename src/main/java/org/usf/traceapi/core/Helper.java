@@ -23,9 +23,21 @@ final class Helper {
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	static final Supplier<String> idProvider = ()-> randomUUID().toString();
+	
+	static final DefaultUserProvider userProvider = new DefaultUserProvider(); 
+	
+	static String env; //unsafe
 
 	static String threadName() {
 		return currentThread().getName();
+	}
+	
+	static DefaultUserProvider defaultUserProvider() {
+		return userProvider;
+	}
+	
+	static String projectEnvironement() {
+		return env;
 	}
 	
 	static String operatingSystem() {
@@ -43,9 +55,8 @@ final class Helper {
 			return null;
 		}
 	}
-
 	static String extractAuthScheme(List<String> authHeaders) { //nullable
-		return nonNull(authHeaders) && !authHeaders.isEmpty()
+		return nonNull(authHeaders) && authHeaders.size() == 1 //require one header
 				? extractAuthScheme(authHeaders.get(0)) : null;
 	}
 	

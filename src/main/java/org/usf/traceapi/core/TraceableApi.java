@@ -20,7 +20,7 @@ public @interface TraceableApi {
 	 * require default constructor
 	 * 
 	 */
-	Class<? extends ClientProvider> clientProvider() default ClientProvider.class;
+	Class<? extends ApiUserProvider> clientProvider() default DefaultUserProvider.class;
 	
 	//boolean enabled() default true
 }

@@ -56,7 +56,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				out.setStart(ofEpochMilli(beg));
 				out.setEnd(ofEpochMilli(fin));
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
-				out.setThread(threadName());
+				out.setThreadName(threadName());
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?

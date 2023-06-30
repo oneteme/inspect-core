@@ -11,6 +11,8 @@ public interface Session extends Metric {
 	
 	String getName();
 	
+	String getUser();
+	
 	void append(OutcomingRequest request); // sub requests
 
 	void append(OutcomingQuery query); // sub queries

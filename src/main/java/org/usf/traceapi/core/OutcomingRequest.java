@@ -32,7 +32,7 @@ public class OutcomingRequest implements Metric {
 	private long outDataSize;
  	private Instant start;
 	private Instant end;
-	private String thread;
+	private String threadName;
 	
 	@JsonCreator
 	public OutcomingRequest(String id) {
@@ -41,6 +41,6 @@ public class OutcomingRequest implements Metric {
 	
 	@Override
 	public String toString() {
-		return format("%-20s", thread) + ": REQUEST {" +  format("%5s", duration()) + "ms}";
+		return format("%-20s", threadName) + ": REQUEST {" +  format("%5s", duration()) + "ms}";
 	}
 }

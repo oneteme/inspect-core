@@ -51,7 +51,7 @@ public final class DataSourceWrapper implements DataSource {
 			var out = new OutcomingQuery();
 			req.append(out);
 			DatabaseActionTracer tracer = out::append;
-			out.setThread(threadName());
+			out.setThreadName(threadName());
 			out.setStart(ofEpochMilli(currentTimeMillis()));
 			try {
 				var cn = tracer.connection(cnSupp);
@@ -60,6 +60,7 @@ public final class DataSourceWrapper implements DataSource {
 				out.setHost(args[0]);
 				out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(null));
 				out.setSchema(args[2]);
+				out.setUser(meta.getUserName());
 				out.setDatabaseName(meta.getDatabaseProductName());
 				out.setDatabaseVersion(meta.getDatabaseProductVersion());
 				out.setDriverVersion(meta.getDriverVersion());

@@ -24,14 +24,16 @@ public final class MainRequest implements Session {
 	
 	private final String id;
 	private String name; // methodName, viewTitle, ..
+	private String user; //batch / webapp user
  	private Instant start;
 	private Instant end;
-	private String thread;
 	private LaunchMode launchMode;
 	private String location; //URL, IP Address, SI, ... 
 	private boolean failed;
-	private String os; //operating system : Window, Linux, ...
-	private String re; //runtime environment : JAVA, JS, PHP, Browser, Postman ...
+	private String threadName;
+	private String operatingSystem; //operating system : Window, Linux, ...
+	private String runtimeEnvironment; //runtime environment : JAVA, JS, PHP, Browser, Postman ...
+	private String projectEnvironment; //dev, rec, prod, ...
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
 

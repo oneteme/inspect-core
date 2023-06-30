@@ -8,8 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
  *
  */
 @FunctionalInterface
-public interface ClientProvider {
+public interface ApiUserProvider {
 	
-	String supply(HttpServletRequest req);
+	String getUser(HttpServletRequest req);
 	
 }

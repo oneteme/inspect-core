@@ -1,8 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.util.Optional.ofNullable;
-
-import java.security.Principal;
+import static java.lang.String.join;
 
 import javax.sql.DataSource;
 
@@ -12,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -25,6 +24,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
+	public TraceConfiguration(Environment env) {
+		Helper.env = join(",", env.getActiveProfiles());
+	}
+	
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
     	registry.addInterceptor(new IncomingRequestInterceptor());
@@ -32,17 +35,13 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
     @Bean
     public IncomingRequestFilter incomingRequestFilter(TraceSender sender) {
-    	ClientProvider cp = req-> ofNullable(req.getUserPrincipal())
-        		.map(Principal::getName)
-        		.orElse(null);
-    	return new IncomingRequestFilter(cp, sender);
+    	return new IncomingRequestFilter(sender);
     }
     
     @Bean
     public TraceableAspect traceableAspect(TraceSender sender) {
     	return new TraceableAspect(sender);
     }
-
 
     @Bean //do not rename this method see @Qualifier
     public OutcomingRequestInterceptor outcomingRequestInterceptor(TraceSender sender) {
