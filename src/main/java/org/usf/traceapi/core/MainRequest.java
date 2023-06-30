@@ -23,7 +23,7 @@ import lombok.Setter;
 public final class MainRequest implements Session {
 	
 	private final String id;
-	private String name; // methodName, viewTitle, ..
+	private String name; // @annotation, methodName, viewTitle, ..
 	private String user; //batch / webapp user
  	private Instant start;
 	private Instant end;
@@ -31,9 +31,10 @@ public final class MainRequest implements Session {
 	private String location; //URL, IP Address, SI, ... 
 	private boolean failed;
 	private String threadName;
+	private String applicationVersion;
+	private String applicationEnvironment; //dev, rec, prod, ...
 	private String operatingSystem; //operating system : Window, Linux, ...
 	private String runtimeEnvironment; //runtime environment : JAVA, JS, PHP, Browser, Postman ...
-	private String projectEnvironment; //dev, rec, prod, ...
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
 

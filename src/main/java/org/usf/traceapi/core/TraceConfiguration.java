@@ -26,6 +26,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
 	public TraceConfiguration(Environment env) {
 		Helper.env = join(",", env.getActiveProfiles());
+		Helper.version = env.getProperty("spring.application.version");
 	}
 	
 	@Override

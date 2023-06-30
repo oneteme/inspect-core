@@ -27,6 +27,7 @@ final class Helper {
 	static final DefaultUserProvider userProvider = new DefaultUserProvider(); 
 	
 	static String env; //unsafe
+	static String version; //unsafe
 
 	static String threadName() {
 		return currentThread().getName();
@@ -36,8 +37,12 @@ final class Helper {
 		return userProvider;
 	}
 	
-	static String projectEnvironement() {
+	static String applicationEnvironement() {
 		return env;
+	}
+	
+	static String applicationVersion() {
+		return version;
 	}
 	
 	static String operatingSystem() {
