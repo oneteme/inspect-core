@@ -2,19 +2,23 @@ package org.usf.traceapi.core;
 
 import static java.lang.Thread.currentThread;
 import static java.util.Objects.nonNull;
+import static java.util.Optional.empty;
 import static java.util.UUID.randomUUID;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class Helper {
 
@@ -44,5 +48,14 @@ final class Helper {
 	static String extractAuthScheme(String authHeader) { //nullable
 		return nonNull(authHeader) && authHeader.matches("^\\w+ ") 
 				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
+	}
+	
+	static <T> Optional<T> newInstance(Class<? extends T> clazz) {
+		try {
+			return Optional.of(clazz.getDeclaredConstructor().newInstance());
+		} catch (Exception e) {
+			log.warn("cannot instantiate class " + clazz.getName(), e);
+			return empty();
+		}
 	}
 }

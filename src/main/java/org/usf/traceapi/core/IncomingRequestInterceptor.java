@@ -2,20 +2,19 @@ package org.usf.traceapi.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.Helper.newInstance;
 
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 public final class IncomingRequestInterceptor implements HandlerInterceptor { //AsyncHandlerInterceptor ?
 
     @Override
@@ -31,22 +30,15 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
         	var trace = (IncomingRequest) localTrace.get();
             if(nonNull(trace)) {
             	if(a.clientProvider() != DefaultUserProvider.class) {
-            		trace.setUser(supplyClient(req, a.clientProvider()));
+            		trace.setUser(newInstance(a.clientProvider())
+            				.map(p-> p.getUser(req))
+            				.orElse(null));
             	}
             	if(!a.value().isEmpty()) {
             		trace.setName(a.value());
             	}
             }
         }
-    }
-    
-    private static String supplyClient(HttpServletRequest req, Class<? extends ApiUserProvider> clasz) { //simple impl.
-		try {
-			return clasz.getDeclaredConstructor().newInstance().getUser(req);
-		} catch (Exception e) {
-			log.warn("cannot instantiate class " + clasz, e);
-		}
-		return null;
     }
     
 }
