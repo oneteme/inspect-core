@@ -51,8 +51,8 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
 
     @Bean //do not rename this method see @Qualifier
-    public OutcomingRequestInterceptor outcomingRequestInterceptor(TraceSender sender) {
-        return new OutcomingRequestInterceptor(sender);
+    public OutcomingRequestInterceptor outcomingRequestInterceptor() {
+        return new OutcomingRequestInterceptor();
     }
 
     @Bean

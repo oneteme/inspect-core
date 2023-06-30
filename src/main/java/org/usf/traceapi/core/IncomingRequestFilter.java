@@ -10,11 +10,11 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
+import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.defaultUserProvider;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.IncomingRequest.synchronizedIncomingRequest;
 

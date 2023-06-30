@@ -32,8 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class OutcomingRequestInterceptor implements ClientHttpRequestInterceptor {
 	
-	private final TraceSender sender;
-	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		ClientHttpResponse res = null;
