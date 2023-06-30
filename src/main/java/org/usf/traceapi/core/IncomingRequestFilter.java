@@ -81,8 +81,8 @@ public final class IncomingRequestFilter implements Filter {
 	    		if(isNull(in.getUser())) {//already set in IncomingRequestInterceptor
 	    			in.setUser(defaultUserProvider().getUser(req));
 	    		}
-	    		in.setThreadName(threadName());
-	    		in.setApplication(applicationInfo());
+    			in.setThreadName(threadName());
+    			in.setApplication(applicationInfo());
     			traceSender.send(in);
     		}
     		catch(Exception e) {

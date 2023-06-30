@@ -2,6 +2,10 @@ package org.usf.traceapi.core;
 
 import static java.lang.String.join;
 import static java.lang.System.getProperty;
+import static java.net.InetAddress.getLocalHost;
+import static org.usf.traceapi.core.Helper.application;
+
+import java.net.UnknownHostException;
 
 import javax.sql.DataSource;
 
@@ -15,24 +19,28 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 
  * @author u$f
  *
  */
+@Slf4j
 @Configuration
 @EnableConfigurationProperties(TraceConfigurationProperties.class)
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
 	public TraceConfiguration(Environment env) {
-		var root = "spring.application.";
-		Helper.application = new ApplicationInfo(
-				env.getProperty(root + "name"),
-				env.getProperty(root + "version"),
+		var springApp = "spring.application.";
+		application = new ApplicationInfo(
+				env.getProperty(springApp + "name"),
+				env.getProperty(springApp + "version"),
 				join(",", env.getActiveProfiles()),
 				getProperty("os.name"),
-				"java " + getProperty("java.version"));
+				"java " + getProperty("java.version"),
+				hostAddress());
 	}
 	
 	@Override
@@ -73,5 +81,14 @@ public class TraceConfiguration implements WebMvcConfigurer {
         		? res-> {} 
         		: new RemoteTraceSender(config);
     }
+
+	private static String hostAddress() {
+		try {
+			return getLocalHost().getHostAddress();
+		} catch (UnknownHostException e) {
+			log.warn("error while getting host address", e);
+			return null;
+		}
+	}
     
 }

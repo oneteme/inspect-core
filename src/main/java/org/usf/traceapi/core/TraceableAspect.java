@@ -3,8 +3,8 @@ package org.usf.traceapi.core;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
+import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.defaultUserProvider;
-import static org.usf.traceapi.core.Helper.hostAddress;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.threadName;
@@ -49,15 +49,14 @@ public class TraceableAspect {
     		var fin = currentTimeMillis();
     		try {
     			localTrace.remove();
-    			main.setName(batchName(joinPoint));
     			main.setLaunchMode(BATCH);
+	        	main.setFailed(failed);
 	    		main.setStart(ofEpochMilli(beg));
 	    		main.setEnd(ofEpochMilli(fin));
-	        	main.setLocation(hostAddress()); //IP address
-	        	main.setFailed(failed);
+    			main.setName(batchName(joinPoint));
 	    		main.setUser(batchUser(joinPoint));
     			main.setThreadName(threadName());
-    			main.setApplication(Helper.applicationInfo());
+    			main.setApplication(applicationInfo());
 	        	sender.send(main);
     		}
     		catch(Exception e) {

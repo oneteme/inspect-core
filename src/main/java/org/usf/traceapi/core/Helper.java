@@ -1,11 +1,9 @@
 package org.usf.traceapi.core;
 
 import static java.lang.Thread.currentThread;
-import static java.net.InetAddress.getLocalHost;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
 
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -29,22 +27,15 @@ final class Helper {
 	static ApplicationInfo applicationInfo() {
 		return application;
 	}
-
-	static String threadName() {
-		return currentThread().getName();
-	}
 	
 	static DefaultUserProvider defaultUserProvider() {
 		return userProvider;
 	}
-	
-	static String hostAddress() {
-		try {
-			return getLocalHost().getHostAddress();
-		} catch (UnknownHostException e) {
-			return null;
-		}
+
+	static String threadName() {
+		return currentThread().getName();
 	}
+		
 	static String extractAuthScheme(List<String> authHeaders) { //nullable
 		return nonNull(authHeaders) && authHeaders.size() == 1 //require one header
 				? extractAuthScheme(authHeaders.get(0)) : null;
