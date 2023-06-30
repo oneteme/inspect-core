@@ -21,10 +21,7 @@ public final class IncomingRequest extends OutcomingRequest implements Session {
 
 	private String name; // @annotation, endpoint
 	private String user; //nullable
-	private String applicationVersion;
-	private String applicationEnvironment; //dev, rec, prod, ...
-	private String operatingSystem; //operating system : Window, Linux, ...
-	private String runtimeEnvironment; //runtime environment : JAVA, JS, PHP, Browser, Postman ...
+	private ApplicationInfo application;
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
 	

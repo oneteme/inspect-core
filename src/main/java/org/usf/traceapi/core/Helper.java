@@ -1,6 +1,5 @@
 package org.usf.traceapi.core;
 
-import static java.lang.System.getProperty;
 import static java.lang.Thread.currentThread;
 import static java.net.InetAddress.getLocalHost;
 import static java.util.Objects.nonNull;
@@ -25,9 +24,11 @@ final class Helper {
 	static final Supplier<String> idProvider = ()-> randomUUID().toString();
 	
 	static final DefaultUserProvider userProvider = new DefaultUserProvider(); 
+	static ApplicationInfo application; //unsafe set
 	
-	static String env; //unsafe
-	static String version; //unsafe
+	static ApplicationInfo applicationInfo() {
+		return application;
+	}
 
 	static String threadName() {
 		return currentThread().getName();
@@ -37,22 +38,6 @@ final class Helper {
 		return userProvider;
 	}
 	
-	static String applicationEnvironement() {
-		return env;
-	}
-	
-	static String applicationVersion() {
-		return version;
-	}
-	
-	static String operatingSystem() {
-		return getProperty("os.name");
-	}
-	
-	static String runtimeEnviroment() {
-		return "java " + getProperty("java.version");
-	}
-
 	static String hostAddress() {
 		try {
 			return getLocalHost().getHostAddress();

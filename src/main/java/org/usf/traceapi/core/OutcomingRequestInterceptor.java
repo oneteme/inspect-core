@@ -64,7 +64,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				}
 				var trc = localTrace.get();
 				if(isNull(trc)) { //no session
-					sender.send(out);
+					//orphan
 				}
 				else {
 					trc.append(out);

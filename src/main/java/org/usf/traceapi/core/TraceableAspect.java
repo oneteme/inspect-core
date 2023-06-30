@@ -7,10 +7,6 @@ import static org.usf.traceapi.core.Helper.defaultUserProvider;
 import static org.usf.traceapi.core.Helper.hostAddress;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.operatingSystem;
-import static org.usf.traceapi.core.Helper.applicationEnvironement;
-import static org.usf.traceapi.core.Helper.applicationVersion;
-import static org.usf.traceapi.core.Helper.runtimeEnviroment;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.LaunchMode.BATCH;
 import static org.usf.traceapi.core.MainRequest.synchronizedMainRequest;
@@ -61,10 +57,7 @@ public class TraceableAspect {
 	        	main.setFailed(failed);
 	    		main.setUser(batchUser(joinPoint));
     			main.setThreadName(threadName());
-    			main.setApplicationVersion(applicationVersion());
-    			main.setApplicationEnvironment(applicationEnvironement());
-	        	main.setOperatingSystem(operatingSystem());
-	        	main.setRuntimeEnvironment(runtimeEnviroment());
+    			main.setApplication(Helper.applicationInfo());
 	        	sender.send(main);
     		}
     		catch(Exception e) {

@@ -14,10 +14,7 @@ import static org.usf.traceapi.core.Helper.defaultUserProvider;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.operatingSystem;
-import static org.usf.traceapi.core.Helper.applicationEnvironement;
-import static org.usf.traceapi.core.Helper.applicationVersion;
-import static org.usf.traceapi.core.Helper.runtimeEnviroment;
+import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.IncomingRequest.synchronizedIncomingRequest;
 
@@ -85,10 +82,7 @@ public final class IncomingRequestFilter implements Filter {
 	    			in.setUser(defaultUserProvider().getUser(req));
 	    		}
 	    		in.setThreadName(threadName());
-	    		in.setApplicationVersion(applicationVersion());
-	    		in.setApplicationEnvironment(applicationEnvironement());
-	            in.setOperatingSystem(operatingSystem());
-				in.setRuntimeEnvironment(runtimeEnviroment());
+	    		in.setApplication(applicationInfo());
     			traceSender.send(in);
     		}
     		catch(Exception e) {

@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.String.join;
+import static java.lang.System.getProperty;
 
 import javax.sql.DataSource;
 
@@ -25,8 +26,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class TraceConfiguration implements WebMvcConfigurer {
 	
 	public TraceConfiguration(Environment env) {
-		Helper.env = join(",", env.getActiveProfiles());
-		Helper.version = env.getProperty("spring.application.version");
+		var root = "spring.application.";
+		Helper.application = new ApplicationInfo(
+				env.getProperty(root + "name"),
+				env.getProperty(root + "version"),
+				join(",", env.getActiveProfiles()),
+				getProperty("os.name"),
+				"java " + getProperty("java.version"));
 	}
 	
 	@Override
