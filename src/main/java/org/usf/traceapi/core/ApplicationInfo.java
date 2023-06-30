@@ -1,12 +1,11 @@
 package org.usf.traceapi.core;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Getter
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
-public class ApplicationInfo {
+@RequiredArgsConstructor
+public final class ApplicationInfo {
 	
 	private final String name;
 	private final String version; // maven, NPM, ..
