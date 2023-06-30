@@ -16,4 +16,11 @@ public @interface TraceableBatch {
 	
 	String value() default "";
 	
+	/**
+	 * require default constructor
+	 * 
+	 */
+	Class<? extends BatchUserProvider> userProvider() default DefaultUserProvider.class;
+
+	//boolean enabled() default true
 }

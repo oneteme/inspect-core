@@ -46,28 +46,31 @@ public final class DataSourceWrapper implements DataSource {
 	}
 	
 	private Connection getConnection(SQLSupplier<Connection> cnSupp) throws SQLException {
-		var req = localTrace.get();
-		if(nonNull(req)) {
-			var out = new OutcomingQuery();
-			req.append(out);
-			DatabaseActionTracer tracer = out::append;
-			out.setThread(threadName());
-			out.setStart(ofEpochMilli(currentTimeMillis()));
-			try {
-				var cn = tracer.connection(cnSupp);
-				var meta = cn.getMetaData();
-				var args = decodeURL(meta.getURL());
-				out.setHost(args[0]);
-				out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(null));
-				out.setSchema(args[2]);
-				out.setDatabaseName(meta.getDatabaseProductName());
-				out.setDatabaseVersion(meta.getDatabaseProductVersion());
-				out.setDriverVersion(meta.getDriverVersion());
-				cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
-				return cn;
-			}
-			catch(SQLException e) {
-				out.setEnd(ofEpochMilli(currentTimeMillis()));
+		var out = new OutcomingQuery();
+		DatabaseActionTracer tracer = out::append;
+		out.setStart(ofEpochMilli(currentTimeMillis()));
+		try {
+			var cn = tracer.connection(cnSupp);
+			var meta = cn.getMetaData();
+			var args = decodeURL(meta.getURL());
+			out.setHost(args[0]);
+			out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(null));
+			out.setSchema(args[2]);
+			out.setUser(meta.getUserName());
+			out.setDatabaseName(meta.getDatabaseProductName());
+			out.setDatabaseVersion(meta.getDatabaseProductVersion());
+			out.setDriverVersion(meta.getDriverVersion());
+			cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
+			return cn;
+		}
+		catch(SQLException e) {
+			out.setEnd(ofEpochMilli(currentTimeMillis()));
+		}
+		finally {
+			out.setThreadName(threadName());
+			var req = localTrace.get();
+			if(nonNull(req)) {
+				req.append(out);
 			}
 		}
 		return cnSupp.get();

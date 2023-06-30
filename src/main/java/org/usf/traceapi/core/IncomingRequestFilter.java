@@ -10,11 +10,11 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
+import static org.usf.traceapi.core.Helper.applicationInfo;
+import static org.usf.traceapi.core.Helper.defaultUserProvider;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.operatingSystem;
-import static org.usf.traceapi.core.Helper.runtimeEnviroment;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.IncomingRequest.synchronizedIncomingRequest;
 
@@ -45,7 +45,6 @@ public final class IncomingRequestFilter implements Filter {
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	static final String TRACE_HEADER = "tracert";
 	
-	private final ClientProvider clientProvider;
 	private final TraceSender traceSender;
 	
 	@Override
@@ -76,14 +75,14 @@ public final class IncomingRequestFilter implements Filter {
 				in.setOutDataSize(res.getBufferSize()); //not exact !?
 	    		in.setStart(ofEpochMilli(beg));
 	    		in.setEnd(ofEpochMilli(fin));
-	    		in.setThread(threadName());
-	    		in.setName(defaultEndpoint(req));
-	    		//customizable data see IncomingRequestInterceptor
-	    		if(isNull(in.getClient())) {
-	    			in.setClient(clientProvider.supply(req));
+	    		if(isNull(in.getName())) {//already set in IncomingRequestInterceptor
+	    			in.setName(defaultEndpointName(req));
 	    		}
-	            in.setOs(operatingSystem());
-				in.setRe(runtimeEnviroment());
+	    		if(isNull(in.getUser())) {//already set in IncomingRequestInterceptor
+	    			in.setUser(defaultUserProvider().getUser(req));
+	    		}
+	    		in.setThreadName(threadName());
+	    		in.setApplication(applicationInfo());
     			traceSender.send(in);
     		}
     		catch(Exception e) {
@@ -94,10 +93,10 @@ public final class IncomingRequestFilter implements Filter {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private static String defaultEndpoint(HttpServletRequest req) {
+	private static String defaultEndpointName(HttpServletRequest req) {
 		var arr = req.getRequestURI().split("/");
 		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-		return map == null ? join("_", arr) : Stream.of(req.getRequestURI().split("/"))
+		return map == null ? join("_", arr) : Stream.of(arr)
 				.filter(not(String::isEmpty))
 				.filter(not(map.values()::contains))
 				.collect(joiner);

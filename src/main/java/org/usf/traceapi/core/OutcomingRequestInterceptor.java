@@ -32,8 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class OutcomingRequestInterceptor implements ClientHttpRequestInterceptor {
 	
-	private final TraceSender sender;
-	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		ClientHttpResponse res = null;
@@ -56,7 +54,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				out.setStart(ofEpochMilli(beg));
 				out.setEnd(ofEpochMilli(fin));
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
-				out.setThread(threadName());
+				out.setThreadName(threadName());
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
@@ -64,7 +62,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				}
 				var trc = localTrace.get();
 				if(isNull(trc)) { //no session
-					sender.send(out);
+					//orphan
 				}
 				else {
 					trc.append(out);

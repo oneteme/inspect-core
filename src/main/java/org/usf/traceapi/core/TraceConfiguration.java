@@ -1,8 +1,7 @@
 package org.usf.traceapi.core;
 
-import static java.util.Optional.ofNullable;
-
-import java.security.Principal;
+import static java.lang.String.join;
+import static java.lang.System.getProperty;
 
 import javax.sql.DataSource;
 
@@ -12,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -25,6 +25,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
+	public TraceConfiguration(Environment env) {
+		var root = "spring.application.";
+		Helper.application = new ApplicationInfo(
+				env.getProperty(root + "name"),
+				env.getProperty(root + "version"),
+				join(",", env.getActiveProfiles()),
+				getProperty("os.name"),
+				"java " + getProperty("java.version"));
+	}
+	
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
     	registry.addInterceptor(new IncomingRequestInterceptor());
@@ -32,10 +42,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
     @Bean
     public IncomingRequestFilter incomingRequestFilter(TraceSender sender) {
-    	ClientProvider cp = req-> ofNullable(req.getUserPrincipal())
-        		.map(Principal::getName)
-        		.orElse(null);
-    	return new IncomingRequestFilter(cp, sender);
+    	return new IncomingRequestFilter(sender);
     }
     
     @Bean
@@ -43,10 +50,9 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	return new TraceableAspect(sender);
     }
 
-
     @Bean //do not rename this method see @Qualifier
-    public OutcomingRequestInterceptor outcomingRequestInterceptor(TraceSender sender) {
-        return new OutcomingRequestInterceptor(sender);
+    public OutcomingRequestInterceptor outcomingRequestInterceptor() {
+        return new OutcomingRequestInterceptor();
     }
 
     @Bean

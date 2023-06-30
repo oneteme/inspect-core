@@ -1,6 +1,5 @@
 package org.usf.traceapi.core;
 
-import static java.lang.System.getProperty;
 import static java.lang.Thread.currentThread;
 import static java.net.InetAddress.getLocalHost;
 import static java.util.Objects.nonNull;
@@ -23,19 +22,22 @@ final class Helper {
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	static final Supplier<String> idProvider = ()-> randomUUID().toString();
+	
+	static final DefaultUserProvider userProvider = new DefaultUserProvider(); 
+	static ApplicationInfo application; //unsafe set
+	
+	static ApplicationInfo applicationInfo() {
+		return application;
+	}
 
 	static String threadName() {
 		return currentThread().getName();
 	}
 	
-	static String operatingSystem() {
-		return getProperty("os.name");
+	static DefaultUserProvider defaultUserProvider() {
+		return userProvider;
 	}
 	
-	static String runtimeEnviroment() {
-		return "java " + getProperty("java.version");
-	}
-
 	static String hostAddress() {
 		try {
 			return getLocalHost().getHostAddress();
@@ -43,9 +45,8 @@ final class Helper {
 			return null;
 		}
 	}
-
 	static String extractAuthScheme(List<String> authHeaders) { //nullable
-		return nonNull(authHeaders) && !authHeaders.isEmpty()
+		return nonNull(authHeaders) && authHeaders.size() == 1 //require one header
 				? extractAuthScheme(authHeaders.get(0)) : null;
 	}
 	

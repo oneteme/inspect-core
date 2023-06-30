@@ -30,8 +30,8 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
         if(nonNull(a)) {
         	var trace = (IncomingRequest) localTrace.get();
             if(nonNull(trace)) {
-            	if(a.clientProvider() != ClientProvider.class) {
-            		trace.setClient(supplyClient(req, a.clientProvider()));
+            	if(a.clientProvider() != DefaultUserProvider.class) {
+            		trace.setUser(supplyClient(req, a.clientProvider()));
             	}
             	if(!a.value().isEmpty()) {
             		trace.setName(a.value());
@@ -40,9 +40,9 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
         }
     }
     
-    private static String supplyClient(HttpServletRequest req, Class<? extends ClientProvider> clasz) { //simple impl.
+    private static String supplyClient(HttpServletRequest req, Class<? extends ApiUserProvider> clasz) { //simple impl.
 		try {
-			return clasz.getDeclaredConstructor().newInstance().supply(req);
+			return clasz.getDeclaredConstructor().newInstance().getUser(req);
 		} catch (Exception e) {
 			log.warn("cannot instantiate class " + clasz, e);
 		}

@@ -19,10 +19,9 @@ import lombok.Setter;
 @Getter
 public final class IncomingRequest extends OutcomingRequest implements Session {
 
-	private String name; // methodName, endpoint, ..
-	private String client; //nullable
-	private String os; //operating system : Window, Linux, ...
-	private String re; //runtime environment : JAVA, JS, PHP, Browser, Postman ...
+	private String name; // @annotation, endpoint
+	private String user; //nullable
+	private ApplicationInfo application;
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
 	

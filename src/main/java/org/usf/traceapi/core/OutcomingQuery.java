@@ -23,10 +23,11 @@ public class OutcomingQuery implements Metric {
 	private String schema; //nullable
 	private Instant start;
 	private Instant end;
+	private String user;
+	private String threadName;
+	private String driverVersion;
 	private String databaseName;
 	private String databaseVersion;
-	private String driverVersion;
-	private String thread;
 	private boolean failed;
 	private final List<DatabaseAction> actions = new LinkedList<>();
 	
@@ -37,6 +38,6 @@ public class OutcomingQuery implements Metric {
 	
 	@Override
 	public String toString() {
-		return format("%-20s", thread) + ": QUERY   {" +  format("%5s", duration()) + "ms}"; 
+		return format("%-20s", threadName) + ": QUERY   {" +  format("%5s", duration()) + "ms}"; 
 	}
 }

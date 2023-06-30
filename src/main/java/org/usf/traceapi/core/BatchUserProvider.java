@@ -6,8 +6,8 @@ package org.usf.traceapi.core;
  *
  */
 @FunctionalInterface
-public interface TraceSender {
-	
-	void send(Session session);
+public interface BatchUserProvider {
+
+    String getUser();
 
 }
