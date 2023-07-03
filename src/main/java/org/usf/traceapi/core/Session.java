@@ -15,6 +15,8 @@ public interface Session extends Metric {
 	
 	String getUser();
 	
+	ApplicationInfo getApplication();
+	
 	Collection<OutcomingRequest> getRequests();
 	
 	Collection<OutcomingQuery> getQueries();
