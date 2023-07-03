@@ -41,8 +41,7 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	}
 	
 	default ResultSetWrapper select(SQLSupplier<ResultSet> supplier) throws SQLException {
-		var rs = trace(SELECT, supplier);
-		return new ResultSetWrapper(rs, this, currentTimeMillis());
+		return new ResultSetWrapper(trace(SELECT, supplier), this, currentTimeMillis());
 	}
 	
 	default <T> T sql(SQLSupplier<T> supplier) throws SQLException {

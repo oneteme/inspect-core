@@ -20,13 +20,13 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        return handler instanceof HandlerMethod //important! !static resource
-        		&& nonNull(getMethodAnnotation(handler)); 
+        return handler instanceof HandlerMethod; //important! !static resource 
     }
 
     @Override
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-        TraceableApi a = getMethodAnnotation(TraceableApi.class);
+        HandlerMethod m = (HandlerMethod) handler;
+        TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
         if(nonNull(a)) {
         	var trace = (IncomingRequest) localTrace.get();
             if(nonNull(trace)) {
@@ -41,9 +41,4 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
             }
         }
     }
-    
-    private static TraceableApi getMethodAnnotation(Object handler) {
-    	return ((HandlerMethod) handler).getMethodAnnotation(TraceableApi.class);
-    }
-    
 }
