@@ -2,7 +2,6 @@ package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -54,19 +53,17 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				out.setStart(ofEpochMilli(beg));
 				out.setEnd(ofEpochMilli(fin));
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
-				out.setThreadName(threadName());
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
 					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
 				}
+				out.setThreadName(threadName());
 				var trc = localTrace.get();
-				if(isNull(trc)) { //no session
-					//orphan
-				}
-				else {
+				if(nonNull(trc)) { //no session
 					trc.append(out);
 				}
+				//else orphan
 			}
 			catch(Exception e) {
 				//do not catch exception
