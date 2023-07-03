@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.traceapi.core.DefaultUserProvider.isDefaultProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.newInstance;
 
@@ -19,17 +20,17 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        return handler instanceof HandlerMethod; //important! !static resource 
+        return handler instanceof HandlerMethod //important! !static resource
+        		&& nonNull(getMethodAnnotation(handler)); 
     }
 
     @Override
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-        HandlerMethod m = (HandlerMethod) handler;
-        TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
+        TraceableApi a = getMethodAnnotation(TraceableApi.class);
         if(nonNull(a)) {
         	var trace = (IncomingRequest) localTrace.get();
             if(nonNull(trace)) {
-            	if(a.clientProvider() != DefaultUserProvider.class) {
+            	if(!isDefaultProvider(a.clientProvider())) {
             		trace.setUser(newInstance(a.clientProvider())
             				.map(p-> p.getUser(req))
             				.orElse(null));
@@ -39,6 +40,10 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
             	}
             }
         }
+    }
+    
+    private static TraceableApi getMethodAnnotation(Object handler) {
+    	return ((HandlerMethod) handler).getMethodAnnotation(TraceableApi.class);
     }
     
 }

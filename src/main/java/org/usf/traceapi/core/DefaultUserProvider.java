@@ -19,5 +19,9 @@ public final class DefaultUserProvider implements ApiUserProvider, BatchUserProv
         		.map(Principal::getName)
         		.orElse(null);
 	}
+	
+	static boolean isDefaultProvider(Class<?> provider) {
+		return provider == DefaultUserProvider.class;
+	}
 
 }

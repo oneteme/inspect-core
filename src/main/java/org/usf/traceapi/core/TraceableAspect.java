@@ -3,6 +3,7 @@ package org.usf.traceapi.core;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
+import static org.usf.traceapi.core.DefaultUserProvider.isDefaultProvider;
 import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.defaultUserProvider;
 import static org.usf.traceapi.core.Helper.idProvider;
@@ -74,12 +75,14 @@ public class TraceableAspect {
     	return ant.value().isBlank() ? signature.getMethod().getName() : ant.value();
     }
     
-    private static String batchUser(ProceedingJoinPoint joinPoint) { //simple impl.
+    private static String batchUser(ProceedingJoinPoint joinPoint) {
     	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
     	var ant = signature.getMethod().getAnnotation(TraceableBatch.class);
-    	return ant.userProvider() == DefaultUserProvider.class
+    	return isDefaultProvider(ant.userProvider())
     			? defaultUserProvider().getUser()
-    			: newInstance(ant.userProvider()).map(BatchUserProvider::getUser).orElse(null);
+    			: newInstance(ant.userProvider())
+    			.map(BatchUserProvider::getUser)
+    			.orElse(null);
     }
 
 }

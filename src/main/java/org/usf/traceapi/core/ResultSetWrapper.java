@@ -23,4 +23,5 @@ public final class ResultSetWrapper implements ResultSet {
 	public void close() throws SQLException {
 		tracer.fetch(start, resultSet::close);
 	}
+	
 }
