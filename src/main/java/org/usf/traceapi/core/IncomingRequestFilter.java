@@ -62,10 +62,10 @@ public final class IncomingRequestFilter implements Filter {
     		try {
 	    		localTrace.remove();
 	    		var uri = create(req.getRequestURL().toString());
+	    		in.setMethod(req.getMethod());
 	    		in.setProtocol(uri.getScheme());
 	    		in.setHost(uri.getHost());
 	    		in.setPort(uri.getPort());
-	    		in.setMethod(req.getMethod());
 	    		in.setPath(req.getRequestURI()); // path
 	    		in.setQuery(req.getQueryString());
 	    		in.setContentType(res.getContentType());
