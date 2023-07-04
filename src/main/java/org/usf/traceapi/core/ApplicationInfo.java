@@ -3,6 +3,11 @@ package org.usf.traceapi.core;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Getter
 @RequiredArgsConstructor
 public final class ApplicationInfo {
