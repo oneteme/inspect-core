@@ -28,12 +28,12 @@ public class OutcomingQuery implements Metric {
 	private String driverVersion;
 	private String databaseName;
 	private String databaseVersion;
-	private boolean failed;
+	private boolean completed;
 	private final List<DatabaseAction> actions = new LinkedList<>();
 	
 	public void append(DatabaseAction action) {
 		actions.add(action);
-		failed &= action.isFailed();
+		completed &= action.isFailed();
 	}
 	
 	@Override

@@ -19,25 +19,22 @@ import jakarta.servlet.http.HttpServletResponse;
 public final class IncomingRequestInterceptor implements HandlerInterceptor { //AsyncHandlerInterceptor ?
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        return handler instanceof HandlerMethod; //important! !static resource 
-    }
-
-    @Override
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-        HandlerMethod m = (HandlerMethod) handler;
-        TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
-        if(nonNull(a)) {
-        	var trace = (IncomingRequest) localTrace.get();
-            if(nonNull(trace)) {
-            	if(!isDefaultProvider(a.clientProvider())) {
-            		trace.setUser(newInstance(a.clientProvider())
-            				.map(p-> p.getUser(req))
-            				.orElse(null));
-            	}
-            	if(!a.value().isEmpty()) {
-            		trace.setName(a.value());
-            	}
+        if(handler instanceof HandlerMethod) {//important! !static resource 
+        	HandlerMethod m = (HandlerMethod) handler;
+            TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
+            if(nonNull(a)) {
+            	var trace = (IncomingRequest) localTrace.get();
+                if(nonNull(trace)) {
+                	if(!isDefaultProvider(a.clientProvider())) {
+                		trace.setUser(newInstance(a.clientProvider())
+                				.map(p-> p.getUser(req))
+                				.orElse(null));
+                	}
+                	if(!a.value().isEmpty()) {
+                		trace.setName(a.value());
+                	}
+                }
             }
         }
     }

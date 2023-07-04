@@ -29,7 +29,7 @@ public final class MainRequest implements Session {
 	private Instant end;
 	private LaunchMode launchMode;
 	private String location; //URL, IP Address, SI, ... 
-	private boolean failed;
+	private boolean completed;
 	private String threadName;
 	private ApplicationInfo application;
 	private final Collection<OutcomingRequest> requests;

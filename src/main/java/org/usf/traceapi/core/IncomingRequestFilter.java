@@ -21,7 +21,6 @@ import static org.usf.traceapi.core.IncomingRequest.synchronizedIncomingRequest;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 

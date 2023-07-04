@@ -39,20 +39,20 @@ public class TraceableAspect {
     		return joinPoint.proceed();
     	}
     	Object proceed;
-    	var failed = true;
+    	var completed = false;
     	var main = synchronizedMainRequest(idProvider.get());
     	localTrace.set(main);
     	var beg = currentTimeMillis();
     	try {
     		proceed = joinPoint.proceed();
-    		failed = false;
+    		completed = true;
     	}
     	finally {
     		var fin = currentTimeMillis();
     		try {
     			localTrace.remove();
     			main.setLaunchMode(BATCH);
-	        	main.setFailed(failed);
+	        	main.setCompleted(completed);
 	    		main.setStart(ofEpochMilli(beg));
 	    		main.setEnd(ofEpochMilli(fin));
     			main.setName(batchName(joinPoint));
