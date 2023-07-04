@@ -6,7 +6,6 @@ import static java.net.InetAddress.getLocalHost;
 import static org.usf.traceapi.core.Helper.application;
 
 import java.net.UnknownHostException;
-import java.util.Collection;
 
 import javax.sql.DataSource;
 
@@ -50,7 +49,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
 	
     @Bean
-    public IncomingRequestFilter incomingRequestFilter(TraceSender sender, @Value("${api.tracing.exclude}") String[] excludes) {
+    public IncomingRequestFilter incomingRequestFilter(TraceSender sender, @Value("${api.tracing.exclude:}") String[] excludes) {
     	return new IncomingRequestFilter(sender, excludes);
     }
     
