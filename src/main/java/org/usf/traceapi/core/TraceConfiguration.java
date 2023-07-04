@@ -6,10 +6,12 @@ import static java.net.InetAddress.getLocalHost;
 import static org.usf.traceapi.core.Helper.application;
 
 import java.net.UnknownHostException;
+import java.util.Collection;
 
 import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -48,8 +50,8 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
 	
     @Bean
-    public IncomingRequestFilter incomingRequestFilter(TraceSender sender) {
-    	return new IncomingRequestFilter(sender);
+    public IncomingRequestFilter incomingRequestFilter(TraceSender sender, @Value("${api.tracing.exclude}") String[] excludes) {
+    	return new IncomingRequestFilter(sender, excludes);
     }
     
     @Bean

@@ -5,6 +5,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.net.URI.create;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
@@ -20,14 +21,15 @@ import static org.usf.traceapi.core.IncomingRequest.synchronizedIncomingRequest;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
-import jakarta.servlet.Filter;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -40,22 +42,23 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RequiredArgsConstructor
-public final class IncomingRequestFilter implements Filter {
+public final class IncomingRequestFilter extends OncePerRequestFilter {
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	static final String TRACE_HEADER = "tracert";
 	
 	private final TraceSender traceSender;
+	private final String[] excludeUrlPatterns;
+	
+	private final AntPathMatcher matcher = new AntPathMatcher();
 	
 	@Override
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-    	var req = (HttpServletRequest) request;
-    	var res = (HttpServletResponse) response;
+	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
     	var in  = synchronizedIncomingRequest(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
     	localTrace.set(in);
     	var beg = currentTimeMillis();
     	try {
-            chain.doFilter(request, response);
+    		filterChain.doFilter(req, res);
     	}
     	finally {
     		var fin = currentTimeMillis();
@@ -87,17 +90,22 @@ public final class IncomingRequestFilter implements Filter {
     		}
     		catch(Exception e) {
 				//do not catch exception
-				log.warn("error while tracing : {}", request, e);
+				log.warn("error while tracing : {}", req, e);
     		}
 		}
 	}
 	
+	@Override
+	protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+		return nonNull(excludeUrlPatterns) && Stream.of(excludeUrlPatterns)
+		        .anyMatch(p -> matcher.match(p, request.getServletPath()));
+	}
+	
 	@SuppressWarnings("unchecked")
 	private static String defaultEndpointName(HttpServletRequest req) {
-		var arr = req.getRequestURI().split("/");
+		var arr = req.getRequestURI().substring(1).split("/");
 		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
 		return map == null ? join("_", arr) : Stream.of(arr)
-				.filter(not(String::isEmpty))
 				.filter(not(map.values()::contains))
 				.collect(joiner);
 	}
