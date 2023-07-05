@@ -33,7 +33,7 @@ public class OutcomingQuery implements Metric {
 	
 	public void append(DatabaseAction action) {
 		actions.add(action);
-		completed &= action.isFailed();
+		completed &= action.isCompleted();
 	}
 	
 	@Override

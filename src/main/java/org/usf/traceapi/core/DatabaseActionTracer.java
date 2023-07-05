@@ -73,16 +73,16 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	}
 
 	private <T> T trace(Action action, LongSupplier startSupp, SQLSupplier<T> sqlSupp) throws SQLException {
-		var err = true;
+		var cmp = false;
 		var beg = startSupp.getAsLong();
 		try {
 			var obj = sqlSupp.get();
-			err = false;
+			cmp = true;
 			return obj;
 		}
 		finally {
 			var fin = currentTimeMillis();
-			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), err));
+			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), cmp));
 		}
 	}
 
