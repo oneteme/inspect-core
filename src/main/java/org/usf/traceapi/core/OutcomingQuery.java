@@ -28,7 +28,7 @@ public class OutcomingQuery implements Metric {
 	private String driverVersion;
 	private String databaseName;
 	private String databaseVersion;
-	private boolean completed;
+	private boolean completed = true; // initial status
 	private final List<DatabaseAction> actions = new LinkedList<>();
 	
 	public void append(DatabaseAction action) {

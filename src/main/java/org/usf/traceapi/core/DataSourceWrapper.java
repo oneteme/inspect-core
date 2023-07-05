@@ -47,6 +47,7 @@ public final class DataSourceWrapper implements DataSource {
 	
 	private Connection getConnection(SQLSupplier<Connection> cnSupp) throws SQLException {
 		var out = new OutcomingQuery();
+		out.setCompleted(true); // initial status
 		DatabaseActionTracer tracer = out::append;
     	var beg = currentTimeMillis();
 		try {
