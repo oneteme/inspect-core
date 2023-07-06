@@ -65,6 +65,7 @@ public final class DataSourceWrapper implements DataSource {
 		}
 		catch(SQLException e) {
 			out.setEnd(ofEpochMilli(currentTimeMillis()));
+			throw e;
 		}
 		finally {
 			out.setStart(ofEpochMilli(beg));
@@ -74,7 +75,6 @@ public final class DataSourceWrapper implements DataSource {
 				req.append(out);
 			}
 		}
-		return cnSupp.get();
 	}
 	
 	static String[] decodeURL(String url) {
