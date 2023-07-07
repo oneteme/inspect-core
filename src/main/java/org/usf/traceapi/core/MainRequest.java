@@ -29,9 +29,9 @@ public final class MainRequest implements Session {
 	private Instant end;
 	private LaunchMode launchMode;
 	private String location; //URL, IP Address, SI, ... 
-	private boolean completed;
 	private String threadName;
 	private ApplicationInfo application;
+	private ExceptionInfo exception; 
 	private final Collection<OutcomingRequest> requests;
 	private final Collection<OutcomingQuery> queries;
 

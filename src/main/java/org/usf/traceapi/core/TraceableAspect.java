@@ -4,6 +4,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.DefaultUserProvider.isDefaultProvider;
+import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.defaultUserProvider;
 import static org.usf.traceapi.core.Helper.idProvider;
@@ -39,20 +40,21 @@ public class TraceableAspect {
     		return joinPoint.proceed();
     	}
     	Object proceed;
-    	var completed = false;
     	var main = synchronizedMainRequest(idProvider.get());
     	localTrace.set(main);
     	var beg = currentTimeMillis();
     	try {
     		proceed = joinPoint.proceed();
-    		completed = true;
+    	}
+    	catch (Exception e) {
+    		main.setException(fromException(e));
+    		throw e;
     	}
     	finally {
     		var fin = currentTimeMillis();
     		try {
     			localTrace.remove();
     			main.setLaunchMode(BATCH);
-	        	main.setCompleted(completed);
 	    		main.setStart(ofEpochMilli(beg));
 	    		main.setEnd(ofEpochMilli(fin));
     			main.setName(batchName(joinPoint));

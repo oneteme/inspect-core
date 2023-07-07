@@ -11,6 +11,7 @@ import static org.usf.traceapi.core.Action.SELECT;
 import static org.usf.traceapi.core.Action.SQL;
 import static org.usf.traceapi.core.Action.STATEMENT;
 import static org.usf.traceapi.core.Action.UPDATE;
+import static org.usf.traceapi.core.ExceptionInfo.fromException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -73,16 +74,18 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	}
 
 	private <T> T trace(Action action, LongSupplier startSupp, SQLSupplier<T> sqlSupp) throws SQLException {
-		var cmp = false;
+		ExceptionInfo ex = null;
 		var beg = startSupp.getAsLong();
 		try {
-			var obj = sqlSupp.get();
-			cmp = true;
-			return obj;
+			return sqlSupp.get();
+		}
+		catch(SQLException e) {
+			ex = fromException(e);
+			throw e;
 		}
 		finally {
 			var fin = currentTimeMillis();
-			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), cmp));
+			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), ex));
 		}
 	}
 

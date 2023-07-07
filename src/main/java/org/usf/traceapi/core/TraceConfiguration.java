@@ -33,6 +33,9 @@ import lombok.extern.slf4j.Slf4j;
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
+	@Value("${api.tracing.exclude:}") 
+	private String[] excludes;
+	
 	public TraceConfiguration(Environment env) {
 		application = new ApplicationInfo(
 				env.getProperty("spring.application.name"),
@@ -45,11 +48,11 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
-    	registry.addInterceptor(new IncomingRequestInterceptor());
+    	registry.addInterceptor(new IncomingRequestInterceptor()).excludePathPatterns(excludes);
     }
 	
     @Bean
-    public IncomingRequestFilter incomingRequestFilter(TraceSender sender, @Value("${api.tracing.exclude:}") String[] excludes) {
+    public IncomingRequestFilter incomingRequestFilter(TraceSender sender) {
     	return new IncomingRequestFilter(sender, excludes);
     }
     

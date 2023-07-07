@@ -3,7 +3,6 @@ package org.usf.traceapi.core;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
@@ -65,15 +64,12 @@ public final class DataSourceWrapper implements DataSource {
 		}
 		catch(SQLException e) {
 			out.setEnd(ofEpochMilli(currentTimeMillis()));
-			throw e;
+			throw e; //tracer => out.completed=false 
 		}
 		finally {
 			out.setStart(ofEpochMilli(beg));
 			out.setThreadName(threadName());
-			var req = localTrace.get();
-			if(nonNull(req)) {
-				req.append(out);
-			}
+			ofNullable(localTrace.get()).ifPresent(req-> req.append(out)); //else no session
 		}
 	}
 	

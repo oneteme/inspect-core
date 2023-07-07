@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.String.format;
+import static java.util.Objects.isNull;
 
 import java.time.Instant;
 import java.util.LinkedList;
@@ -33,7 +34,7 @@ public class OutcomingQuery implements Metric {
 	
 	public void append(DatabaseAction action) {
 		actions.add(action);
-		completed &= action.isCompleted();
+		completed &= isNull(action.getException());
 	}
 	
 	@Override
