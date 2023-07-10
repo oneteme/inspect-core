@@ -5,6 +5,7 @@ import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
@@ -40,6 +41,10 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 		try {
 			res = execution.execute(request, body);
 		}
+		catch(Exception e) {
+			out.setException(fromException(e));
+			throw e;
+		}
 		finally {
 			var fin = currentTimeMillis();
 			try {
@@ -59,11 +64,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
 				}
 				out.setThreadName(threadName());
-				var trc = localTrace.get();
-				if(nonNull(trc)) { //no session
-					trc.append(out);
-				}
-				//else orphan
+				ofNullable(localTrace.get()).ifPresent(req-> req.append(out));  //else no session
 			}
 			catch(Exception e) {
 				//do not catch exception

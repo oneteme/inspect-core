@@ -17,7 +17,7 @@ public final class DatabaseAction implements Metric {
 	private final Action type;
 	private final Instant start;
 	private final Instant end;
-	private final boolean completed;
+	private final ExceptionInfo exception; 
 	//private final long rows; Statement|ResultSet|Update|Batch
 	
 	@Override

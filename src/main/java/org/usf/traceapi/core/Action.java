@@ -7,7 +7,7 @@ package org.usf.traceapi.core;
  */
 public enum Action {
 	
-	CONNECTION, STATEMENT,
+	CONNECTION, METADATA, STATEMENT,
 	SQL, SELECT, UPDATE, BATCH,
 	COMMIT, ROLLBACK, FETCH
 }

@@ -27,12 +27,13 @@ public class OutcomingRequest implements Metric {
 	private String query; //nullable
 	private String contentType; //nullable
 	private String authScheme; //nullable   Basic, Bearer, Digest, OAuth, ..
-	private Integer status; //nullable
+	private int status; // 0 else
 	private long inDataSize;
 	private long outDataSize;
  	private Instant start;
 	private Instant end;
 	private String threadName;
+	private ExceptionInfo exception;
 	
 	@JsonCreator
 	public OutcomingRequest(String id) {

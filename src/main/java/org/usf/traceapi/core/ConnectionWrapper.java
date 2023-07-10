@@ -3,6 +3,7 @@ package org.usf.traceapi.core;
 import static java.util.Objects.nonNull;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Savepoint;
@@ -85,6 +86,11 @@ public final class ConnectionWrapper implements Connection {
 	@Override
 	public void rollback(Savepoint savepoint) throws SQLException {
 		tracer.rollback(()-> cn.rollback(savepoint));
+	}
+	
+	@Override
+	public DatabaseMetaData getMetaData() throws SQLException {
+		return tracer.connectionMetadata(cn::getMetaData);
 	}
 	
 	@Override
