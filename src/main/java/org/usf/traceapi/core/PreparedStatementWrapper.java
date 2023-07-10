@@ -2,6 +2,7 @@ package org.usf.traceapi.core;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 import lombok.experimental.Delegate;
@@ -36,6 +37,11 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 	@Override
 	public long executeLargeUpdate() throws SQLException {
 		return tracer.update(ps()::executeLargeUpdate);
+	}
+	
+	@Override
+	public ResultSetMetaData getMetaData() throws SQLException {
+		return tracer.resultSetMetadata(ps()::getMetaData);
 	}
 	
 	@Delegate

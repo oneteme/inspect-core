@@ -6,6 +6,7 @@ import static org.usf.traceapi.core.Action.BATCH;
 import static org.usf.traceapi.core.Action.COMMIT;
 import static org.usf.traceapi.core.Action.CONNECTION;
 import static org.usf.traceapi.core.Action.FETCH;
+import static org.usf.traceapi.core.Action.METADATA;
 import static org.usf.traceapi.core.Action.ROLLBACK;
 import static org.usf.traceapi.core.Action.SELECT;
 import static org.usf.traceapi.core.Action.SQL;
@@ -14,8 +15,10 @@ import static org.usf.traceapi.core.Action.UPDATE;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.function.Consumer;
@@ -32,6 +35,10 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	default ConnectionWrapper connection(SQLSupplier<Connection> supplier) throws SQLException {
 		return new ConnectionWrapper(trace(CONNECTION, supplier), this);
 	}
+	
+	default DatabaseMetaData connectionMetadata(SQLSupplier<DatabaseMetaData> supplier) throws SQLException {
+		return trace(METADATA, supplier);
+	}
 
 	default StatementWrapper statement(SQLSupplier<Statement> supplier) throws SQLException {
 		return new StatementWrapper(trace(STATEMENT, supplier), this);
@@ -43,6 +50,10 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	
 	default ResultSetWrapper select(SQLSupplier<ResultSet> supplier) throws SQLException {
 		return new ResultSetWrapper(trace(SELECT, supplier), this, currentTimeMillis());
+	}
+	
+	default ResultSetMetaData resultSetMetadata(SQLSupplier<ResultSetMetaData> supplier) throws SQLException {
+		return trace(METADATA, supplier);
 	}
 	
 	default <T> T sql(SQLSupplier<T> supplier) throws SQLException {
