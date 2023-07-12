@@ -4,23 +4,26 @@ import static java.lang.Thread.currentThread;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static java.util.UUID.randomUUID;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class Helper {
+	
+	static final Logger log = getLogger("org.usf.traceapi.core.TraceAPI");
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	static final Supplier<String> idProvider = ()-> randomUUID().toString();

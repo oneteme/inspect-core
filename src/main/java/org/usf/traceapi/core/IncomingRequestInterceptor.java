@@ -4,6 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.DefaultUserProvider.isDefaultProvider;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 
 import org.springframework.web.method.HandlerMethod;
@@ -31,6 +32,7 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
 	            TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
 	            if(nonNull(a)) {
                 	if(!isDefaultProvider(a.clientProvider())) {
+            			log.debug("getting client..");
                 		trace.setUser(newInstance(a.clientProvider())
                 				.map(p-> p.getUser(req))
                 				.orElse(null));

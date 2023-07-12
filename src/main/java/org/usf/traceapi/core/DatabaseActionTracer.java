@@ -13,6 +13,7 @@ import static org.usf.traceapi.core.Action.SQL;
 import static org.usf.traceapi.core.Action.STATEMENT;
 import static org.usf.traceapi.core.Action.UPDATE;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
+import static org.usf.traceapi.core.Helper.log;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -86,6 +87,7 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 
 	private <T> T trace(Action action, LongSupplier startSupp, SQLSupplier<T> sqlSupp) throws SQLException {
 		ExceptionInfo ex = null;
+		log.debug("executing {} action..", action);
 		var beg = startSupp.getAsLong();
 		try {
 			return sqlSupp.get();

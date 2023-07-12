@@ -9,6 +9,7 @@ import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.defaultUserProvider;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.LaunchMode.BATCH;
@@ -21,14 +22,12 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @Aspect
 @Component
 @RequiredArgsConstructor
@@ -43,6 +42,7 @@ public class TraceableAspect {
     	}
     	Object proceed;
     	var main = synchronizedMainRequest(idProvider.get());
+    	log.debug("batch request {} <= {}", main.getId(), joinPoint.getSignature().getName());
     	localTrace.set(main);
     	var beg = currentTimeMillis();
     	try {

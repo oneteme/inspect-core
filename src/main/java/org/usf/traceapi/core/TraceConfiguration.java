@@ -4,6 +4,7 @@ import static java.lang.String.join;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
 import static org.usf.traceapi.core.Helper.application;
+import static org.usf.traceapi.core.Helper.log;
 
 import java.net.UnknownHostException;
 
@@ -20,14 +21,11 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @Configuration
 @EnableConfigurationProperties(TraceConfigurationProperties.class)
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
@@ -44,6 +42,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 				join(",", env.getActiveProfiles()),
 				getProperty("os.name"),
 				"java " + getProperty("java.version"));
+		log.debug("app.env : {}", application);
 	}
 	
 	@Override
