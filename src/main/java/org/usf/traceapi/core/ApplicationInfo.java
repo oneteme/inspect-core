@@ -2,6 +2,7 @@ package org.usf.traceapi.core;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 /**
  * 
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @Getter
+@ToString
 @RequiredArgsConstructor
 public final class ApplicationInfo {
 	

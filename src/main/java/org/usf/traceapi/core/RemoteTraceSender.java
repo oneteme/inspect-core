@@ -2,6 +2,7 @@ package org.usf.traceapi.core;
 
 import static java.lang.String.join;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static org.usf.traceapi.core.Helper.log;
 
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -34,6 +35,7 @@ public final class RemoteTraceSender implements TraceSender {
 	@Override
 	public void send(Session session) {
 		var uri = join("/", properties.getHost(), TRACE_ENDPOINT, endpointFor(session));
+		log.debug("sending trace {} => {}", session.getId(), uri);
 		executor.schedule(()-> template.put(uri, session), properties.getDelay(), properties.getUnit()); //wait for sending response
 	}
 	

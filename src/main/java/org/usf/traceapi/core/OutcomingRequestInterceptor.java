@@ -9,6 +9,7 @@ import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.IncomingRequestFilter.TRACE_HEADER;
 
@@ -21,22 +22,21 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @RequiredArgsConstructor
 public final class OutcomingRequestInterceptor implements ClientHttpRequestInterceptor {
 	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-		ClientHttpResponse res = null;
 		var out = new OutcomingRequest(idProvider.get());
+		log.debug("outcoming request : {} <= {}", out.getId(), request.getURI());
 		request.getHeaders().add(TRACE_HEADER, out.getId());
+		ClientHttpResponse res = null;
 		var beg = currentTimeMillis();
 		try {
 			res = execution.execute(request, body);
@@ -51,7 +51,9 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				out.setMethod(request.getMethod().name());
 				out.setProtocol(request.getURI().getScheme());
 				out.setHost(request.getURI().getHost());
-				out.setPort(request.getURI().getPort());
+				if(request.getURI().getPort() > 0) {
+					out.setPort(request.getURI().getPort());
+				}
 				out.setPath(request.getURI().getPath());
 				out.setQuery(request.getURI().getQuery());
 				out.setAuthScheme(extractAuthScheme(request.getHeaders().get(AUTHORIZATION)));
@@ -68,7 +70,7 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 			}
 			catch(Exception e) {
 				//do not catch exception
-				log.warn("error while tracing : {}" + request, e);
+				log.warn("error while tracing : {}", request, e);
 			}
 		}
 		return res;

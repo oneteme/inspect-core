@@ -28,7 +28,7 @@ public final class TraceConfigurationProperties {
 	}
 		
 	public void setUnit(String unit){
-		this.unit = TimeUnit.valueOf(unit.toLowerCase());
+		this.unit = TimeUnit.valueOf(unit.toUpperCase());
 	}
 
 	private static String normalizeHost(String host) {

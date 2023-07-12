@@ -17,6 +17,7 @@ import static org.usf.traceapi.core.Helper.defaultUserProvider;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.IncomingRequest.synchronizedIncomingRequest;
 
@@ -33,14 +34,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @RequiredArgsConstructor
 public final class IncomingRequestFilter extends OncePerRequestFilter {
 
@@ -54,7 +53,8 @@ public final class IncomingRequestFilter extends OncePerRequestFilter {
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-    	var in  = synchronizedIncomingRequest(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
+    	var in = synchronizedIncomingRequest(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
+    	log.debug("incoming request : {} <= {}", in.getId(), req.getRequestURI());
     	localTrace.set(in);
     	var beg = currentTimeMillis();
     	try {
@@ -74,7 +74,9 @@ public final class IncomingRequestFilter extends OncePerRequestFilter {
 	    		in.setMethod(req.getMethod());
 	    		in.setProtocol(uri.getScheme());
 	    		in.setHost(uri.getHost());
-	    		in.setPort(uri.getPort());
+	    		if(uri.getPort() > 0) {
+	    			in.setPort(uri.getPort());
+	    		}
 	    		in.setPath(req.getRequestURI()); // path
 	    		in.setQuery(req.getQueryString());
 	    		in.setContentType(res.getContentType());
