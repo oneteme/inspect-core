@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class Helper {
 	
-	static final Logger log = getLogger("org.usf.traceapi.core.TraceAPI");
+	static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	static final Supplier<String> idProvider = ()-> randomUUID().toString();
@@ -61,4 +61,5 @@ final class Helper {
 			return empty();
 		}
 	}
+	
 }
