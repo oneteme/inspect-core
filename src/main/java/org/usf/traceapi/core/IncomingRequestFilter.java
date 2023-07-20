@@ -44,7 +44,7 @@ import lombok.RequiredArgsConstructor;
 public final class IncomingRequestFilter extends OncePerRequestFilter {
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
-	static final String TRACE_HEADER = "tracert";
+	static final String TRACE_HEADER = "x-tracert";
 	
 	private final TraceSender traceSender;
 	private final String[] excludeUrlPatterns;
