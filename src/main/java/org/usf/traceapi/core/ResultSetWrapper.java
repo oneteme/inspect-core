@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 import lombok.RequiredArgsConstructor;
@@ -20,11 +19,6 @@ public final class ResultSetWrapper implements ResultSet {
 	private final DatabaseActionTracer tracer;
 	private final long start;
 	
-	@Override
-	public ResultSetMetaData getMetaData() throws SQLException {
-		return tracer.resultSetMetadata(rs::getMetaData);
-	}
-
 	@Override
 	public void close() throws SQLException {
 		tracer.fetch(start, rs::close);
