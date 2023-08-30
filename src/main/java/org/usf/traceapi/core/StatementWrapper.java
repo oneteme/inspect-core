@@ -13,7 +13,7 @@ import lombok.experimental.Delegate;
  *
  */
 @RequiredArgsConstructor
-public class StatementWrapper implements Statement {
+public final class StatementWrapper implements Statement {
 
 	@Delegate
 	protected final Statement st;
