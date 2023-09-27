@@ -40,16 +40,17 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 			return execution.execute(request, body);
 		}
 		session.lock();
-		var out = new ApiRequest(idProvider.get());
+		var out = new ApiRequest(idProvider.get()); //TODO : get id from header
 		log.debug("outcoming request : {} <= {}", out.getId(), request.getURI());
 		request.getHeaders().add(TRACE_HEADER, out.getId());
-		ClientHttpResponse res = null;
+		ClientHttpResponse res = null; 
+		Throwable ex = null;
 		var beg = currentTimeMillis();
 		try {
 			res = execution.execute(request, body);
 		}
 		catch(Exception e) {
-			out.setException(fromException(e));
+			ex =  e;
 			throw e;
 		}
 		finally {
@@ -58,19 +59,19 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 				out.setMethod(request.getMethod().name());
 				out.setProtocol(request.getURI().getScheme());
 				out.setHost(request.getURI().getHost());
-				if(request.getURI().getPort() > 0) {
-					out.setPort(request.getURI().getPort());
-				}
+				out.setPort(request.getURI().getPort());
 				out.setPath(request.getURI().getPath());
 				out.setQuery(request.getURI().getQuery());
 				out.setAuthScheme(extractAuthScheme(request.getHeaders().get(AUTHORIZATION)));
 				out.setStart(ofEpochMilli(beg));
 				out.setEnd(ofEpochMilli(fin));
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
+				out.setException(fromException(ex));
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
 					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
+//					out.setUser(null);
 				}
 				out.setThreadName(threadName());
 				session.append(out);
