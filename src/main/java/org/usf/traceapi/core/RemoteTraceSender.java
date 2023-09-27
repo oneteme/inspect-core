@@ -1,22 +1,22 @@
 package org.usf.traceapi.core;
 
-import static java.lang.String.join;
+import static java.util.Collections.emptyList;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.stream.Collectors.toList;
 import static org.usf.traceapi.core.Helper.log;
 
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.springframework.web.client.RestTemplate;
-
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 /**
  * 
  * @author u$f
  *
  */
-@RequiredArgsConstructor
 public final class RemoteTraceSender implements TraceSender {
 	
 	public static final String TRACE_ENDPOINT = "trace";
@@ -24,28 +24,48 @@ public final class RemoteTraceSender implements TraceSender {
 	public static final String INCOMING_ENDPOINT = "incoming/request";
 
 	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
+    private final BlockingQueue<Session> queue = new LinkedBlockingQueue<>();
 
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
-	
+
 	public RemoteTraceSender(TraceConfigurationProperties properties) {
 		this(properties, new RestTemplate());
 	}
 	
-	@Override
-	public void send(Session session) {
-		var uri = join("/", properties.getHost(), TRACE_ENDPOINT, endpointFor(session));
-		log.debug("sending trace {} => {}", session.getId(), uri);
-		executor.schedule(()-> template.put(uri, session), properties.getDelay(), properties.getUnit()); //wait for sending response
+	public RemoteTraceSender(TraceConfigurationProperties properties, RestTemplate template) {
+		this.properties = properties;
+		this.template = template;
+    	executor.scheduleWithFixedDelay(this::sendAll, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 	
-	private static String endpointFor(@NonNull Session session) {
-		if(session.getClass() == IncomingRequest.class) {
-			return INCOMING_ENDPOINT;
-		}
-		else if(session.getClass() == MainRequest.class) {
-			return MAIN_ENDPOINT;
-		}
-		throw new UnsupportedOperationException(session.getClass().getSimpleName() + " : " + session);
+	@Override
+	public void send(Session session) {
+		queue.add(session);
+		log.debug("new session added to the queue : {} session(s)", queue.size());
+	}
+	
+    private void sendAll() {
+        var list = completedSession();
+        if(!list.isEmpty()) {
+	        log.info("scheduled data queue sending.. : {} session(s)", list.size());
+	        try {
+	        	template.put(properties.getHost() + "/" + TRACE_ENDPOINT, list);
+	    	}
+	    	catch (Exception e) {
+	    		queue.addAll(list); // retry later
+	    		log.error("error while sending sessions", e);
+			}
+        }
+    }
+    
+	private List<Session> completedSession() {
+		List<Session> sub = queue.isEmpty() 
+    			? emptyList() 
+    			: queue.stream().filter(Session::wasCompleted).collect(toList());
+    	if(!sub.isEmpty()) {
+    		queue.removeAll(sub);
+    	}
+    	return sub;
 	}
 }

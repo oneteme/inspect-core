@@ -22,6 +22,7 @@ public final class TraceConfigurationProperties {
 	private String host = "";
 	private int delay = 5;
 	private TimeUnit unit = SECONDS;
+	private String basePackage = "";
 
 	public void setHost(String host) {
 		this.host = normalizeHost(host);
@@ -33,5 +34,11 @@ public final class TraceConfigurationProperties {
 
 	private static String normalizeHost(String host) {
 		return host.endsWith("/") ? host.substring(0, host.length()-1) : host;
+	}
+	
+	public static class Exclude {
+
+		private String[] paths;
+		private String[] methods;
 	}
 }

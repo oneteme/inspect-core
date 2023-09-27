@@ -10,9 +10,9 @@ import java.lang.annotation.Target;
  * @author u$f
  *
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.ANNOTATION_TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface TraceableApi {
+public @interface TraceableStage {
 
 	String value() default "";
 

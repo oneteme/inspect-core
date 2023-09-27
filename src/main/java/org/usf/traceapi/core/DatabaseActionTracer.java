@@ -7,9 +7,10 @@ import static org.usf.traceapi.core.Action.COMMIT;
 import static org.usf.traceapi.core.Action.CONNECTION;
 import static org.usf.traceapi.core.Action.FETCH;
 import static org.usf.traceapi.core.Action.METADATA;
+import static org.usf.traceapi.core.Action.RESULTSET;
 import static org.usf.traceapi.core.Action.ROLLBACK;
 import static org.usf.traceapi.core.Action.SELECT;
-import static org.usf.traceapi.core.Action.SQL;
+import static org.usf.traceapi.core.Action.EXECUTE;
 import static org.usf.traceapi.core.Action.STATEMENT;
 import static org.usf.traceapi.core.Action.UPDATE;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
@@ -50,15 +51,23 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	}
 	
 	default ResultSetWrapper select(SQLSupplier<ResultSet> supplier) throws SQLException {
-		return new ResultSetWrapper(trace(SELECT, supplier), this, currentTimeMillis());
+		return resultset(supplier, SELECT);
+	}
+	
+	default ResultSetWrapper resultset(SQLSupplier<ResultSet> supplier) throws SQLException {
+		return resultset(supplier, RESULTSET);
+	}
+	
+	private ResultSetWrapper resultset(SQLSupplier<ResultSet> supplier, Action action) throws SQLException {
+		return new ResultSetWrapper(trace(action, supplier), this, currentTimeMillis());
 	}
 	
 	default ResultSetMetaData resultSetMetadata(SQLSupplier<ResultSetMetaData> supplier) throws SQLException {
 		return trace(METADATA, supplier);
 	}
 	
-	default <T> T sql(SQLSupplier<T> supplier) throws SQLException {
-		return trace(SQL, supplier);
+	default <T> T execute(SQLSupplier<T> supplier) throws SQLException {
+		return trace(EXECUTE, supplier);
 	}
 
 	default <T> T update(SQLSupplier<T> supplier) throws SQLException {
@@ -86,19 +95,19 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	}
 
 	private <T> T trace(Action action, LongSupplier startSupp, SQLSupplier<T> sqlSupp) throws SQLException {
-		ExceptionInfo ex = null;
 		log.debug("executing {} action..", action);
+		SQLException ex = null;
 		var beg = startSupp.getAsLong();
 		try {
 			return sqlSupp.get();
 		}
 		catch(SQLException e) {
-			ex = fromException(e);
+			ex  = e;
 			throw e;
 		}
 		finally {
 			var fin = currentTimeMillis();
-			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), ex));
+			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), fromException(ex)));
 		}
 	}
 

@@ -2,6 +2,7 @@ package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -33,7 +34,13 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-		var out = new OutcomingRequest(idProvider.get());
+		var session = localTrace.get();
+		if(isNull(session)) {
+			log.warn("no session");
+			return execution.execute(request, body);
+		}
+		session.lock();
+		var out = new ApiRequest(idProvider.get());
 		log.debug("outcoming request : {} <= {}", out.getId(), request.getURI());
 		request.getHeaders().add(TRACE_HEADER, out.getId());
 		ClientHttpResponse res = null;
@@ -66,12 +73,13 @@ public final class OutcomingRequestInterceptor implements ClientHttpRequestInter
 					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
 				}
 				out.setThreadName(threadName());
-				ofNullable(localTrace.get()).ifPresent(req-> req.append(out));  //else no session
+				session.append(out);
 			}
 			catch(Exception e) {
-				//do not catch exception
-				log.warn("error while tracing : {}", request, e);
+				log.warn("error while tracing : " + request, e);
+				//do not throw exception
 			}
+			session.unlock();
 		}
 		return res;
 	}

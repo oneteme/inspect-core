@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.Thread.currentThread;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static java.util.UUID.randomUUID;
@@ -23,22 +24,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class Helper {
 	
+	static String basePackage = "fr.enedis";
+	
 	static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	static final Supplier<String> idProvider = ()-> randomUUID().toString();
 	
-	static final DefaultUserProvider userProvider = new DefaultUserProvider(); 
 	static ApplicationInfo application; //unsafe set
 	
 	static ApplicationInfo applicationInfo() {
 		return application;
 	}
 	
-	static DefaultUserProvider defaultUserProvider() {
-		return userProvider;
-	}
-
 	static String threadName() {
 		return currentThread().getName();
 	}
@@ -49,7 +47,7 @@ final class Helper {
 	}
 	
 	static String extractAuthScheme(String authHeader) { //nullable
-		return nonNull(authHeader) && authHeader.matches("^\\w+ ") 
+		return nonNull(authHeader) && authHeader.matches("\\w+ .+") 
 				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
 	}
 	
@@ -60,6 +58,17 @@ final class Helper {
 			log.warn("cannot instantiate class " + clazz.getName(), e);
 			return empty();
 		}
+	}
+	
+	//TODO rename
+	static Optional<StackTraceElement> location() {
+		if(isNull(basePackage) || basePackage.isBlank()) {
+			return empty();
+		}
+		var arr = currentThread().getStackTrace();
+		var i = 1; //location, internal call
+		while (++i<arr.length && !arr[i].getClassName().startsWith(basePackage));
+		return i<arr.length ? Optional.of(arr[i]) : empty(); 
 	}
 	
 }

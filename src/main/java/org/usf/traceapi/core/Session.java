@@ -1,12 +1,19 @@
 package org.usf.traceapi.core;
 
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * 
  * @author u$f
  *
  */
+@JsonTypeInfo(
+	    use = JsonTypeInfo.Id.NAME,
+	    include = JsonTypeInfo.As.PROPERTY,
+	    property = "@type")
 public interface Session extends Metric {
 	
 	String getId(); //UUID
@@ -17,12 +24,27 @@ public interface Session extends Metric {
 	
 	ApplicationInfo getApplication();
 	
-	Collection<OutcomingRequest> getRequests();
+	Collection<ApiRequest> getRequests();
 	
-	Collection<OutcomingQuery> getQueries();
+	Collection<DatabaseRequest> getQueries();
 	
-	void append(OutcomingRequest request); // sub requests
+	void append(ApiRequest request); // sub requests
 
-	void append(OutcomingQuery query); // sub queries
-
+	void append(DatabaseRequest query); // sub queries
+	
+	void append(RunnableStage stage); // sub stages
+	
+	AtomicInteger getLock();
+	
+	default void lock(){
+		getLock().incrementAndGet();
+	}
+	
+	default void unlock() {
+		getLock().decrementAndGet();
+	}
+	
+	default boolean wasCompleted() {
+		return getLock().intValue() == 0;
+	}
 }

@@ -1,11 +1,19 @@
 package org.usf.traceapi.core;
 
+import static java.lang.String.join;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.traceapi.core.DefaultUserProvider.isDefaultProvider;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.joining;
+import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
+import static org.usf.traceapi.core.StageUpdater.getUser;
+
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -20,28 +28,39 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 public final class IncomingRequestInterceptor implements HandlerInterceptor { //AsyncHandlerInterceptor ?
 
+	static final Collector<CharSequence, ?, String> joiner = joining("_");
+	
     @Override
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-    	var trace = (IncomingRequest) localTrace.get();
-        if(nonNull(trace)) {
-        	if(nonNull(ex)) {
-        		trace.setException(fromException(ex));
+    	var in = (ApiSession) localTrace.get();
+        if(nonNull(in)) {
+			in.setName(defaultEndpointName(req));
+        	in.setUser(getUser(req));
+        	if(nonNull(ex) && isNull(in.getException())) {//already set with Aspect
+        		in.setException(fromException(ex));
         	}
 	        if(handler instanceof HandlerMethod) {//important! !static resource 
 	        	HandlerMethod m = (HandlerMethod) handler;
-	            TraceableApi a = m.getMethodAnnotation(TraceableApi.class);
+	        	TraceableStage a = m.getMethodAnnotation(TraceableStage.class);
 	            if(nonNull(a)) {
-                	if(!isDefaultProvider(a.clientProvider())) {
-            			log.debug("getting client..");
-                		trace.setUser(newInstance(a.clientProvider())
-                				.map(p-> p.getUser(req))
-                				.orElse(null));
-                	}
-                	if(!a.value().isEmpty()) {
-                		trace.setName(a.value());
-                	}
+	            	if(!a.value().isBlank()) {
+	        			in.setName(a.value());
+	            	}
+	            	if(a.sessionUpdater() != StageUpdater.class) {
+	            		newInstance(a.sessionUpdater()).ifPresent(u-> u.update(in, req));
+	            	}
+	            	//no location
                 }
             }
         }
     }
+
+	@SuppressWarnings("unchecked")
+	private static String defaultEndpointName(HttpServletRequest req) {
+		var arr = req.getRequestURI().substring(1).split("/");
+		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+		return map == null ? join("_", arr) : Stream.of(arr)
+				.filter(not(map.values()::contains))
+				.collect(joiner);
+	}
 }
