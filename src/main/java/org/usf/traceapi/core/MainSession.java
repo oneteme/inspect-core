@@ -56,7 +56,7 @@ public final class MainSession extends RunnableStage implements Session {
 		stages.add(stage);
 	}
 	
-	static MainSession synchronizedMainRequest(String id) {
+	static MainSession synchronizedMainSession(String id) {
 		return new MainSession(id, 
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()), 

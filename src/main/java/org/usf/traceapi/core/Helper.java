@@ -24,9 +24,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class Helper {
 	
-	static String basePackage = "fr.enedis";
-	
 	static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
+	
+	static String basePackage = "fr.enedis";
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	static final Supplier<String> idProvider = ()-> randomUUID().toString();
@@ -61,7 +61,7 @@ final class Helper {
 	}
 	
 	//TODO rename
-	static Optional<StackTraceElement> location() {
+	static Optional<StackTraceElement> stackTraceElement() {
 		if(isNull(basePackage) || basePackage.isBlank()) {
 			return empty();
 		}

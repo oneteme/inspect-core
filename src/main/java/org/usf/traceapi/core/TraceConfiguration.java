@@ -7,7 +7,6 @@ import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.Helper.application;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.TraceableExecutorService.initialize;
 
 import java.net.UnknownHostException;
 
@@ -82,11 +81,9 @@ public class TraceConfiguration implements WebMvcConfigurer {
 
     @Bean
     public TraceSender sender(TraceConfigurationProperties config) {
-    	TraceSender sender = config.getHost().isBlank() 
+    	return config.getHost().isBlank() 
         		? res-> {} // cache traces !?
         		: new RemoteTraceSender(config);
-		initialize(sender); //bad way : sender injection
-        return sender;
     }
     
     private static ApplicationInfo applicationInfo(Environment env) {

@@ -47,7 +47,8 @@ public final class IncomingRequestInterceptor implements HandlerInterceptor { //
 	        			in.setName(a.value());
 	            	}
 	            	if(a.sessionUpdater() != StageUpdater.class) {
-	            		newInstance(a.sessionUpdater()).ifPresent(u-> u.update(in, req));
+	            		newInstance(a.sessionUpdater())
+	            		.ifPresent(u-> u.update(in, req));
 	            	}
 	            	//no location
                 }

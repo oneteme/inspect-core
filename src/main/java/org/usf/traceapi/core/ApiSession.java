@@ -54,7 +54,7 @@ public final class ApiSession extends ApiRequest implements Session {
 		stages.add(stage);
 	}
 	
-	static ApiSession synchronizedIncomingRequest(String id) {
+	static ApiSession synchronizedApiSession(String id) {
 		return new ApiSession(id, 
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()), 

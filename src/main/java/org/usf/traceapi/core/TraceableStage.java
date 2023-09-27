@@ -16,8 +16,6 @@ public @interface TraceableStage {
 
 	String value() default "";
 
-	String location() default "";
-	
 	/**
 	 * require default constructor
 	 * 

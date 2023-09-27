@@ -36,9 +36,4 @@ public final class TraceConfigurationProperties {
 		return host.endsWith("/") ? host.substring(0, host.length()-1) : host;
 	}
 	
-	public static class Exclude {
-
-		private String[] paths;
-		private String[] methods;
-	}
 }

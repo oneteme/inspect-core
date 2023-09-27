@@ -7,7 +7,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.usf.traceapi.core.ApiSession.synchronizedIncomingRequest;
+import static org.usf.traceapi.core.ApiSession.synchronizedApiSession;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
@@ -45,17 +45,16 @@ public final class IncomingRequestFilter extends OncePerRequestFilter {
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-    	var in = synchronizedIncomingRequest(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
+    	var in = synchronizedApiSession(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
     	log.debug("incoming request : {} <= {}", in.getId(), req.getRequestURI());
     	localTrace.set(in);
+		Throwable ex = null;
     	var beg = currentTimeMillis();
     	try {
     		filterChain.doFilter(req, res);
     	}
     	catch(Exception e) {
-    		if(isNull(in.getException())) {//already set in IncomingRequestInterceptor
-    			in.setException(fromException(e));
-    		}
+    		ex =  e;
     		throw e;
     	}
     	finally {
@@ -65,9 +64,7 @@ public final class IncomingRequestFilter extends OncePerRequestFilter {
 	    		in.setMethod(req.getMethod());
 	    		in.setProtocol(uri.getScheme());
 	    		in.setHost(uri.getHost());
-	    		if(uri.getPort() > 0) {
-	    			in.setPort(uri.getPort());
-	    		}
+    			in.setPort(uri.getPort());
 	    		in.setPath(req.getRequestURI());
 	    		in.setQuery(req.getQueryString());
 	    		in.setContentType(res.getContentType());
@@ -79,6 +76,9 @@ public final class IncomingRequestFilter extends OncePerRequestFilter {
 	    		in.setEnd(ofEpochMilli(fin));
     			in.setThreadName(threadName());
     			in.setApplication(applicationInfo());
+        		if(nonNull(ex) && isNull(in.getException())) { //already set in IncomingRequestInterceptor
+        			in.setException(fromException(ex));
+        		}
     			// name, user & exception delegated to interceptor
     			traceSender.send(in);
     		}

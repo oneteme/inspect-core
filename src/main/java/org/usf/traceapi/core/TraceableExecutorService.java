@@ -5,21 +5,20 @@ import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.location;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 import lombok.AccessLevel;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TraceableExecutorService implements ExecutorService {
-	
-	static TraceSender sender;
 	
 	@Delegate
 	private final ExecutorService es;
@@ -32,16 +31,22 @@ public final class TraceableExecutorService implements ExecutorService {
 			es.execute(command);
 		}
 		else {
-			var st = location();
-			session.lock(); // important sync lock
-			es.execute(()->{
-				try {
-					aroundRunnable(command, session, st);
-				}
-				finally {
-					session.unlock();
-				}
-			});
+			session.lock(); //important! sync lock
+			var st = stackTraceElement(); //important! on parent thread
+			try {
+				es.execute(()->{
+					try {
+						aroundRunnable(command, session, st);
+					}
+					finally {
+						session.unlock();
+					}
+				});
+			}
+			catch (Exception e) {  //@see Executor::execute
+				session.unlock();
+				throw e;
+			}
 		}
 	}
 	
@@ -50,21 +55,23 @@ public final class TraceableExecutorService implements ExecutorService {
     	if(localTrace.get() != session) { //thread local cache
     		localTrace.set(session);
     	}
-		var rs = new RunnableStage();
+		Throwable ex = null;
     	var beg = currentTimeMillis();
     	try {
     		command.run();
     	}
     	catch (Exception e) {
-    		rs.setException(fromException(e));
+    		ex =  e;
     		throw e;
     	}
     	finally {
     		var fin = currentTimeMillis();
     		try {
+    	    	var rs = new RunnableStage();
 	    		rs.setStart(ofEpochMilli(beg));
 	    		rs.setEnd(ofEpochMilli(fin));
     			rs.setThreadName(threadName());
+    			rs.setException(fromException(ex));
 	    		ost.ifPresent(st->{
 		    		rs.setName(st.getMethodName());
 		    		rs.setLocation(st.getClassName());
@@ -79,12 +86,7 @@ public final class TraceableExecutorService implements ExecutorService {
     	}
     }
         
-	public static TraceableExecutorService wrap(ExecutorService es) {
+	public static TraceableExecutorService wrap(@NonNull ExecutorService es) {
 		return new TraceableExecutorService(es);
-	}
-	
-	static void initialize(TraceSender sender) {
-		TraceableExecutorService.sender = sender;
-	}
-	
+	}	
 }

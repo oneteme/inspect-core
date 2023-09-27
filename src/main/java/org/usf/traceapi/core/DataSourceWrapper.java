@@ -8,7 +8,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.location;
+import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
 
@@ -70,7 +70,7 @@ public final class DataSourceWrapper implements DataSource {
 			try {
 				out.setStart(ofEpochMilli(beg));
 				out.setThreadName(threadName());
-				location().ifPresent(st->{
+				stackTraceElement().ifPresent(st->{
 					out.setName(st.getMethodName());
 					out.setLocation(st.getClassName());
 				});

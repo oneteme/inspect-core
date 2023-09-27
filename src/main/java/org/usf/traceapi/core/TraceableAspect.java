@@ -11,14 +11,15 @@ import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.LaunchMode.BATCH;
-import static org.usf.traceapi.core.MainSession.synchronizedMainRequest;
+import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
+
+import java.util.stream.Stream;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 
 import lombok.RequiredArgsConstructor;
@@ -33,22 +34,38 @@ import lombok.RequiredArgsConstructor;
 public class TraceableAspect {
 	
 	private final TraceSender sender;
+
+    //TODO before
+    @ConditionalOnBean(ControllerAdvice.class)
+    @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
+    Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
+		var session = (ApiSession) localTrace.get();
+		if(nonNull(session) && nonNull(joinPoint.getArgs())) {
+			Stream.of(joinPoint.getArgs())
+					.filter(Throwable.class::isInstance)
+					.findFirst()
+					.map(Throwable.class::cast)
+					.map(ExceptionInfo::fromException)
+					.ifPresent(session::setException);
+		}
+		return joinPoint.proceed();
+    }
 	
-    @Around("@annotation(TraceableBatch)")
+    @Around("@annotation(TraceableStage)")
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
 		var session = localTrace.get();
     	if(nonNull(localTrace.get())) { //sub trace
     		return aroundStage(joinPoint, session);
     	}
-    	var ms = synchronizedMainRequest(idProvider.get());
+    	var ms = synchronizedMainSession(idProvider.get());
     	localTrace.set(ms);
     	log.debug("session : {} <= {}", ms.getId(), joinPoint.getSignature());
-		Exception ex = null;
+    	Throwable ex = null;
     	var beg = currentTimeMillis();
     	try {
     		return joinPoint.proceed();
     	}
-    	catch (Exception e) {
+    	catch (Throwable e) {
     		ex =  e;
     		throw e;
     	}
@@ -83,9 +100,9 @@ public class TraceableAspect {
     	finally {
     		var fin = currentTimeMillis();
     		try {
-    	    	var sg = new RunnableStage();
-    			fill(sg, beg, fin, joinPoint, ex);
-				session.append(sg);
+    	    	var rs = new RunnableStage();
+    			fill(rs, beg, fin, joinPoint, ex);
+				session.append(rs);
     		}
     		catch(Exception e) {
 				log.warn("error while tracing : " + joinPoint.getSignature(), e);
@@ -95,28 +112,26 @@ public class TraceableAspect {
     	}
     }
     
-    @ConditionalOnBean(ControllerAdvice.class)
-    @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
-    Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
-		var session = (ApiSession) localTrace.get();
-		if(session != null) {
-			session.setException(fromException((Throwable)joinPoint.getArgs()[0]));
-		}
-		return joinPoint.proceed();
-    }
-    
-    static void fill(RunnableStage sg, long beg, long fin, ProceedingJoinPoint joinPoint, Exception e) {
+    static void fill(RunnableStage sg, long beg, long fin, ProceedingJoinPoint joinPoint, Throwable e) {
     	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    	var ant = signature.getMethod().getAnnotation(TraceableBatch.class);
+    	var ant = signature.getMethod().getAnnotation(TraceableStage.class);
 		sg.setStart(ofEpochMilli(beg));
 		sg.setEnd(ofEpochMilli(fin));
 		sg.setName(ant.value().isBlank() ? joinPoint.getSignature().getName() : ant.value());
-		sg.setLocation(ant.value().isBlank() ? joinPoint.getSignature().getDeclaringTypeName() : ant.location());
+		sg.setLocation(joinPoint.getSignature().getDeclaringTypeName());
 		sg.setThreadName(threadName());
 		sg.setUser(null); // default user supplier
 		sg.setException(fromException(e));
     	if(ant.sessionUpdater() != StageUpdater.class) { //specific.
-    		newInstance(ant.sessionUpdater()).ifPresent(su-> su.update(sg, joinPoint));
+    		newInstance(ant.sessionUpdater())
+    		.ifPresent(u-> u.update(sg, joinPoint));
     	}
     }
+    
+
+    static void aroundStage(long beg, long fin, ProceedingJoinPoint joinPoint, Throwable e) {
+    	
+    }
+    
+
 }
