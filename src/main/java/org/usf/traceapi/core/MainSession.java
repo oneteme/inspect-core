@@ -7,10 +7,10 @@ import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -21,7 +21,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonTypeName("main")
-@RequiredArgsConstructor
+@JsonIgnoreProperties("lock")
 public final class MainSession extends RunnableStage implements Session {
 	
 	private final String id;
@@ -35,9 +35,16 @@ public final class MainSession extends RunnableStage implements Session {
 
 	private final AtomicInteger lock = new AtomicInteger();
 
-	@JsonCreator //remove this
 	public MainSession(String id) {
 		this(id, new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
+	}
+
+	@JsonCreator //remove this
+	public MainSession(String id, Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
+		this.id = id;
+		this.requests = requests;
+		this.queries = queries; 
+		this.stages = stages; 
 	}
 
 	@Override

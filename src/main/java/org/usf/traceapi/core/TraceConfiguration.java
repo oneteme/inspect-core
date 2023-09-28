@@ -7,6 +7,7 @@ import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.Helper.application;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.TraceMultiCaster.register;
 
 import java.net.UnknownHostException;
 
@@ -39,8 +40,11 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	@Value("${api.tracing.exclude:}") 
 	private String[] excludes;
 	
-	public TraceConfiguration(Environment env) {
+	public TraceConfiguration(Environment env, TraceConfigurationProperties config) {
 		application = applicationInfo(env);
+		register(config.getHost().isBlank() 
+        		? res-> {} // cache traces !?
+        		: new RemoteTraceSender(config));
 		log.debug("app.env : {}", application);
 	}
 	
@@ -52,21 +56,21 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
 	
     @Bean
-    public FilterRegistrationBean<Filter> incomingRequestFilter(TraceSender sender) {
-    	var rb = new FilterRegistrationBean<Filter>(new ApiSessionFilter(sender, excludes));
+    public FilterRegistrationBean<Filter> apiSessionFilter() {
+    	var rb = new FilterRegistrationBean<Filter>(new ApiSessionFilter(excludes));
     	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*");
     	return rb;
     }
-    
-    @Bean
-    public TraceableAspect traceableAspect(TraceSender sender) {
-    	return new TraceableAspect(sender);
-    }
 
     @Bean //do not rename this method see @Qualifier
-    public ApiRequestInterceptor outcomingRequestInterceptor() {
+    public ApiRequestInterceptor apiRequestInterceptor() {
         return new ApiRequestInterceptor();
+    }
+    
+    @Bean
+    public TraceableAspect traceableAspect() {
+    	return new TraceableAspect();
     }
 
     @Bean
@@ -79,13 +83,6 @@ public class TraceConfiguration implements WebMvcConfigurer {
 		};
     }
 
-    @Bean
-    public TraceSender sender(TraceConfigurationProperties config) {
-    	return config.getHost().isBlank() 
-        		? res-> {} // cache traces !?
-        		: new RemoteTraceSender(config);
-    }
-    
     private static ApplicationInfo applicationInfo(Environment env) {
     	return new ApplicationInfo(
 				env.getProperty("spring.application.name"),

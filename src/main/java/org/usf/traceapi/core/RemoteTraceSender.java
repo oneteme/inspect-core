@@ -17,7 +17,7 @@ import org.springframework.web.client.RestTemplate;
  * @author u$f
  *
  */
-public final class RemoteTraceSender implements TraceSender {
+public final class RemoteTraceSender implements TraceHandler {
 	
 	public static final String TRACE_ENDPOINT = "trace";
 	public static final String MAIN_ENDPOINT = "main/request";
@@ -40,7 +40,7 @@ public final class RemoteTraceSender implements TraceSender {
 	}
 	
 	@Override
-	public void send(Session session) {
+	public void handle(Session session) {
 		queue.add(session);
 		log.debug("new session added to the queue : {} session(s)", queue.size());
 	}

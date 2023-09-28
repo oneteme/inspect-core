@@ -18,12 +18,6 @@ public interface Session extends Metric {
 	
 	String getId(); //UUID
 	
-	String getName();
-	
-	String getUser();
-	
-	ApplicationInfo getApplication();
-	
 	Collection<ApiRequest> getRequests();
 	
 	Collection<DatabaseRequest> getQueries();
@@ -45,6 +39,6 @@ public interface Session extends Metric {
 	}
 	
 	default boolean wasCompleted() {
-		return getLock().intValue() == 0;
+		return getLock().get() == 0;
 	}
 }

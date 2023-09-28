@@ -12,6 +12,7 @@ import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.LaunchMode.BATCH;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
+import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
 import java.util.stream.Stream;
 
@@ -33,8 +34,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TraceableAspect {
 	
-	private final TraceSender sender;
-
     //TODO before
     @ConditionalOnBean(ControllerAdvice.class)
     @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
@@ -75,7 +74,7 @@ public class TraceableAspect {
     			ms.setLaunchMode(BATCH);
     			ms.setApplication(applicationInfo());
     			fill(ms, beg, fin, joinPoint, ex);
-	        	sender.send(ms);
+    			emit(ms);
     		}
     		catch(Exception e) {
 				log.warn("error while tracing : " + joinPoint.getSignature(), e);

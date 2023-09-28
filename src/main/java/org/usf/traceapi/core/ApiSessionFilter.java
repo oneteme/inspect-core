@@ -15,6 +15,7 @@ import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -38,7 +39,6 @@ public final class ApiSessionFilter extends OncePerRequestFilter {
 
 	static final String TRACE_HEADER = "x-tracert";
 	
-	private final TraceSender traceSender;
 	private final String[] excludeUrlPatterns;
 	
 	private final AntPathMatcher matcher = new AntPathMatcher();
@@ -80,7 +80,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter {
         			in.setException(fromException(ex));
         		}
     			// name, user & exception delegated to interceptor
-    			traceSender.send(in);
+        		emit(in);
     		}
     		catch(Exception e) {
 				log.warn("error while tracing : " + req, e);

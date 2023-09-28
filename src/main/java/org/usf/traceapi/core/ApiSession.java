@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import lombok.Getter;
@@ -20,6 +21,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @JsonTypeName("api")
+@JsonIgnoreProperties("lock")
 public final class ApiSession extends ApiRequest implements Session {
 
 	private ApplicationInfo application;
