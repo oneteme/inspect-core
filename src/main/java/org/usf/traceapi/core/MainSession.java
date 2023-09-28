@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -20,7 +19,7 @@ import lombok.Setter;
  *
  */
 @Getter
-@Setter(AccessLevel.PACKAGE)
+@Setter
 @JsonTypeName("main")
 @RequiredArgsConstructor
 public final class MainSession extends RunnableStage implements Session {

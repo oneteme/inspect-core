@@ -46,14 +46,14 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
-    	registry.addInterceptor(new IncomingRequestInterceptor())
+    	registry.addInterceptor(new ApiSessionInterceptor())
     	.order(LOWEST_PRECEDENCE)
     	.excludePathPatterns(excludes);
     }
 	
     @Bean
     public FilterRegistrationBean<Filter> incomingRequestFilter(TraceSender sender) {
-    	var rb = new FilterRegistrationBean<Filter>(new IncomingRequestFilter(sender, excludes));
+    	var rb = new FilterRegistrationBean<Filter>(new ApiSessionFilter(sender, excludes));
     	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*");
     	return rb;
@@ -65,8 +65,8 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
 
     @Bean //do not rename this method see @Qualifier
-    public OutcomingRequestInterceptor outcomingRequestInterceptor() {
-        return new OutcomingRequestInterceptor();
+    public ApiRequestInterceptor outcomingRequestInterceptor() {
+        return new ApiRequestInterceptor();
     }
 
     @Bean

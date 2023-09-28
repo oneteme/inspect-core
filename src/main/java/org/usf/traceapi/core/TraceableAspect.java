@@ -127,11 +127,4 @@ public class TraceableAspect {
     		.ifPresent(u-> u.update(sg, joinPoint));
     	}
     }
-    
-
-    static void aroundStage(long beg, long fin, ProceedingJoinPoint joinPoint, Throwable e) {
-    	
-    }
-    
-
 }

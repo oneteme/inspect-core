@@ -12,7 +12,7 @@ import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
-import static org.usf.traceapi.core.IncomingRequestFilter.TRACE_HEADER;
+import static org.usf.traceapi.core.ApiSessionFilter.TRACE_HEADER;
 
 import java.io.IOException;
 
@@ -30,7 +30,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class OutcomingRequestInterceptor implements ClientHttpRequestInterceptor {
+public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor {
 	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {

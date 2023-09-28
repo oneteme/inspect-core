@@ -34,7 +34,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class IncomingRequestFilter extends OncePerRequestFilter {
+public final class ApiSessionFilter extends OncePerRequestFilter {
 
 	static final String TRACE_HEADER = "x-tracert";
 	

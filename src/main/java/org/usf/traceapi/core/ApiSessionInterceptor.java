@@ -26,7 +26,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * @author u$f
  *
  */
-public final class IncomingRequestInterceptor implements HandlerInterceptor { //AsyncHandlerInterceptor ?
+public final class ApiSessionInterceptor implements HandlerInterceptor { //AsyncHandlerInterceptor ?
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	
