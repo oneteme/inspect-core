@@ -3,6 +3,7 @@ package org.usf.traceapi.core;
 import static java.lang.String.join;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
+import static java.util.Objects.isNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.Helper.application;
@@ -37,8 +38,10 @@ import jakarta.servlet.Filter;
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
-	@Value("${api.tracing.exclude:}") 
+	@Value("${api.tracing.exclude:}")
 	private String[] excludes;
+	
+	private ApiSessionFilter sessionFilter;
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config) {
 		application = applicationInfo(env);
@@ -50,17 +53,24 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
-    	registry.addInterceptor(new ApiSessionInterceptor())
+    	registry.addInterceptor(sessionFilter())
     	.order(LOWEST_PRECEDENCE)
     	.excludePathPatterns(excludes);
     }
 	
     @Bean
     public FilterRegistrationBean<Filter> apiSessionFilter() {
-    	var rb = new FilterRegistrationBean<Filter>(new ApiSessionFilter(excludes));
+    	var rb = new FilterRegistrationBean<Filter>(sessionFilter());
     	rb.setOrder(HIGHEST_PRECEDENCE);
-    	rb.addUrlPatterns("/*");
+    	rb.addUrlPatterns("/*"); //check that
     	return rb;
+    }
+    
+    private ApiSessionFilter sessionFilter() {
+    	if(isNull(sessionFilter)) {
+    		sessionFilter = new ApiSessionFilter(excludes);
+    	}
+    	return sessionFilter;
     }
 
     @Bean //do not rename this method see @Qualifier
