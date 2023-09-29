@@ -40,7 +40,6 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
 	@Value("${api.tracing.exclude:}")
 	private String[] excludes;
-	
 	private ApiSessionFilter sessionFilter;
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config) {

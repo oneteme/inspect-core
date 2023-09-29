@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TraceableStage {
 
-	String value() default "";
+	String value() default ""; // stage name
 
 	/**
 	 * require default constructor

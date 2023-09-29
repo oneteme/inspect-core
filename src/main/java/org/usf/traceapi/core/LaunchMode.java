@@ -7,5 +7,5 @@ package org.usf.traceapi.core;
  */
 public enum LaunchMode {
 	
-	WEBAPP, BATCH, SETUP;
+	WEBAPP, BATCH;
 }

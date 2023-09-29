@@ -9,6 +9,7 @@ import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
+import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.traceapi.core.ApiSession.synchronizedApiSession;
@@ -60,6 +61,8 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
     	var in = synchronizedApiSession(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
     	log.debug("incoming request : {} <= {}", in.getId(), req.getRequestURI());
     	localTrace.set(in);
+		res.addHeader(TRACE_HEADER, in.getId());
+		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 		Throwable ex = null;
     	var beg = currentTimeMillis();
     	try {

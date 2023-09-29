@@ -21,7 +21,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @JsonTypeName("api")
-@JsonIgnoreProperties("lock")
+@JsonIgnoreProperties({"location", "lock"})
 public final class ApiSession extends ApiRequest implements Session {
 
 	private ApplicationInfo application;

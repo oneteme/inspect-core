@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 
- * Simple MultiCaster impl. reduce bean dependencies
+ * Simple trace MultiCaster impl. reduce bean dependencies
  * 
  * @author u$f
  *
