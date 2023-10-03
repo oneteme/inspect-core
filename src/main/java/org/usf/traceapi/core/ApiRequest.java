@@ -15,7 +15,7 @@ import lombok.Setter;
 @JsonIgnoreProperties("location")
 public class ApiRequest extends RunnableStage {
 
-	private String id;
+	private String id; //nullable
 	private String method;
 	private String protocol;
 	private String host;

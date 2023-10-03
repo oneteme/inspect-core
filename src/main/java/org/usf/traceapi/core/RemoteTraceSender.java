@@ -19,10 +19,6 @@ import org.springframework.web.client.RestTemplate;
  */
 public final class RemoteTraceSender implements TraceHandler {
 	
-	public static final String TRACE_ENDPOINT = "trace";
-	public static final String MAIN_ENDPOINT = "main/request";
-	public static final String INCOMING_ENDPOINT = "incoming/request";
-
 	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
     private final BlockingQueue<Session> queue = new LinkedBlockingQueue<>();
 
@@ -50,7 +46,7 @@ public final class RemoteTraceSender implements TraceHandler {
         if(!list.isEmpty()) {
 	        log.info("scheduled data queue sending.. : {} session(s)", list.size());
 	        try {
-	        	template.put(properties.getHost() + "/" + TRACE_ENDPOINT, list);
+	        	template.put(properties.getHost(), list);
 	    	}
 	    	catch (Exception e) {
 	    		queue.addAll(list); // retry later
