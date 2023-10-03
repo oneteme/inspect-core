@@ -54,8 +54,8 @@ public final class DataSourceWrapper implements DataSource {
 			return cnSupp.get();
 		}
 		session.lock();
-		var out = new DatabaseRequest();
 		log.debug("outcoming query.."); // no id
+		var out = new DatabaseRequest();
     	DatabaseActionTracer tracer = out::append;
     	ConnectionWrapper cn = null;
 		var beg = currentTimeMillis();
