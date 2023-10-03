@@ -1,6 +1,5 @@
 package org.usf.traceapi.core;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
@@ -16,7 +15,7 @@ import lombok.Setter;
 @JsonIgnoreProperties("location")
 public class ApiRequest extends RunnableStage {
 
-	private final String id;
+	private String id;
 	private String method;
 	private String protocol;
 	private String host;
@@ -29,11 +28,6 @@ public class ApiRequest extends RunnableStage {
 	private long inDataSize;
 	private long outDataSize;
 	
-	@JsonCreator
-	public ApiRequest(String id) {
-		this.id = id;
-	}
-
 	@Override
 	public String getLocation() {
 		throw new UnsupportedOperationException();

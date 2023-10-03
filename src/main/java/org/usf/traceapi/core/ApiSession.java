@@ -37,10 +37,15 @@ public final class ApiSession extends ApiRequest implements Session {
 	
 	@JsonCreator
 	public ApiSession(String id, Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
-		super(id);
+		super.setId(id);
 		this.requests = requests;
 		this.queries = queries; 
 		this.stages = stages; 
+	}
+	
+	@Override
+	public void setId(String id) {
+		throw new UnsupportedOperationException(); // cannot change id
 	}
 	
 	public void append(ApiRequest request) {

@@ -6,7 +6,6 @@ import static java.net.URI.create;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
@@ -58,7 +57,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-    	var in = synchronizedApiSession(ofNullable(req.getHeader(TRACE_HEADER)).orElseGet(idProvider));
+    	var in = synchronizedApiSession(idProvider.get());
     	log.debug("incoming request : {} <= {}", in.getId(), req.getRequestURI());
     	localTrace.set(in);
 		res.addHeader(TRACE_HEADER, in.getId());

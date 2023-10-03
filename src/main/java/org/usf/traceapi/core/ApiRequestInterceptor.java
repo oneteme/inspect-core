@@ -9,7 +9,6 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.usf.traceapi.core.ApiSessionFilter.TRACE_HEADER;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
-import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
@@ -40,7 +39,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 			return execution.execute(request, body);
 		}
 		session.lock();
-		var out = new ApiRequest(idProvider.get()); //TODO : get id from header
+		var out = new ApiRequest();
 		log.debug("outcoming request : {} <= {}", out.getId(), request.getURI());
 		request.getHeaders().add(TRACE_HEADER, out.getId());
 		ClientHttpResponse res = null; 
@@ -71,6 +70,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
 					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
+					out.setId(ofNullable(res.getHeaders().getFirst(TRACE_HEADER)).orElse(null));
 //					out.setUser(null);
 				}
 				out.setThreadName(threadName());
