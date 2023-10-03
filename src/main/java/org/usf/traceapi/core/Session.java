@@ -1,5 +1,7 @@
 package org.usf.traceapi.core;
 
+import static java.util.UUID.randomUUID;
+
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,6 +19,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 public interface Session extends Metric {
 	
 	String getId(); //UUID
+	
+	void setId(String id); //used in server side
 	
 	Collection<ApiRequest> getRequests();
 	
@@ -40,5 +44,9 @@ public interface Session extends Metric {
 	
 	default boolean wasCompleted() {
 		return getLock().get() == 0;
+	}
+	
+	static String nextId() {
+		return randomUUID().toString();
 	}
 }

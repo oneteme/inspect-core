@@ -39,9 +39,8 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 			return execution.execute(request, body);
 		}
 		session.lock();
+		log.debug("outcoming request : {}", request.getURI());
 		var out = new ApiRequest();
-		log.debug("outcoming request : {} <= {}", out.getId(), request.getURI());
-		request.getHeaders().add(TRACE_HEADER, out.getId());
 		ClientHttpResponse res = null; 
 		Throwable ex = null;
 		var beg = currentTimeMillis();
@@ -66,6 +65,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 				out.setEnd(ofEpochMilli(fin));
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
 				out.setException(fromException(ex));
+				out.setThreadName(threadName());
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
@@ -73,7 +73,6 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 					out.setId(ofNullable(res.getHeaders().getFirst(TRACE_HEADER)).orElse(null));
 //					out.setUser(null);
 				}
-				out.setThreadName(threadName());
 				session.append(out);
 			}
 			catch(Exception e) {

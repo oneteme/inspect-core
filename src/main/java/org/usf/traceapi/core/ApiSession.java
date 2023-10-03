@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.Collections.synchronizedCollection;
+import static java.util.Objects.nonNull;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -18,8 +19,8 @@ import lombok.Setter;
  * @author u$f
  *
  */
-@Setter
 @Getter
+@Setter
 @JsonTypeName("api")
 @JsonIgnoreProperties({"location", "lock"})
 public final class ApiSession extends ApiRequest implements Session { //IncomingRequest
@@ -31,13 +32,12 @@ public final class ApiSession extends ApiRequest implements Session { //Incoming
 	
 	private final AtomicInteger lock = new AtomicInteger();
 	
-	public ApiSession(String id) {
-		this(id, new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
+	public ApiSession() {
+		this(new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
 	}
 	
 	@JsonCreator
-	public ApiSession(String id, Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
-		super.setId(id);
+	public ApiSession(Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
 		this.requests = requests;
 		this.queries = queries; 
 		this.stages = stages; 
@@ -45,15 +45,18 @@ public final class ApiSession extends ApiRequest implements Session { //Incoming
 	
 	@Override
 	public void setId(String id) {
-		throw new UnsupportedOperationException(); // cannot change id
+		if(nonNull(getId())) {
+			throw new IllegalStateException();
+		}
+		super.setId(id);
 	}
 	
 	public void append(ApiRequest request) {
 		requests.add(request);
 	}
 
-	public void append(DatabaseRequest query) {
-		queries.add(query);
+	public void append(DatabaseRequest request) {
+		queries.add(request);
 	}
 	
 	@Override
@@ -62,10 +65,12 @@ public final class ApiSession extends ApiRequest implements Session { //Incoming
 	}
 	
 	static ApiSession synchronizedApiSession(String id) {
-		return new ApiSession(id, 
+		var ss = new ApiSession(
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()));
+		ss.setId(id);	
+		return ss;
 	}
 	
 }

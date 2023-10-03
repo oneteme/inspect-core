@@ -5,13 +5,13 @@ import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
-import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.LaunchMode.BATCH;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
+import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
 import java.util.stream.Stream;
@@ -56,7 +56,7 @@ public class TraceableAspect {
     	if(nonNull(localTrace.get())) { //sub trace
     		return aroundStage(joinPoint, session);
     	}
-    	var ms = synchronizedMainSession(idProvider.get());
+    	var ms = synchronizedMainSession(nextId());
     	localTrace.set(ms);
     	log.debug("session : {} <= {}", ms.getId(), joinPoint.getSignature());
     	Throwable ex = null;

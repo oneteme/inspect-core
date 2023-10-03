@@ -4,12 +4,10 @@ import static java.lang.Thread.currentThread;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
-import static java.util.UUID.randomUUID;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 
@@ -29,7 +27,6 @@ final class Helper {
 	static String basePackage = "fr.enedis";
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
-	static final Supplier<String> idProvider = ()-> randomUUID().toString();
 	
 	static ApplicationInfo application; //unsafe set
 	

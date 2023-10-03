@@ -15,11 +15,11 @@ import static org.usf.traceapi.core.ApiSession.synchronizedApiSession;
 import static org.usf.traceapi.core.ExceptionInfo.fromException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
-import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.StageUpdater.getUser;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
@@ -57,7 +57,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-    	var in = synchronizedApiSession(idProvider.get());
+    	var in = synchronizedApiSession(nextId());
     	log.debug("incoming request : {} <= {}", in.getId(), req.getRequestURI());
     	localTrace.set(in);
 		res.addHeader(TRACE_HEADER, in.getId());

@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.Collections.synchronizedCollection;
+import static java.util.Objects.nonNull;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -24,27 +25,34 @@ import lombok.Setter;
 @JsonIgnoreProperties("lock")
 public final class MainSession extends RunnableStage implements Session {
 	
-	private final String id;
-	//name : @annotation, methodName, viewTitle, ..
-	//location : URL, File, SI, ...
+	private String id;
 	private LaunchMode launchMode;
 	private ApplicationInfo application;
 	private final Collection<ApiRequest> requests;
 	private final Collection<DatabaseRequest> queries;
 	private final Collection<RunnableStage> stages;
+	//name : @annotation, methodName, viewTitle, ..
+	//location : URL, File, SI, ...
 
 	private final AtomicInteger lock = new AtomicInteger();
 
-	public MainSession(String id) {
-		this(id, new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
+	public MainSession() {
+		this(new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
 	}
 
-	@JsonCreator //remove this
-	public MainSession(String id, Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
-		this.id = id;
+	@JsonCreator
+	public MainSession(Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
 		this.requests = requests;
 		this.queries = queries; 
 		this.stages = stages; 
+	}
+
+	@Override
+	public void setId(String id) {
+		if(nonNull(this.id)) {
+			throw new IllegalStateException();
+		}
+		this.id = id;
 	}
 
 	@Override
@@ -53,8 +61,8 @@ public final class MainSession extends RunnableStage implements Session {
 	}
 
 	@Override
-	public void append(DatabaseRequest query) {
-		queries.add(query);
+	public void append(DatabaseRequest request) {
+		queries.add(request);
 	}
 	
 	@Override
@@ -63,10 +71,12 @@ public final class MainSession extends RunnableStage implements Session {
 	}
 	
 	static MainSession synchronizedMainSession(String id) {
-		return new MainSession(id, 
+		var ss = new MainSession(
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()));
+		ss.setId(id);	
+		return ss;
 	}
 	
 }
