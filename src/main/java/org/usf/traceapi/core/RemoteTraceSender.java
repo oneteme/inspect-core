@@ -46,7 +46,7 @@ public final class RemoteTraceSender implements TraceHandler {
         if(!list.isEmpty()) {
 	        log.info("scheduled data queue sending.. : {} session(s)", list.size());
 	        try {
-	        	template.put(properties.getHost(), list);
+	        	template.put(properties.getUrl(), list);
 	    	}
 	    	catch (Exception e) {
 	    		queue.addAll(list); // retry later

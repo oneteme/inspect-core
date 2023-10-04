@@ -24,7 +24,7 @@ final class Helper {
 	
 	static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
 	
-	static String basePackage = "fr.enedis";
+	static String basePackage = "";
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	
@@ -57,7 +57,6 @@ final class Helper {
 		}
 	}
 	
-	//TODO rename
 	static Optional<StackTraceElement> stackTraceElement() {
 		if(isNull(basePackage) || basePackage.isBlank()) {
 			return empty();

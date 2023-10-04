@@ -7,6 +7,7 @@ import static java.util.Objects.isNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.Helper.application;
+import static org.usf.traceapi.core.Helper.basePackage;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.TraceMultiCaster.register;
 
@@ -40,14 +41,20 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
 	@Value("${api.tracing.exclude:}")
 	private String[] excludes;
+	
 	private ApiSessionFilter sessionFilter;
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config) {
 		application = applicationInfo(env);
-		register(config.getHost().isBlank() 
+		register(config.getUrl().isBlank() 
         		? res-> {} // cache traces !?
         		: new RemoteTraceSender(config));
 		log.debug("app.env : {}", application);
+	}
+
+	@Value("${api.tracing.base-package:}")
+	public void setBasePackage(String bp) {
+		basePackage = bp;
 	}
 	
 	@Override
