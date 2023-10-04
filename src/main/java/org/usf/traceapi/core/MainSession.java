@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
 import static java.util.Collections.synchronizedCollection;
-import static java.util.Objects.nonNull;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -45,14 +44,6 @@ public final class MainSession extends RunnableStage implements Session {
 		this.requests = requests;
 		this.queries = queries; 
 		this.stages = stages; 
-	}
-
-	@Override
-	public void setId(String id) {
-		if(nonNull(this.id)) {
-			throw new IllegalStateException();
-		}
-		this.id = id;
 	}
 
 	@Override
