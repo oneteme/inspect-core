@@ -2,9 +2,10 @@ package org.usf.traceapi.core;
 
 import static java.util.Collections.emptyList;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toCollection;
 import static org.usf.traceapi.core.Helper.log;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -58,10 +59,13 @@ public final class RemoteTraceSender implements TraceHandler {
 	private List<Session> completedSession() {
 		List<Session> sub = queue.isEmpty() 
     			? emptyList() 
-    			: queue.stream().filter(Session::wasCompleted).collect(toList());
+    			: queue.stream().filter(Session::wasCompleted).collect(toCollection(SessionList::new));
     	if(!sub.isEmpty()) {
     		queue.removeAll(sub);
     	}
     	return sub;
 	}
+	
+	@SuppressWarnings("serial") //Jackson issue https://github.com/FasterXML/jackson-databind/issues/23
+	static class SessionList extends ArrayList<Session> {}
 }

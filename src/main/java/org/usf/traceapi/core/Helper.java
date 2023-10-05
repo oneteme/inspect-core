@@ -24,7 +24,7 @@ final class Helper {
 	
 	static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
 	
-	static String basePackage = "";
+	static String basePackage;
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	

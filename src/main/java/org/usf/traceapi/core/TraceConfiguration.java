@@ -53,8 +53,8 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	}
 
 	@Value("${api.tracing.base-package:}")
-	public void setBasePackage(String bp) {
-		basePackage = bp;
+	public void setBasePackage(String pkg) {
+		basePackage = pkg;
 	}
 	
 	@Override
