@@ -6,9 +6,8 @@ import static java.util.stream.Collectors.toCollection;
 import static org.usf.traceapi.core.Helper.log;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.springframework.web.client.RestTemplate;
@@ -21,8 +20,8 @@ import org.springframework.web.client.RestTemplate;
 public final class RemoteTraceSender implements TraceHandler {
 	
 	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
-    private final BlockingQueue<Session> queue = new LinkedBlockingQueue<>();
-
+	
+    private final LinkedList<Session> sessionQueue = new LinkedList<>();
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
 
@@ -30,42 +29,51 @@ public final class RemoteTraceSender implements TraceHandler {
 		this(properties, new RestTemplate());
 	}
 	
-	public RemoteTraceSender(TraceConfigurationProperties properties, RestTemplate template) {
-		this.properties = properties;
+	public RemoteTraceSender(TraceConfigurationProperties prop, RestTemplate template) {
+		this.properties = prop;
 		this.template = template;
-    	executor.scheduleWithFixedDelay(this::sendAll, properties.getDelay(), properties.getDelay(), properties.getUnit());
+    	executor.scheduleWithFixedDelay(this::sendAll, prop.getDelay(), prop.getDelay(), prop.getUnit());
 	}
 	
 	@Override
 	public void handle(Session session) {
-		queue.add(session);
-		log.debug("new session added to the queue : {} session(s)", queue.size());
+		synchronized(sessionQueue){
+			sessionQueue.add(session);
+		}
+		log.debug("new session added to the queue : {} session(s)", sessionQueue.size());
 	}
 	
     private void sendAll() {
-        var list = completedSession();
-        if(!list.isEmpty()) {
-	        log.info("scheduled data queue sending.. : {} session(s)", list.size());
+    	List<Session> cs;
+		synchronized(sessionQueue){
+			cs = sessionQueue.isEmpty() 
+    			? emptyList()
+    			: sessionQueue.stream() // stream must be manually synched by user! see synchronizedCollection
+    			.filter(Session::wasCompleted)
+    			.collect(toCollection(SessionList::new)); 
+		}
+        if(!cs.isEmpty()) {
+	        log.info("scheduled data queue sending.. : {} session(s)", cs.size());
 	        try {
-	        	template.put(properties.getUrl(), list);
+	        	template.put(properties.getUrl(), cs);
+	    		synchronized(sessionQueue){
+	    			sessionQueue.removeAll(cs);
+	    		}
 	    	}
 	    	catch (Exception e) {
-	    		queue.addAll(list); // retry later
 	    		log.error("error while sending sessions", e);
+	    		if(cs.size() > properties.getMaxCachedSession()) {
+	    			synchronized(sessionQueue){ //remove fist n sessions
+	    				sessionQueue.subList(0, cs.size() - properties.getMaxCachedSession()).clear();
+	    			}
+	    		}
+	    		// do not throw exception : retry later
 			}
         }
     }
     
-	private List<Session> completedSession() {
-		List<Session> sub = queue.isEmpty() 
-    			? emptyList() 
-    			: queue.stream().filter(Session::wasCompleted).collect(toCollection(SessionList::new));
-    	if(!sub.isEmpty()) {
-    		queue.removeAll(sub);
-    	}
-    	return sub;
-	}
-	
-	@SuppressWarnings("serial") //Jackson issue : https://github.com/FasterXML/jackson-databind/issues/23
+	//Jackson issue : https://github.com/FasterXML/jackson-databind/issues/23
+	@SuppressWarnings("serial") 
 	static final class SessionList extends ArrayList<Session> {}
+	
 }
