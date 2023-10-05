@@ -25,6 +25,8 @@ public interface Session extends Metric {
 	Collection<ApiRequest> getRequests();
 	
 	Collection<DatabaseRequest> getQueries();
+
+	Collection<RunnableStage> getStages();
 	
 	void append(ApiRequest request); // sub requests
 

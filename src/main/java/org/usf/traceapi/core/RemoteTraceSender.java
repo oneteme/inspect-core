@@ -66,6 +66,6 @@ public final class RemoteTraceSender implements TraceHandler {
     	return sub;
 	}
 	
-	@SuppressWarnings("serial") //Jackson issue https://github.com/FasterXML/jackson-databind/issues/23
+	@SuppressWarnings("serial") //Jackson issue : https://github.com/FasterXML/jackson-databind/issues/23
 	static final class SessionList extends ArrayList<Session> {}
 }
