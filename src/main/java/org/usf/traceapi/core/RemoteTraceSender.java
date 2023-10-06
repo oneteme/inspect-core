@@ -33,7 +33,7 @@ public final class RemoteTraceSender implements TraceHandler {
 	public RemoteTraceSender(TraceConfigurationProperties prop, RestTemplate template) {
 		this.properties = prop;
 		this.template = template;
-    	executor.scheduleWithFixedDelay(this::sendAll, prop.getDelay(), prop.getDelay(), prop.getUnit());
+    	executor.scheduleWithFixedDelay(this::sendCompleted, prop.getDelay(), prop.getDelay(), prop.getUnit());
 	}
 	
 	@Override
@@ -44,7 +44,7 @@ public final class RemoteTraceSender implements TraceHandler {
 		log.debug("new session added to the queue : {} session(s)", sessionQueue.size());
 	}
 	
-    private void sendAll() {
+    private void sendCompleted() {
     	List<Session> cs;
 		synchronized(sessionQueue){
 			cs = sessionQueue.isEmpty() 
