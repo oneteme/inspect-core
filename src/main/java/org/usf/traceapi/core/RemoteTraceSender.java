@@ -60,7 +60,7 @@ public final class RemoteTraceSender implements TraceHandler {
 	        	removeSessions(cs);
 	    	}
 	    	catch (Exception e) {
-	    		log.error("error while sending sessions", e);
+	    		log.warn("error while sending sessions", e);
 	    		if(cs.size() > properties.getMaxCachedSession()) {
 	    			//remove exceeding cache sessions
     				removeSessions(cs.subList(0, cs.size() - properties.getMaxCachedSession()));
