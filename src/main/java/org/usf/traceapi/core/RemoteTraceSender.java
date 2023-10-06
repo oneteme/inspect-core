@@ -6,6 +6,7 @@ import static java.util.stream.Collectors.toCollection;
 import static org.usf.traceapi.core.Helper.log;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -48,29 +49,32 @@ public final class RemoteTraceSender implements TraceHandler {
 		synchronized(sessionQueue){
 			cs = sessionQueue.isEmpty() 
     			? emptyList()
-    			: sessionQueue.stream() // stream must be manually synched by user! see synchronizedCollection
+    			: sessionQueue.stream()
     			.filter(Session::wasCompleted)
     			.collect(toCollection(SessionList::new)); 
 		}
         if(!cs.isEmpty()) {
-	        log.info("scheduled data queue sending.. : {} session(s)", cs.size());
+	        log.debug("scheduled data queue sending.. : {} session(s)", cs.size());
 	        try {
 	        	template.put(properties.getUrl(), cs);
-	    		synchronized(sessionQueue){
-	    			sessionQueue.removeAll(cs);
-	    		}
+	        	removeSessions(cs);
 	    	}
 	    	catch (Exception e) {
 	    		log.error("error while sending sessions", e);
 	    		if(cs.size() > properties.getMaxCachedSession()) {
-	    			synchronized(sessionQueue){ //remove fist n sessions
-	    				sessionQueue.subList(0, cs.size() - properties.getMaxCachedSession()).clear();
-	    			}
+	    			//remove exceeding cache sessions
+    				removeSessions(cs.subList(0, cs.size() - properties.getMaxCachedSession()));
 	    		}
 	    		// do not throw exception : retry later
 			}
         }
     }
+    
+    private void removeSessions(Collection<Session> cs) {
+		synchronized(sessionQueue){
+			sessionQueue.removeAll(cs);
+		}
+	}
     
 	//Jackson issue : https://github.com/FasterXML/jackson-databind/issues/23
 	@SuppressWarnings("serial") 
