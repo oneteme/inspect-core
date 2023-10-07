@@ -7,7 +7,7 @@ import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.usf.traceapi.core.ApiSessionFilter.TRACE_HEADER;
-import static org.usf.traceapi.core.ExceptionInfo.fromException;
+import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
@@ -64,13 +64,13 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 				out.setStart(ofEpochMilli(beg));
 				out.setEnd(ofEpochMilli(fin));
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
-				out.setException(fromException(ex));
+				out.setException(mainCauseException(ex));
 				out.setThreadName(threadName());
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
 					out.setInDataSize(res.getBody().available()); //not exact !?
 					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
-					out.setId(ofNullable(res.getHeaders().getFirst(TRACE_HEADER)).orElse(null));
+					out.setId(ofNullable(res.getHeaders().getFirst(TRACE_HEADER)).orElse(null)); //+ send api_name !?
 //					out.setUser(null);
 				}
 				session.append(out);

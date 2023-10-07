@@ -20,7 +20,7 @@ public final class TraceConfigurationProperties {
 	private String url = "";
 	private int delay = 5;
 	private TimeUnit unit = SECONDS;
-	private int waitListSize = 100_000;
+	private int waitListSize = 1_000;
 
 	public void setUrl(String url) {
 		this.url = url;
@@ -34,8 +34,8 @@ public final class TraceConfigurationProperties {
 		this.unit = TimeUnit.valueOf(unit.toUpperCase());
 	}
 
-	public void setMaxCachedSession(int maxCachedSession) {
-		this.waitListSize = requiePositiveValue(maxCachedSession);
+	public void setWaitListSize(int waitListSize) {
+		this.waitListSize = requiePositiveValue(waitListSize);
 	}
 
 	private static int requiePositiveValue(int v) {

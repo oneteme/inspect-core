@@ -3,7 +3,7 @@ package org.usf.traceapi.core;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
-import static org.usf.traceapi.core.ExceptionInfo.fromException;
+import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
@@ -53,7 +53,7 @@ public final class TraceableExecutorService implements ExecutorService {
     private static void aroundRunnable(Runnable command, Session session, Optional<StackTraceElement> ost) {
 		log.debug("stage : {} <= {}", session.getId(), command);
     	if(localTrace.get() != session) {
-    		localTrace.set(session); //thread already existed
+    		localTrace.set(session); //thread already exists
     	}
 		Throwable ex = null;
     	var beg = currentTimeMillis();
@@ -71,7 +71,7 @@ public final class TraceableExecutorService implements ExecutorService {
 	    		rs.setStart(ofEpochMilli(beg));
 	    		rs.setEnd(ofEpochMilli(fin));
     			rs.setThreadName(threadName());
-    			rs.setException(fromException(ex));
+    			rs.setException(mainCauseException(ex));
 	    		ost.ifPresent(st->{
 		    		rs.setName(st.getMethodName());
 		    		rs.setLocation(st.getClassName());

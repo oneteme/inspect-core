@@ -12,7 +12,7 @@ import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.traceapi.core.ApiSession.synchronizedApiSession;
-import static org.usf.traceapi.core.ExceptionInfo.fromException;
+import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
@@ -91,7 +91,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
     			in.setThreadName(threadName());
     			in.setApplication(applicationInfo());
         		if(nonNull(ex) && isNull(in.getException())) { //already set in IncomingRequestInterceptor
-        			in.setException(fromException(ex));
+        			in.setException(mainCauseException(ex));
         		}
     			// name, user & exception delegated to interceptor
         		emit(in);
@@ -117,7 +117,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 			in.setName(defaultEndpointName(req));
         	in.setUser(getUser(req));
         	if(nonNull(ex) && isNull(in.getException())) {//already set with Aspect
-        		in.setException(fromException(ex));
+        		in.setException(mainCauseException(ex));
         	}
 	        if(handler instanceof HandlerMethod) {//important! !static resource 
 	        	HandlerMethod m = (HandlerMethod) handler;

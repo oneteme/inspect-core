@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
 import static java.lang.Thread.currentThread;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -58,13 +57,13 @@ final class Helper {
 	}
 	
 	static Optional<StackTraceElement> stackTraceElement() {
-		if(isNull(basePackage) || basePackage.isBlank()) {
-			return empty();
+		if(nonNull(basePackage) && !basePackage.isBlank()) {
+			var arr = currentThread().getStackTrace();
+			var i = 1; //location, internal call
+			while (++i<arr.length && !arr[i].getClassName().startsWith(basePackage));
+			return i<arr.length ? Optional.of(arr[i]) : empty(); 
 		}
-		var arr = currentThread().getStackTrace();
-		var i = 1; //location, internal call
-		while (++i<arr.length && !arr[i].getClassName().startsWith(basePackage));
-		return i<arr.length ? Optional.of(arr[i]) : empty(); 
+		return empty();
 	}
 	
 }

@@ -18,7 +18,7 @@ public final class DatabaseAction implements Metric {
 	private final Instant start;
 	private final Instant end;
 	private final ExceptionInfo exception; 
-	//private final long rows; Statement|ResultSet|Update|Batch
+	//private final long count; Statement|ResultSet|Update|Batch
 	
 	@Override
 	public String toString() {

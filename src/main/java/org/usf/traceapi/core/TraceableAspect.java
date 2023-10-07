@@ -3,7 +3,7 @@ package org.usf.traceapi.core;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
-import static org.usf.traceapi.core.ExceptionInfo.fromException;
+import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
@@ -44,7 +44,7 @@ public class TraceableAspect {
 					.filter(Throwable.class::isInstance)
 					.findFirst()
 					.map(Throwable.class::cast)
-					.map(ExceptionInfo::fromException)
+					.map(ExceptionInfo::mainCauseException)
 					.ifPresent(session::setException);
 		}
 		return joinPoint.proceed();
@@ -120,7 +120,7 @@ public class TraceableAspect {
 		sg.setLocation(joinPoint.getSignature().getDeclaringTypeName());
 		sg.setThreadName(threadName());
 		sg.setUser(null); // default user supplier
-		sg.setException(fromException(e));
+		sg.setException(mainCauseException(e));
     	if(ant.sessionUpdater() != StageUpdater.class) { //specific.
     		newInstance(ant.sessionUpdater())
     		.ifPresent(u-> u.update(sg, joinPoint));

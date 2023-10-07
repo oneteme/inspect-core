@@ -6,10 +6,9 @@ import static java.util.stream.Collectors.toCollection;
 import static org.usf.traceapi.core.Helper.log;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
 
 import org.springframework.web.client.RestTemplate;
 
@@ -38,45 +37,40 @@ public final class RemoteTraceSender implements TraceHandler {
 	
 	@Override
 	public void handle(Session session) {
-		synchronized(sessionQueue){
-			sessionQueue.add(session);
-		}
+		safeQueue(q-> q.add(session));
 		log.debug("new session added to the queue : {} session(s)", sessionQueue.size());
 	}
 	
     private void sendCompleted() {
-    	List<Session> cs;
-		synchronized(sessionQueue){
-			cs = sessionQueue.isEmpty() 
+    	var cs = safeQueue(q-> q.isEmpty() 
     			? emptyList()
     			: sessionQueue.stream()
     			.filter(Session::wasCompleted)
-    			.collect(toCollection(SessionList::new)); 
-		}
+    			.collect(toCollection(SessionList::new)));
         if(!cs.isEmpty()) {
 	        log.debug("scheduled data queue sending.. : {} session(s)", cs.size());
 	        try {
 	        	template.put(properties.getUrl(), cs);
-	        	removeSessions(cs);
+	        	safeQueue(q-> q.removeAll(cs));
 	    	}
 	    	catch (Exception e) {
 	    		log.warn("error while sending sessions", e);
 	    		if(cs.size() > properties.getWaitListSize()) {
-	    			//remove exceeding cache sessions
-    				removeSessions(cs.subList(0, cs.size() - properties.getWaitListSize()));
+	    			//remove exceeding cache sessions (FIFO)
+	    			safeQueue(q-> q.removeAll(cs.subList(0, cs.size() - properties.getWaitListSize())));
 	    		}
 	    		// do not throw exception : retry later
 			}
         }
     }
     
-    private void removeSessions(Collection<Session> cs) {
+    private <T> T safeQueue(Function<LinkedList<Session>, T> queueFn) {
 		synchronized(sessionQueue){
-			sessionQueue.removeAll(cs);
+			return queueFn.apply(sessionQueue);
 		}
 	}
     
-	//Jackson issue : https://github.com/FasterXML/jackson-databind/issues/23
+	//jackson issue : https://github.com/FasterXML/jackson-databind/issues/23
 	@SuppressWarnings("serial") 
 	static final class SessionList extends ArrayList<Session> {}
 	

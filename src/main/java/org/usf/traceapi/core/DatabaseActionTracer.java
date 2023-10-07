@@ -13,7 +13,7 @@ import static org.usf.traceapi.core.Action.ROLLBACK;
 import static org.usf.traceapi.core.Action.SELECT;
 import static org.usf.traceapi.core.Action.STATEMENT;
 import static org.usf.traceapi.core.Action.UPDATE;
-import static org.usf.traceapi.core.ExceptionInfo.fromException;
+import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
 
 import java.sql.Connection;
@@ -107,7 +107,7 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 		}
 		finally {
 			var fin = currentTimeMillis();
-			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), fromException(ex)));
+			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), mainCauseException(ex)));
 		}
 	}
 
