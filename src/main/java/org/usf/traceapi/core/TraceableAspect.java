@@ -3,23 +3,25 @@ package org.usf.traceapi.core;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
-import static org.usf.traceapi.core.DefaultUserProvider.isDefaultProvider;
-import static org.usf.traceapi.core.ExceptionInfo.fromException;
+import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
-import static org.usf.traceapi.core.Helper.defaultUserProvider;
-import static org.usf.traceapi.core.Helper.idProvider;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.LaunchMode.BATCH;
-import static org.usf.traceapi.core.MainRequest.synchronizedMainRequest;
+import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
+import static org.usf.traceapi.core.Session.nextId;
+import static org.usf.traceapi.core.TraceMultiCaster.emit;
+
+import java.util.stream.Stream;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,64 +31,99 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @Aspect
-@Component
 @RequiredArgsConstructor
 public class TraceableAspect {
 	
-	private final TraceSender sender;
+    //TODO before
+    @ConditionalOnBean(ControllerAdvice.class)
+    @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
+    Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
+		var session = (ApiSession) localTrace.get();
+		if(nonNull(session) && nonNull(joinPoint.getArgs())) {
+			Stream.of(joinPoint.getArgs())
+					.filter(Throwable.class::isInstance)
+					.findFirst()
+					.map(Throwable.class::cast)
+					.map(ExceptionInfo::mainCauseException)
+					.ifPresent(session::setException);
+		}
+		return joinPoint.proceed();
+    }
 	
-    @Around("@annotation(TraceableBatch)")
-    public Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
+    @Around("@annotation(TraceableStage)")
+    Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
+		var session = localTrace.get();
     	if(nonNull(localTrace.get())) { //sub trace
-    		return joinPoint.proceed();
+    		return aroundStage(joinPoint, session);
     	}
-    	Object proceed;
-    	var main = synchronizedMainRequest(idProvider.get());
-    	log.debug("batch request {} <= {}", main.getId(), joinPoint.getSignature().getName());
-    	localTrace.set(main);
+    	var ms = synchronizedMainSession(nextId());
+    	localTrace.set(ms);
+    	log.debug("session : {} <= {}", ms.getId(), joinPoint.getSignature());
+    	Throwable ex = null;
     	var beg = currentTimeMillis();
     	try {
-    		proceed = joinPoint.proceed();
+    		return joinPoint.proceed();
     	}
-    	catch (Exception e) {
-    		main.setException(fromException(e));
+    	catch (Throwable e) {
+    		ex =  e;
     		throw e;
     	}
     	finally {
     		var fin = currentTimeMillis();
     		try {
-    			localTrace.remove();
-    			main.setLaunchMode(BATCH);
-	    		main.setStart(ofEpochMilli(beg));
-	    		main.setEnd(ofEpochMilli(fin));
-    			main.setName(batchName(joinPoint));
-	    		main.setUser(batchUser(joinPoint));
-    			main.setThreadName(threadName());
-    			main.setApplication(applicationInfo());
-	        	sender.send(main);
+    			ms.setLaunchMode(BATCH);
+    			ms.setApplication(applicationInfo());
+    			fill(ms, beg, fin, joinPoint, ex);
+    			emit(ms);
     		}
     		catch(Exception e) {
-				//do not catch exception
-				log.warn("error while tracing : {}", joinPoint.getTarget(), e);
+				log.warn("error while tracing : " + joinPoint.getSignature(), e);
+				//do not throw exception
     		}
+			localTrace.remove();
     	}
-    	return proceed;
-    }
-    
-    private static String batchName(ProceedingJoinPoint joinPoint) {
-    	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    	var ant = signature.getMethod().getAnnotation(TraceableBatch.class);
-    	return ant.value().isBlank() ? signature.getMethod().getName() : ant.value();
-    }
-    
-    private static String batchUser(ProceedingJoinPoint joinPoint) {
-    	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    	var ant = signature.getMethod().getAnnotation(TraceableBatch.class);
-    	return isDefaultProvider(ant.userProvider())
-    			? defaultUserProvider().getUser()
-    			: newInstance(ant.userProvider())
-    			.map(BatchUserProvider::getUser)
-    			.orElse(null);
     }
 
+    static Object aroundStage(ProceedingJoinPoint joinPoint, Session session) throws Throwable {
+		session.lock();
+		log.debug("stage : {} <= {}", session.getId(), joinPoint.getSignature());
+		Exception ex = null;
+    	var beg = currentTimeMillis();
+    	try {
+    		return joinPoint.proceed();
+    	}
+    	catch (Exception e) {
+    		ex =  e;
+    		throw e;
+    	}
+    	finally {
+    		var fin = currentTimeMillis();
+    		try {
+    	    	var rs = new RunnableStage();
+    			fill(rs, beg, fin, joinPoint, ex);
+				session.append(rs);
+    		}
+    		catch(Exception e) {
+				log.warn("error while tracing : " + joinPoint.getSignature(), e);
+				//do not throw exception
+    		}
+			session.unlock();
+    	}
+    }
+    
+    static void fill(RunnableStage sg, long beg, long fin, ProceedingJoinPoint joinPoint, Throwable e) {
+    	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+    	var ant = signature.getMethod().getAnnotation(TraceableStage.class);
+		sg.setStart(ofEpochMilli(beg));
+		sg.setEnd(ofEpochMilli(fin));
+		sg.setName(ant.value().isBlank() ? joinPoint.getSignature().getName() : ant.value());
+		sg.setLocation(joinPoint.getSignature().getDeclaringTypeName());
+		sg.setThreadName(threadName());
+		sg.setUser(null); // default user supplier
+		sg.setException(mainCauseException(e));
+    	if(ant.sessionUpdater() != StageUpdater.class) { //specific.
+    		newInstance(ant.sessionUpdater())
+    		.ifPresent(u-> u.update(sg, joinPoint));
+    	}
+    }
 }

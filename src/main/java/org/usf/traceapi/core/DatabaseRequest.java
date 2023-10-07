@@ -1,11 +1,11 @@
 package org.usf.traceapi.core;
 
-import static java.lang.String.format;
 import static java.util.Objects.isNull;
 
-import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -17,15 +17,12 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class OutcomingQuery implements Metric {
+@JsonIgnoreProperties("exception")
+public class DatabaseRequest extends RunnableStage {
 
 	private String host;
 	private Integer port; //nullable
 	private String schema; //nullable
-	private Instant start;
-	private Instant end;
-	private String user;
-	private String threadName;
 	private String driverVersion;
 	private String databaseName;
 	private String databaseVersion;
@@ -38,7 +35,13 @@ public class OutcomingQuery implements Metric {
 	}
 	
 	@Override
-	public String toString() {
-		return format("%-20s", threadName) + ": QUERY   {" +  format("%5s", duration()) + "ms}"; 
+	public ExceptionInfo getException() {
+		throw new UnsupportedOperationException();
 	}
+	
+	@Override
+	public void setException(ExceptionInfo exception) {
+		throw new UnsupportedOperationException();
+	}
+	
 }

@@ -1,51 +1,77 @@
 package org.usf.traceapi.core;
 
-import static java.lang.String.join;
+import static java.util.Collections.emptyList;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.stream.Collectors.toCollection;
 import static org.usf.traceapi.core.Helper.log;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
 
 import org.springframework.web.client.RestTemplate;
-
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 /**
  * 
  * @author u$f
  *
  */
-@RequiredArgsConstructor
-public final class RemoteTraceSender implements TraceSender {
+public final class RemoteTraceSender implements TraceHandler {
 	
-	public static final String TRACE_ENDPOINT = "trace";
-	public static final String MAIN_ENDPOINT = "main/request";
-	public static final String INCOMING_ENDPOINT = "incoming/request";
-
 	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
-
+	
+    private final LinkedList<Session> sessionQueue = new LinkedList<>();
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
-	
+
 	public RemoteTraceSender(TraceConfigurationProperties properties) {
 		this(properties, new RestTemplate());
 	}
 	
-	@Override
-	public void send(Session session) {
-		var uri = join("/", properties.getHost(), TRACE_ENDPOINT, endpointFor(session));
-		log.debug("sending trace {} => {}", session.getId(), uri);
-		executor.schedule(()-> template.put(uri, session), properties.getDelay(), properties.getUnit()); //wait for sending response
+	public RemoteTraceSender(TraceConfigurationProperties prop, RestTemplate template) {
+		this.properties = prop;
+		this.template = template;
+    	executor.scheduleWithFixedDelay(this::sendCompleted, prop.getDelay(), prop.getDelay(), prop.getUnit());
 	}
 	
-	private static String endpointFor(@NonNull Session session) {
-		if(session.getClass() == IncomingRequest.class) {
-			return INCOMING_ENDPOINT;
-		}
-		else if(session.getClass() == MainRequest.class) {
-			return MAIN_ENDPOINT;
-		}
-		throw new UnsupportedOperationException(session.getClass().getSimpleName() + " : " + session);
+	@Override
+	public void handle(Session session) {
+		safeQueue(q-> q.add(session));
+		log.debug("new session added to the queue : {} session(s)", sessionQueue.size());
 	}
+	
+    private void sendCompleted() {
+    	var cs = safeQueue(q-> q.isEmpty() 
+    			? emptyList()
+    			: sessionQueue.stream()
+    			.filter(Session::wasCompleted)
+    			.collect(toCollection(SessionList::new)));
+        if(!cs.isEmpty()) {
+	        log.debug("scheduled data queue sending.. : {} session(s)", cs.size());
+	        try {
+	        	template.put(properties.getUrl(), cs);
+	        	safeQueue(q-> q.removeAll(cs));
+	    	}
+	    	catch (Exception e) {
+	    		log.warn("error while sending sessions", e);
+	    		if(cs.size() > properties.getWaitListSize()) {
+	    			//remove exceeding cache sessions (FIFO)
+	    			safeQueue(q-> q.removeAll(cs.subList(0, cs.size() - properties.getWaitListSize())));
+	    		}
+	    		// do not throw exception : retry later
+			}
+        }
+    }
+    
+    private <T> T safeQueue(Function<LinkedList<Session>, T> queueFn) {
+		synchronized(sessionQueue){
+			return queueFn.apply(sessionQueue);
+		}
+	}
+    
+	//jackson issue : https://github.com/FasterXML/jackson-databind/issues/23
+	@SuppressWarnings("serial") 
+	static final class SessionList extends ArrayList<Session> {}
+	
 }

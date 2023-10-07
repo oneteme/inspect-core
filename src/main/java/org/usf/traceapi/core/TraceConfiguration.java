@@ -3,8 +3,13 @@ package org.usf.traceapi.core;
 import static java.lang.String.join;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
+import static java.util.Objects.isNull;
+import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
+import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.Helper.application;
+import static org.usf.traceapi.core.Helper.basePackage;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.TraceMultiCaster.register;
 
 import java.net.UnknownHostException;
 
@@ -15,11 +20,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import jakarta.servlet.Filter;
 
 /**
  * 
@@ -31,38 +39,54 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
-	@Value("${api.tracing.exclude:}") 
+	@Value("${api.tracing.exclude:}")
 	private String[] excludes;
 	
-	public TraceConfiguration(Environment env) {
-		application = new ApplicationInfo(
-				env.getProperty("spring.application.name"),
-				env.getProperty("spring.application.version"),
-				hostAddress(),
-				join(",", env.getActiveProfiles()),
-				getProperty("os.name"),
-				"java " + getProperty("java.version"));
+	private ApiSessionFilter sessionFilter;
+	
+	public TraceConfiguration(Environment env, TraceConfigurationProperties config) {
+		application = applicationInfo(env);
+		register(config.getUrl().isBlank() 
+        		? res-> {} // cache traces !?
+        		: new RemoteTraceSender(config));
 		log.debug("app.env : {}", application);
+	}
+
+	@Value("${api.tracing.base-package:}")
+	public void setBasePackage(String pkg) {
+		basePackage = pkg;
 	}
 	
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
-    	registry.addInterceptor(new IncomingRequestInterceptor()).excludePathPatterns(excludes);
+    	registry.addInterceptor(sessionFilter())
+    	.order(LOWEST_PRECEDENCE)
+    	.excludePathPatterns(excludes);
     }
 	
     @Bean
-    public IncomingRequestFilter incomingRequestFilter(TraceSender sender) {
-    	return new IncomingRequestFilter(sender, excludes);
+    public FilterRegistrationBean<Filter> apiSessionFilter() {
+    	var rb = new FilterRegistrationBean<Filter>(sessionFilter());
+    	rb.setOrder(HIGHEST_PRECEDENCE);
+    	rb.addUrlPatterns("/*"); //check that
+    	return rb;
     }
     
-    @Bean
-    public TraceableAspect traceableAspect(TraceSender sender) {
-    	return new TraceableAspect(sender);
+    private ApiSessionFilter sessionFilter() {
+    	if(isNull(sessionFilter)) {
+    		sessionFilter = new ApiSessionFilter(excludes);
+    	}
+    	return sessionFilter;
     }
 
     @Bean //do not rename this method see @Qualifier
-    public OutcomingRequestInterceptor outcomingRequestInterceptor() {
-        return new OutcomingRequestInterceptor();
+    public ApiRequestInterceptor apiRequestInterceptor() {
+        return new ApiRequestInterceptor();
+    }
+    
+    @Bean
+    public TraceableAspect traceableAspect() {
+    	return new TraceableAspect();
     }
 
     @Bean
@@ -70,18 +94,19 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	return new BeanPostProcessor() {
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-	            return bean instanceof DataSource 
-	            		? new DataSourceWrapper((DataSource) bean) 
-	            		: bean;
+	            return bean instanceof DataSource ? new DataSourceWrapper((DataSource) bean) : bean;
     		}
 		};
     }
 
-    @Bean
-    public TraceSender sender(TraceConfigurationProperties config) {
-    	return config.getHost().isBlank() 
-        		? res-> {} 
-        		: new RemoteTraceSender(config);
+    private static ApplicationInfo applicationInfo(Environment env) {
+    	return new ApplicationInfo(
+				env.getProperty("spring.application.name"),
+				env.getProperty("spring.application.version"),
+				hostAddress(),
+				join(",", env.getActiveProfiles()),
+				getProperty("os.name"),
+				"java " + getProperty("java.version"));
     }
 
 	private static String hostAddress() {

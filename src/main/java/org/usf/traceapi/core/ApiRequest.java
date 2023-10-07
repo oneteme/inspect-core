@@ -1,10 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.lang.String.format;
-
-import java.time.Instant;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,9 +12,10 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class OutcomingRequest implements Metric {
+@JsonIgnoreProperties("location")
+public class ApiRequest extends RunnableStage {
 
-	private final String id;
+	private String id; //nullable
 	private String method;
 	private String protocol;
 	private String host;
@@ -30,18 +27,14 @@ public class OutcomingRequest implements Metric {
 	private int status; // 0 else
 	private long inDataSize;
 	private long outDataSize;
- 	private Instant start;
-	private Instant end;
-	private String threadName;
-	private ExceptionInfo exception;
 	
-	@JsonCreator
-	public OutcomingRequest(String id) {
-		this.id = id;
+	@Override
+	public String getLocation() {
+		throw new UnsupportedOperationException();
 	}
 	
 	@Override
-	public String toString() {
-		return format("%-20s", threadName) + ": REQUEST {" +  format("%5s", duration()) + "ms}";
+	public void setLocation(String location) {
+		throw new UnsupportedOperationException();
 	}
 }

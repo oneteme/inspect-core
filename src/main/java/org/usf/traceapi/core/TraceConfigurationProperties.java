@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import lombok.Getter;
-import lombok.Setter;
 
 /**
  * 
@@ -15,23 +14,35 @@ import lombok.Setter;
  *
  */
 @Getter
-@Setter
 @ConfigurationProperties(prefix = "api.tracing")
 public final class TraceConfigurationProperties {
 	
-	private String host = "";
+	private String url = "";
 	private int delay = 5;
 	private TimeUnit unit = SECONDS;
+	private int waitListSize = 1_000;
 
-	public void setHost(String host) {
-		this.host = normalizeHost(host);
+	public void setUrl(String url) {
+		this.url = url;
 	}
-		
+
+	public void setDelay(int delay) {
+		this.delay = requiePositiveValue(delay);
+	}
+	
 	public void setUnit(String unit){
 		this.unit = TimeUnit.valueOf(unit.toUpperCase());
 	}
 
-	private static String normalizeHost(String host) {
-		return host.endsWith("/") ? host.substring(0, host.length()-1) : host;
+	public void setWaitListSize(int waitListSize) {
+		this.waitListSize = requiePositiveValue(waitListSize);
 	}
+
+	private static int requiePositiveValue(int v) {
+		if(v <= 0) {
+			throw new IllegalArgumentException(v + " <= 0");
+		}
+		return v;
+	}
+	
 }
