@@ -34,7 +34,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TraceableAspect {
 	
-    //TODO before
     @ConditionalOnBean(ControllerAdvice.class)
     @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
     Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {

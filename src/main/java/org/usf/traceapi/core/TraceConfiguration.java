@@ -44,19 +44,15 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
 	private ApiSessionFilter sessionFilter;
 	
-	public TraceConfiguration(Environment env, TraceConfigurationProperties config) {
+	public TraceConfiguration(Environment env, TraceConfigurationProperties config, @Value("${api.tracing.base-package:}") String pkg) {
 		application = applicationInfo(env);
+		basePackage = pkg;
 		register(config.getUrl().isBlank() 
         		? res-> {} // cache traces !?
         		: new RemoteTraceSender(config));
 		log.debug("app.env : {}", application);
 	}
 
-	@Value("${api.tracing.base-package:}")
-	public void setBasePackage(String pkg) {
-		basePackage = pkg;
-	}
-	
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
     	registry.addInterceptor(sessionFilter())

@@ -71,7 +71,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 					out.setInDataSize(res.getBody().available()); //not exact !?
 					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
 					out.setId(ofNullable(res.getHeaders().getFirst(TRACE_HEADER)).orElse(null)); //+ send api_name !?
-//					out.setUser(null);
+//					setUser!
 				}
 				session.append(out);
 			}
