@@ -54,7 +54,7 @@ public final class RemoteTraceSender implements TraceHandler {
 	        	safeQueue(q-> q.removeAll(cs));
 	    	}
 	    	catch (Exception e) {
-	    		log.warn("error while sending sessions", e);
+	    		log.warn("error while sending {} sessions {}", cs.size(), e); //do not log exception stack trace
 	    		if(cs.size() > properties.getWaitListSize()) {
 	    			//remove exceeding cache sessions (FIFO)
 	    			safeQueue(q-> q.removeAll(cs.subList(0, cs.size() - properties.getWaitListSize())));
