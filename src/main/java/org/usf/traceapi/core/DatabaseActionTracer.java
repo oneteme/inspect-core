@@ -10,6 +10,7 @@ import static org.usf.traceapi.core.Action.FETCH;
 import static org.usf.traceapi.core.Action.METADATA;
 import static org.usf.traceapi.core.Action.RESULTSET;
 import static org.usf.traceapi.core.Action.ROLLBACK;
+import static org.usf.traceapi.core.Action.SAVEPOINT;
 import static org.usf.traceapi.core.Action.SELECT;
 import static org.usf.traceapi.core.Action.STATEMENT;
 import static org.usf.traceapi.core.Action.UPDATE;
@@ -78,6 +79,10 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 		return trace(BATCH, supplier);
 	}
 	
+	default <T> T savePoint(SQLSupplier<T> supplier) throws SQLException {
+		return trace(SAVEPOINT, supplier);
+	}
+	
 	default void commit(SQLMethod method) throws SQLException {
 		trace(COMMIT, method::callAsSupplier);
 	}
@@ -95,7 +100,7 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	}
 
 	private <T> T trace(Action action, LongSupplier startSupp, SQLSupplier<T> sqlSupp) throws SQLException {
-		log.debug("executing {} action..", action);
+		log.trace("executing {} action..", action);
 		SQLException ex = null;
 		var beg = startSupp.getAsLong();
 		try {

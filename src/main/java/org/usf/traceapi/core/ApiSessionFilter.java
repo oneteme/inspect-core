@@ -119,9 +119,8 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
         	if(nonNull(ex) && isNull(in.getException())) {//already set with Aspect
         		in.setException(mainCauseException(ex));
         	}
-	        if(handler instanceof HandlerMethod) {//important! !static resource 
-	        	HandlerMethod m = (HandlerMethod) handler;
-	        	TraceableStage a = m.getMethodAnnotation(TraceableStage.class);
+	        if(handler instanceof HandlerMethod hm) {//important! !static resource 
+	        	TraceableStage a = hm.getMethodAnnotation(TraceableStage.class);
 	            if(nonNull(a)) {
 	            	if(!a.value().isBlank()) {
 	        			in.setName(a.value());

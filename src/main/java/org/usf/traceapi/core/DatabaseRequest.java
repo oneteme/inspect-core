@@ -22,7 +22,7 @@ public class DatabaseRequest extends RunnableStage {
 
 	private String host;
 	private Integer port; //nullable
-	private String schema; //nullable
+	private String database; //nullable
 	private String driverVersion;
 	private String databaseName;
 	private String databaseVersion;

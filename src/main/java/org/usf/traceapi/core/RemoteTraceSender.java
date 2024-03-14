@@ -1,11 +1,8 @@
 package org.usf.traceapi.core;
 
 import static java.time.Duration.ofSeconds;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static org.usf.traceapi.core.Helper.log;
 
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.web.client.RestTemplate;
@@ -16,8 +13,6 @@ import org.springframework.web.client.RestTemplate;
  *
  */
 public final class RemoteTraceSender implements TraceHandler {
-	
-	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 	
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
@@ -39,7 +34,6 @@ public final class RemoteTraceSender implements TraceHandler {
 	@Override
 	public void handle(Session session) {
 		dispatcher.add(session);
-		log.trace("new session added to the queue : {} session(s)", dispatcher.queueSize());
 	}
 	
     private void sendCompleted(int attemps, List<? extends Session> sessions) {

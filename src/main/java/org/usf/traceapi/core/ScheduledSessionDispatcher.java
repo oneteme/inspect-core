@@ -11,6 +11,7 @@ import static org.usf.traceapi.core.Helper.log;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -28,6 +29,7 @@ public final class ScheduledSessionDispatcher {
     private final SessionDispatcherProperties properties;
     private final BiConsumer<Integer, List<Session>> consumer;
     private final Predicate<Session> filter;
+    private final AtomicBoolean dispatch = new AtomicBoolean(true);
     private int attempts;
     
     public ScheduledSessionDispatcher(SessionDispatcherProperties properties, BiConsumer<Integer, List<Session>> consumer) {
@@ -39,8 +41,7 @@ public final class ScheduledSessionDispatcher {
 		this.properties = properties;
 		this.consumer = consumer;
 		this.filter = filter;
-    	executor.scheduleWithFixedDelay(this::dispatch, 
-    			properties.getDelay(), properties.getDelay(), properties.getUnit());
+    	executor.scheduleWithFixedDelay(this::dispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 
 	public void add(Session... sessions) {
@@ -48,30 +49,32 @@ public final class ScheduledSessionDispatcher {
 		log.trace("new sessions added to the queue : {} session(s)", queue.size());
 	}
 	
-	public int queueSize() {
-		return queue.size();
+	public void dispatch(boolean v) {
+		dispatch.set(v);
 	}
 	
     private void dispatch() {
-    	var cs = peekList();
-        if(!cs.isEmpty()) {
-	        log.trace("scheduled data queue dispatching.. : {} session(s)", cs.size());
-	        try {
-	        	consumer.accept(++attempts, cs);
-	        	removeAll(cs);
-	        	attempts=0;
-	    	}
-	    	catch (Exception e) {
-	    		// do not throw exception : retry later
-	    		log.warn("error while dispatching {} sessions {}", cs.size(), e); //do not log exception stack trace
-	    		if(properties.getBufferMaxSize() > -1 && cs.size() > properties.getBufferMaxSize()) {
-	    			//remove exceeding cache sessions (LIFO)
-	    			sync(q-> { q.subList(cs.size() - properties.getBufferMaxSize(), cs.size()).clear(); return null;});
-	    		}
-			}
-        }
+    	if(dispatch.get()) {
+	    	var cs = peekList();
+	        if(!cs.isEmpty()) {
+		        log.trace("scheduled data queue dispatching.. : {} session(s), attempts={}", cs.size(), ++attempts);
+		        try {
+		        	consumer.accept(attempts, cs);
+		        	removeAll(cs);
+		        	attempts=0;
+		    	}
+		    	catch (Exception e) {
+		    		// do not throw exception : retry later
+		    		log.warn("error while dispatching {} sessions {}", cs.size(), e); //do not log exception stack trace
+		    		if(properties.getBufferMaxSize() > -1 && cs.size() > properties.getBufferMaxSize()) {
+		    			//remove exceeding cache sessions (LIFO)
+		    			sync(q-> { q.subList(cs.size() - properties.getBufferMaxSize(), cs.size()).clear(); return null;});
+		    		}
+				}
+	        }
+    	}
     }
-    
+
     public List<Session> peekList() {
     	return sync(q-> {
     		if(q.isEmpty()) {
@@ -86,7 +89,7 @@ public final class ScheduledSessionDispatcher {
     }
 
     private void removeAll(List<? extends Session> cs) {
-    	sync(q->{
+    	sync(q-> {
 			if(nonNull(filter)) {
 				q.removeAll(cs);
 			}

@@ -1,20 +1,18 @@
 package org.usf.traceapi.core;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import lombok.Getter;
+
 @Getter
-@Setter
 @ConfigurationProperties(prefix = "trace")
 public class SessionDispatcherProperties {
 	
-    private int delay;
+    private int delay = 5;
 	private TimeUnit unit = SECONDS;
 	private int bufferSize = 100; // session count
 	private int bufferMaxSize = 5_000; // session count, -1 : unlimited

@@ -32,7 +32,7 @@ import lombok.experimental.Delegate;
 public final class DataSourceWrapper implements DataSource {
 	
 	private static final Pattern hostPattern = compile("^jdbc:[\\w:]+@?//([-\\w\\.]+)(:(\\d+))?(/(\\w+)|/(\\w+)[\\?,;].*|.*)$", CASE_INSENSITIVE);
-	private static final Pattern schemaPattern = compile("database=(\\w+)", CASE_INSENSITIVE);
+	private static final Pattern dbPattern = compile("database=(\\w+)", CASE_INSENSITIVE);
 	
 	@Delegate
 	private final DataSource ds;
@@ -50,7 +50,7 @@ public final class DataSourceWrapper implements DataSource {
 	private Connection getConnection(SQLSupplier<Connection> cnSupp) throws SQLException {
 		var session = localTrace.get();
 		if(isNull(session)) {
-			log.warn("no session");
+			log.warn("no active session");
 			return cnSupp.get();
 		}
 		session.lock();
@@ -79,7 +79,7 @@ public final class DataSourceWrapper implements DataSource {
 					var args = decodeURL(meta.getURL());
 					out.setHost(args[0]);
 					out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(null));
-					out.setSchema(args[2]);
+					out.setDatabase(args[2]);
 					out.setUser(meta.getUserName());
 					out.setDatabaseName(meta.getDatabaseProductName());
 					out.setDatabaseVersion(meta.getDatabaseProductVersion());
@@ -107,7 +107,7 @@ public final class DataSourceWrapper implements DataSource {
 			while(i<=m.groupCount() && isNull(arr[2] = m.group(i++)));
 		}
 		if(isNull(arr[2])) {
-			m = schemaPattern.matcher(url);
+			m = dbPattern.matcher(url);
 			if(m.find()) {
 				arr[2] = m.group(1);
 			}

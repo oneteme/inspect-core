@@ -74,6 +74,16 @@ public final class ConnectionWrapper implements Connection {
 	}
 	
 	@Override
+	public Savepoint setSavepoint() throws SQLException {
+		return tracer.savePoint(cn::setSavepoint);
+	}
+	
+	@Override
+	public Savepoint setSavepoint(String name) throws SQLException {
+		return tracer.savePoint(()-> cn.setSavepoint(name));
+	}
+	
+	@Override
 	public void commit() throws SQLException {
 		tracer.commit(cn::commit);
 	}

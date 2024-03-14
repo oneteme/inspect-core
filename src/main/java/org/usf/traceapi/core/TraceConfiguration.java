@@ -90,7 +90,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	return new BeanPostProcessor() {
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-	            return bean instanceof DataSource ? new DataSourceWrapper((DataSource) bean) : bean;
+	            return bean instanceof DataSource ds ? new DataSourceWrapper(ds) : bean;
     		}
 		};
     }
