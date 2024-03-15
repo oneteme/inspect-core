@@ -1,10 +1,8 @@
 package org.usf.traceapi.core;
 
 import static java.lang.String.join;
-import static java.lang.System.currentTimeMillis;
 import static java.net.URI.create;
 import static java.time.Instant.now;
-import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
