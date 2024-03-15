@@ -2,7 +2,6 @@ package org.usf.traceapi.core;
 
 import static java.util.Objects.isNull;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -27,7 +26,7 @@ public class DatabaseRequest extends RunnableStage {
 	private String databaseName;
 	private String databaseVersion;
 	private boolean completed = true; // initial status
-	private final List<DatabaseAction> actions = new LinkedList<>();
+	private List<DatabaseAction> actions;
 	
 	public void append(DatabaseAction action) {
 		actions.add(action);

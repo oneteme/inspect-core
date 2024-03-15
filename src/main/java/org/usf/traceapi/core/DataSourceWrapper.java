@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
+import static java.time.Instant.now;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -56,19 +57,19 @@ public final class DataSourceWrapper implements DataSource {
 		session.lock();
 		log.debug("outcoming query.."); // no id
 		var out = new DatabaseRequest();
-    	DatabaseActionTracer tracer = out::append;
+    	DatabaseActionTracer tracer = new DatabaseActionTracer();
     	ConnectionWrapper cn = null;
-		var beg = currentTimeMillis();
+		var beg = now();
 		try {
 			cn = tracer.connection(cnSupp);
 		}
 		catch(SQLException e) {
-			out.setEnd(ofEpochMilli(currentTimeMillis()));
+			out.setEnd(now());
 			throw e; //tracer => out.completed=false 
 		}
 		finally {
 			try {
-				out.setStart(ofEpochMilli(beg));
+				out.setStart(beg);
 				out.setThreadName(threadName());
 				stackTraceElement().ifPresent(st->{
 					out.setName(st.getMethodName());
@@ -84,6 +85,7 @@ public final class DataSourceWrapper implements DataSource {
 					out.setDatabaseName(meta.getDatabaseProductName());
 					out.setDatabaseVersion(meta.getDatabaseProductVersion());
 					out.setDriverVersion(meta.getDriverVersion());
+					out.setActions(tracer.getActions());
 					cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
 				}
 				session.append(out);

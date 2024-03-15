@@ -2,20 +2,22 @@ package org.usf.traceapi.core;
 
 import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.ofEpochMilli;
-import static org.usf.traceapi.core.Action.BATCH;
-import static org.usf.traceapi.core.Action.COMMIT;
-import static org.usf.traceapi.core.Action.CONNECTION;
-import static org.usf.traceapi.core.Action.EXECUTE;
-import static org.usf.traceapi.core.Action.FETCH;
-import static org.usf.traceapi.core.Action.METADATA;
-import static org.usf.traceapi.core.Action.RESULTSET;
-import static org.usf.traceapi.core.Action.ROLLBACK;
-import static org.usf.traceapi.core.Action.SAVEPOINT;
-import static org.usf.traceapi.core.Action.SELECT;
-import static org.usf.traceapi.core.Action.STATEMENT;
-import static org.usf.traceapi.core.Action.UPDATE;
+import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.SqlAction.BATCH;
+import static org.usf.traceapi.core.SqlAction.COMMIT;
+import static org.usf.traceapi.core.SqlAction.CONNECTION;
+import static org.usf.traceapi.core.SqlAction.EXECUTE;
+import static org.usf.traceapi.core.SqlAction.FETCH;
+import static org.usf.traceapi.core.SqlAction.METADATA;
+import static org.usf.traceapi.core.SqlAction.RESULTSET;
+import static org.usf.traceapi.core.SqlAction.ROLLBACK;
+import static org.usf.traceapi.core.SqlAction.SAVEPOINT;
+import static org.usf.traceapi.core.SqlAction.STATEMENT;
+import static org.usf.traceapi.core.SqlCommand.mainCommand;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,82 +26,97 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.function.Consumer;
+import java.time.Instant;
+import java.util.LinkedList;
 import java.util.function.LongSupplier;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 
  * @author u$f
  *
  */
-@FunctionalInterface
-public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
+@Getter
+@RequiredArgsConstructor
+public class DatabaseActionTracer {
 	
-	default ConnectionWrapper connection(SQLSupplier<Connection> supplier) throws SQLException {
+	private final LinkedList<DatabaseAction> actions = new LinkedList<>();
+	private final LinkedList<SqlCommand> commands = new LinkedList<>();
+	
+	public ConnectionWrapper connection(SQLSupplier<Connection> supplier) throws SQLException {
 		return new ConnectionWrapper(trace(CONNECTION, supplier), this);
 	}
 	
-	default DatabaseMetaData connectionMetadata(SQLSupplier<DatabaseMetaData> supplier) throws SQLException {
+	public DatabaseMetaData connectionMetadata(SQLSupplier<DatabaseMetaData> supplier) throws SQLException {
 		return trace(METADATA, supplier);
 	}
 
-	default StatementWrapper statement(SQLSupplier<Statement> supplier) throws SQLException {
+	public StatementWrapper statement(SQLSupplier<Statement> supplier) throws SQLException {
 		return new StatementWrapper(trace(STATEMENT, supplier), this);
 	}
 	
-	default PreparedStatementWrapper preparedStatement(SQLSupplier<PreparedStatement> supplier) throws SQLException {
-		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this);
+	public PreparedStatementWrapper preparedStatement(String sql, SQLSupplier<PreparedStatement> supplier) throws SQLException {
+		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this, sql);
 	}
 	
-	default ResultSetWrapper select(SQLSupplier<ResultSet> supplier) throws SQLException {
-		return resultset(supplier, SELECT);
+	public ResultSetWrapper resultSet(SQLSupplier<ResultSet> supplier) throws SQLException {
+		return resultSet(RESULTSET, supplier);
 	}
 	
-	default ResultSetWrapper resultset(SQLSupplier<ResultSet> supplier) throws SQLException {
-		return resultset(supplier, RESULTSET);
+	public ResultSetWrapper executeQuery(String sql, SQLSupplier<ResultSet> supplier) throws SQLException {
+		commands.add(mainCommand(sql)); //must be SELECT
+		return resultSet(EXECUTE, supplier);
 	}
 	
-	private ResultSetWrapper resultset(SQLSupplier<ResultSet> supplier, Action action) throws SQLException {
+	private ResultSetWrapper resultSet(SqlAction action, SQLSupplier<ResultSet> supplier) throws SQLException {
 		return new ResultSetWrapper(trace(action, supplier), this, currentTimeMillis());
 	}
 	
-	default ResultSetMetaData resultSetMetadata(SQLSupplier<ResultSetMetaData> supplier) throws SQLException {
+	public ResultSetMetaData resultSetMetadata(SQLSupplier<ResultSetMetaData> supplier) throws SQLException {
 		return trace(METADATA, supplier);
 	}
-	
-	default <T> T execute(SQLSupplier<T> supplier) throws SQLException {
+
+	public <T> T execute(String sql, SQLSupplier<T> supplier) throws SQLException {
+		if(nonNull(sql)) {
+			commands.add(mainCommand(sql));
+		} // PreparedStatement | BATCH otherwise 
 		return trace(EXECUTE, supplier);
 	}
 
-	default <T> T update(SQLSupplier<T> supplier) throws SQLException {
-		return trace(UPDATE, supplier);
-	}
-
-	default <T> T batch(SQLSupplier<T> supplier) throws SQLException {
-		return trace(BATCH, supplier);
-	}
-	
-	default <T> T savePoint(SQLSupplier<T> supplier) throws SQLException {
+	public <T> T savePoint(SQLSupplier<T> supplier) throws SQLException {
 		return trace(SAVEPOINT, supplier);
 	}
-	
-	default void commit(SQLMethod method) throws SQLException {
-		trace(COMMIT, method::callAsSupplier);
+
+	public void batch(String sql, SQLMethod method) throws SQLException {
+		if(nonNull(sql)) {
+			commands.add(mainCommand(sql));
+		} // PreparedStatement otherwise 
+		trace(BATCH, method, this::tryUpdatePrevious);
 	}
 	
-	default void rollback(SQLMethod method) throws SQLException {
-		trace(ROLLBACK, method::callAsSupplier);
+	public void commit(SQLMethod method) throws SQLException {
+		trace(COMMIT, method);
 	}
 	
-	default void fetch(long start, SQLMethod method) throws SQLException {
-		trace(FETCH, ()-> start, method::callAsSupplier); // differed start
+	public void rollback(SQLMethod method) throws SQLException {
+		trace(ROLLBACK, method);
+	}
+	
+	public void fetch(long start, SQLMethod method) throws SQLException {
+		trace(FETCH, ()-> start, method, this::append); // differed start
+	}
+	
+	private <T> T trace(SqlAction action, SQLSupplier<T> sqlSupp) throws SQLException {
+		return trace(action, System::currentTimeMillis, sqlSupp, this::append);
 	}
 
-	default <T> T trace(Action action, SQLSupplier<T> sqlSupp) throws SQLException {
-		return trace(action, System::currentTimeMillis, sqlSupp);
+	private <T> T trace(SqlAction action, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
+		return trace(action, System::currentTimeMillis, sqlSupp, cons);
 	}
 
-	private <T> T trace(Action action, LongSupplier startSupp, SQLSupplier<T> sqlSupp) throws SQLException {
+	private <T> T trace(SqlAction action, LongSupplier startSupp, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
 		log.trace("executing {} action..", action);
 		SQLException ex = null;
 		var beg = startSupp.getAsLong();
@@ -112,7 +129,7 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 		}
 		finally {
 			var fin = currentTimeMillis();
-			accept(new DatabaseAction(action, ofEpochMilli(beg), ofEpochMilli(fin), mainCauseException(ex)));
+			cons.accept(action, ofEpochMilli(beg), ofEpochMilli(fin), mainCauseException(ex));
 		}
 	}
 
@@ -123,13 +140,42 @@ public interface DatabaseActionTracer extends Consumer<DatabaseAction> {
 	}
 	
 	@FunctionalInterface
-	public interface SQLMethod {
+	public interface SQLMethod extends SQLSupplier<Void> {
 		
 		void call() throws SQLException;
 		
-		default Void callAsSupplier() throws SQLException {
+		default Void get() throws SQLException {
 			this.call();
 			return null;
 		}
-	}	
+	}
+	
+	@FunctionalInterface
+	public interface DatabaseActionConsumer {
+		
+		void accept(SqlAction action, Instant start, Instant end, ExceptionInfo ex);
+	}
+
+	void tryUpdatePrevious(SqlAction type, Instant start, Instant end, ExceptionInfo ex) {
+		if(!actions.isEmpty()) {
+			var action = actions.getLast();
+			if(action.getType() == type && MILLIS.between(action.getEnd(), start) < 2) { //config
+				action.setEnd(end);
+				action.setCount(action.getCount()+1);
+				if(nonNull(ex) && isNull(action.getException())) {
+					action.setException(ex);
+				}
+			}
+			else {
+				append(type, start, end, ex);
+			}
+		}
+		else {
+			append(type, start, end, ex);
+		}
+	}
+	
+	void append(SqlAction type, Instant start, Instant end, ExceptionInfo ex) {
+		actions.add(new DatabaseAction(type, start, end, ex, 1));
+	}
 }

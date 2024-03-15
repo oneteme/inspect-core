@@ -2,6 +2,7 @@ package org.usf.traceapi.core;
 
 import static java.nio.CharBuffer.wrap;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
+import static java.util.regex.Pattern.DOTALL;
 import static java.util.regex.Pattern.MULTILINE;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
@@ -9,29 +10,39 @@ import static java.util.stream.Collectors.joining;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import jakarta.annotation.Nonnull;
+
 /**
  * 
  * @author u$f
  *
  */
-public enum SqlInstruction {
+public enum SqlCommand {
 	
 	CREATE, DROP, ALTER, TRUNCATE, //DDL
 	GRANT, REVOKE, //DCL
 	INSERT, UPDATE, DELETE, //DML
-	SELECT; //DQL
+	SELECT, //DQL
+	SQL;
 	
 	public static final Pattern PATTERN =
 			compile(Stream.of(values())
-			.map(SqlInstruction::toString)
+			.filter(c-> c != SQL) // not a command
+			.map(Object::toString)
 			.collect(joining("|", "^[\n\t\s]*(", ")[\n\t\s]*"))
 			, MULTILINE & CASE_INSENSITIVE);
 
 	public static final Pattern WITH_PATTERN =
 			compile("^[\n\t\s]*WITH[\n\t\s]*"
 					, MULTILINE & CASE_INSENSITIVE);
+	
+	public static final Pattern SQL_PATTERN = 
+			compile(".+;.*\\w+", DOTALL);
 
-	public static SqlInstruction extractInstruction(String query){
+	public static SqlCommand mainCommand(@Nonnull String query){
+		if(SQL_PATTERN.matcher(query).find()) {
+			return SQL;
+		}
 		var m = WITH_PATTERN.matcher(query);
 		var idx = m.find() ? jumpParentheses(query, m.end()) : 0;
 		var s = idx == 0 ? query : wrap(query).subSequence(idx, query.length());
