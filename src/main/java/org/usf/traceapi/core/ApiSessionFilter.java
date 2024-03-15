@@ -3,6 +3,7 @@ package org.usf.traceapi.core;
 import static java.lang.String.join;
 import static java.lang.System.currentTimeMillis;
 import static java.net.URI.create;
+import static java.time.Instant.now;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -63,7 +64,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 		res.addHeader(TRACE_HEADER, in.getId());
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 		Throwable ex = null;
-    	var beg = currentTimeMillis();
+    	var beg = now();
     	try {
     		filterChain.doFilter(req, res);
     	}
@@ -72,7 +73,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
     		throw e;
     	}
     	finally {
-    		var fin = currentTimeMillis();
+    		var fin = now();
     		try {
 	    		var uri = create(req.getRequestURL().toString());
 	    		in.setMethod(req.getMethod());
@@ -86,8 +87,8 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 				in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION)));
 				in.setInDataSize(req.getContentLength()); //not exact !?
 				in.setOutDataSize(res.getBufferSize()); //not exact !?
-	    		in.setStart(ofEpochMilli(beg));
-	    		in.setEnd(ofEpochMilli(fin));
+	    		in.setStart(beg);
+	    		in.setEnd(fin);
     			in.setThreadName(threadName());
     			in.setApplication(applicationInfo());
         		if(nonNull(ex) && isNull(in.getException())) { //already set in IncomingRequestInterceptor

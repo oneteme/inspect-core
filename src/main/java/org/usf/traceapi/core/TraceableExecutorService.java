@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.lang.System.currentTimeMillis;
-import static java.time.Instant.ofEpochMilli;
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
@@ -56,7 +55,7 @@ public final class TraceableExecutorService implements ExecutorService {
     		localTrace.set(session); //thread already exists
     	}
 		Throwable ex = null;
-    	var beg = currentTimeMillis();
+    	var beg = now();
     	try {
     		command.run();
     	}
@@ -65,11 +64,11 @@ public final class TraceableExecutorService implements ExecutorService {
     		throw e;
     	}
     	finally {
-    		var fin = currentTimeMillis();
+    		var fin = now();
     		try {
     	    	var rs = new RunnableStage();
-	    		rs.setStart(ofEpochMilli(beg));
-	    		rs.setEnd(ofEpochMilli(fin));
+	    		rs.setStart(beg);
+	    		rs.setEnd(fin);
     			rs.setThreadName(threadName());
     			rs.setException(mainCauseException(ex));
 	    		ost.ifPresent(st->{

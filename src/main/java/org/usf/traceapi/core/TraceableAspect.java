@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.lang.System.currentTimeMillis;
-import static java.time.Instant.ofEpochMilli;
+import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
@@ -14,6 +13,7 @@ import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
 import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
+import java.time.Instant;
 import java.util.stream.Stream;
 
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -59,7 +59,7 @@ public class TraceableAspect {
     	localTrace.set(ms);
     	log.debug("session : {} <= {}", ms.getId(), joinPoint.getSignature());
     	Throwable ex = null;
-    	var beg = currentTimeMillis();
+    	var beg = now();
     	try {
     		return joinPoint.proceed();
     	}
@@ -68,7 +68,7 @@ public class TraceableAspect {
     		throw e;
     	}
     	finally {
-    		var fin = currentTimeMillis();
+    		var fin = now();
     		try {
     			ms.setLaunchMode(BATCH);
     			ms.setApplication(applicationInfo());
@@ -87,7 +87,7 @@ public class TraceableAspect {
 		session.lock();
 		log.debug("stage : {} <= {}", session.getId(), joinPoint.getSignature());
 		Exception ex = null;
-    	var beg = currentTimeMillis();
+    	var beg = now();
     	try {
     		return joinPoint.proceed();
     	}
@@ -96,7 +96,7 @@ public class TraceableAspect {
     		throw e;
     	}
     	finally {
-    		var fin = currentTimeMillis();
+    		var fin = now();
     		try {
     	    	var rs = new RunnableStage();
     			fill(rs, beg, fin, joinPoint, ex);
@@ -110,11 +110,11 @@ public class TraceableAspect {
     	}
     }
     
-    static void fill(RunnableStage sg, long beg, long fin, ProceedingJoinPoint joinPoint, Throwable e) {
+    static void fill(RunnableStage sg, Instant beg, Instant fin, ProceedingJoinPoint joinPoint, Throwable e) {
     	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
     	var ant = signature.getMethod().getAnnotation(TraceableStage.class);
-		sg.setStart(ofEpochMilli(beg));
-		sg.setEnd(ofEpochMilli(fin));
+		sg.setStart(beg);
+		sg.setEnd(fin);
 		sg.setName(ant.value().isBlank() ? joinPoint.getSignature().getName() : ant.value());
 		sg.setLocation(joinPoint.getSignature().getDeclaringTypeName());
 		sg.setThreadName(threadName());

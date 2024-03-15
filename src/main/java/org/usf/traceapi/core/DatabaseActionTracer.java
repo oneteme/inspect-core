@@ -58,7 +58,7 @@ public class DatabaseActionTracer {
 	}
 	
 	public PreparedStatementWrapper preparedStatement(String sql, SQLSupplier<PreparedStatement> supplier) throws SQLException {
-		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this, sql);
+		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this, sql); //do not parse command here
 	}
 	
 	public ResultSetWrapper resultSet(SQLSupplier<ResultSet> supplier) throws SQLException {

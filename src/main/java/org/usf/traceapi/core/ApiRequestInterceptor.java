@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.lang.System.currentTimeMillis;
-import static java.time.Instant.ofEpochMilli;
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
@@ -43,7 +42,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 		var out = new ApiRequest();
 		ClientHttpResponse res = null; 
 		Throwable ex = null;
-		var beg = currentTimeMillis();
+		var beg = now();
 		try {
 			res = execution.execute(request, body);
 		}
@@ -52,7 +51,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 			throw e;
 		}
 		finally {
-			var fin = currentTimeMillis();
+			var fin = now();
 			try {
 				out.setMethod(request.getMethod().name());
 				out.setProtocol(request.getURI().getScheme());
@@ -61,8 +60,8 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 				out.setPath(request.getURI().getPath());
 				out.setQuery(request.getURI().getQuery());
 				out.setAuthScheme(extractAuthScheme(request.getHeaders().get(AUTHORIZATION)));
-				out.setStart(ofEpochMilli(beg));
-				out.setEnd(ofEpochMilli(fin));
+				out.setStart(beg);
+				out.setEnd(fin);
 				out.setOutDataSize(nonNull(body) ? body.length : 0);
 				out.setException(mainCauseException(ex));
 				out.setThreadName(threadName());
