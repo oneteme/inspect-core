@@ -38,6 +38,7 @@ class SqlCommandTest {
 		assertEquals(cmd, mainCommand(sql));
 		assertEquals(cmd, mainCommand(sql.toLowerCase()));
 		assertEquals(cmd, mainCommand(indent(sql)));
+		System.out.println(indent(sql));
 	}
 	
 	@ParameterizedTest
@@ -48,7 +49,7 @@ class SqlCommandTest {
 
 	static String indent(String s) {
 		return whiteSpace + 
-				s.replaceAll("\s*(WHERE|FROM|SET)", lineSeparator()+"$1")
+				s.replaceAll("\s+(WHERE|FROM|SET)", lineSeparator()+"$1")
 				.replaceAll("(\\)|;)\s*", "$1"+lineSeparator()) +
 				whiteSpace + ";";
 	}

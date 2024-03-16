@@ -4,7 +4,6 @@ import java.time.Instant;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -15,7 +14,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-@RequiredArgsConstructor
 public final class DatabaseAction implements Metric {
 
 	private final JDBCAction type;

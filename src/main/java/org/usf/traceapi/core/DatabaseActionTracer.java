@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.lang.System.currentTimeMillis;
-import static java.time.Instant.ofEpochMilli;
+import static java.time.Instant.now;
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -28,7 +27,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.LinkedList;
-import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -71,7 +70,7 @@ public class DatabaseActionTracer {
 	}
 	
 	private ResultSetWrapper resultSet(JDBCAction action, SQLSupplier<ResultSet> supplier) throws SQLException {
-		return new ResultSetWrapper(trace(action, supplier), this, currentTimeMillis());
+		return new ResultSetWrapper(trace(action, supplier), this, now());
 	}
 	
 	public ResultSetMetaData resultSetMetadata(SQLSupplier<ResultSetMetaData> supplier) throws SQLException {
@@ -104,22 +103,22 @@ public class DatabaseActionTracer {
 		trace(ROLLBACK, method);
 	}
 	
-	public void fetch(long start, SQLMethod method) throws SQLException {
+	public void fetch(Instant start, SQLMethod method) throws SQLException {
 		trace(FETCH, ()-> start, method, this::append); // differed start
 	}
 	
 	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
-		return trace(action, System::currentTimeMillis, sqlSupp, this::append);
+		return trace(action, Instant::now, sqlSupp, this::append);
 	}
 
 	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
-		return trace(action, System::currentTimeMillis, sqlSupp, cons);
+		return trace(action, Instant::now, sqlSupp, cons);
 	}
 
-	private <T> T trace(JDBCAction action, LongSupplier startSupp, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
+	private <T> T trace(JDBCAction action, Supplier<Instant> startSupp, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
 		log.trace("executing {} action..", action);
 		SQLException ex = null;
-		var beg = startSupp.getAsLong();
+		var beg = startSupp.get();
 		try {
 			return sqlSupp.get();
 		}
@@ -128,8 +127,8 @@ public class DatabaseActionTracer {
 			throw e;
 		}
 		finally {
-			var fin = currentTimeMillis();
-			cons.accept(action, ofEpochMilli(beg), ofEpochMilli(fin), mainCauseException(ex));
+			var fin = now();
+			cons.accept(action, beg, fin, mainCauseException(ex));
 		}
 	}
 
