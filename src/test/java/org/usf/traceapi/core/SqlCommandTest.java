@@ -20,14 +20,14 @@ class SqlCommandTest {
 		"CREATE,'CREATE database university;'",
 		"CREATE,'CREATE table students;'",
 		"CREATE,'CREATE view for_students;'",
-		"SELECT,'SELECT FirstName  FROM Student  WHERE RollNo > 15;'",
 		"INSERT,'INSERT INTO TABLE_NAME(col1, col2, col3,.... col N) VALUES (value1, value2, value3, .... valueN);'",
 		"UPDATE,'UPDATE students SET FirstName = ''Jhon'', LastName= ''Wick'' WHERE StudID = 3'",
 		"DELETE,'DELETE FROM Students WHERE RollNo =25;",
+		"SELECT,'SELECT FirstName  FROM Student  WHERE RollNo > 15;'",
+		"SELECT,'WITH avg_salary AS (SELECT AVG(salary) AS moy FROM employees) SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'",
 		"SQL,'DELETE FROM Students WHERE RollNo =25;SELECT FirstName  FROM Student  WHERE RollNo > 15;",
 		"GRANT,'GRANT SELECT ON Users TO''Tom''@''localhost;'",
 		"REVOKE,'REVOKE SELECT, UPDATE ON student FROM BCA, MCA;'",
-		"SELECT,'WITH avg_salary AS (SELECT AVG(salary) AS moy FROM employees) SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'"
 	})
 	void testMainCommand(SqlCommand cmd, String sql) {
 		assertEquals(cmd, mainCommand(sql));
