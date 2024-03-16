@@ -29,11 +29,11 @@ public enum SqlCommand {
 			compile(Stream.of(values())
 			.filter(c-> c != SQL) // not a command
 			.map(Object::toString)
-			.collect(joining("|", "^[\r\n\t\s]*(", ")[\r\n\t\s]*"))
+			.collect(joining("|", "^\s*(", ")\s*"))
 			, MULTILINE | CASE_INSENSITIVE);
 
 	public static final Pattern WITH_PATTERN =
-			compile("^[\r\n\t\s]*WITH[\r\n\t\s]*"
+			compile("^\s*WITH\s*"
 					, MULTILINE | CASE_INSENSITIVE);
 	
 	public static final Pattern SQL_PATTERN = 
