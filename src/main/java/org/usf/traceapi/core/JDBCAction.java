@@ -5,7 +5,7 @@ package org.usf.traceapi.core;
  * @author u$f
  *
  */
-public enum SqlAction {
+public enum JDBCAction {
 	
 	CONNECTION, STATEMENT, RESULTSET, METADATA,
 	BATCH, EXECUTE, FETCH,

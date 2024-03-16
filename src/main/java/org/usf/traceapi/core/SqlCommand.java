@@ -10,7 +10,7 @@ import static java.util.stream.Collectors.joining;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import jakarta.annotation.Nonnull;
+import lombok.NonNull;
 
 /**
  * 
@@ -29,25 +29,25 @@ public enum SqlCommand {
 			compile(Stream.of(values())
 			.filter(c-> c != SQL) // not a command
 			.map(Object::toString)
-			.collect(joining("|", "^[\n\t\s]*(", ")[\n\t\s]*"))
-			, MULTILINE & CASE_INSENSITIVE);
+			.collect(joining("|", "^[\r\n\t\s]*(", ")[\r\n\t\s]*"))
+			, MULTILINE | CASE_INSENSITIVE);
 
 	public static final Pattern WITH_PATTERN =
-			compile("^[\n\t\s]*WITH[\n\t\s]*"
-					, MULTILINE & CASE_INSENSITIVE);
+			compile("^[\r\n\t\s]*WITH[\r\n\t\s]*"
+					, MULTILINE | CASE_INSENSITIVE);
 	
 	public static final Pattern SQL_PATTERN = 
 			compile(".+;.*\\w+", DOTALL);
 
-	public static SqlCommand mainCommand(@Nonnull String query){
-		if(SQL_PATTERN.matcher(query).find()) {
+	public static SqlCommand mainCommand(@NonNull String query){
+		if(SQL_PATTERN.matcher(query).find()) { //multiple 
 			return SQL;
 		}
 		var m = WITH_PATTERN.matcher(query);
 		var idx = m.find() ? jumpParentheses(query, m.end()) : 0;
 		var s = idx == 0 ? query : wrap(query).subSequence(idx, query.length());
 		m = PATTERN.matcher(s);
-		return m.find() ? valueOf(m.group(1)) : null;
+		return m.find() ? valueOf(m.group(1).toUpperCase()) : null;
 	}
 	
 	private static int jumpParentheses(String query, int from) {

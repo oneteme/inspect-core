@@ -7,16 +7,16 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.SqlAction.BATCH;
-import static org.usf.traceapi.core.SqlAction.COMMIT;
-import static org.usf.traceapi.core.SqlAction.CONNECTION;
-import static org.usf.traceapi.core.SqlAction.EXECUTE;
-import static org.usf.traceapi.core.SqlAction.FETCH;
-import static org.usf.traceapi.core.SqlAction.METADATA;
-import static org.usf.traceapi.core.SqlAction.RESULTSET;
-import static org.usf.traceapi.core.SqlAction.ROLLBACK;
-import static org.usf.traceapi.core.SqlAction.SAVEPOINT;
-import static org.usf.traceapi.core.SqlAction.STATEMENT;
+import static org.usf.traceapi.core.JDBCAction.BATCH;
+import static org.usf.traceapi.core.JDBCAction.COMMIT;
+import static org.usf.traceapi.core.JDBCAction.CONNECTION;
+import static org.usf.traceapi.core.JDBCAction.EXECUTE;
+import static org.usf.traceapi.core.JDBCAction.FETCH;
+import static org.usf.traceapi.core.JDBCAction.METADATA;
+import static org.usf.traceapi.core.JDBCAction.RESULTSET;
+import static org.usf.traceapi.core.JDBCAction.ROLLBACK;
+import static org.usf.traceapi.core.JDBCAction.SAVEPOINT;
+import static org.usf.traceapi.core.JDBCAction.STATEMENT;
 import static org.usf.traceapi.core.SqlCommand.mainCommand;
 
 import java.sql.Connection;
@@ -70,7 +70,7 @@ public class DatabaseActionTracer {
 		return resultSet(EXECUTE, supplier);
 	}
 	
-	private ResultSetWrapper resultSet(SqlAction action, SQLSupplier<ResultSet> supplier) throws SQLException {
+	private ResultSetWrapper resultSet(JDBCAction action, SQLSupplier<ResultSet> supplier) throws SQLException {
 		return new ResultSetWrapper(trace(action, supplier), this, currentTimeMillis());
 	}
 	
@@ -108,15 +108,15 @@ public class DatabaseActionTracer {
 		trace(FETCH, ()-> start, method, this::append); // differed start
 	}
 	
-	private <T> T trace(SqlAction action, SQLSupplier<T> sqlSupp) throws SQLException {
+	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
 		return trace(action, System::currentTimeMillis, sqlSupp, this::append);
 	}
 
-	private <T> T trace(SqlAction action, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
+	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
 		return trace(action, System::currentTimeMillis, sqlSupp, cons);
 	}
 
-	private <T> T trace(SqlAction action, LongSupplier startSupp, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
+	private <T> T trace(JDBCAction action, LongSupplier startSupp, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
 		log.trace("executing {} action..", action);
 		SQLException ex = null;
 		var beg = startSupp.getAsLong();
@@ -153,10 +153,10 @@ public class DatabaseActionTracer {
 	@FunctionalInterface
 	public interface DatabaseActionConsumer {
 		
-		void accept(SqlAction action, Instant start, Instant end, ExceptionInfo ex);
+		void accept(JDBCAction action, Instant start, Instant end, ExceptionInfo ex);
 	}
 
-	void tryUpdatePrevious(SqlAction type, Instant start, Instant end, ExceptionInfo ex) {
+	void tryUpdatePrevious(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
 		if(!actions.isEmpty()) {
 			var action = actions.getLast();
 			if(action.getType() == type && MILLIS.between(action.getEnd(), start) < 2) { //config
@@ -175,7 +175,7 @@ public class DatabaseActionTracer {
 		}
 	}
 	
-	void append(SqlAction type, Instant start, Instant end, ExceptionInfo ex) {
+	void append(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
 		actions.add(new DatabaseAction(type, start, end, ex, 1));
 	}
 }

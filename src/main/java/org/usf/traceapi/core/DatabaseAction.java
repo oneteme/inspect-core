@@ -18,7 +18,7 @@ import lombok.Setter;
 @RequiredArgsConstructor
 public final class DatabaseAction implements Metric {
 
-	private final SqlAction type;
+	private final JDBCAction type;
 	private final Instant start;
 	private Instant end;
 	private ExceptionInfo exception; 
