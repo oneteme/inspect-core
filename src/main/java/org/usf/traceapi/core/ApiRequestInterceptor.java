@@ -38,7 +38,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 			return execution.execute(request, body);
 		}
 		session.lock();
-		log.debug("outcoming request : {}", request.getURI());
+		log.trace("outcoming request : {}", request.getURI());
 		var out = new ApiRequest();
 		ClientHttpResponse res = null; 
 		Throwable ex = null;

@@ -1,6 +1,6 @@
 package org.usf.traceapi.core;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import lombok.AccessLevel;
@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TraceMultiCaster {
 	
-    private static final List<TraceHandler> handlers = new LinkedList<>();
+    static final List<TraceHandler> handlers = new ArrayList<>();
     
 	public static void register(TraceHandler sender) {
 		handlers.add(sender);

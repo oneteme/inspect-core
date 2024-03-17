@@ -57,7 +57,7 @@ public class TraceableAspect {
     	}
     	var ms = synchronizedMainSession(nextId());
     	localTrace.set(ms);
-    	log.debug("session : {} <= {}", ms.getId(), joinPoint.getSignature());
+    	log.trace("session : {} <= {}", ms.getId(), joinPoint.getSignature());
     	Throwable ex = null;
     	var beg = now();
     	try {
@@ -85,7 +85,7 @@ public class TraceableAspect {
 
     static Object aroundStage(ProceedingJoinPoint joinPoint, Session session) throws Throwable {
 		session.lock();
-		log.debug("stage : {} <= {}", session.getId(), joinPoint.getSignature());
+		log.trace("stage : {} <= {}", session.getId(), joinPoint.getSignature());
 		Exception ex = null;
     	var beg = now();
     	try {

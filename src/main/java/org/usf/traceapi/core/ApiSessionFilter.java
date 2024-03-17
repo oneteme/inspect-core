@@ -57,7 +57,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
     	var in = synchronizedApiSession(nextId());
-    	log.debug("incoming request : {} <= {}", in.getId(), req.getRequestURI());
+    	log.trace("incoming request : {} <= {}", in.getId(), req.getRequestURI());
     	localTrace.set(in);
 		res.addHeader(TRACE_HEADER, in.getId());
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);

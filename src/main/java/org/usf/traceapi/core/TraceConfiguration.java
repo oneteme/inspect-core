@@ -50,7 +50,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 		register(config.getUrl().isBlank() 
         		? res-> {} // cache traces !?
         		: new RemoteTraceSender(config));
-		log.debug("app.env : {}", application);
+		log.info("app.env : {}", application);
 	}
 
 	@Override

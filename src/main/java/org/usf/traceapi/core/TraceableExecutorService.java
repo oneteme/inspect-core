@@ -50,7 +50,7 @@ public final class TraceableExecutorService implements ExecutorService {
 	}
 	
     private static void aroundRunnable(Runnable command, Session session, Optional<StackTraceElement> ost) {
-		log.debug("stage : {} <= {}", session.getId(), command);
+		log.trace("stage : {} <= {}", session.getId(), command);
     	if(localTrace.get() != session) {
     		localTrace.set(session); //thread already exists
     	}
