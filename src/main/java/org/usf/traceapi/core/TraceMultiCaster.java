@@ -1,5 +1,7 @@
 package org.usf.traceapi.core;
 
+import static java.util.Collections.synchronizedList;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +18,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TraceMultiCaster {
 	
-    static final List<TraceHandler> handlers = new ArrayList<>();
+    static final List<TraceHandler> handlers = synchronizedList(new ArrayList<>());
     
 	public static void register(TraceHandler sender) {
 		handlers.add(sender);
