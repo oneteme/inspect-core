@@ -15,12 +15,16 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public final class DatabaseAction implements Metric {
-
+	
 	private final JDBCAction type;
 	private final Instant start;
 	private Instant end;
 	private ExceptionInfo exception; 
-	private Integer count;
+	private long[] count; // BATCH|UPDATE|FETCH
+
+	public DatabaseAction(JDBCAction type, Instant start, Instant end, ExceptionInfo exception) {
+		this(type, start, end, exception, null);
+	}
 	
 	@Override
 	public String toString() {

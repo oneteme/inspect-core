@@ -27,7 +27,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.LinkedList;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -48,10 +50,6 @@ public class DatabaseActionTracer {
 		return new ConnectionWrapper(trace(CONNECTION, supplier), this);
 	}
 	
-	public DatabaseMetaData connectionMetadata(SQLSupplier<DatabaseMetaData> supplier) throws SQLException {
-		return trace(METADATA, supplier);
-	}
-
 	public StatementWrapper statement(SQLSupplier<Statement> supplier) throws SQLException {
 		return new StatementWrapper(trace(STATEMENT, supplier), this);
 	}
@@ -61,38 +59,63 @@ public class DatabaseActionTracer {
 	}
 	
 	public ResultSetWrapper resultSet(SQLSupplier<ResultSet> supplier) throws SQLException {
-		return resultSet(RESULTSET, supplier);
+		return new ResultSetWrapper(trace(RESULTSET, supplier), this, now());
 	}
-	
-	public ResultSetWrapper executeQuery(String sql, SQLSupplier<ResultSet> supplier) throws SQLException {
-		commands.add(mainCommand(sql)); //must be SELECT
-		return resultSet(EXECUTE, supplier);
+
+	public DatabaseMetaData connectionMetadata(SQLSupplier<DatabaseMetaData> supplier) throws SQLException {
+		return trace(METADATA, supplier);
 	}
-	
-	private ResultSetWrapper resultSet(JDBCAction action, SQLSupplier<ResultSet> supplier) throws SQLException {
-		return new ResultSetWrapper(trace(action, supplier), this, now());
-	}
-	
+
 	public ResultSetMetaData resultSetMetadata(SQLSupplier<ResultSetMetaData> supplier) throws SQLException {
 		return trace(METADATA, supplier);
 	}
 
-	public <T> T execute(String sql, SQLSupplier<T> supplier) throws SQLException {
+	public boolean execute(String sql, SQLSupplier<Boolean> supplier) throws SQLException {
+		return execute(EXECUTE, sql, supplier);
+	}
+
+	public ResultSetWrapper executeQuery(String sql, SQLSupplier<ResultSet> supplier) throws SQLException {
+		return new ResultSetWrapper(execute(RESULTSET, sql, supplier), this, now()); // no count 
+	}
+	
+	public int executeUpdate(String sql, SQLSupplier<Integer> supplier) throws SQLException {
+		return execute(sql, supplier, n-> new long[] {n});
+	}
+	
+	public long executeLargeUpdate(String sql, SQLSupplier<Long> supplier) throws SQLException {
+		return execute(sql, supplier, n-> new long[] {n});
+	}
+
+	public int[] executeBatch(String sql, SQLSupplier<int[]> supplier) throws SQLException {
+		return execute(sql, supplier, n-> IntStream.of(n).mapToLong(v-> v).toArray());
+	}
+	
+	public long[] executeLargeBatch(String sql, SQLSupplier<long[]> supplier) throws SQLException {
+		return execute(sql, supplier, n-> n);
+	}
+
+	private <T> T execute(String sql, SQLSupplier<T> supplier, Function<T, long[]> countFn) throws SQLException  {
+		var rows = execute(EXECUTE, sql, supplier);
+		actions.getLast().setCount(countFn.apply(rows));
+		return rows;
+	}
+
+	private <T> T execute(JDBCAction action, String sql, SQLSupplier<T> supplier) throws SQLException {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
-		} // (PreparedStatement | BATCH) otherwise 
-		return trace(EXECUTE, supplier);
+		} //BATCH otherwise 
+		return trace(action, supplier);
 	}
 
 	public <T> T savePoint(SQLSupplier<T> supplier) throws SQLException {
 		return trace(SAVEPOINT, supplier);
 	}
 
-	public void batch(String sql, SQLMethod method) throws SQLException {
+	public void addBatch(String sql, SQLMethod method) throws SQLException {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} // PreparedStatement otherwise 
-		trace(BATCH, method, this::tryUpdatePrevious);
+		trace(BATCH, Instant::now, method, this::tryUpdatePrevious);
 	}
 	
 	public void commit(SQLMethod method) throws SQLException {
@@ -105,15 +128,11 @@ public class DatabaseActionTracer {
 	
 	public void fetch(Instant start, SQLMethod method, int n) throws SQLException {
 		trace(FETCH, ()-> start, method, this::append); // differed start
-		actions.getLast().setCount(n);
+		actions.getLast().setCount(new long[] {n});
 	}
 	
 	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
 		return trace(action, Instant::now, sqlSupp, this::append);
-	}
-
-	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
-		return trace(action, Instant::now, sqlSupp, cons);
 	}
 
 	private <T> T trace(JDBCAction action, Supplier<Instant> startSupp, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
@@ -163,7 +182,7 @@ public class DatabaseActionTracer {
 				action.setException(ex);
 			}
 			action.setEnd(end);
-			action.setCount(action.getCount()+1);
+			action.getCount()[0]++;
 		}
 		else {
 			append(type, start, end, ex);
@@ -171,6 +190,6 @@ public class DatabaseActionTracer {
 	}
 	
 	void append(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
-		actions.add(new DatabaseAction(type, start, end, ex, null));
+		actions.add(new DatabaseAction(type, start, end, ex));
 	}
 }

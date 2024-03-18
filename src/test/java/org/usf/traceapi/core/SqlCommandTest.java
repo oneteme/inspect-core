@@ -33,6 +33,7 @@ class SqlCommandTest {
 		"SELECT,'SELECT FirstName  FROM Student  WHERE RollNo > 15;'",
 		"SELECT,'WITH avg_salary AS (SELECT AVG(salary) AS moy FROM employees) SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'",
 		"SQL,'DELETE FROM Students WHERE RollNo = 25; SELECT FirstName FROM Student  WHERE RollNo > 15;",
+		"SQL,'CREATE TABLE students;CREATE VIEW for_students;'",
 	})
 	void testMainCommand(SqlCommand cmd, String sql) {
 		assertEquals(cmd, mainCommand(sql));

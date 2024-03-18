@@ -27,7 +27,7 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 
 	@Override
 	public void addBatch() throws SQLException {
-		tracer.batch(null, ps::addBatch);
+		tracer.addBatch(null, ps::addBatch);
 	}
 	
 	@Override
@@ -42,12 +42,12 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 	
 	@Override
 	public int executeUpdate() throws SQLException {
-		return tracer.execute(sql, ps::executeUpdate);
+		return tracer.executeUpdate(sql, ps::executeUpdate);
 	}
 	
 	@Override
 	public long executeLargeUpdate() throws SQLException {
-		return tracer.execute(sql, ps::executeLargeUpdate);
+		return tracer.executeLargeUpdate(sql, ps::executeLargeUpdate);
 	}
 	
 	@Override
