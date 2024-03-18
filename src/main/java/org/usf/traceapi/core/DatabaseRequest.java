@@ -27,6 +27,7 @@ public class DatabaseRequest extends RunnableStage {
 	private String databaseVersion;
 	private boolean completed = true; // initial status
 	private List<DatabaseAction> actions;
+	private List<SqlCommand> commands;
 	
 	public void append(DatabaseAction action) {
 		actions.add(action);

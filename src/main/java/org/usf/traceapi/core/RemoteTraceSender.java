@@ -28,7 +28,7 @@ public final class RemoteTraceSender implements TraceHandler {
 	public RemoteTraceSender(TraceConfigurationProperties prop, RestTemplate template) {
 		this.properties = prop;
 		this.template = template;
-		this.dispatcher = new ScheduledSessionDispatcher(prop, this::sendCompleted, Session::wasCompleted);
+		this.dispatcher = new ScheduledSessionDispatcher(prop, Session::wasCompleted, this::sendCompleted);
 	}
 	
 	@Override
@@ -36,7 +36,8 @@ public final class RemoteTraceSender implements TraceHandler {
 		dispatcher.add(session);
 	}
 	
-    private void sendCompleted(int attemps, List<? extends Session> sessions) {
+    private boolean sendCompleted(int attemps, List<? extends Session> sessions) {
 		template.put(properties.getUrl(), sessions);
+		return true;
     }
 }

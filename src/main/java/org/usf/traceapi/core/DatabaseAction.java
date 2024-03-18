@@ -20,7 +20,7 @@ public final class DatabaseAction implements Metric {
 	private final Instant start;
 	private Instant end;
 	private ExceptionInfo exception; 
-	private long count;
+	private Integer count;
 	
 	@Override
 	public String toString() {

@@ -80,7 +80,7 @@ public class DatabaseActionTracer {
 	public <T> T execute(String sql, SQLSupplier<T> supplier) throws SQLException {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
-		} // PreparedStatement | BATCH otherwise 
+		} // (PreparedStatement | BATCH) otherwise 
 		return trace(EXECUTE, supplier);
 	}
 
@@ -103,8 +103,9 @@ public class DatabaseActionTracer {
 		trace(ROLLBACK, method);
 	}
 	
-	public void fetch(Instant start, SQLMethod method) throws SQLException {
+	public void fetch(Instant start, SQLMethod method, int n) throws SQLException {
 		trace(FETCH, ()-> start, method, this::append); // differed start
+		actions.getLast().setCount(n);
 	}
 	
 	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
@@ -156,18 +157,13 @@ public class DatabaseActionTracer {
 	}
 
 	void tryUpdatePrevious(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
-		if(!actions.isEmpty()) {
+		if(!actions.isEmpty() && actions.getLast().getType() == type && MILLIS.between(actions.getLast().getEnd(), start) < 2) { //config!?
 			var action = actions.getLast();
-			if(action.getType() == type && MILLIS.between(action.getEnd(), start) < 2) { //config
-				action.setEnd(end);
-				action.setCount(action.getCount()+1);
-				if(nonNull(ex) && isNull(action.getException())) {
-					action.setException(ex);
-				}
+			if(nonNull(ex) && isNull(action.getException())) {
+				action.setException(ex);
 			}
-			else {
-				append(type, start, end, ex);
-			}
+			action.setEnd(end);
+			action.setCount(action.getCount()+1);
 		}
 		else {
 			append(type, start, end, ex);
@@ -175,6 +171,6 @@ public class DatabaseActionTracer {
 	}
 	
 	void append(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
-		actions.add(new DatabaseAction(type, start, end, ex, 1));
+		actions.add(new DatabaseAction(type, start, end, ex, null));
 	}
 }

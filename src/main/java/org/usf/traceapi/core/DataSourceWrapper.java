@@ -86,6 +86,7 @@ public final class DataSourceWrapper implements DataSource {
 					out.setDatabaseVersion(meta.getDatabaseProductVersion());
 					out.setDriverVersion(meta.getDriverVersion());
 					out.setActions(tracer.getActions());
+					out.setCommands(tracer.getCommands());
 					cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
 				}
 				session.append(out);

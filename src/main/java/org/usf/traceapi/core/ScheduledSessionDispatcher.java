@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -27,48 +26,51 @@ public final class ScheduledSessionDispatcher {
 	
     private final List<Session> queue;
     private final SessionDispatcherProperties properties;
-    private final BiConsumer<Integer, List<Session>> consumer;
+    private final Dispatcher dispatcher;
     private final Predicate<Session> filter;
-    private final AtomicBoolean dispatch = new AtomicBoolean(true);
+    private final AtomicBoolean state = new AtomicBoolean(true);
     private int attempts;
     
-    public ScheduledSessionDispatcher(SessionDispatcherProperties properties, BiConsumer<Integer, List<Session>> consumer) {
-    	this(properties, consumer, null);
+    public ScheduledSessionDispatcher(SessionDispatcherProperties properties, Dispatcher dispatcher) {
+    	this(properties, null, dispatcher);
     }
     
-	public ScheduledSessionDispatcher(SessionDispatcherProperties properties, BiConsumer<Integer, List<Session>> consumer, Predicate<Session> filter) {
+	public ScheduledSessionDispatcher(SessionDispatcherProperties properties, Predicate<Session> filter, Dispatcher dispatcher) {
 		this.queue = new ArrayList<>(properties.getBufferSize());
 		this.properties = properties;
-		this.consumer = consumer;
+		this.dispatcher = dispatcher;
 		this.filter = filter;
     	executor.scheduleWithFixedDelay(this::dispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 
 	public void add(Session... sessions) {
 		sync(q-> addAll(queue, sessions));
-		log.trace("new sessions added to the queue : {} session(s)", queue.size());
+		log.trace("{} sessions buffered", queue.size());
 	}
 	
-	public void dispatch(boolean v) {
-		dispatch.set(v);
+	public void dispatchState(boolean v) { //on|off
+		state.set(v);
 	}
 	
     private void dispatch() {
-    	if(dispatch.get()) {
+    	if(state.get()) {
 	    	var cs = peekList();
 	        if(!cs.isEmpty()) {
-		        log.trace("scheduled data queue dispatching.. : {} session(s), attempts={}", cs.size(), ++attempts);
+		        log.trace("scheduled dispatching {} sessions..", cs.size());
 		        try {
-		        	consumer.accept(attempts, cs);
-		        	removeAll(cs);
-		        	attempts=0;
+		        	if(dispatcher.dispatch(++attempts, cs)) {
+		        		removeAll(cs);
+		        		attempts=0;
+		        	}
 		    	}
 		    	catch (Exception e) {
 		    		// do not throw exception : retry later
-		    		log.warn("error while dispatching {} sessions {}", cs.size(), e); //do not log exception stack trace
+		    		log.warn("error while dispatching {} sessions, attempts={} because : {}", cs.size(), attempts, e.getMessage()); //do not log exception stack trace
 		    		if(properties.getBufferMaxSize() > -1 && cs.size() > properties.getBufferMaxSize()) {
 		    			//remove exceeding cache sessions (LIFO)
-		    			sync(q-> { q.subList(cs.size() - properties.getBufferMaxSize(), cs.size()).clear(); return null;});
+		    			var diff = cs.size() - properties.getBufferMaxSize();
+		    			sync(q-> { q.subList(cs.size()-diff, cs.size()).clear(); return null;});
+			    		log.warn("{} last sessions have been removed from buffer", diff); 
 		    		}
 				}
 	        }
@@ -120,4 +122,10 @@ public final class ScheduledSessionDispatcher {
 	//jackson issue : https://github.com/FasterXML/jackson-databind/issues/23
 	@SuppressWarnings("serial") 
 	static final class SessionList extends ArrayList<Session> {}
+	
+	@FunctionalInterface
+	public interface Dispatcher {
+		
+		boolean dispatch(int attempts, List<Session> sessions);
+	}
 }
