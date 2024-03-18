@@ -39,13 +39,19 @@ class SqlCommandTest {
 		assertEquals(cmd, mainCommand(sql.toLowerCase()));
 		assertEquals(cmd, mainCommand(indent(sql)));
 	}
-	
+
+	@ParameterizedTest
+	@CsvSource("DUMMY SQL COMMAND")
+	void testMainCommand_unknown(String sql) {
+		assertEquals(null, mainCommand(sql));
+	}
+
 	@ParameterizedTest
 	@NullSource
 	void testMainCommand_null(String sql) {
 		assertThrows(NullPointerException.class, ()-> mainCommand(sql));
 	}
-
+	
 	static String indent(String s) {
 		return whiteSpace + 
 				s.replaceAll("\s+(WHERE|FROM|SET)", lineSeparator()+"$1")

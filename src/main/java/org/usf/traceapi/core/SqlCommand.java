@@ -23,7 +23,7 @@ public enum SqlCommand {
 	GRANT, REVOKE, //DCL
 	INSERT, UPDATE, DELETE, //DML
 	SELECT, //DQL
-	SQL; //generic
+	SQL; //multiple command
 	
 	public static final Pattern PATTERN =
 			compile(Stream.of(values())
