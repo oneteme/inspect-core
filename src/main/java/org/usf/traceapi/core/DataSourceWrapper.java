@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
-import org.usf.traceapi.core.DatabaseActionTracer.SQLSupplier;
+import org.usf.traceapi.core.JDBCActionTracer.SQLSupplier;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
@@ -57,7 +57,7 @@ public final class DataSourceWrapper implements DataSource {
 		session.lock();
 		log.trace("outcoming query.."); // no id
 		var out = new DatabaseRequest();
-    	DatabaseActionTracer tracer = new DatabaseActionTracer();
+    	JDBCActionTracer tracer = new JDBCActionTracer();
     	ConnectionWrapper cn = null;
 		var beg = now();
 		try {

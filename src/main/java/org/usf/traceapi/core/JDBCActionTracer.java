@@ -41,7 +41,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public class DatabaseActionTracer {
+public class JDBCActionTracer {
 	
 	private final LinkedList<DatabaseAction> actions = new LinkedList<>();
 	private final LinkedList<SqlCommand> commands = new LinkedList<>();
@@ -55,7 +55,7 @@ public class DatabaseActionTracer {
 	}
 	
 	public PreparedStatementWrapper preparedStatement(String sql, SQLSupplier<PreparedStatement> supplier) throws SQLException {
-		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this, sql); //do not parse command here
+		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this, sql); //parse command on exec
 	}
 	
 	public ResultSetWrapper resultSet(SQLSupplier<ResultSet> supplier) throws SQLException {

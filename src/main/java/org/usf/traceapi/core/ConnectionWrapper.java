@@ -25,7 +25,7 @@ public final class ConnectionWrapper implements Connection {
 	
 	@Delegate
 	private final Connection cn;
-	private final DatabaseActionTracer tracer;
+	private final JDBCActionTracer tracer;
 	private Runnable onClose;
 
 	@Override
