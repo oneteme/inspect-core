@@ -31,6 +31,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -45,7 +46,7 @@ import lombok.RequiredArgsConstructor;
  */
 @RequiredArgsConstructor
 public final class ApiSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
-
+	
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 
 	static final String TRACE_HEADER = "x-tracert";
@@ -61,10 +62,11 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
     	localTrace.set(in);
 		res.addHeader(TRACE_HEADER, in.getId());
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
+		var cRes = new ContentCachingResponseWrapper(res);
 		Throwable ex = null;
     	var beg = now();
     	try {
-    		filterChain.doFilter(req, res);
+    		filterChain.doFilter(req, cRes);
     	}
     	catch(Exception e) {
     		ex =  e;
@@ -83,16 +85,16 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 	    		in.setContentType(res.getContentType());
 				in.setStatus(res.getStatus());
 				in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION)));
-				in.setInDataSize(req.getContentLength()); //not exact !?
-				in.setOutDataSize(res.getBufferSize()); //not exact !?
+				in.setInDataSize(req.getContentLength());
+				in.setOutDataSize(cRes.getContentSize());
 	    		in.setStart(beg);
 	    		in.setEnd(fin);
     			in.setThreadName(threadName());
     			in.setApplication(applicationInfo());
-        		if(nonNull(ex) && isNull(in.getException())) { //already set in IncomingRequestInterceptor
+        		if(nonNull(ex) && isNull(in.getException())) { //already set in TraceableAspect::aroundAdvice
         			in.setException(mainCauseException(ex));
         		}
-    			// name, user & exception delegated to interceptor
+    			// name, user & exception delegated to intercepter
         		emit(in);
     		}
     		catch(Exception e) {
@@ -101,6 +103,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
     		}
 			localTrace.remove();
 		}
+		cRes.copyBodyToResponse();
 	}
 	
 	@Override

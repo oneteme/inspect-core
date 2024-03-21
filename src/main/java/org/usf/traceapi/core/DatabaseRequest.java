@@ -43,5 +43,4 @@ public class DatabaseRequest extends RunnableStage {
 	public void setException(ExceptionInfo exception) {
 		throw new UnsupportedOperationException();
 	}
-	
 }

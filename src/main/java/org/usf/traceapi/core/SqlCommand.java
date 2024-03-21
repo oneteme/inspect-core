@@ -33,8 +33,7 @@ public enum SqlCommand {
 			, MULTILINE | CASE_INSENSITIVE);
 
 	public static final Pattern WITH_PATTERN =
-			compile("^\s*WITH\s*"
-					, MULTILINE | CASE_INSENSITIVE);
+			compile("^\s*WITH\s*", MULTILINE | CASE_INSENSITIVE);
 	
 	public static final Pattern SQL_PATTERN = 
 			compile(".+;.*\\w+", DOTALL);

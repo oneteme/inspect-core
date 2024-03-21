@@ -1,8 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.lang.System.currentTimeMillis;
 import static java.time.Instant.now;
-import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
@@ -87,7 +85,7 @@ public final class DataSourceWrapper implements DataSource {
 					out.setDriverVersion(meta.getDriverVersion());
 					out.setActions(tracer.getActions());
 					out.setCommands(tracer.getCommands());
-					cn.setOnClose(()-> out.setEnd(ofEpochMilli(currentTimeMillis()))); //differed end
+					cn.setOnClose(()-> out.setEnd(now())); //differed end
 				}
 				session.append(out);
 			}

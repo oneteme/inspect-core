@@ -71,6 +71,5 @@ public final class ApiSession extends ApiRequest implements Session { //Incoming
 				synchronizedCollection(new LinkedList<>()));
 		ss.setId(id);	
 		return ss;
-	}
-	
+	}	
 }

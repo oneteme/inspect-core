@@ -48,11 +48,6 @@ public class StatementWrapper implements Statement {
 	public ResultSet executeQuery(String sql) throws SQLException {
 		return tracer.executeQuery(sql, ()-> st.executeQuery(sql));
 	}
-
-	@Override
-	public ResultSet getResultSet() throws SQLException {
-		return tracer.resultSet(st::getResultSet);
-	}
 	
 	@Override
 	public int executeUpdate(String sql) throws SQLException {
@@ -102,5 +97,15 @@ public class StatementWrapper implements Statement {
 	@Override
 	public long[] executeLargeBatch() throws SQLException {
 		return tracer.executeLargeBatch(null, st::executeLargeBatch);
+	}
+	
+	@Override
+	public boolean getMoreResults() throws SQLException {
+		return tracer.moreResults(this, st::getMoreResults);
+	}
+	
+	@Override
+	public boolean getMoreResults(int current) throws SQLException {
+		return tracer.moreResults(this, ()-> st.getMoreResults(current));
 	}
 }

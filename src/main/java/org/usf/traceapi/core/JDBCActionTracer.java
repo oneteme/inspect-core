@@ -2,6 +2,7 @@ package org.usf.traceapi.core;
 
 import static java.time.Instant.now;
 import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
@@ -12,7 +13,6 @@ import static org.usf.traceapi.core.JDBCAction.CONNECTION;
 import static org.usf.traceapi.core.JDBCAction.EXECUTE;
 import static org.usf.traceapi.core.JDBCAction.FETCH;
 import static org.usf.traceapi.core.JDBCAction.METADATA;
-import static org.usf.traceapi.core.JDBCAction.RESULTSET;
 import static org.usf.traceapi.core.JDBCAction.ROLLBACK;
 import static org.usf.traceapi.core.JDBCAction.SAVEPOINT;
 import static org.usf.traceapi.core.JDBCAction.STATEMENT;
@@ -46,6 +46,8 @@ public class JDBCActionTracer {
 	private final LinkedList<DatabaseAction> actions = new LinkedList<>();
 	private final LinkedList<SqlCommand> commands = new LinkedList<>();
 	
+	private DatabaseAction exec;
+	
 	public ConnectionWrapper connection(SQLSupplier<Connection> supplier) throws SQLException {
 		return new ConnectionWrapper(trace(CONNECTION, supplier), this);
 	}
@@ -57,10 +59,6 @@ public class JDBCActionTracer {
 	public PreparedStatementWrapper preparedStatement(String sql, SQLSupplier<PreparedStatement> supplier) throws SQLException {
 		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this, sql); //parse command on exec
 	}
-	
-	public ResultSetWrapper resultSet(SQLSupplier<ResultSet> supplier) throws SQLException {
-		return new ResultSetWrapper(trace(RESULTSET, supplier), this, now());
-	}
 
 	public DatabaseMetaData connectionMetadata(SQLSupplier<DatabaseMetaData> supplier) throws SQLException {
 		return trace(METADATA, supplier);
@@ -71,11 +69,13 @@ public class JDBCActionTracer {
 	}
 
 	public boolean execute(String sql, SQLSupplier<Boolean> supplier) throws SQLException {
-		return execute(EXECUTE, sql, supplier);
+		var b = execute(EXECUTE, sql, supplier);
+		this.exec = actions.getLast(); 
+		return b;
 	}
 
 	public ResultSetWrapper executeQuery(String sql, SQLSupplier<ResultSet> supplier) throws SQLException {
-		return new ResultSetWrapper(execute(RESULTSET, sql, supplier), this, now()); // no count 
+		return new ResultSetWrapper(execute(EXECUTE, sql, supplier), this, now()); // no count 
 	}
 	
 	public int executeUpdate(String sql, SQLSupplier<Integer> supplier) throws SQLException {
@@ -129,6 +129,26 @@ public class JDBCActionTracer {
 	public void fetch(Instant start, SQLMethod method, int n) throws SQLException {
 		trace(FETCH, ()-> start, method, this::append); // differed start
 		actions.getLast().setCount(new long[] {n});
+	}
+	
+	public boolean moreResults(Statement st, SQLSupplier<Boolean> supplier) throws SQLException {
+		try {
+			return supplier.get(); // no need to trace this
+		}
+		finally {
+			if(nonNull(exec)) {
+				try {
+					var rows = st.getUpdateCount();
+					if(rows > -1) {
+						var arr = exec.getCount();
+						exec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); //differed call
+					}
+				}
+				catch (Exception e) {
+					//do not throw exception
+				}
+			}
+		}
 	}
 	
 	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
@@ -191,5 +211,11 @@ public class JDBCActionTracer {
 	
 	void append(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
 		actions.add(new DatabaseAction(type, start, end, ex));
+	}
+	
+	static long[] appendLong(long[]arr, long v) {
+		var a = copyOf(arr, arr.length);
+		a[arr.length] = v;
+		return a;
 	}
 }

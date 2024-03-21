@@ -7,13 +7,16 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toCollection;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.State.DISABLE;
+import static org.usf.traceapi.core.State.DISPACH;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import lombok.Getter;
 
 /**
  * 
@@ -22,13 +25,14 @@ import java.util.function.Predicate;
  */
 public final class ScheduledSessionDispatcher {
 	
-	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
+	final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 	
     private final List<Session> queue;
     private final SessionDispatcherProperties properties;
     private final Dispatcher dispatcher;
     private final Predicate<Session> filter;
-    private final AtomicBoolean state = new AtomicBoolean(true);
+    @Getter
+    private volatile State state = DISPACH;
     private int attempts;
     
     public ScheduledSessionDispatcher(SessionDispatcherProperties properties, Dispatcher dispatcher) {
@@ -40,41 +44,55 @@ public final class ScheduledSessionDispatcher {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.filter = filter;
-    	executor.scheduleWithFixedDelay(this::dispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
+    	executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 
-	public void add(Session... sessions) {
-		sync(q-> addAll(queue, sessions));
-		log.trace("{} sessions buffered", queue.size());
-	}
-	
-	public void dispatchState(boolean v) { //on|off
-		state.set(v);
-	}
-	
-    private void dispatch() {
-    	if(state.get()) {
-	    	var cs = peekList();
-	        if(!cs.isEmpty()) {
-		        log.trace("scheduled dispatching {} sessions..", cs.size());
-		        try {
-		        	if(dispatcher.dispatch(++attempts, cs)) {
-		        		removeAll(cs);
-		        		attempts=0;
-		        	}
-		    	}
-		    	catch (Exception e) {
-		    		// do not throw exception : retry later
-		    		log.warn("error while dispatching {} sessions, attempts={} because : {}", cs.size(), attempts, e.getMessage()); //do not log exception stack trace
-		    		if(properties.getBufferMaxSize() > -1 && cs.size() > properties.getBufferMaxSize()) {
-		    			//remove exceeding cache sessions (LIFO)
-		    			var diff = cs.size() - properties.getBufferMaxSize();
-		    			sync(q-> { q.subList(cs.size()-diff, cs.size()).clear(); return null;});
-			    		log.warn("{} last sessions have been removed from buffer", diff); 
-		    		}
-				}
-	        }
+	public boolean add(Session... sessions) {
+		if(state != DISABLE) { // CACHE | DISPATCH
+			sync(q-> addAll(queue, sessions));
+			log.trace("{} sessions buffered", queue.size());
+			return true;
+		}
+    	else {
+    		log.warn("{} sessions rejected because dispatcher.state={}", queue.size(), state);
+    		return false;
     	}
+	}
+	
+	public void updateState(State state) {
+		this.state = state;
+	}
+	
+    private void tryDispatch() {
+    	if(state == DISPACH) {
+    		dispatch();
+    	}
+    	else {
+    		log.warn("dispatcher.state={}", state);
+    	}
+    }
+
+    private void dispatch() {
+    	var cs = peekList();
+        if(!cs.isEmpty()) {
+	        log.trace("scheduled dispatching {} sessions..", cs.size());
+	        try {
+	        	if(dispatcher.dispatch(++attempts, cs)) {
+	        		removeAll(cs);
+	        		attempts=0;
+	        	}
+	    	}
+	    	catch (Exception e) {
+	    		// do not throw exception : retry later
+	    		log.warn("error while dispatching {} sessions, attempts={} because : {}", cs.size(), attempts, e.getMessage()); //do not log exception stack trace
+	    		if(properties.getBufferMaxSize() > -1 && cs.size() > properties.getBufferMaxSize()) {
+	    			//remove exceeding cache sessions (LIFO)
+	    			var diff = cs.size() - properties.getBufferMaxSize();
+	    			sync(q-> { q.subList(cs.size()-diff, cs.size()).clear(); return null;});
+		    		log.warn("{} last sessions have been removed from buffer", diff); 
+	    		}
+			}
+        }
     }
 
     public List<Session> peekList() {
@@ -109,6 +127,7 @@ public final class ScheduledSessionDispatcher {
     }
     
     public void shutdown() throws InterruptedException {
+    	updateState(DISABLE); //stop add Sessions
     	log.info("shutting down scheduler service");
     	try {
     		executor.shutdown(); //cancel future

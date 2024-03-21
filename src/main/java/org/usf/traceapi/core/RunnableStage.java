@@ -29,5 +29,5 @@ public class RunnableStage implements Metric, MutableStage {
 		return format("%-25s", threadName) + ": " 
 				+ this.getClass().getSimpleName() 
 				+ " {" +  format("%5s", duration()) + "ms}";
-	}	
+	}
 }
