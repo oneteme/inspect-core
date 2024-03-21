@@ -10,6 +10,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Delegate;
@@ -19,7 +20,8 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-@Setter(value = AccessLevel.PACKAGE)
+@Getter(AccessLevel.PACKAGE)
+@Setter(AccessLevel.PACKAGE)
 @RequiredArgsConstructor
 public final class ConnectionWrapper implements Connection {
 	

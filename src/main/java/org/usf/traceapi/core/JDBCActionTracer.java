@@ -131,26 +131,6 @@ public class JDBCActionTracer {
 		actions.getLast().setCount(new long[] {n});
 	}
 	
-	public boolean moreResults(Statement st, SQLSupplier<Boolean> supplier) throws SQLException {
-		try {
-			return supplier.get(); // no need to trace this
-		}
-		finally {
-			if(nonNull(exec)) {
-				try {
-					var rows = st.getUpdateCount();
-					if(rows > -1) {
-						var arr = exec.getCount();
-						exec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); //differed call
-					}
-				}
-				catch (Exception e) {
-					//do not throw exception
-				}
-			}
-		}
-	}
-	
 	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
 		return trace(action, Instant::now, sqlSupp, this::append);
 	}
@@ -172,6 +152,26 @@ public class JDBCActionTracer {
 		}
 	}
 
+	public boolean moreResults(Statement st, SQLSupplier<Boolean> supplier) throws SQLException {
+		try {
+			return supplier.get(); // no need to trace this
+		}
+		finally {
+			if(nonNull(exec)) {
+				try {
+					var rows = st.getUpdateCount();
+					if(rows > -1) {
+						var arr = exec.getCount();
+						exec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); //differed call
+					}
+				}
+				catch (Exception e) {
+					//do not throw exception
+				}
+			}
+		}
+	}
+	
 	@FunctionalInterface
 	public interface SQLSupplier<T> {
 		

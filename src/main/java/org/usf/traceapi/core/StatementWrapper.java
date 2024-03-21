@@ -4,6 +4,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
@@ -12,6 +14,7 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
+@Getter(AccessLevel.PACKAGE)
 @RequiredArgsConstructor
 public class StatementWrapper implements Statement {
 
