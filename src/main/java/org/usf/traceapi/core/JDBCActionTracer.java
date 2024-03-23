@@ -131,7 +131,7 @@ public class JDBCActionTracer {
 		actions.getLast().setCount(new long[] {n});
 	}
 	
-	private <T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
+	<T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
 		return trace(action, Instant::now, sqlSupp, this::append);
 	}
 
