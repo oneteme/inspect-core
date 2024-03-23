@@ -33,7 +33,7 @@ class JDBCActionTracerTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(ints= {0, 5, 10, 20, 50, 100, 500, 1000})
+	@ValueSource(ints={0, 5, 10, 20, 50, 100, 500, 1000})
 	void testTrace(int milli) {
 		var action = JDBCAction.values()[milli % JDBCAction.values().length];
 		var act = assertDoesNotThrow(()-> tracer.trace(action, awaitAndReturn(milli, milli)));
@@ -42,7 +42,7 @@ class JDBCActionTracerTest {
 	}
 	
 	@ParameterizedTest
-	@ValueSource(ints= {0, 5, 10, 20, 50, 100, 500, 1000})
+	@ValueSource(ints={0, 5, 10, 20, 50, 100, 500, 1000})
 	void testTrace_fails(int milli) {
 		var action = JDBCAction.values()[milli % JDBCAction.values().length];
 		var ex = new SQLException("dummy msg");
@@ -52,6 +52,7 @@ class JDBCActionTracerTest {
 	
 	void assertAction(JDBCAction action, long[] count, int duration, SQLException ex){
 		var tr = tracer.getActions().getLast();
+		assertEquals(action, tr.getType());
 		assertBetween(-1, 0, period[0].until(tr.getStart(), MILLIS), "start"); //delay=1
 		assertBetween( 0, 1, period[1].until(tr.getEnd(), MILLIS), "end");	//delay=1
 		assertBetween(duration, duration + 20, tr.duration(), "duration"); //delay=20
