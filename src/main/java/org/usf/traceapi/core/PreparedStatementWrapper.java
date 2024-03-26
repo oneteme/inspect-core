@@ -6,8 +6,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.experimental.Delegate;
 
 /**
@@ -15,7 +13,6 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-@Getter(AccessLevel.PACKAGE)
 public final class PreparedStatementWrapper extends StatementWrapper implements PreparedStatement {
 
 	@Delegate(excludes = Statement.class)
