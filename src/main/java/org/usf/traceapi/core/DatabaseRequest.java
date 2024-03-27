@@ -43,4 +43,14 @@ public class DatabaseRequest extends RunnableStage {
 	public void setException(ExceptionInfo exception) {
 		throw new UnsupportedOperationException();
 	}
+	
+	@Deprecated(forRemoval = true, since = "17")
+	public String getSchema(){
+		return database;
+	}
+
+	@Deprecated(forRemoval = true, since = "17")
+	public void setSchema(String schema) {
+		this.database = schema;
+	}
 }
