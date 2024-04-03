@@ -54,8 +54,8 @@ public final class DataSourceWrapper implements DataSource {
 		}
 		session.lock();
 		log.trace("outcoming query.."); // no id
+		JDBCActionTracer tracer = new JDBCActionTracer();
 		var out = new DatabaseRequest();
-    	JDBCActionTracer tracer = new JDBCActionTracer();
     	ConnectionWrapper cn = null;
 		var beg = now();
 		try {
@@ -69,6 +69,8 @@ public final class DataSourceWrapper implements DataSource {
 			try {
 				out.setStart(beg);
 				out.setThreadName(threadName());
+				out.setActions(tracer.getActions());
+				out.setCommands(tracer.getCommands());
 				stackTraceElement().ifPresent(st->{
 					out.setName(st.getMethodName());
 					out.setLocation(st.getClassName());
@@ -83,8 +85,6 @@ public final class DataSourceWrapper implements DataSource {
 					out.setDatabaseName(meta.getDatabaseProductName());
 					out.setDatabaseVersion(meta.getDatabaseProductVersion());
 					out.setDriverVersion(meta.getDriverVersion());
-					out.setActions(tracer.getActions());
-					out.setCommands(tracer.getCommands());
 					cn.setOnClose(()-> out.setEnd(now())); //differed end
 				}
 				session.append(out);
