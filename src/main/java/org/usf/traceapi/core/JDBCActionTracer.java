@@ -202,6 +202,9 @@ public class JDBCActionTracer {
 				action.setException(ex);
 			}
 			action.setEnd(end);
+			if(isNull(action.getCount())) {
+				action.setCount(new long[] {0});
+			}
 			action.getCount()[0]++;
 		}
 		else {
