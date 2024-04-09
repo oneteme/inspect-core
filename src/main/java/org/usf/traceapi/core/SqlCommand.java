@@ -48,10 +48,10 @@ public enum SqlCommand {
 	}
 	
 	private static int skipWithClause(String s) {
-		var m = WITH_PATTERN.matcher(s); //TD multiple !?
-		int idx = 0;
+		var idx = 0;
+		var m = WITH_PATTERN.matcher(s);
 		if(m.find()) {
-			var p = compile("^\s*\\,\s*", MULTILINE);
+			var p = compile("^\s*\\,\s*", MULTILINE); //multiple
 			do {
 				idx = jumpParentheses(s, m.end());
 				if(idx == m.end()) {
