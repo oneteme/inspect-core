@@ -25,13 +25,11 @@ public class DatabaseRequest extends RunnableStage {
 	private String driverVersion;
 	private String databaseName;
 	private String databaseVersion;
-	private boolean completed = true; // initial status
 	private List<DatabaseAction> actions;
 	private List<SqlCommand> commands;
 	
-	public void append(DatabaseAction action) {
-		actions.add(action);
-		completed &= isNull(action.getException());
+	public boolean isCompleted() {
+		return actions.stream().allMatch(a-> isNull(a.getException()));
 	}
 	
 	@Override

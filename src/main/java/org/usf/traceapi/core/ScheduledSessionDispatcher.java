@@ -17,8 +17,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 import lombok.Getter;
 
 /**

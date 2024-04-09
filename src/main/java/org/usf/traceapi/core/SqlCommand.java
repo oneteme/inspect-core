@@ -33,7 +33,7 @@ public enum SqlCommand {
 			, MULTILINE | CASE_INSENSITIVE);
 
 	public static final Pattern WITH_PATTERN =
-			compile("^\s*WITH\s*", MULTILINE | CASE_INSENSITIVE);
+			compile("^\s*WITH\s+\\w+\s+AS\s*", MULTILINE | CASE_INSENSITIVE);
 	
 	public static final Pattern SQL_PATTERN = 
 			compile(".+;.*\\w+", DOTALL);
@@ -42,7 +42,7 @@ public enum SqlCommand {
 		if(SQL_PATTERN.matcher(query).find()) { //multiple 
 			return SQL;
 		}
-		var m = WITH_PATTERN.matcher(query);
+		var m = WITH_PATTERN.matcher(query); //TD multiple !?
 		var idx = m.find() ? jumpParentheses(query, m.end()) : 0;
 		var s = idx == 0 ? query : wrap(query).subSequence(idx, query.length());
 		m = PATTERN.matcher(s);
@@ -50,18 +50,19 @@ public enum SqlCommand {
 	}
 	
 	private static int jumpParentheses(String query, int from) {
-		var beg = query.indexOf('(', from);
-		if(beg > -1) {
-			var par = 1;
-			for(var i=beg+1; i<query.length(); i++) {
-				if(query.charAt(i) == '(') {
-					par++;
+		var par = 0;
+		var beg = from;
+		for(var i=beg; i<query.length(); i++) {
+			if(query.charAt(i) == '(') {
+				par++;
+			}
+			else if(query.charAt(i) == ')') {
+				par--;
+				if(par == 0) {
+					return ++i;
 				}
-				else if(query.charAt(i) == ')') {
-					par--;
-					if(par == 0) {
-						return ++i;
-					}
+				else if(par < 0) {
+					break; //bad query
 				}
 			}
 		}

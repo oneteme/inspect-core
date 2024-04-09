@@ -22,7 +22,7 @@ public final class DatabaseAction implements Metric {
 	private final Instant start;
 	private Instant end;
 	private ExceptionInfo exception; 
-	private long[] count; // BATCH|UPDATE|FETCH
+	private long[] count; // only for BATCH|UPDATE|FETCH
 	
 	@JsonCreator
 	public DatabaseAction(JDBCAction type, Instant start, Instant end, ExceptionInfo exception) {
