@@ -50,18 +50,17 @@ public enum SqlCommand {
 	}
 	
 	private static int jumpParentheses(String query, int from) {
-		var par = 0;
-		var beg = from;
-		for(var i=beg; i<query.length(); i++) {
+		var deep = 0;
+		for(var i=from; i<query.length(); i++) {
 			if(query.charAt(i) == '(') {
-				par++;
+				deep++;
 			}
 			else if(query.charAt(i) == ')') {
-				par--;
-				if(par == 0) {
+				deep--;
+				if(deep == 0) {
 					return ++i;
 				}
-				else if(par < 0) {
+				else if(deep < 0) {
 					break; //bad query
 				}
 			}
