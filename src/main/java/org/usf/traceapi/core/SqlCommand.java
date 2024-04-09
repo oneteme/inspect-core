@@ -51,7 +51,7 @@ public enum SqlCommand {
 		var idx = 0;
 		var m = WITH_PATTERN.matcher(s);
 		if(m.find()) {
-			var p = compile("^\s*\\,\s*", MULTILINE); //multiple
+			var p = compile("^\s*,\s*\\w+\s+AS\s*", MULTILINE | CASE_INSENSITIVE); //multiple
 			do {
 				idx = jumpParentheses(s, m.end());
 				if(idx == m.end()) {
