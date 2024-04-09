@@ -6,6 +6,7 @@ import static java.util.regex.Pattern.DOTALL;
 import static java.util.regex.Pattern.MULTILINE;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
+import static org.usf.traceapi.core.Helper.log;
 
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -42,14 +43,28 @@ public enum SqlCommand {
 		if(SQL_PATTERN.matcher(query).find()) { //multiple 
 			return SQL;
 		}
-		var m = WITH_PATTERN.matcher(query); //TD multiple !?
-		var idx = m.find() ? jumpParentheses(query, m.end()) : 0;
-		var s = idx == 0 ? query : wrap(query).subSequence(idx, query.length());
-		m = PATTERN.matcher(s);
+		var idx = skipWithClause(query);
+		var m = PATTERN.matcher(query).region(idx, query.length());
 		return m.find() ? valueOf(m.group(1).toUpperCase()) : null;
 	}
 	
-	private static int jumpParentheses(String query, int from) {
+	private static int skipWithClause(String s) {
+		var m = WITH_PATTERN.matcher(s); //TD multiple !?
+		int idx = 0;
+		if(m.find()) {
+			var p = compile("^\s*\\,\s*", MULTILINE);
+			do {
+				idx = jumpParentheses(s, m.end());
+				if(idx == m.end()) {
+					break;
+				}
+				m = p.matcher(s).region(idx, s.length());
+			} while(m.find());
+		}
+		return idx;
+	}
+	
+	private static int jumpParentheses(CharSequence query, int from) {
 		var deep = 0;
 		for(var i=from; i<query.length(); i++) {
 			if(query.charAt(i) == '(') {
@@ -61,6 +76,7 @@ public enum SqlCommand {
 					return ++i;
 				}
 				else if(deep < 0) {
+					log.warn("dirty query : {}", query);
 					break; //bad query
 				}
 			}
