@@ -14,8 +14,8 @@ public class SessionDispatcherProperties {
 	
     private int delay = 5;
 	private TimeUnit unit = SECONDS;
-	private int bufferSize = 100; // session count
-	private int bufferMaxSize = 5_000; // session count, -1 : unlimited
+	private int bufferSize = 100; // {n} sessions
+	private int bufferMaxSize = 5_000; // {n} sessions, -1 : unlimited
 
 	public void setDelay(int delay) {
 		this.delay = requiePositiveValue(delay, "delay");
@@ -25,7 +25,7 @@ public class SessionDispatcherProperties {
 		this.unit = TimeUnit.valueOf(unit.toUpperCase());
 	}
 	
-	public void setBufferSize(int bufferSize) {
+	public void setBufferSize(int bufferSize) { //initial size
 		this.bufferSize = requiePositiveValue(bufferSize, "bufferSize");
 	}
 

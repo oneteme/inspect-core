@@ -2,6 +2,8 @@ package org.usf.traceapi.core;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,7 +23,8 @@ public final class DatabaseAction implements Metric {
 	private Instant end;
 	private ExceptionInfo exception; 
 	private long[] count; // BATCH|UPDATE|FETCH
-
+	
+	@JsonCreator
 	public DatabaseAction(JDBCAction type, Instant start, Instant end, ExceptionInfo exception) {
 		this(type, start, end, exception, null);
 	}
