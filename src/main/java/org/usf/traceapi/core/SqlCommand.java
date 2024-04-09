@@ -1,6 +1,5 @@
 package org.usf.traceapi.core;
 
-import static java.nio.CharBuffer.wrap;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.DOTALL;
 import static java.util.regex.Pattern.MULTILINE;
@@ -56,6 +55,7 @@ public enum SqlCommand {
 			do {
 				idx = jumpParentheses(s, m.end());
 				if(idx == m.end()) {
+					log.warn("'(' expected at {} after WITH clause : {}", idx, s);
 					break;
 				}
 				m = p.matcher(s).region(idx, s.length());
@@ -76,7 +76,7 @@ public enum SqlCommand {
 					return ++i;
 				}
 				else if(deep < 0) {
-					log.warn("dirty query : {}", query);
+					log.warn("Unexpected character '(' at {} : {}", i, query);
 					break; //bad query
 				}
 			}
