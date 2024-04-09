@@ -42,7 +42,10 @@ class SqlCommandTest {
 	}
 
 	@ParameterizedTest
-	@CsvSource("DUMMY SQL COMMAND")
+	@CsvSource({
+		"DUMMY SQL COMMAND",
+		"'WITH avg_salary AS query SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'"
+	})
 	void testMainCommand_unknown(String sql) {
 		assertEquals(null, mainCommand(sql));
 	}
