@@ -78,6 +78,10 @@ public class JDBCActionTracer {
 		return new ResultSetWrapper(execute(EXECUTE, sql, supplier), this, now()); // no count 
 	}
 	
+	public ResultSetWrapper resultSet(SQLSupplier<ResultSet> supplier) throws SQLException {
+		return new ResultSetWrapper(supplier.get(), this, now());  // no need to trace this
+	}
+	
 	public int executeUpdate(String sql, SQLSupplier<Integer> supplier) throws SQLException {
 		return execute(sql, supplier, n-> new long[] {n});
 	}
@@ -171,29 +175,6 @@ public class JDBCActionTracer {
 			}
 		}
 	}
-	
-	@FunctionalInterface
-	public interface SQLSupplier<T> {
-		
-		T get() throws SQLException;
-	}
-	
-	@FunctionalInterface
-	public interface SQLMethod extends SQLSupplier<Void> {
-		
-		void call() throws SQLException;
-		
-		default Void get() throws SQLException {
-			this.call();
-			return null;
-		}
-	}
-	
-	@FunctionalInterface
-	public interface DatabaseActionConsumer {
-		
-		void accept(JDBCAction action, Instant start, Instant end, ExceptionInfo ex);
-	}
 
 	void tryUpdatePrevious(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
 		if(!actions.isEmpty() && actions.getLast().getType() == type && MILLIS.between(actions.getLast().getEnd(), start) < 2) { //config!?
@@ -220,5 +201,28 @@ public class JDBCActionTracer {
 		var a = copyOf(arr, arr.length);
 		a[arr.length] = v;
 		return a;
+	}
+	
+	@FunctionalInterface
+	public interface SQLSupplier<T> {
+		
+		T get() throws SQLException;
+	}
+	
+	@FunctionalInterface
+	public interface SQLMethod extends SQLSupplier<Void> {
+		
+		void call() throws SQLException;
+		
+		default Void get() throws SQLException {
+			this.call();
+			return null;
+		}
+	}
+	
+	@FunctionalInterface
+	public interface DatabaseActionConsumer {
+		
+		void accept(JDBCAction action, Instant start, Instant end, ExceptionInfo ex);
 	}
 }

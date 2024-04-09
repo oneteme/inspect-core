@@ -24,9 +24,9 @@ public class ApiRequest extends RunnableStage {
 	private String query; //nullable
 	private String contentType; //nullable
 	private String authScheme; //nullable   Basic, Bearer, Digest, OAuth, ..
-	private int status; // 0 else
-	private long inDataSize;
-	private long outDataSize;
+	private int status; // 0 otherwise 
+	private long inDataSize; //-1 otherwise
+	private long outDataSize;//-1 otherwise
 	
 	@Override
 	public String getLocation() {

@@ -103,6 +103,11 @@ public class StatementWrapper implements Statement {
 	}
 	
 	@Override
+	public ResultSet getResultSet() throws SQLException {
+		return tracer.resultSet(st::getResultSet);
+	}
+	
+	@Override
 	public boolean getMoreResults() throws SQLException {
 		return tracer.moreResults(this, st::getMoreResults);
 	}
