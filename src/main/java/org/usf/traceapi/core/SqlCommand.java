@@ -76,7 +76,7 @@ public enum SqlCommand {
 					return ++i;
 				}
 				else if(deep < 0) {
-					log.warn("unexpected character '(' at {} : {}", i, query);
+					log.warn("unexpected character ')' at {} : {}", i, query);
 					break; //bad query
 				}
 			}
