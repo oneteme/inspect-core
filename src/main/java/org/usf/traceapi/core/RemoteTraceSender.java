@@ -1,51 +1,62 @@
 package org.usf.traceapi.core;
 
-import static java.lang.String.join;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static org.usf.traceapi.core.Helper.log;
+import static java.time.Duration.ofSeconds;
+import static java.util.Collections.singletonList;
 
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.List;
 
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
  * 
  * @author u$f
  *
  */
-@RequiredArgsConstructor
-public final class RemoteTraceSender implements TraceSender {
+public final class RemoteTraceSender implements TraceHandler {
 	
-	public static final String TRACE_ENDPOINT = "trace";
-	public static final String MAIN_ENDPOINT = "main/request";
-	public static final String INCOMING_ENDPOINT = "incoming/request";
-
-	static final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
-
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
-	
+	private final ScheduledSessionDispatcher dispatcher;
+
 	public RemoteTraceSender(TraceConfigurationProperties properties) {
-		this(properties, new RestTemplate());
+		this(properties, createRestTemplate());
+	}
+	
+	public RemoteTraceSender(TraceConfigurationProperties prop, RestTemplate template) {
+		this.properties = prop;
+		this.template = template;
+		this.dispatcher = new ScheduledSessionDispatcher(prop, Session::wasCompleted, this::sendCompleted);
 	}
 	
 	@Override
-	public void send(Session session) {
-		var uri = join("/", properties.getHost(), TRACE_ENDPOINT, endpointFor(session));
-		log.debug("sending trace {} => {}", session.getId(), uri);
-		executor.schedule(()-> template.put(uri, session), properties.getDelay(), properties.getUnit()); //wait for sending response
+	public void handle(Session session) {
+		dispatcher.add(session);
 	}
 	
-	private static String endpointFor(@NonNull Session session) {
-		if(session.getClass() == IncomingRequest.class) {
-			return INCOMING_ENDPOINT;
-		}
-		else if(session.getClass() == MainRequest.class) {
-			return MAIN_ENDPOINT;
-		}
-		throw new UnsupportedOperationException(session.getClass().getSimpleName() + " : " + session);
+    private boolean sendCompleted(int attemps, List<? extends Session> sessions) {
+		template.put(properties.getUrl(), sessions);
+		return true;
+    }
+
+	private static RestTemplate createRestTemplate() {
+		var convert = new MappingJackson2HttpMessageConverter(createObjectMapper());
+	    var timeout = ofSeconds(30);
+	    return new RestTemplateBuilder()
+	    		.messageConverters(singletonList(convert))
+				.setConnectTimeout(timeout)
+				.setReadTimeout(timeout)
+				.build();
+	}
+	
+	private static ObjectMapper createObjectMapper() {
+	     ObjectMapper mapper = new ObjectMapper();
+	     mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required
+//	     mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
+	     return mapper;
 	}
 }

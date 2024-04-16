@@ -10,17 +10,18 @@ import java.lang.annotation.Target;
  * @author u$f
  *
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.ANNOTATION_TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface TraceableBatch {
-	
-	String value() default "";
-	
+public @interface TraceableStage {
+
+	String value() default ""; // stage name
+
 	/**
 	 * require default constructor
 	 * 
 	 */
-	Class<? extends BatchUserProvider> userProvider() default DefaultUserProvider.class;
-
+	Class<? extends StageUpdater> sessionUpdater() default StageUpdater.class;
+	
 	//boolean enabled() default true
+	
 }

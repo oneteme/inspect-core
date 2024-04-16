@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.time.Duration.between;
+import static java.util.Objects.isNull;
 
 import java.time.Instant;
 
@@ -16,7 +17,9 @@ public interface Metric {
 	Instant getEnd();
 	
 	default long duration(){
-		return between(getStart(), getEnd()).toMillis();
+		return isNull(getStart()) || isNull(getEnd()) 
+				? -1 // not set yet
+				: between(getStart(), getEnd()).toMillis();
 	}
 
 }

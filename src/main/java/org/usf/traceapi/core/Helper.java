@@ -3,12 +3,10 @@ package org.usf.traceapi.core;
 import static java.lang.Thread.currentThread;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
-import static java.util.UUID.randomUUID;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 
@@ -24,21 +22,17 @@ import lombok.NoArgsConstructor;
 final class Helper {
 	
 	static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
+	
+	static String basePackage;
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
-	static final Supplier<String> idProvider = ()-> randomUUID().toString();
 	
-	static final DefaultUserProvider userProvider = new DefaultUserProvider(); 
 	static ApplicationInfo application; //unsafe set
 	
 	static ApplicationInfo applicationInfo() {
 		return application;
 	}
 	
-	static DefaultUserProvider defaultUserProvider() {
-		return userProvider;
-	}
-
 	static String threadName() {
 		return currentThread().getName();
 	}
@@ -49,7 +43,7 @@ final class Helper {
 	}
 	
 	static String extractAuthScheme(String authHeader) { //nullable
-		return nonNull(authHeader) && authHeader.matches("^\\w+ ") 
+		return nonNull(authHeader) && authHeader.matches("\\w+ .+") 
 				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
 	}
 	
@@ -62,4 +56,13 @@ final class Helper {
 		}
 	}
 	
+	static Optional<StackTraceElement> stackTraceElement() {
+		if(nonNull(basePackage) && !basePackage.isBlank()) {
+			var arr = currentThread().getStackTrace();
+			var i = 1; //location, internal call
+			while (++i<arr.length && !arr[i].getClassName().startsWith(basePackage));
+			return i<arr.length ? Optional.of(arr[i]) : empty(); 
+		}
+		return empty();
+	}
 }
