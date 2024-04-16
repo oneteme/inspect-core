@@ -26,6 +26,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -198,7 +199,7 @@ public class JDBCActionTracer {
 	}
 	
 	static long[] appendLong(long[]arr, long v) {
-		var a = copyOf(arr, arr.length);
+		var a = copyOf(arr, arr.length+1);
 		a[arr.length] = v;
 		return a;
 	}
