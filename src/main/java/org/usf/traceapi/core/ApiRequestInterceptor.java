@@ -11,6 +11,7 @@ import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.Helper.warnNoSession;
 
 import java.io.IOException;
 
@@ -34,7 +35,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		var session = localTrace.get();
 		if(isNull(session)) {
-			log.warn("no session");
+			warnNoSession();
 			return execution.execute(request, body);
 		}
 		session.lock();

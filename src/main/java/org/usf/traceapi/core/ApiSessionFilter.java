@@ -18,6 +18,7 @@ import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.Helper.warnNoSession;
 import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.StageUpdater.getUser;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
@@ -115,7 +116,10 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
     @Override
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
     	var in = (ApiSession) localTrace.get();
-        if(nonNull(in)) {
+        if(isNull(in)) {
+        	warnNoSession();
+        }
+        else {
 			in.setName(defaultEndpointName(req));
         	in.setUser(getUser(req));
         	if(nonNull(ex) && isNull(in.getException())) {//already set with Aspect

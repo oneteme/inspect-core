@@ -69,16 +69,13 @@ final class Helper {
 	
 	static void warnNoSession() {
 		log.warn("no active session");
-		try {
+		if(nonNull(basePackage) && !basePackage.isBlank()) {
 			var arr = currentThread().getStackTrace();
-			for(var st: arr) {
+			for(var st : arr) {
 				if(st.getClassName().startsWith(basePackage)) {
 					log.warn("\tat  {}", st);
 				}
 			}
-		}
-		catch (Exception e) {
-			//do no throw exception
 		}
 	}
 }
