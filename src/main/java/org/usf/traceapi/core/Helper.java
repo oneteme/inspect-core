@@ -65,4 +65,17 @@ final class Helper {
 		}
 		return empty();
 	}
+	
+	
+	static void warnNoSession() {
+		log.warn("no active session");
+		if(nonNull(basePackage) && !basePackage.isBlank()) {
+			var arr = currentThread().getStackTrace();
+			for(var st : arr) {
+				if(st.getClassName().startsWith(basePackage)) {
+					log.warn("\tat  {}", st);
+				}
+			}
+		}
+	}
 }
