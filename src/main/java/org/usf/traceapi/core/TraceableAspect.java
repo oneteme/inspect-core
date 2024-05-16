@@ -84,7 +84,6 @@ public class TraceableAspect {
     }
 
     static Object aroundStage(ProceedingJoinPoint joinPoint, Session session) throws Throwable {
-		session.lock();
 		log.trace("stage : {} <= {}", session.getId(), joinPoint.getSignature());
 		Exception ex = null;
     	var beg = now();
@@ -106,7 +105,6 @@ public class TraceableAspect {
 				log.warn("error while tracing : " + joinPoint.getSignature(), e);
 				//do not throw exception
     		}
-			session.unlock();
     	}
     }
     

@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.UUID.randomUUID;
+import static org.usf.traceapi.core.Helper.log;
 
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,7 +42,12 @@ public interface Session extends Metric {
 	}
 	
 	default void unlock() {
-		getLock().decrementAndGet();
+		if(getLock().get() > 0) {
+			getLock().decrementAndGet();
+		}
+		else {
+			log.warn("no more lock");
+		}
 	}
 	
 	default boolean wasCompleted() {

@@ -38,7 +38,6 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 			warnNoSession();
 			return execution.execute(request, body);
 		}
-		session.lock();
 		log.trace("outcoming request : {}", request.getURI());
 		var out = new ApiRequest();
 		ClientHttpResponse res = null; 
@@ -79,7 +78,6 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 				log.warn("error while tracing : " + request, e);
 				//do not throw exception
 			}
-			session.unlock();
 		}
 		return res;
 	}
