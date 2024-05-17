@@ -53,7 +53,6 @@ public final class DataSourceWrapper implements DataSource {
 			warnNoSession();
 			return cnSupp.get();
 		}
-		session.lock();
 		log.trace("outcoming query.."); // no id
 		JDBCActionTracer tracer = new JDBCActionTracer();
 		var out = new DatabaseRequest();
@@ -94,7 +93,6 @@ public final class DataSourceWrapper implements DataSource {
 				log.warn("error while tracing : " + cn, e);
 				//do not throw exception
 			}
-			session.unlock();
 		}
 		return cn;
 	}
