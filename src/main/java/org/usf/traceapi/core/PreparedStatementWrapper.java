@@ -55,8 +55,15 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 		return tracer.resultSetMetadata(ps::getMetaData);
 	}
 	
+	// Override StatementWrapper
+
 	@Override
-	protected String baseSql() { //should not use addBatch(sql)
-		return sql;
+	public int[] executeBatch() throws SQLException {
+		return tracer.executeBatch(sql, st::executeBatch);
+	}
+	
+	@Override
+	public long[] executeLargeBatch() throws SQLException {
+		return tracer.executeLargeBatch(sql, st::executeLargeBatch);
 	}
 }

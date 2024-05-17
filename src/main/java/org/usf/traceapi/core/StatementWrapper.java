@@ -74,7 +74,7 @@ public class StatementWrapper implements Statement {
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-		return tracer.executeBatch(baseSql(), st::executeBatch);
+		return tracer.executeBatch(null, st::executeBatch);
 	}
 	
 	@Override
@@ -99,7 +99,7 @@ public class StatementWrapper implements Statement {
 	
 	@Override
 	public long[] executeLargeBatch() throws SQLException {
-		return tracer.executeLargeBatch(baseSql(), st::executeLargeBatch);
+		return tracer.executeLargeBatch(null, st::executeLargeBatch);
 	}
 	
 	@Override
@@ -115,9 +115,5 @@ public class StatementWrapper implements Statement {
 	@Override
 	public boolean getMoreResults(int current) throws SQLException {
 		return tracer.moreResults(this, ()-> st.getMoreResults(current));
-	}
-	
-	protected String baseSql() {
-		return null; // used in PreparedStatement
 	}
 }
