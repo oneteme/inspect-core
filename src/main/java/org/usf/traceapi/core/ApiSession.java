@@ -25,6 +25,7 @@ import lombok.Setter;
 @JsonIgnoreProperties({"location", "lock"})
 public final class ApiSession extends ApiRequest implements Session { //IncomingRequest
 
+	@Deprecated(forRemoval = true, since = "v21")
 	private ApplicationInfo application;
 	private final Collection<ApiRequest> requests;
 	private final Collection<DatabaseRequest> queries;

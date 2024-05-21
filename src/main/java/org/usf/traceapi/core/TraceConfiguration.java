@@ -3,7 +3,9 @@ package org.usf.traceapi.core;
 import static java.lang.String.join;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
+import static java.util.Optional.ofNullable;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.Helper.application;
@@ -39,6 +41,9 @@ import jakarta.servlet.Filter;
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
+	public static final String COLLECTOR_ID = "spring-collector" 
+									+ ofNullable(TraceConfiguration.class.getPackage().getImplementationVersion()).map("-v"::concat).orElse("");
+	
 	@Value("${api.tracing.exclude:}")
 	private String[] excludes;
 	
@@ -47,9 +52,9 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config, @Value("${api.tracing.base-package:}") String pkg) {
 		application = applicationInfo(env);
 		basePackage = pkg;
-		register(config.getUrl().isBlank() 
+		register(config.getHost().isBlank() 
         		? res-> {} // cache traces !?
-        		: new RemoteTraceSender(config));
+        		: new RemoteTraceSender(config, application));
 		log.info("app.env : {}", application);
 	}
 
@@ -102,8 +107,10 @@ public class TraceConfiguration implements WebMvcConfigurer {
 				hostAddress(),
 				join(",", env.getActiveProfiles()),
 				getProperty("os.name"),
-				"java " + getProperty("java.version"));
-    }
+				"java " + getProperty("java.version"),
+				now(),
+				COLLECTOR_ID);
+	}
 
 	private static String hostAddress() {
 		try {
@@ -113,5 +120,4 @@ public class TraceConfiguration implements WebMvcConfigurer {
 			return null;
 		}
 	}
-    
 }

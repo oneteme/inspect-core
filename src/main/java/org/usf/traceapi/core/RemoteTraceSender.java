@@ -2,10 +2,14 @@ package org.usf.traceapi.core;
 
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+import static org.usf.traceapi.core.Helper.log;
 
 import java.util.List;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.SpringVersion;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
@@ -22,15 +26,30 @@ public final class RemoteTraceSender implements TraceHandler {
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
 	private final ScheduledSessionDispatcher dispatcher;
+	private final ApplicationInfo application;
+	private String instanceId;
 
-	public RemoteTraceSender(TraceConfigurationProperties properties) {
-		this(properties, createRestTemplate());
+	public RemoteTraceSender(TraceConfigurationProperties properties, ApplicationInfo application) {
+		this(properties, application, createRestTemplate());
 	}
 	
-	public RemoteTraceSender(TraceConfigurationProperties prop, RestTemplate template) {
-		this.properties = prop;
+	public RemoteTraceSender(TraceConfigurationProperties properties, ApplicationInfo application, RestTemplate template) {
+		this.properties = properties;
 		this.template = template;
-		this.dispatcher = new ScheduledSessionDispatcher(prop, Session::wasCompleted, this::sendCompleted);
+		this.application = application;
+		this.dispatcher = new ScheduledSessionDispatcher(properties, Session::wasCompleted, this::sendCompleted);
+		tryRegisterServer();
+	}
+	
+	void tryRegisterServer() {
+		if(isNull(instanceId)) {
+			try {
+				instanceId = template.postForObject(properties.instanceApiURL(), application, String.class);
+			}
+			catch (Exception e) {
+				log.warn("cannot register server", e);
+			}
+		}
 	}
 	
 	@Override
@@ -39,8 +58,12 @@ public final class RemoteTraceSender implements TraceHandler {
 	}
 	
     private boolean sendCompleted(int attemps, List<? extends Session> sessions) {
-		template.put(properties.getUrl(), sessions);
-		return true;
+    	tryRegisterServer(); //if not already registered
+    	if(nonNull(instanceId)) {
+    		template.put(properties.sessionApiURL(), sessions);
+    		return true;
+    	}
+    	return false;
     }
 
 	private static RestTemplate createRestTemplate() {

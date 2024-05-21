@@ -79,7 +79,7 @@ public final class DataSourceWrapper implements DataSource {
 					var meta = cn.getMetaData();
 					var args = decodeURL(meta.getURL());
 					out.setHost(args[0]);
-					out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(null));
+					out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(-1));
 					out.setDatabase(args[2]);
 					out.setUser(meta.getUserName());
 					out.setDatabaseName(meta.getDatabaseProductName());

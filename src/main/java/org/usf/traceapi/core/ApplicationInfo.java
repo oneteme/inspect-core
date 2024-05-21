@@ -1,5 +1,7 @@
 package org.usf.traceapi.core;
 
+import java.time.Instant;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
@@ -22,5 +24,8 @@ public final class ApplicationInfo {
 	private final String env; //dev, rec, prod, ...
 	private final String os;  //operating system : Window, Linux, ...
 	private final String re;  //runtime environment : JAVA, JS, PHP, Browser, Postman ...
-
+	//v21
+	private final Instant instant;
+	private final String collector; //spring-collector-xx, ng-collector-xx
+	//commit !?
 }

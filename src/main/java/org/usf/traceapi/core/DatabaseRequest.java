@@ -20,7 +20,7 @@ import lombok.Setter;
 public class DatabaseRequest extends RunnableStage {
 
 	private String host;
-	private Integer port; //nullable
+	private int port; //-1 otherwise
 	private String database; //nullable
 	private String driverVersion;
 	private String databaseName;

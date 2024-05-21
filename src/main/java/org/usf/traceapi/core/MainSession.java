@@ -26,6 +26,7 @@ public final class MainSession extends RunnableStage implements Session {
 	
 	private String id;
 	private LaunchMode launchMode;
+	@Deprecated(forRemoval = true, since = "v21")
 	private ApplicationInfo application;
 	private final Collection<ApiRequest> requests;
 	private final Collection<DatabaseRequest> queries;

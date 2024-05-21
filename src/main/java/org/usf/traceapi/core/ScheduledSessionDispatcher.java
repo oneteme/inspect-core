@@ -12,8 +12,10 @@ import static org.usf.traceapi.core.State.DISABLE;
 import static org.usf.traceapi.core.State.DISPACH;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -49,13 +51,12 @@ public final class ScheduledSessionDispatcher {
 	}
 
 	public boolean add(Session... sessions) {
-		if(state != DISABLE) { // CACHE | DISPATCH
-			safeQueue(q-> addAll(q, sessions));
+		if(state != DISABLE && applySync(q-> addAll(q, sessions))) { // CACHE | DISPATCH
 			log.trace("{} sessions buffered", queue.size());
 			return true;
 		}
     	else {
-    		log.warn("{} sessions rejected because dispatcher.state={}", sessions.length, state);
+    		log.warn("{} sessions rejected, dispatcher.state={}", sessions.length, state);
     		return false;
     	}
 	}
@@ -84,21 +85,22 @@ public final class ScheduledSessionDispatcher {
 	    	}
 	    	catch (Exception e) {// do not throw exception : retry later
 	    		log.warn("error while dispatching {} sessions, attempts={} because : {}", cs.size(), attempts, e.getMessage()); //do not log exception stack trace
-				safeQueue(q-> {
-					q.addAll(0, cs);
+				doSync(q-> q.addAll(0, cs));
+			}
+	        if(attempts > 0) { //exception | !dispatch
+	        	doSync(q-> {
 		    		if(properties.getBufferMaxSize() > -1 && q.size() > properties.getBufferMaxSize()) {
 		    			var diff = q.size() - properties.getBufferMaxSize();
 		    			q.subList(properties.getBufferMaxSize(), cs.size()).clear();  //remove exceeding cache sessions (LIFO)
 			    		log.warn("{} last sessions have been removed from buffer", diff); 
 		    		}
-					return null;
 				});
-			}
+	        }
         }
     }
 
     public List<Session> peekSessions() {
-    	return safeQueue(q-> {
+    	return applySync(q-> {
     		if(q.isEmpty()) {
     			return emptyList();
     		}
@@ -111,12 +113,12 @@ public final class ScheduledSessionDispatcher {
     }
     
     public List<Session> popSessions() {
-    	return safeQueue(q-> {
+    	return applySync(q-> {
     		if(q.isEmpty()) {
     			return emptyList();
     		}
     		if(isNull(filter)) {
-    			var c = new ArrayList<>(q);
+    			var c = new SessionList(q);
     			q.clear();
     			return c;
     		}
@@ -132,12 +134,18 @@ public final class ScheduledSessionDispatcher {
     	});
     }
 
-    private <T> T safeQueue(Function<List<Session>, T> queueFn) {
-		synchronized(queue){
-			return queueFn.apply(queue);
+    private void doSync(Consumer<List<Session>> cons) {
+    	synchronized(queue){
+			cons.accept(queue);
 		}
     }
-    
+
+    private <T> T applySync(Function<List<Session>, T> fn) {
+		synchronized(queue){
+			return fn.apply(queue);
+		}
+    }
+ 
     public void shutdown() throws InterruptedException {
     	updateState(DISABLE); //stop add Sessions
     	log.info("shutting down scheduler service");
@@ -160,6 +168,10 @@ public final class ScheduledSessionDispatcher {
 		
 		public SessionList(int initialCapacity) {
 			super(initialCapacity);
+		}
+
+		public SessionList(Collection<? extends Session> c) {
+			super(c);
 		}
 	}
 	

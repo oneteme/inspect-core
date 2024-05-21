@@ -46,7 +46,7 @@ public interface Session extends Metric {
 			getLock().decrementAndGet();
 		}
 		else {
-			log.warn("no more lock");
+			log.warn("illegal session lock state {}", this);
 		}
 	}
 	

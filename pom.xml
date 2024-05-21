@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.oneteme.traceapi</groupId>
 	<artifactId>traceapi-core</artifactId>
-	<version>0.0.20</version>
+	<version>0.0.21-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>traceapi-core</name>
 	<description>traceapi-core</description>
@@ -80,6 +80,17 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.0.0-M3</version>
+			</plugin>
+			<plugin>
+			    <groupId>org.apache.maven.plugins</groupId>
+			    <artifactId>maven-jar-plugin</artifactId>
+      			<configuration>
+        			<archive>
+			        	<manifest>
+			            	<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+			          	</manifest>
+        			</archive>
+      			</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>

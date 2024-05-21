@@ -27,8 +27,11 @@ final class Helper {
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	
+
+	@Deprecated(forRemoval = true, since = "v21")
 	static ApplicationInfo application; //unsafe set
-	
+
+	@Deprecated(forRemoval = true, since = "v21")
 	static ApplicationInfo applicationInfo() {
 		return application;
 	}
