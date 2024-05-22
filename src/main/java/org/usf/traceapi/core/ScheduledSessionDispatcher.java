@@ -92,7 +92,7 @@ public final class ScheduledSessionDispatcher {
 	        		q.addAll(0, cs);
 		    		if(properties.getBufferMaxSize() > -1 && q.size() > properties.getBufferMaxSize()) {
 		    			var diff = q.size() - properties.getBufferMaxSize();
-		    			q.subList(properties.getBufferMaxSize(), cs.size()).clear();  //remove exceeding cache sessions (LIFO)
+		    			q.subList(properties.getBufferMaxSize(), q.size()).clear();  //remove exceeding cache sessions (LIFO)
 			    		log.warn("{} last sessions have been removed from buffer", diff); 
 		    		}
 				});
