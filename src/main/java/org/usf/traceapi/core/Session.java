@@ -42,16 +42,16 @@ public interface Session extends Metric {
 	}
 	
 	default void unlock() {
-		if(getLock().get() > 0) {
-			getLock().decrementAndGet();
-		}
-		else {
-			log.warn("no more lock");
-		}
+		getLock().decrementAndGet();
 	}
 	
 	default boolean wasCompleted() {
-		return getLock().get() == 0;
+		var c = getLock().get();
+		if(c < 0) {
+			log.warn("illegal session lock state={}, {}", c, this);
+			return true;
+		}
+		return c == 0;
 	}
 	
 	static String nextId() {
