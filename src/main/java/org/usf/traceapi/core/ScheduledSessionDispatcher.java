@@ -51,7 +51,8 @@ public final class ScheduledSessionDispatcher {
 	}
 
 	public boolean add(Session... sessions) {
-		if(state != DISABLE && applySync(q-> addAll(q, sessions))) { // CACHE | DISPATCH
+		if(state != DISABLE) { // CACHE | DISPATCH
+			doSync(q-> addAll(q, sessions));
 			log.trace("{} sessions buffered", queue.size());
 			return true;
 		}
@@ -85,10 +86,10 @@ public final class ScheduledSessionDispatcher {
 	    	}
 	    	catch (Exception e) {// do not throw exception : retry later
 	    		log.warn("error while dispatching {} sessions, attempts={} because : {}", cs.size(), attempts, e.getMessage()); //do not log exception stack trace
-				doSync(q-> q.addAll(0, cs));
 			}
 	        if(attempts > 0) { //exception | !dispatch
 	        	doSync(q-> {
+	        		q.addAll(0, cs);
 		    		if(properties.getBufferMaxSize() > -1 && q.size() > properties.getBufferMaxSize()) {
 		    			var diff = q.size() - properties.getBufferMaxSize();
 		    			q.subList(properties.getBufferMaxSize(), cs.size()).clear();  //remove exceeding cache sessions (LIFO)
@@ -104,7 +105,7 @@ public final class ScheduledSessionDispatcher {
     		if(q.isEmpty()) {
     			return emptyList();
     		}
-    		var s = queue.stream();
+    		var s = q.stream();
     		if(nonNull(filter)) {
     			s = s.filter(filter);
     		}
@@ -112,7 +113,7 @@ public final class ScheduledSessionDispatcher {
     	});
     }
     
-    public List<Session> popSessions() {
+    List<Session> popSessions() {
     	return applySync(q-> {
     		if(q.isEmpty()) {
     			return emptyList();
@@ -124,9 +125,9 @@ public final class ScheduledSessionDispatcher {
     		}
     		var c = new SessionList(q.size());
     		for(var it=q.iterator(); it.hasNext();) {
-    			var s = it.next();
-    			if(filter.test(s)) {
-    				c.add(s);
+    			var o = it.next();
+    			if(filter.test(o)) {
+    				c.add(o);
     				it.remove();
     			}
     		}
@@ -154,7 +155,7 @@ public final class ScheduledSessionDispatcher {
     		while(!executor.awaitTermination(5, SECONDS)); //wait for last save complete
     	}
     	finally {
-    		dispatch();
+    		tryDispatch();
 		}
     }
     
