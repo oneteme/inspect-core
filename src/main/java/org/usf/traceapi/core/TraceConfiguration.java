@@ -41,9 +41,6 @@ import jakarta.servlet.Filter;
 @ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
-	public static final String COLLECTOR_ID = "spring-collector" 
-									+ ofNullable(TraceConfiguration.class.getPackage().getImplementationVersion()).map("-v"::concat).orElse("");
-	
 	@Value("${api.tracing.exclude:}")
 	private String[] excludes;
 	
@@ -109,7 +106,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 				getProperty("os.name"),
 				"java " + getProperty("java.version"),
 				now(),
-				COLLECTOR_ID);
+				collectorID());
 	}
 
 	private static String hostAddress() {
@@ -119,5 +116,12 @@ public class TraceConfiguration implements WebMvcConfigurer {
 			log.warn("error while getting host address", e);
 			return null;
 		}
+	}
+	
+	private static String collectorID() {
+		return "spring-collector" //use getImplementationTitle
+				+ ofNullable(TraceConfiguration.class.getPackage().getImplementationVersion())
+				.map("-v"::concat)
+				.orElse("");
 	}
 }
