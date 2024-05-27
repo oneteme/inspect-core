@@ -29,13 +29,19 @@ public interface Session extends Metric {
 
 	Collection<RunnableStage> getStages();
 	
-	void append(ApiRequest request); // sub requests
-
-	void append(DatabaseRequest query); // sub queries
-	
-	void append(RunnableStage stage); // sub stages
-	
 	AtomicInteger getLock();
+	
+	default void append(ApiRequest request) {
+		getRequests().add(request);
+	}
+
+	default void append(DatabaseRequest query) {
+		getQueries().add(query);
+	}
+	
+	default void append(RunnableStage stage) {
+		getStages().add(stage);
+	}
 	
 	default void lock(){
 		getLock().incrementAndGet();

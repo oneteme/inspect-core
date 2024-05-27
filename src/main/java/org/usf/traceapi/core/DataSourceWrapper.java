@@ -10,7 +10,7 @@ import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
-import static org.usf.traceapi.core.Helper.warnNoSession;
+import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -50,7 +50,7 @@ public final class DataSourceWrapper implements DataSource {
 	private Connection getConnection(SQLSupplier<Connection> cnSupp) throws SQLException {
 		var session = localTrace.get();
 		if(isNull(session)) {
-			warnNoSession();
+			warnNoActiveSession();
 			return cnSupp.get();
 		}
 		log.trace("outcoming query.."); // no id

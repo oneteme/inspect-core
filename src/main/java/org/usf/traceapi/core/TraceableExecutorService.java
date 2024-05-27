@@ -5,10 +5,12 @@ import static java.util.Objects.isNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.Helper.warnNoSession;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 
+import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -48,7 +50,7 @@ public final class TraceableExecutorService implements ExecutorService {
     private static <T> T aroundRunnable(Runnable command, Function<Runnable, T> fn) {
     	var session = localTrace.get();
 		if(isNull(session)) {
-			warnNoSession();
+			warnNoActiveSession();
 			return fn.apply(command);
 		}
 		session.lock(); //important! sync lock
@@ -71,16 +73,7 @@ public final class TraceableExecutorService implements ExecutorService {
 		    	finally {
 		    		var fin = now();
 		    		try {
-		    	    	var rs = new RunnableStage();
-			    		rs.setStart(beg);
-			    		rs.setEnd(fin);
-		    			rs.setThreadName(threadName());
-		    			rs.setException(mainCauseException(ex));
-			    		ost.ifPresent(st->{
-				    		rs.setName(st.getMethodName());
-				    		rs.setLocation(st.getClassName());
-			    		});
-		    			session.append(rs);
+		    			session.append(createStage(ost, beg, fin, ex));
 		    		}
 		    		catch(Exception e) {
 						log.warn("error while tracing : " + command, e);
@@ -100,7 +93,7 @@ public final class TraceableExecutorService implements ExecutorService {
     private static <T,V> V aroundCallable(Callable<T> command, Function<Callable<T>, V> fn) {
     	var session = localTrace.get();
 		if(isNull(session)) {
-			warnNoSession();
+			warnNoActiveSession();
 			return fn.apply(command);
 		}
 		session.lock(); //important! sync lock
@@ -123,16 +116,7 @@ public final class TraceableExecutorService implements ExecutorService {
 		    	finally {
 		    		var fin = now();
 		    		try {
-		    	    	var rs = new RunnableStage();
-			    		rs.setStart(beg);
-			    		rs.setEnd(fin);
-		    			rs.setThreadName(threadName());
-		    			rs.setException(mainCauseException(ex));
-			    		ost.ifPresent(st->{
-				    		rs.setName(st.getMethodName());
-				    		rs.setLocation(st.getClassName());
-			    		});
-		    			session.append(rs);
+		    			session.append(createStage(ost, beg, fin, ex));
 		    		}
 		    		catch(Exception e) {
 						log.warn("error while tracing : " + command, e);
@@ -151,5 +135,19 @@ public final class TraceableExecutorService implements ExecutorService {
         
 	public static TraceableExecutorService wrap(@NonNull ExecutorService es) {
 		return new TraceableExecutorService(es);
+	}
+	
+	static RunnableStage createStage(Optional<StackTraceElement> ost, Instant beg, Instant fin, Throwable ex) {
+    	var rs = new RunnableStage();
+		rs.setStart(beg);
+		rs.setEnd(fin);
+		rs.setThreadName(threadName());
+		rs.setException(mainCauseException(ex));
+		ost.ifPresent(st->{
+    		rs.setName(st.getMethodName());
+    		rs.setLocation(st.getClassName());
+		});
+		//no user
+		return rs;
 	}
 }

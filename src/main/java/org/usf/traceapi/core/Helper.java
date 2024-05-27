@@ -26,13 +26,12 @@ final class Helper {
 	static String basePackage;
 
 	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
-	
 
-	@Deprecated(forRemoval = true, since = "v21")
-	static ApplicationInfo application; //unsafe set
+	@Deprecated(forRemoval = true, since = "v22")
+	static InstanceEnvironment application; //unsafe set
 
-	@Deprecated(forRemoval = true, since = "v21")
-	static ApplicationInfo applicationInfo() {
+	@Deprecated(forRemoval = true, since = "v22")
+	static InstanceEnvironment applicationInfo() {
 		return application;
 	}
 	
@@ -64,13 +63,15 @@ final class Helper {
 			var arr = currentThread().getStackTrace();
 			var i = 1; //location, internal call
 			while (++i<arr.length && !arr[i].getClassName().startsWith(basePackage));
-			return i<arr.length ? Optional.of(arr[i]) : empty(); 
+			if(i<arr.length) {
+				return Optional.of(arr[i]);
+			}
 		}
 		return empty();
 	}
 	
 	
-	static void warnNoSession() {
+	static void warnNoActiveSession() {
 		log.warn("no active session");
 		if(nonNull(basePackage) && !basePackage.isBlank()) {
 			var arr = currentThread().getStackTrace();

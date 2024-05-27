@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
 import static java.util.Collections.synchronizedCollection;
-import static java.util.Objects.nonNull;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -25,12 +24,14 @@ import lombok.Setter;
 @JsonIgnoreProperties({"location", "lock"})
 public final class ApiSession extends ApiRequest implements Session { //IncomingRequest
 
-	@Deprecated(forRemoval = true, since = "v21")
-	private ApplicationInfo application;
+	@Deprecated(forRemoval = true, since = "v22")
+	private InstanceEnvironment application;
 	private final Collection<ApiRequest> requests;
 	private final Collection<DatabaseRequest> queries;
 	private final Collection<RunnableStage> stages;
-	
+	//v22
+	private String signature;
+
 	private final AtomicInteger lock = new AtomicInteger();
 	
 	public ApiSession() {
@@ -42,27 +43,6 @@ public final class ApiSession extends ApiRequest implements Session { //Incoming
 		this.requests = requests;
 		this.queries = queries; 
 		this.stages = stages; 
-	}
-	
-	@Override
-	public void setId(String id) {
-		if(nonNull(getId())) {
-			throw new IllegalStateException();
-		}
-		super.setId(id);
-	}
-	
-	public void append(ApiRequest request) {
-		requests.add(request);
-	}
-
-	public void append(DatabaseRequest request) {
-		queries.add(request);
-	}
-	
-	@Override
-	public void append(RunnableStage stage) {
-		stages.add(stage);
 	}
 	
 	static ApiSession synchronizedApiSession(String id) {

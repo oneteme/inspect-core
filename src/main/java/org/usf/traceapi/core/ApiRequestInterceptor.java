@@ -5,13 +5,15 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.usf.traceapi.core.ApiSessionFilter.TRACE_HEADER;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
-import static org.usf.traceapi.core.Helper.warnNoSession;
+import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 
 import java.io.IOException;
 
@@ -35,7 +37,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		var session = localTrace.get();
 		if(isNull(session)) {
-			warnNoSession();
+			warnNoActiveSession();
 			return execution.execute(request, body);
 		}
 		log.trace("outcoming request : {}", request.getURI());
@@ -62,14 +64,20 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 				out.setAuthScheme(extractAuthScheme(request.getHeaders().get(AUTHORIZATION)));
 				out.setStart(beg);
 				out.setEnd(fin);
-				out.setOutDataSize(nonNull(body) ? body.length : 0);
+				out.setOutDataSize(nonNull(body) ? body.length : -1);
+				out.setOutContentEncoding(request.getHeaders().getFirst(CONTENT_ENCODING)); 
 				out.setException(mainCauseException(ex));
 				out.setThreadName(threadName());
+				stackTraceElement().ifPresent(s->{
+					out.setName(s.getMethodName());
+					out.setLocation(s.getClassName());
+				});
 				if(nonNull(res)) {
 					out.setStatus(res.getStatusCode().value());
-					out.setInDataSize(res.getBody().available()); //not exact !?
+					out.setInDataSize(res.getBody().available()); //estimated !
 					out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
-					out.setId(ofNullable(res.getHeaders().getFirst(TRACE_HEADER)).orElse(null)); //+ send api_name !?
+					out.setOutContentEncoding(res.getHeaders().getFirst(CONTENT_ENCODING)); 
+					out.setId(res.getHeaders().getFirst(TRACE_HEADER)); //+ send api_name !?
 //					setUser!
 				}
 				session.append(out);

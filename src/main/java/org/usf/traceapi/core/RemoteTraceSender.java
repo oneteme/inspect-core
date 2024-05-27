@@ -9,10 +9,10 @@ import static org.usf.traceapi.core.Helper.log;
 import java.util.List;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.core.SpringVersion;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
@@ -26,14 +26,14 @@ public final class RemoteTraceSender implements TraceHandler {
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
 	private final ScheduledSessionDispatcher dispatcher;
-	private final ApplicationInfo application;
+	private final InstanceEnvironment application;
 	private String instanceId;
 
-	public RemoteTraceSender(TraceConfigurationProperties properties, ApplicationInfo application) {
+	public RemoteTraceSender(TraceConfigurationProperties properties, InstanceEnvironment application) {
 		this(properties, application, createRestTemplate());
 	}
 	
-	public RemoteTraceSender(TraceConfigurationProperties properties, ApplicationInfo application, RestTemplate template) {
+	public RemoteTraceSender(TraceConfigurationProperties properties, InstanceEnvironment application, RestTemplate template) {
 		this.properties = properties;
 		this.template = template;
 		this.application = application;
@@ -47,7 +47,7 @@ public final class RemoteTraceSender implements TraceHandler {
 				instanceId = template.postForObject(properties.instanceApiURL(), application, String.class);
 			}
 			catch (Exception e) {
-				log.warn("cannot register server", e);
+				log.warn("cannot register instance=" + application, e);
 			}
 		}
 	}
@@ -60,7 +60,7 @@ public final class RemoteTraceSender implements TraceHandler {
     private boolean sendCompleted(int attemps, List<? extends Session> sessions) {
     	tryRegisterServer(); //if not already registered
     	if(nonNull(instanceId)) {
-    		template.put(properties.sessionApiURL(), sessions);
+    		template.put(properties.sessionApiURL(), sessions, instanceId);
     		return true;
     	}
     	return false;
@@ -79,6 +79,7 @@ public final class RemoteTraceSender implements TraceHandler {
 	private static ObjectMapper createObjectMapper() {
 	     ObjectMapper mapper = new ObjectMapper();
 	     mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required
+	     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY); //v22
 //	     mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
 	     return mapper;
 	}

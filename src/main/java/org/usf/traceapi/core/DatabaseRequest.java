@@ -19,7 +19,7 @@ import lombok.Setter;
 @JsonIgnoreProperties("exception")
 public class DatabaseRequest extends RunnableStage {
 
-	private String host;
+	private String host; //IP, domaine
 	private int port; //-1 otherwise
 	private String database; //nullable
 	private String driverVersion;

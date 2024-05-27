@@ -19,7 +19,7 @@ public final class TraceConfigurationProperties extends SessionDispatcherPropert
 	
 	private static final String SLASH = "/";
 	
-	private String host = "localhost";
+	private String host = "localhost:9000";
 	private String instanceApi = "v3/trace/instance"; //[POST]
 	private String sessionApi  = "v3/trace/instance/${id}/session"; //[PUT]
 	

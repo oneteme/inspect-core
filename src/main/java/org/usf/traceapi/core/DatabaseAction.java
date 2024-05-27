@@ -18,7 +18,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public final class DatabaseAction implements Metric {
 	
-	private final JDBCAction type;
+	private final JDBCAction type; //rename to name
 	private final Instant start;
 	private Instant end;
 	private ExceptionInfo exception; 
@@ -33,4 +33,5 @@ public final class DatabaseAction implements Metric {
 	public String toString() {
 		return type + " {" + duration() + "ms}";
 	}
+	
 }

@@ -15,26 +15,20 @@ import lombok.Setter;
 @JsonIgnoreProperties("location")
 public class ApiRequest extends RunnableStage {
 
-	private String id; //nullable
-	private String method;
-	private String protocol;
-	private String host;
-	private int port;
+	private String id; // <= Traceable server
+	private String method; //GET, POST, PUT,..
+	private String protocol; //HTTP, HTTPS
+	private String host; //IP, domaine
+	private int port; // -1 otherwise
 	private String path;
-	private String query; //nullable
+	private String query; //text/html, application/json, application/xml,..
 	private String contentType; //nullable
-	private String authScheme; //nullable   Basic, Bearer, Digest, OAuth, ..
-	private int status; // 0 otherwise 
+	private String authScheme; //Basic, Bearer, Digest, OAuth,..
+	private int status; //0 otherwise
 	private long inDataSize; //-1 otherwise
-	private long outDataSize;//-1 otherwise
-	
-	@Override
-	public String getLocation() {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public void setLocation(String location) {
-		throw new UnsupportedOperationException();
-	}
+	private long outDataSize; //-1 otherwise
+	//v22
+	private String inContentEncoding; //gzip, compress, identity,..
+	private String outContentEncoding; //gzip, compress, identity,..
+	// => in/out Content [type, size, encoding]
 }

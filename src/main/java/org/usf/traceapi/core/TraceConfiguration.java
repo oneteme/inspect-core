@@ -11,6 +11,7 @@ import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.Helper.application;
 import static org.usf.traceapi.core.Helper.basePackage;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.InstantType.SERVER;
 import static org.usf.traceapi.core.TraceMultiCaster.register;
 
 import java.net.UnknownHostException;
@@ -47,7 +48,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	private ApiSessionFilter sessionFilter;
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config, @Value("${api.tracing.base-package:}") String pkg) {
-		application = applicationInfo(env);
+		application = currentInstance(env);
 		basePackage = pkg;
 		register(config.getHost().isBlank() 
         		? res-> {} // cache traces !?
@@ -97,14 +98,15 @@ public class TraceConfiguration implements WebMvcConfigurer {
 		};
     }
 
-    private static ApplicationInfo applicationInfo(Environment env) {
-    	return new ApplicationInfo(
+    private static InstanceEnvironment currentInstance(Environment env) {
+    	return new InstanceEnvironment(
 				env.getProperty("spring.application.name"),
 				env.getProperty("spring.application.version"),
 				hostAddress(),
 				join(",", env.getActiveProfiles()),
 				getProperty("os.name"),
 				"java " + getProperty("java.version"),
+				SERVER,
 				now(),
 				collectorID());
 	}
@@ -119,9 +121,8 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	}
 	
 	private static String collectorID() {
-		return "spring-collector" //use getImplementationTitle
+		return "spring-collector-v" //use getImplementationTitle
 				+ ofNullable(TraceConfiguration.class.getPackage().getImplementationVersion())
-				.map("-v"::concat)
-				.orElse("");
+				.orElse("?");
 	}
 }

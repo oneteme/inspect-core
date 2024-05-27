@@ -16,8 +16,8 @@ import lombok.Setter;
 @Setter
 public class RunnableStage implements Metric, MutableStage {
 	
-	private String name;
-	private String location;
+	private String name; //method, title
+	private String location; //class, URL
 	private Instant start;
 	private Instant end;
 	private String user;

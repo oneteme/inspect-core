@@ -8,7 +8,6 @@ import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
-import static org.usf.traceapi.core.LaunchMode.BATCH;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
 import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
@@ -70,7 +69,7 @@ public class TraceableAspect {
     	finally {
     		var fin = now();
     		try {
-    			ms.setLaunchMode(BATCH);
+    			ms.setType(((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class).type().toString());
     			ms.setApplication(applicationInfo());
     			fill(ms, beg, fin, joinPoint, ex);
     			emit(ms);
@@ -109,8 +108,7 @@ public class TraceableAspect {
     }
     
     static void fill(RunnableStage sg, Instant beg, Instant fin, ProceedingJoinPoint joinPoint, Throwable e) {
-    	MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    	var ant = signature.getMethod().getAnnotation(TraceableStage.class);
+    	var ant = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class);
 		sg.setStart(beg);
 		sg.setEnd(fin);
 		sg.setName(ant.value().isBlank() ? joinPoint.getSignature().getName() : ant.value());

@@ -25,41 +25,34 @@ import lombok.Setter;
 public final class MainSession extends RunnableStage implements Session {
 	
 	private String id;
-	private LaunchMode launchMode;
-	@Deprecated(forRemoval = true, since = "v21")
-	private ApplicationInfo application;
+	private String type; //@see 
+	@Deprecated(forRemoval = true, since = "v22")
+	private InstanceEnvironment application;
 	private final Collection<ApiRequest> requests;
 	private final Collection<DatabaseRequest> queries;
 	private final Collection<RunnableStage> stages;
-	//name : @annotation, methodName, viewTitle, ..
-	//location : URL, File, SI, ...
 
 	private final AtomicInteger lock = new AtomicInteger();
 
 	public MainSession() {
 		this(new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
 	}
-
+	
 	@JsonCreator
 	public MainSession(Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
 		this.requests = requests;
 		this.queries = queries; 
 		this.stages = stages; 
 	}
-
-	@Override
-	public void append(ApiRequest request) {
-		requests.add(request);
-	}
-
-	@Override
-	public void append(DatabaseRequest request) {
-		queries.add(request);
-	}
 	
-	@Override
-	public void append(RunnableStage stage) {
-		stages.add(stage);
+	@Deprecated(forRemoval = true, since = "v22")
+	public String getLaunchMode() {
+		return type;
+	}
+
+	@Deprecated(forRemoval = true, since = "v22")
+	public void setLaunchMode(String type) {
+		this.type = type;
 	}
 	
 	static MainSession synchronizedMainSession(String id) {
@@ -70,5 +63,4 @@ public final class MainSession extends RunnableStage implements Session {
 		ss.setId(id);	
 		return ss;
 	}
-	
 }
