@@ -25,6 +25,7 @@ public final class InstanceEnvironment {
 	private final String os;  //operating system : Window, Linux,..
 	private final String re;  //runtime environment : JAVA, Browsers,..
 	//v22
+	private final String user;
 	private final InstantType type; //server, client
 	private final Instant instant; //start time
 	private final String collector; //spring-collector-xx, ng-collector-xx,..

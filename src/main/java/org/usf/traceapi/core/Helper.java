@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-final class Helper {
+public final class Helper {
 	
 	static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
 	
