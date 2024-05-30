@@ -1,7 +1,6 @@
 package org.usf.traceapi.core;
 
 import static java.time.Instant.now;
-import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -16,6 +15,8 @@ import static org.usf.traceapi.core.JDBCAction.METADATA;
 import static org.usf.traceapi.core.JDBCAction.ROLLBACK;
 import static org.usf.traceapi.core.JDBCAction.SAVEPOINT;
 import static org.usf.traceapi.core.JDBCAction.STATEMENT;
+import static org.usf.traceapi.core.MetricsTracker.call;
+import static org.usf.traceapi.core.MetricsTracker.supply;
 import static org.usf.traceapi.core.SqlCommand.mainCommand;
 
 import java.sql.Connection;
@@ -28,8 +29,10 @@ import java.sql.Statement;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.IntStream;
+
+import org.usf.traceapi.core.SafeSupplier.MetricsConsumer;
+import org.usf.traceapi.core.SafeSupplier.SafeRunnable;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -48,181 +51,139 @@ public class JDBCActionTracer {
 	
 	private DatabaseAction exec;
 	
-	public ConnectionWrapper connection(SQLSupplier<Connection> supplier) throws SQLException {
-		return new ConnectionWrapper(trace(CONNECTION, supplier), this);
+	public ConnectionWrapper connection(SafeSupplier<Connection, SQLException> supplier) throws SQLException {
+		return new ConnectionWrapper(supply(supplier, appendAction(CONNECTION)), this);
 	}
 	
-	public StatementWrapper statement(SQLSupplier<Statement> supplier) throws SQLException {
-		return new StatementWrapper(trace(STATEMENT, supplier), this);
+	public StatementWrapper statement(SafeSupplier<Statement, SQLException> supplier) throws SQLException {
+		return new StatementWrapper(supply(supplier, appendAction(STATEMENT)), this);
 	}
 	
-	public PreparedStatementWrapper preparedStatement(String sql, SQLSupplier<PreparedStatement> supplier) throws SQLException {
-		return new PreparedStatementWrapper(trace(STATEMENT, supplier), this, sql); //parse command on exec
+	public PreparedStatementWrapper preparedStatement(String sql, SafeSupplier<PreparedStatement, SQLException> supplier) throws SQLException {
+		return new PreparedStatementWrapper(supply(supplier, appendAction(STATEMENT)), this, sql); //parse command on exec
 	}
 
-	public DatabaseMetaData connectionMetadata(SQLSupplier<DatabaseMetaData> supplier) throws SQLException {
-		return trace(METADATA, supplier);
+	public DatabaseMetaData connectionMetadata(SafeSupplier<DatabaseMetaData, SQLException> supplier) throws SQLException {
+		return supply(supplier, appendAction(METADATA));
 	}
 
-	public ResultSetMetaData resultSetMetadata(SQLSupplier<ResultSetMetaData> supplier) throws SQLException {
-		return trace(METADATA, supplier);
+	public ResultSetMetaData resultSetMetadata(SafeSupplier<ResultSetMetaData, SQLException> supplier) throws SQLException {
+		return supply(supplier, appendAction(METADATA));
 	}
 
-	public boolean execute(String sql, SQLSupplier<Boolean> supplier) throws SQLException {
-		var b = execute(EXECUTE, sql, supplier);
-		this.exec = actions.getLast(); 
-		return b;
-	}
-
-	public ResultSetWrapper executeQuery(String sql, SQLSupplier<ResultSet> supplier) throws SQLException {
-		return new ResultSetWrapper(execute(EXECUTE, sql, supplier), this, now()); // no count 
-	}
-	
-	public ResultSetWrapper resultSet(SQLSupplier<ResultSet> supplier) throws SQLException {
+	public ResultSetWrapper resultSet(SafeSupplier<ResultSet, SQLException> supplier) throws SQLException {
 		return new ResultSetWrapper(supplier.get(), this, now());  // no need to trace this
 	}
-	
-	public int executeUpdate(String sql, SQLSupplier<Integer> supplier) throws SQLException {
-		return execute(sql, supplier, n-> new long[] {n});
+
+	public ResultSetWrapper executeQuery(String sql, SafeSupplier<ResultSet, SQLException> supplier) throws SQLException {
+		return new ResultSetWrapper(execute(sql, supplier, rs-> null), this, now()); // no count 
+	}
+
+	public boolean execute(String sql, SafeSupplier<Boolean, SQLException> supplier) throws SQLException {
+		return execute(sql, supplier, b-> null);
 	}
 	
-	public long executeLargeUpdate(String sql, SQLSupplier<Long> supplier) throws SQLException {
+	public int executeUpdate(String sql, SafeSupplier<Integer, SQLException> supplier) throws SQLException {
+		return execute(sql, supplier,  n-> new long[] {n});
+	}
+	
+	public long executeLargeUpdate(String sql, SafeSupplier<Long, SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> new long[] {n});
 	}
 
-	public int[] executeBatch(String sql, SQLSupplier<int[]> supplier) throws SQLException {
+	public int[] executeBatch(String sql, SafeSupplier<int[], SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> IntStream.of(n).mapToLong(v-> v).toArray());
 	}
 	
-	public long[] executeLargeBatch(String sql, SQLSupplier<long[]> supplier) throws SQLException {
+	public long[] executeLargeBatch(String sql, SafeSupplier<long[], SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> n);
 	}
 
-	private <T> T execute(String sql, SQLSupplier<T> supplier, Function<T, long[]> countFn) throws SQLException  {
-		var rows = execute(EXECUTE, sql, supplier);
-		actions.getLast().setCount(countFn.apply(rows));
-		return rows;
-	}
-
-	private <T> T execute(JDBCAction action, String sql, SQLSupplier<T> supplier) throws SQLException {
+	private <T> T execute(String sql, SafeSupplier<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} //BATCH otherwise 
-		return trace(action, supplier);
+		return supply(supplier, (s,e,o,t)->{
+			exec = action(EXECUTE, s, e, t);
+			exec.setCount(countFn.apply(o));
+			actions.add(exec);
+		});
 	}
 
-	public <T> T savePoint(SQLSupplier<T> supplier) throws SQLException {
-		return trace(SAVEPOINT, supplier);
+	public <T> T savePoint(SafeSupplier<T, SQLException> supplier) throws SQLException {
+		return supply(supplier, appendAction(SAVEPOINT));
 	}
 
-	public void addBatch(String sql, SQLMethod method) throws SQLException {
+	public void addBatch(String sql, SafeRunnable<SQLException> method) throws SQLException {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} // PreparedStatement otherwise 
-		trace(BATCH, Instant::now, method, this::tryUpdatePrevious);
+		call(method, nonNull(sql) || actions.isEmpty() || !actions.getLast().getName().equals(BATCH.name())
+				? appendAction(BATCH)  //statement | 
+				: this::updateLast);
 	}
 	
-	public void commit(SQLMethod method) throws SQLException {
-		trace(COMMIT, method);
+	public void commit(SafeRunnable<SQLException> method) throws SQLException {
+		call(method, appendAction(COMMIT));
 	}
 	
-	public void rollback(SQLMethod method) throws SQLException {
-		trace(ROLLBACK, method);
+	public void rollback(SafeRunnable<SQLException> method) throws SQLException {
+		call(method, appendAction(ROLLBACK));
 	}
 	
-	public void fetch(Instant start, SQLMethod method, int n) throws SQLException {
-		trace(FETCH, ()-> start, method, this::append); // differed start
-		actions.getLast().setCount(new long[] {n});
-	}
-	
-	<T> T trace(JDBCAction action, SQLSupplier<T> sqlSupp) throws SQLException {
-		return trace(action, Instant::now, sqlSupp, this::append);
+	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
+		call(()-> start, method, (s,e,o,t)-> {  // differed start
+			var act = action(FETCH, s, e, t);
+			act.setCount(new long[] {n});
+			actions.add(act);
+		});
 	}
 
-	private <T> T trace(JDBCAction action, Supplier<Instant> startSupp, SQLSupplier<T> sqlSupp, DatabaseActionConsumer cons) throws SQLException {
-		log.trace("executing {} action..", action);
-		SQLException ex = null;
-		var beg = startSupp.get();
-		try {
-			return sqlSupp.get();
-		}
-		catch(SQLException e) {
-			ex  = e;
-			throw e;
-		}
-		finally {
-			var fin = now();
-			cons.accept(action, beg, fin, mainCauseException(ex));
-		}
-	}
-
-	public boolean moreResults(Statement st, SQLSupplier<Boolean> supplier) throws SQLException {
-		try {
-			return supplier.get(); // no need to trace this
-		}
-		finally {
+	public boolean moreResults(Statement st, SafeSupplier<Boolean, SQLException> supplier) throws SQLException {
+		if(supplier.get()) { // no need to trace this
 			if(nonNull(exec)) {
 				try {
 					var rows = st.getUpdateCount();
 					if(rows > -1) {
 						var arr = exec.getCount();
-						exec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); //differed call
+						exec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows));
 					}
 				}
-				catch (Exception e) {
-					//do not throw exception
-				}
+				catch (Exception e) {log.warn("getUpdateCount => {}", e.getMessage());}
 			}
+			return true;
 		}
+		return false;
 	}
 
-	void tryUpdatePrevious(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
-		if(!actions.isEmpty() && actions.getLast().getType() == type && MILLIS.between(actions.getLast().getEnd(), start) < 2) { //config!?
-			var action = actions.getLast();
-			if(nonNull(ex) && isNull(action.getException())) {
-				action.setException(ex);
-			}
-			action.setEnd(end);
-			if(isNull(action.getCount())) {
-				action.setCount(new long[] {0});
-			}
-			action.getCount()[0]++;
+	void updateLast(Instant start, Instant end, Void v, Throwable t) {
+		var action = actions.getLast();
+		action.setEnd(end); // shift end
+		if(nonNull(t) && isNull(action.getException())) {
+			action.setException(mainCauseException(t));
 		}
-		else {
-			append(type, start, end, ex);
+		if(isNull(action.getCount())) {
+			action.setCount(new long[] {0});
 		}
+		action.getCount()[0]++;
 	}
 	
-	void append(JDBCAction type, Instant start, Instant end, ExceptionInfo ex) {
-		actions.add(new DatabaseAction(type, start, end, ex));
+	<T> MetricsConsumer<T> appendAction(JDBCAction action) {
+		return (s,e,o,t)-> actions.add(action(action, s, e, t));
 	}
 	
+	static DatabaseAction action(JDBCAction action, Instant start, Instant end, Throwable t) {
+		var fa = new DatabaseAction();
+		fa.setName(action.name());
+		fa.setStart(start);
+		fa.setEnd(end);
+		fa.setException(mainCauseException(t));
+		return fa;
+	}
+		
 	static long[] appendLong(long[]arr, long v) {
 		var a = copyOf(arr, arr.length+1);
 		a[arr.length] = v;
 		return a;
-	}
-	
-	@FunctionalInterface
-	public interface SQLSupplier<T> {
-		
-		T get() throws SQLException;
-	}
-	
-	@FunctionalInterface
-	public interface SQLMethod extends SQLSupplier<Void> {
-		
-		void call() throws SQLException;
-		
-		default Void get() throws SQLException {
-			this.call();
-			return null;
-		}
-	}
-	
-	@FunctionalInterface
-	public interface DatabaseActionConsumer {
-		
-		void accept(JDBCAction action, Instant start, Instant end, ExceptionInfo ex);
 	}
 }

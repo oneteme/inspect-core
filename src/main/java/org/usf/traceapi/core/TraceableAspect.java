@@ -1,6 +1,5 @@
 package org.usf.traceapi.core;
 
-import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.applicationInfo;
@@ -9,6 +8,7 @@ import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
+import static org.usf.traceapi.core.MetricsTracker.supply;
 import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
@@ -52,61 +52,29 @@ public class TraceableAspect {
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
 		var session = localTrace.get();
     	if(nonNull(localTrace.get())) { //sub trace
-    		return aroundStage(joinPoint, session);
-    	}
+    		log.trace("stage : {} <= {}", session.getId(), joinPoint.getSignature());
+    		return supply(joinPoint::proceed, (s,e,o,t)-> {
+    	    	var rs = new RunnableStage();
+    			fill(rs, s, e, joinPoint, t);
+    			session.append(rs);
+    		});
+    	} //TD merge 2 block
     	var ms = synchronizedMainSession(nextId());
     	localTrace.set(ms);
     	log.trace("session : {} <= {}", ms.getId(), joinPoint.getSignature());
-    	Throwable ex = null;
-    	var beg = now();
     	try {
-    		return joinPoint.proceed();
-    	}
-    	catch (Throwable e) {
-    		ex =  e;
-    		throw e;
-    	}
-    	finally {
-    		var fin = now();
-    		try {
+        	return supply(joinPoint::proceed, (s,e,o,t)-> {
     			ms.setType(((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class).type().toString());
     			ms.setApplication(applicationInfo());
-    			fill(ms, beg, fin, joinPoint, ex);
+    			fill(ms, s, e, joinPoint, t);
     			emit(ms);
-    		}
-    		catch(Exception e) {
-				log.warn("error while tracing : " + joinPoint.getSignature(), e);
-				//do not throw exception
-    		}
+        	});
+    	}
+    	finally {
 			localTrace.remove();
     	}
     }
 
-    static Object aroundStage(ProceedingJoinPoint joinPoint, Session session) throws Throwable {
-		log.trace("stage : {} <= {}", session.getId(), joinPoint.getSignature());
-		Exception ex = null;
-    	var beg = now();
-    	try {
-    		return joinPoint.proceed();
-    	}
-    	catch (Exception e) {
-    		ex =  e;
-    		throw e;
-    	}
-    	finally {
-    		var fin = now();
-    		try {
-    	    	var rs = new RunnableStage();
-    			fill(rs, beg, fin, joinPoint, ex);
-				session.append(rs);
-    		}
-    		catch(Exception e) {
-				log.warn("error while tracing : " + joinPoint.getSignature(), e);
-				//do not throw exception
-    		}
-    	}
-    }
-    
     static void fill(RunnableStage sg, Instant beg, Instant fin, ProceedingJoinPoint joinPoint, Throwable e) {
     	var ant = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class);
 		sg.setStart(beg);

@@ -1,12 +1,13 @@
 package org.usf.traceapi.core.ftp;
 
 import static java.util.Objects.isNull;
+import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
-import static org.usf.traceapi.core.SafeSupplier.call;
-import static org.usf.traceapi.core.SafeSupplier.supply;
+import static org.usf.traceapi.core.MetricsTracker.call;
+import static org.usf.traceapi.core.MetricsTracker.supply;
 import static org.usf.traceapi.core.ftp.FtpAction.CD;
 import static org.usf.traceapi.core.ftp.FtpAction.CHGRP;
 import static org.usf.traceapi.core.ftp.FtpAction.CHMOD;
@@ -142,50 +143,62 @@ public final class TraceableChannelSftp extends ChannelSftp {
 	
 	/* write */
 
+	@Override
 	public void put(String src, String dst) throws SftpException {
 		call(()-> channel.put(src, dst), appendAction(PUT));
 	}
 
+	@Override
 	public void put(String src, String dst, int mode) throws SftpException {
 		call(()-> channel.put(src, dst, mode), appendAction(PUT));
 	}
 
+	@Override
 	public void put(String src, String dst, SftpProgressMonitor monitor) throws SftpException {
 		call(()-> channel.put(src, dst, monitor), appendAction(PUT));
 	}
 
+	@Override
 	public void put(String src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
 		call(()-> channel.put(src, dst, monitor, mode), appendAction(PUT));
 	}
 
+	@Override
 	public void put(InputStream src, String dst) throws SftpException {
 		call(()-> channel.put(src, dst), appendAction(PUT));
 	}
 
+	@Override
 	public void put(InputStream src, String dst, int mode) throws SftpException {
 		call(()-> channel.put(src, dst, mode), appendAction(PUT));
 	}
 
+	@Override
 	public void put(InputStream src, String dst, SftpProgressMonitor monitor) throws SftpException {
 		call(()-> channel.put(src, dst, monitor), appendAction(PUT));
 	}
 
+	@Override
 	public void put(InputStream src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
 		call(()-> channel.put(src, dst, monitor, mode), appendAction(PUT));
 	}
 
+	@Override
 	public OutputStream put(String dst) throws SftpException {
 		return supply(()-> channel.put(dst), appendAction(PUT));
 	}
 
+	@Override
 	public OutputStream put(String dst, int mode) throws SftpException {
 		return supply(()-> channel.put(dst, mode), appendAction(PUT));
 	}
 
+	@Override
 	public OutputStream put(String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
 		return supply(()-> channel.put(dst, monitor, mode), appendAction(PUT));
 	}
 
+	@Override
 	public OutputStream put(String dst, SftpProgressMonitor monitor, int mode, long offset) throws SftpException {
 		return supply(()-> channel.put(dst, monitor, mode, offset), appendAction(PUT));
 	}
@@ -231,32 +244,32 @@ public final class TraceableChannelSftp extends ChannelSftp {
 	}
 	
 	<T> MetricsConsumer<T> appendAction(FtpAction action) {
-		return (s,e,o,ex)-> {
+		return (s,e,o,t)-> {
 			var fa = new org.usf.traceapi.core.FtpAction();
 			fa.setName(action.name());
 			fa.setStart(s);
 			fa.setEnd(e);
-			fa.setException(ex);
+			fa.setException(mainCauseException(t));
 			request.getActions().add(fa);
 		};
 	}
 	
 	MetricsConsumer<Void> appendConnection() {
 		MetricsConsumer<Void> c = appendAction(CONNECTION);
-		return c.thenAccept((s,e,o,ex)-> request.setStart(s));
+		return c.thenAccept((s,e,o,t)-> request.setStart(s));
 	}
 	
 	MetricsConsumer<Void> appendDisconnection() {
 		MetricsConsumer<Void> c = appendAction(DISCONNECTION);
-		return c.thenAccept((s,e,o,ex)-> request.setEnd(e));
+		return c.thenAccept((s,e,o,t)-> request.setEnd(e));
 	}
 	
 	public static final ChannelSftp wrap(ChannelSftp channel) {
-//		var session = localTrace.get();
-//		if(isNull(session)) {
-//			warnNoActiveSession();
-//			return channel;
-//		}
+		var session = localTrace.get();
+		if(isNull(session)) {
+			warnNoActiveSession();
+			return channel;
+		}
 		try {
 			var tcf = new TraceableChannelSftp(channel); // global | local
 			var ses = channel.getSession();
@@ -273,13 +286,12 @@ public final class TraceableChannelSftp extends ChannelSftp {
 			req.setUser(ses.getUserName());
 //			req.setHome(channel.getHome())
 			tcf.setRequest(req);
-//			session.append(req);
+			session.append(req);
 			return tcf;
 		}
 		catch (Exception e) {
 			//do not throw exception
 			return channel;
 		}
-		
 	}
 }

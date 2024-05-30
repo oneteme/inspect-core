@@ -11,5 +11,4 @@ public enum FtpAction {
 	GET, LS, //read
 	PUT, MKDIR, RENAME, RM, //write
 	CD, CHMOD, CHOWN, CHGRP; //access
-
 }

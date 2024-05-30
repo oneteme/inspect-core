@@ -2,9 +2,6 @@ package org.usf.traceapi.core;
 
 import java.time.Instant;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,22 +12,26 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@AllArgsConstructor
 public final class DatabaseAction implements Metric {
-	
-	private final JDBCAction type; //rename to name
-	private final Instant start;
+
+	private String name; //rename to name
+	private Instant start;
 	private Instant end;
 	private ExceptionInfo exception; 
 	private long[] count; // only for BATCH|UPDATE|FETCH
-	
-	@JsonCreator
-	public DatabaseAction(JDBCAction type, Instant start, Instant end, ExceptionInfo exception) {
-		this(type, start, end, exception, null);
+
+	@Deprecated(forRemoval = true, since = "v22")
+	public void setType(String type) {
+		this.name = type;
+	}
+
+	@Deprecated(forRemoval = true, since = "v22")
+	public String getType() {
+		return name;
 	}
 	
 	@Override
 	public String toString() {
-		return type + " {" + duration() + "ms}";
+		return name + " {" + duration() + "ms}";
 	}
 }

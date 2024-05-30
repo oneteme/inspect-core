@@ -1,6 +1,5 @@
 package org.usf.traceapi.core;
 
-import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
@@ -8,6 +7,8 @@ import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
+import static org.usf.traceapi.core.MetricsTracker.call;
+import static org.usf.traceapi.core.MetricsTracker.supply;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -61,24 +62,10 @@ public final class TraceableExecutorService implements ExecutorService {
 		    	if(localTrace.get() != session) {
 		    		localTrace.set(session); //thread already exists
 		    	}
-				Throwable ex = null;
-		    	var beg = now();
 		    	try {
-		    		command.run();
-		    	}
-		    	catch (Exception e) {
-		    		ex =  e;
-		    		throw e;
+			    	call(command::run, (s,e,o,t)-> session.append(createStage(ost, s, e, t)));
 		    	}
 		    	finally {
-		    		var fin = now();
-		    		try {
-		    			session.append(createStage(ost, beg, fin, ex));
-		    		}
-		    		catch(Exception e) {
-						log.warn("error while tracing : " + command, e);
-						//do not throw exception
-		    		}
 					session.unlock();
 					localTrace.remove(); 
 		    	}
@@ -104,24 +91,10 @@ public final class TraceableExecutorService implements ExecutorService {
 		    	if(localTrace.get() != session) {
 		    		localTrace.set(session); //thread already exists
 		    	}
-				Throwable ex = null;
-		    	var beg = now();
 		    	try {
-		    		return command.call();
-		    	}
-		    	catch (Exception e) {
-		    		ex =  e;
-		    		throw e;
+		    		return supply(command::call, (s,e,o,t)-> session.append(createStage(ost, s, e, t)));
 		    	}
 		    	finally {
-		    		var fin = now();
-		    		try {
-		    			session.append(createStage(ost, beg, fin, ex));
-		    		}
-		    		catch(Exception e) {
-						log.warn("error while tracing : " + command, e);
-						//do not throw exception
-		    		}
 					session.unlock();
 					localTrace.remove(); 
 		    	}

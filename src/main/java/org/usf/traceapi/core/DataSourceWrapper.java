@@ -18,8 +18,6 @@ import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
-import org.usf.traceapi.core.JDBCActionTracer.SQLSupplier;
-
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
@@ -47,7 +45,7 @@ public final class DataSourceWrapper implements DataSource {
 		return getConnection(()-> ds.getConnection(username, password));
 	}
 	
-	private Connection getConnection(SQLSupplier<Connection> cnSupp) throws SQLException {
+	private Connection getConnection(SafeSupplier<Connection, SQLException> cnSupp) throws SQLException {
 		var session = localTrace.get();
 		if(isNull(session)) {
 			warnNoActiveSession();

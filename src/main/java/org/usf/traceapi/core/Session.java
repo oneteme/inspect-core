@@ -1,16 +1,10 @@
 package org.usf.traceapi.core;
 
-import static java.util.Objects.isNull;
 import static java.util.UUID.randomUUID;
-import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 
 import java.util.Collection;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
@@ -74,19 +68,5 @@ public interface Session extends Metric {
 	
 	static String nextId() {
 		return randomUUID().toString();
-	}
-	
-	static <T, E extends Exception> T withActiveSession(SafeSupplier<T,E> cs, Consumer<Session> s) throws E {
-		var session = localTrace.get();
-		if(isNull(session)) {
-			warnNoActiveSession();
-			return cs.get();
-		}
-		try {
-			return cs.get();
-		}
-		catch (Exception e) {
-			throw e;
-		}
 	}
 }
