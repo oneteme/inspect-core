@@ -26,7 +26,8 @@ public final class ApiSession extends ApiRequest implements Session { //Incoming
 
 	@Deprecated(forRemoval = true, since = "v22")
 	private InstanceEnvironment application;
-	private final Collection<ApiRequest> requests;
+	private final Collection<ApiRequest> requests;	
+	private final Collection<FtpRequest> ftpRequests;
 	private final Collection<DatabaseRequest> queries;
 	private final Collection<RunnableStage> stages;
 	//v22
@@ -35,18 +36,20 @@ public final class ApiSession extends ApiRequest implements Session { //Incoming
 	private final AtomicInteger lock = new AtomicInteger();
 	
 	public ApiSession() {
-		this(new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
+		this(new LinkedList<>(), new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
 	}
 	
 	@JsonCreator
-	public ApiSession(Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
+	public ApiSession(Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages, Collection<FtpRequest> ftpRequests) {
 		this.requests = requests;
 		this.queries = queries; 
 		this.stages = stages; 
+		this.ftpRequests = ftpRequests;
 	}
 	
 	static ApiSession synchronizedApiSession(String id) {
 		var ss = new ApiSession(
+				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()));

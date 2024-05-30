@@ -25,7 +25,7 @@ public final class Helper {
 	
 	static String basePackage;
 
-	static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
+	public static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 
 	@Deprecated(forRemoval = true, since = "v22")
 	static InstanceEnvironment application; //unsafe set
@@ -35,7 +35,7 @@ public final class Helper {
 		return application;
 	}
 	
-	static String threadName() {
+	public static String threadName() {
 		return currentThread().getName();
 	}
 		
@@ -58,7 +58,7 @@ public final class Helper {
 		}
 	}
 	
-	static Optional<StackTraceElement> stackTraceElement() {
+	public static Optional<StackTraceElement> stackTraceElement() {
 		if(nonNull(basePackage) && !basePackage.isBlank()) {
 			var arr = currentThread().getStackTrace();
 			var i = 1; //location, internal call
@@ -71,7 +71,7 @@ public final class Helper {
 	}
 	
 	
-	static void warnNoActiveSession() {
+	public static void warnNoActiveSession() {
 		log.warn("no active session");
 		if(nonNull(basePackage) && !basePackage.isBlank()) {
 			var arr = currentThread().getStackTrace();

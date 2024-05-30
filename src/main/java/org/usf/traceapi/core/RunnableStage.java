@@ -24,7 +24,6 @@ public class RunnableStage implements Metric, MutableStage {
 	private String threadName;
 	private ExceptionInfo exception;
 	
-	
 	@Override
 	public String toString() {
 		return format("%-25s", threadName) + ": " 

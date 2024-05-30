@@ -33,5 +33,4 @@ public final class DatabaseAction implements Metric {
 	public String toString() {
 		return type + " {" + duration() + "ms}";
 	}
-	
 }

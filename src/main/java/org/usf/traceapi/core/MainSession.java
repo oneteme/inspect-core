@@ -29,20 +29,22 @@ public final class MainSession extends RunnableStage implements Session {
 	@Deprecated(forRemoval = true, since = "v22")
 	private InstanceEnvironment application;
 	private final Collection<ApiRequest> requests;
+	private final Collection<FtpRequest> ftpRequests;
 	private final Collection<DatabaseRequest> queries;
 	private final Collection<RunnableStage> stages;
 
 	private final AtomicInteger lock = new AtomicInteger();
 
 	public MainSession() {
-		this(new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
+		this(new LinkedList<>(), new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
 	}
 	
 	@JsonCreator
-	public MainSession(Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages) {
+	public MainSession(Collection<ApiRequest> requests, Collection<DatabaseRequest> queries, Collection<RunnableStage> stages, Collection<FtpRequest> ftpRequests) {
 		this.requests = requests;
 		this.queries = queries; 
 		this.stages = stages; 
+		this.ftpRequests = ftpRequests;
 	}
 	
 	@Deprecated(forRemoval = true, since = "v22")
@@ -57,6 +59,7 @@ public final class MainSession extends RunnableStage implements Session {
 	
 	static MainSession synchronizedMainSession(String id) {
 		var ss = new MainSession(
+				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()), 
 				synchronizedCollection(new LinkedList<>()));
