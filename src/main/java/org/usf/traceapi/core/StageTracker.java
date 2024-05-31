@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MetricsTracker {
-	
+
 	public static <E extends Throwable> void call(SafeRunnable<E> fn, MetricsConsumer<Void> cons) throws E {
 		supply(fn, cons);
 	}
@@ -33,26 +33,25 @@ public final class MetricsTracker {
 	}
 
 	public static <T, E extends Throwable> T supply(Supplier<Instant> startSupp, SafeSupplier<T,E> fn, MetricsConsumer<T> cons) throws E {
-		T res = null;
-		Throwable ex = null;
-		var beg = startSupp.get();
+		T o = null;
+		Throwable t = null;
+		var s = startSupp.get();
 		try {
-			return (res = fn.get());
+			return (o = fn.get());
 		}
-		catch(Throwable t) { //also error
-			ex  = t;
-			throw t;
+		catch(Throwable e) { //also error
+			t  = e;
+			throw e;
 		}
 		finally {
-			var fin = now();
+			var e = now();
 			try {
-				cons.accept(beg, fin, res, ex);
+				cons.accept(s, e, o, t);
 			}
-			catch (Exception e) {
+			catch (Exception ex) {
 				//do not throw exception
-				log.warn("cannot execute {}, because={}", cons, e.getMessage());
+				log.warn("cannot collect metrics, {}", ex.getMessage());
 			}
 		}
 	}
-
 }

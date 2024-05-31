@@ -7,7 +7,7 @@ import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
-import static org.usf.traceapi.core.MetricsTracker.supply;
+import static org.usf.traceapi.core.StageTracker.supply;
 import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 

@@ -1,13 +1,14 @@
 package org.usf.traceapi.ftp;
 
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
-import static org.usf.traceapi.core.MetricsTracker.call;
-import static org.usf.traceapi.core.MetricsTracker.supply;
+import static org.usf.traceapi.core.StageTracker.call;
+import static org.usf.traceapi.core.StageTracker.supply;
 import static org.usf.traceapi.ftp.FtpAction.CD;
 import static org.usf.traceapi.ftp.FtpAction.CHGRP;
 import static org.usf.traceapi.ftp.FtpAction.CHMOD;
@@ -38,7 +39,6 @@ import com.jcraft.jsch.SftpProgressMonitor;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 
 /**
  * 
@@ -46,14 +46,13 @@ import lombok.Setter;
  *
  */
 @Getter
-@Setter(value = AccessLevel.PACKAGE)
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ChannelSftpWrapper extends ChannelSftp {
 	
 	private static final String BYTES = "[BYTES]";
 	
 	private final ChannelSftp channel;
-	private FtpRequest request;
+	private final FtpRequest request;
 
 	@Override
 	public void connect() throws JSchException {
@@ -62,22 +61,22 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	
 	@Override
 	public void connect(int connectTimeout) throws JSchException {
-		call(()-> channel.connect(connectTimeout), this.appendConnection());
+		call(()-> channel.connect(connectTimeout), appendConnection());
 	}
 	
 	@Override
 	public void disconnect() {
-		call(channel::disconnect, this.appendDisconnection());
+		call(channel::disconnect, appendDisconnection());
 	}
 	
 	@Override
 	public void quit() {
-		call(channel::quit, this.appendDisconnection());
+		call(channel::quit, appendDisconnection());
 	}
 	
 	@Override
 	public void exit() {
-		call(channel::exit, this.appendDisconnection());
+		call(channel::exit, appendDisconnection());
 	}
 	
 	@Override
@@ -259,13 +258,17 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	}
 	
 	MetricsConsumer<Void> appendConnection() {
-		MetricsConsumer<Void> c = appendAction(CONNECTION);
-		return c.thenAccept((s,e,o,t)-> request.setStart(s));
+		request.setStart(now());
+		return appendAction(CONNECTION);
 	}
 	
 	MetricsConsumer<Void> appendDisconnection() {
-		MetricsConsumer<Void> c = appendAction(DISCONNECTION);
-		return c.thenAccept((s,e,o,t)-> request.setEnd(e));
+		try {
+			return appendAction(DISCONNECTION);
+		}
+		finally {
+			request.setEnd(now());
+		}
 	}
 	
 	<T> MetricsConsumer<T> appendAction(FtpAction action, String... args) {
@@ -287,7 +290,6 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			return channel;
 		}
 		try {
-			var tcf = new ChannelSftpWrapper(channel); // global | local
 			var ses = channel.getSession();
 			var req = new FtpRequest();
 			req.setHost(ses.getHost());
@@ -302,9 +304,8 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			req.setUser(ses.getUserName());
 			req.setActions(new LinkedList<>());
 //			req.setHome(channel.getHome())
-			tcf.setRequest(req);
 			session.append(req);
-			return tcf;
+			return new ChannelSftpWrapper(channel, req);
 		}
 		catch (Exception e) {
 			//do not throw exception

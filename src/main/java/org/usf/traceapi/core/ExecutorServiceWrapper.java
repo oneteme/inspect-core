@@ -7,9 +7,10 @@ import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
-import static org.usf.traceapi.core.MetricsTracker.call;
-import static org.usf.traceapi.core.MetricsTracker.supply;
+import static org.usf.traceapi.core.StageTracker.call;
+import static org.usf.traceapi.core.StageTracker.supply;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.Callable;

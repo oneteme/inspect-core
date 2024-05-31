@@ -12,7 +12,7 @@ import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
-import static org.usf.traceapi.core.MetricsTracker.supply;
+import static org.usf.traceapi.core.StageTracker.supply;
 import static org.usf.traceapi.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.io.IOException;
@@ -42,8 +42,8 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			return execution.execute(request, body);
 		}
 		log.trace("outcoming request : {}", request.getURI());
-		var out = new RestRequest();
 		return supply(()-> execution.execute(request, body), (s,e,res,t)->{
+			var out = new RestRequest();
 			out.setMethod(request.getMethod().name());
 			out.setProtocol(request.getURI().getScheme());
 			out.setHost(request.getURI().getHost());
@@ -61,13 +61,13 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				out.setName(st.getMethodName());
 				out.setLocation(st.getClassName());
 			});
+//			setUser if auth=Basic !
 			if(nonNull(res)) {
 				out.setStatus(res.getStatusCode().value());
 				out.setInDataSize(res.getBody().available()); //estimated !
 				out.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
 				out.setOutContentEncoding(res.getHeaders().getFirst(CONTENT_ENCODING)); 
 				out.setId(res.getHeaders().getFirst(TRACE_HEADER)); //+ send api_name !?
-//				setUser!
 			}
 			session.append(out);
 		});

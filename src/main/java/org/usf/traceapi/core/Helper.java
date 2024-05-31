@@ -30,7 +30,7 @@ public final class Helper {
 	public static String threadName() {
 		return currentThread().getName();
 	}
-		
+	
 	public static String extractAuthScheme(List<String> authHeaders) { //nullable
 		return nonNull(authHeaders) && authHeaders.size() == 1 //require one header
 				? extractAuthScheme(authHeaders.get(0)) : null;
