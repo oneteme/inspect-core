@@ -41,7 +41,6 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			warnNoActiveSession();
 			return execution.execute(request, body);
 		}
-		log.trace("outcoming request : {}", request.getURI());
 		return supply(()-> execution.execute(request, body), (s,e,res,t)->{
 			var out = new RestRequest();
 			out.setMethod(request.getMethod().name());

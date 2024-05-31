@@ -3,7 +3,6 @@ package org.usf.traceapi.core;
 import static java.util.Objects.isNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
@@ -58,7 +57,6 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		try {
 			var ost = stackTraceElement(); //important! on parent thread
 			return fn.apply(()->{
-				log.trace("stage : {} <= {}", session.getId(), command);
 		    	if(localTrace.get() != session) {
 		    		localTrace.set(session); //thread already exists
 		    	}
@@ -87,7 +85,6 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		try {
 			var ost = stackTraceElement(); //important! on parent thread
 			return fn.apply(()->{
-				log.trace("stage : {} <= {}", session.getId(), command);
 		    	if(localTrace.get() != session) {
 		    		localTrace.set(session); //thread already exists
 		    	}

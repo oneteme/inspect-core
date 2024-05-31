@@ -7,8 +7,8 @@ import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
-import static org.usf.traceapi.core.StageTracker.supply;
 import static org.usf.traceapi.core.Session.nextId;
+import static org.usf.traceapi.core.StageTracker.supply;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
 import java.time.Instant;
@@ -51,7 +51,6 @@ public class TraceableAspect {
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
 		var session = localTrace.get();
     	if(nonNull(localTrace.get())) { //sub trace
-    		log.trace("stage : {} <= {}", session.getId(), joinPoint.getSignature());
     		return supply(joinPoint::proceed, (s,e,o,t)-> {
     	    	var rs = new SessionStage();
     			fill(rs, s, e, joinPoint, t);

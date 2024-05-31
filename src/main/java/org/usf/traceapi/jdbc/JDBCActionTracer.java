@@ -148,7 +148,9 @@ public class JDBCActionTracer {
 						exec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows));
 					}
 				}
-				catch (Exception e) {log.warn("getUpdateCount => {}", e.getMessage());}
+				catch (Exception e) {
+					log.warn("getUpdateCount => {}", e.getMessage());
+				}
 			}
 			return true;
 		}

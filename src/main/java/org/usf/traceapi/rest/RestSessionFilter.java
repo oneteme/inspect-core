@@ -2,7 +2,6 @@ package org.usf.traceapi.rest;
 
 import static java.lang.String.join;
 import static java.net.URI.create;
-import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
@@ -14,12 +13,12 @@ import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIAB
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.RestSession.synchronizedApiSession;
 import static org.usf.traceapi.core.Session.nextId;
+import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.core.StageUpdater.getUser;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
@@ -62,23 +61,12 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
     	var in = synchronizedApiSession(nextId());
-    	log.trace("incoming request : {} <= {}", in.getId(), req.getRequestURI());
     	localTrace.set(in);
 		res.addHeader(TRACE_HEADER, in.getId());
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 		var cRes = new ContentCachingResponseWrapper(res);
-		Throwable ex = null;
-    	var beg = now();
     	try {
-    		filterChain.doFilter(req, cRes);
-    	}
-    	catch(Exception e) {
-    		ex =  e;
-    		throw e;
-    	}
-    	finally {
-    		var fin = now();
-    		try {
+        	call(()-> filterChain.doFilter(req, cRes), (s,e,o,t)->{
 	    		var uri = create(req.getRequestURL().toString());
 	    		in.setMethod(req.getMethod());
 	    		in.setProtocol(uri.getScheme());
@@ -93,19 +81,23 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				in.setOutDataSize(cRes.getContentSize());
 				in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 				in.setOutContentEncoding(res.getHeader(CONTENT_ENCODING)); 
-	    		in.setStart(beg);
-	    		in.setEnd(fin);
+	    		in.setStart(s);
+	    		in.setEnd(e);
     			in.setThreadName(threadName());
-        		if(nonNull(ex) && isNull(in.getException())) { //already set in TraceableAspect::aroundAdvice
-        			in.setException(mainCauseException(ex));
+        		if(nonNull(t) && isNull(in.getException())) { //may be set in TraceableAspect::aroundAdvice
+        			in.setException(mainCauseException(t));
         		}
     			// name, user & exception delegated to intercepter
         		emit(in);
-    		}
-    		catch(Exception e) {
-				log.warn("error while tracing : " + req, e);
-				//do not throw exception
-    		}
+        	});	
+    	}
+    	catch (IOException | ServletException | RuntimeException e) {
+    		throw e;
+    	}
+    	catch (Exception e) {
+    		throw new IllegalStateException(e); //should never happen
+    	}
+    	finally {
 			localTrace.remove();
 		}
 		cRes.copyBodyToResponse();
