@@ -34,8 +34,8 @@ import java.util.stream.IntStream;
 
 import org.usf.traceapi.core.DatabaseRequestStage;
 import org.usf.traceapi.core.SafeSupplier;
-import org.usf.traceapi.core.SafeSupplier.MetricsConsumer;
 import org.usf.traceapi.core.SafeSupplier.SafeRunnable;
+import org.usf.traceapi.core.StageTracker.StageConsumer;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -164,11 +164,11 @@ public class JDBCActionTracer {
 		action.getCount()[0]++;
 	}
 
-	<T> MetricsConsumer<T> appendAction(JDBCAction action) {
+	<T> StageConsumer<T> appendAction(JDBCAction action) {
 		return appendAction(action, null);
 	}
 	
-	<T> MetricsConsumer<T> appendAction(JDBCAction action, Function<T, long[]> countFn) {
+	<T> StageConsumer<T> appendAction(JDBCAction action, Function<T, long[]> countFn) {
 		return (s,e,o,t)->{
 			var rs = new DatabaseRequestStage();
 			rs.setName(action.name());

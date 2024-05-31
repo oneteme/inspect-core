@@ -29,7 +29,7 @@ import java.util.Vector;
 
 import org.usf.traceapi.core.FtpRequest;
 import org.usf.traceapi.core.FtpRequestStage;
-import org.usf.traceapi.core.SafeSupplier.MetricsConsumer;
+import org.usf.traceapi.core.StageTracker.StageConsumer;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
@@ -257,12 +257,12 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		call(()-> channel.rmdir(path), appendAction(RM, path));
 	}
 	
-	MetricsConsumer<Void> appendConnection() {
+	StageConsumer<Void> appendConnection() {
 		request.setStart(now());
 		return appendAction(CONNECTION);
 	}
 	
-	MetricsConsumer<Void> appendDisconnection() {
+	StageConsumer<Void> appendDisconnection() {
 		try {
 			return appendAction(DISCONNECTION);
 		}
@@ -271,7 +271,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		}
 	}
 	
-	<T> MetricsConsumer<T> appendAction(FtpAction action, String... args) {
+	<T> StageConsumer<T> appendAction(FtpAction action, String... args) {
 		return (s,e,o,t)-> {
 			var fa = new FtpRequestStage();
 			fa.setName(action.name());

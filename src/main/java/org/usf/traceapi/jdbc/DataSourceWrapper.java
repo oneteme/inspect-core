@@ -7,10 +7,10 @@ import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
+import static org.usf.traceapi.core.StageTracker.supply;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -54,48 +54,35 @@ public final class DataSourceWrapper implements DataSource {
 			warnNoActiveSession();
 			return cnSupp.get();
 		}
-		log.trace("outcoming query.."); // no id
 		JDBCActionTracer tracer = new JDBCActionTracer();
-		var out = new DatabaseRequest();
-    	ConnectionWrapper cn = null;
-		var beg = now();
-		try {
-			cn = tracer.connection(cnSupp);
-		}
-		catch(SQLException e) {
-			out.setEnd(now());
-			throw e; //tracer => out.completed=false 
-		}
-		finally {
-			try {
-				out.setStart(beg);
-				out.setThreadName(threadName());
-				out.setActions(tracer.getActions());
-				out.setCommands(tracer.getCommands());
-				stackTraceElement().ifPresent(st->{
-					out.setName(st.getMethodName());
-					out.setLocation(st.getClassName());
-				});
-				if(nonNull(cn)) {
-					var meta = cn.getMetaData();
-					var args = decodeURL(meta.getURL());
-					out.setHost(args[0]);
-					out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(-1));
-					out.setDatabase(args[2]);
-					out.setUser(meta.getUserName());
-					out.setDatabaseName(meta.getDatabaseProductName());
-					out.setDatabaseVersion(meta.getDatabaseProductVersion());
-					out.setDriverVersion(meta.getDriverVersion());
-					cn.setOnClose(()-> out.setEnd(now())); //differed end
-				}
-				session.append(out);
+		return supply(()-> tracer.connection(cnSupp), (s,e,cn,t)->{
+			var out = new DatabaseRequest();
+			out.setStart(s);
+			out.setThreadName(threadName());
+			out.setActions(tracer.getActions());
+			out.setCommands(tracer.getCommands());
+			stackTraceElement().ifPresent(st->{
+				out.setName(st.getMethodName());
+				out.setLocation(st.getClassName());
+			});
+			if(nonNull(cn)) {
+				var meta = cn.getMetaData();
+				var args = decodeURL(meta.getURL());
+				out.setHost(args[0]);
+				out.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(-1));
+				out.setDatabase(args[2]);
+				out.setUser(meta.getUserName());
+				out.setDatabaseName(meta.getDatabaseProductName());
+				out.setDatabaseVersion(meta.getDatabaseProductVersion());
+				out.setDriverVersion(meta.getDriverVersion());
+				cn.setOnClose(()-> out.setEnd(now())); //differed end
+				//do not setException, already set in action
 			}
-			catch(Exception e) {
-				log.warn("error while tracing : " + cn, e);
-				//do not throw exception
+			else {
+				out.setEnd(e);
 			}
-		}
-		return cn;
+			session.append(out);
+		});
 	}
 	
 	static String[] decodeURL(String url) {
