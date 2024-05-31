@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public final class TraceableExecutorService implements ExecutorService {
+public final class ExecutorServiceWrapper implements ExecutorService {
 	
 	@Delegate
 	private final ExecutorService es;
@@ -106,12 +106,12 @@ public final class TraceableExecutorService implements ExecutorService {
 		}
     }
         
-	public static TraceableExecutorService wrap(@NonNull ExecutorService es) {
-		return new TraceableExecutorService(es);
+	public static ExecutorServiceWrapper wrap(@NonNull ExecutorService es) {
+		return new ExecutorServiceWrapper(es);
 	}
 	
-	static RunnableStage createStage(Optional<StackTraceElement> ost, Instant beg, Instant fin, Throwable ex) {
-    	var rs = new RunnableStage();
+	static SessionStage createStage(Optional<StackTraceElement> ost, Instant beg, Instant fin, Throwable ex) {
+    	var rs = new SessionStage();
 		rs.setStart(beg);
 		rs.setEnd(fin);
 		rs.setThreadName(threadName());

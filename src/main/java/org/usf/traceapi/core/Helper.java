@@ -21,35 +21,27 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Helper {
 	
-	static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
+	public static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
 	
 	static String basePackage;
 
 	public static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 
-	@Deprecated(forRemoval = true, since = "v22")
-	static InstanceEnvironment application; //unsafe set
-
-	@Deprecated(forRemoval = true, since = "v22")
-	static InstanceEnvironment applicationInfo() {
-		return application;
-	}
-	
 	public static String threadName() {
 		return currentThread().getName();
 	}
 		
-	static String extractAuthScheme(List<String> authHeaders) { //nullable
+	public static String extractAuthScheme(List<String> authHeaders) { //nullable
 		return nonNull(authHeaders) && authHeaders.size() == 1 //require one header
 				? extractAuthScheme(authHeaders.get(0)) : null;
 	}
 	
-	static String extractAuthScheme(String authHeader) { //nullable
+	public static String extractAuthScheme(String authHeader) { //nullable
 		return nonNull(authHeader) && authHeader.matches("\\w+ .+") 
 				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
 	}
 	
-	static <T> Optional<T> newInstance(Class<? extends T> clazz) {
+	public static <T> Optional<T> newInstance(Class<? extends T> clazz) {
 		try {
 			return Optional.of(clazz.getDeclaredConstructor().newInstance());
 		} catch (Exception e) {

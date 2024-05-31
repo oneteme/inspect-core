@@ -1,4 +1,4 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.jdbc;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

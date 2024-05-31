@@ -49,7 +49,7 @@ class TraceMultiCasterTest {
 		range(0, arr.length).forEach(i-> register(s-> {++arr[i];}));
 		var service = newFixedThreadPool(n);
 		var futures = range(0, n)
-		.mapToObj(i-> runAsync(()-> emit(new ApiSession()), service))
+		.mapToObj(i-> runAsync(()-> emit(new RestSession()), service))
 		.toArray(CompletableFuture[]::new);
 		service.shutdown();
 		assertDoesNotThrow(()-> allOf(futures).get());

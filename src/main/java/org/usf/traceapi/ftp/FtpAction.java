@@ -1,4 +1,4 @@
-package org.usf.traceapi.core.ftp;
+package org.usf.traceapi.ftp;
 
 /**
  * 
@@ -7,8 +7,8 @@ package org.usf.traceapi.core.ftp;
  */
 public enum FtpAction {
 	
-	CONNECTION, DISCONNECTION,
+	CONNECTION, DISCONNECTION, CD, //access
 	GET, LS, //read
 	PUT, MKDIR, RENAME, RM, //write
-	CD, CHMOD, CHOWN, CHGRP; //access
+	CHMOD, CHOWN, CHGRP; //role
 }

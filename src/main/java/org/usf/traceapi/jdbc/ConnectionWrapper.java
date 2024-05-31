@@ -1,4 +1,4 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.jdbc;
 
 import static java.util.Objects.nonNull;
 
@@ -108,7 +108,7 @@ public final class ConnectionWrapper implements Connection {
 	@Override
 	public void close() throws SQLException {
 		try {
-			cn.close();
+			tracer.disconnection(cn::close);
 		}
 		finally {
 			if(nonNull(onClose)) {

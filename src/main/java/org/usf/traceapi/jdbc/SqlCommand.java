@@ -1,4 +1,4 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.jdbc;
 
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.DOTALL;

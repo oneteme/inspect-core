@@ -4,6 +4,8 @@ import static java.util.Objects.isNull;
 
 import java.util.List;
 
+import org.usf.traceapi.jdbc.SqlCommand;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
@@ -17,7 +19,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonIgnoreProperties("exception")
-public class DatabaseRequest extends RunnableStage {
+public class DatabaseRequest extends SessionStage {
 
 	private String host; //IP, domaine
 	private int port; //-1 otherwise
@@ -25,8 +27,9 @@ public class DatabaseRequest extends RunnableStage {
 	private String driverVersion;
 	private String databaseName;
 	private String databaseVersion;
-	private List<DatabaseAction> actions;
+	private List<DatabaseRequestStage> actions;
 	private List<SqlCommand> commands;
+	//java-collector
 	
 	public boolean isCompleted() {
 		return actions.stream().allMatch(a-> isNull(a.getException()));
@@ -51,4 +54,5 @@ public class DatabaseRequest extends RunnableStage {
 	public void setSchema(String schema) {
 		this.database = schema;
 	}
+	
 }

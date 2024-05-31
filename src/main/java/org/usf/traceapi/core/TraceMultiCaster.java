@@ -24,7 +24,7 @@ public final class TraceMultiCaster {
 		handlers.add(sender);
 	}
 	
-	static void emit(Session session) {
+	public static void emit(Session session) {
 		handlers.forEach(h-> h.handle(session)); //non blocking..
 	}
 }

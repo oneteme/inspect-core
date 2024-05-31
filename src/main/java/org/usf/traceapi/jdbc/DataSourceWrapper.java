@@ -1,4 +1,4 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.jdbc;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
@@ -17,6 +17,9 @@ import java.sql.SQLException;
 import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
+
+import org.usf.traceapi.core.DatabaseRequest;
+import org.usf.traceapi.core.SafeSupplier;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;

@@ -36,5 +36,4 @@ public final class TraceConfigurationProperties extends SessionDispatcherPropert
 				? host + path
 				: join(SLASH, host, path);
 	}
-
 }

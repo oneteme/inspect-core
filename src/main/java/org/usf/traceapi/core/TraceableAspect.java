@@ -2,7 +2,6 @@ package org.usf.traceapi.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
-import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
@@ -36,7 +35,7 @@ public class TraceableAspect {
     @ConditionalOnBean(ControllerAdvice.class)
     @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
     Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
-		var session = (ApiSession) localTrace.get();
+		var session = (RestSession) localTrace.get();
 		if(nonNull(session) && nonNull(joinPoint.getArgs())) {
 			Stream.of(joinPoint.getArgs())
 					.filter(Throwable.class::isInstance)
@@ -54,7 +53,7 @@ public class TraceableAspect {
     	if(nonNull(localTrace.get())) { //sub trace
     		log.trace("stage : {} <= {}", session.getId(), joinPoint.getSignature());
     		return supply(joinPoint::proceed, (s,e,o,t)-> {
-    	    	var rs = new RunnableStage();
+    	    	var rs = new SessionStage();
     			fill(rs, s, e, joinPoint, t);
     			session.append(rs);
     		});
@@ -65,7 +64,6 @@ public class TraceableAspect {
     	try {
         	return supply(joinPoint::proceed, (s,e,o,t)-> {
     			ms.setType(((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class).type().toString());
-    			ms.setApplication(applicationInfo());
     			fill(ms, s, e, joinPoint, t);
     			emit(ms);
         	});
@@ -75,7 +73,7 @@ public class TraceableAspect {
     	}
     }
 
-    static void fill(RunnableStage sg, Instant beg, Instant fin, ProceedingJoinPoint joinPoint, Throwable e) {
+    static void fill(SessionStage sg, Instant beg, Instant fin, ProceedingJoinPoint joinPoint, Throwable e) {
     	var ant = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class);
 		sg.setStart(beg);
 		sg.setEnd(fin);

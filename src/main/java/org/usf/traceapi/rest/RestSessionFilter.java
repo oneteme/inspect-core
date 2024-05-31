@@ -1,4 +1,4 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.rest;
 
 import static java.lang.String.join;
 import static java.net.URI.create;
@@ -11,15 +11,14 @@ import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
-import static org.usf.traceapi.core.ApiSession.synchronizedApiSession;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
-import static org.usf.traceapi.core.Helper.applicationInfo;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
+import static org.usf.traceapi.core.RestSession.synchronizedApiSession;
 import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.StageUpdater.getUser;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
@@ -34,6 +33,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingResponseWrapper;
+import org.usf.traceapi.core.RestSession;
+import org.usf.traceapi.core.StageUpdater;
+import org.usf.traceapi.core.TraceableStage;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -47,7 +49,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class ApiSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
+public final class RestSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 	
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 
@@ -94,7 +96,6 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 	    		in.setStart(beg);
 	    		in.setEnd(fin);
     			in.setThreadName(threadName());
-    			in.setApplication(applicationInfo());
         		if(nonNull(ex) && isNull(in.getException())) { //already set in TraceableAspect::aroundAdvice
         			in.setException(mainCauseException(ex));
         		}
@@ -118,7 +119,7 @@ public final class ApiSessionFilter extends OncePerRequestFilter implements Hand
 	
     @Override
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-    	var in = (ApiSession) localTrace.get();
+    	var in = (RestSession) localTrace.get();
         if(isNull(in)) {
         	warnNoActiveSession();
         }

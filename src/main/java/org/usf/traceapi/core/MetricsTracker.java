@@ -20,24 +20,24 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MetricsTracker {
 	
-	public static <E extends Throwable> void call(SafeRunnable<E> sqlSupp, MetricsConsumer<Void> cons) throws E {
-		supply(sqlSupp, cons);
+	public static <E extends Throwable> void call(SafeRunnable<E> fn, MetricsConsumer<Void> cons) throws E {
+		supply(fn, cons);
 	}
 
-	public static <E extends Throwable> void call(Supplier<Instant> startSupp, SafeRunnable<E> sqlSupp, MetricsConsumer<Void> cons) throws E {
-		supply(startSupp, sqlSupp, cons);
+	public static <E extends Throwable> void call(Supplier<Instant> startSupp, SafeRunnable<E> fn, MetricsConsumer<Void> cons) throws E {
+		supply(startSupp, fn, cons);
 	}
 
-	public static <T, E extends Throwable> T supply(SafeSupplier<T,E> sqlSupp, MetricsConsumer<T> cons) throws E {
-		return supply(Instant::now, sqlSupp, cons);
+	public static <T, E extends Throwable> T supply(SafeSupplier<T,E> fn, MetricsConsumer<T> cons) throws E {
+		return supply(Instant::now, fn, cons);
 	}
 
-	public static <T, E extends Throwable> T supply(Supplier<Instant> startSupp, SafeSupplier<T,E> sqlSupp, MetricsConsumer<T> cons) throws E {
+	public static <T, E extends Throwable> T supply(Supplier<Instant> startSupp, SafeSupplier<T,E> fn, MetricsConsumer<T> cons) throws E {
 		T res = null;
 		Throwable ex = null;
 		var beg = startSupp.get();
 		try {
-			return (res = sqlSupp.get());
+			return (res = fn.get());
 		}
 		catch(Throwable t) { //also error
 			ex  = t;

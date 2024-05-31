@@ -1,7 +1,7 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.traceapi.core.DataSourceWrapper.decodeURL;
+import static org.usf.traceapi.jdbc.DataSourceWrapper.decodeURL;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;

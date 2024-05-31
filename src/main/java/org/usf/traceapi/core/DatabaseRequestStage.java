@@ -1,6 +1,6 @@
 package org.usf.traceapi.core;
 
-import java.time.Instant;
+import java.util.Arrays;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,26 +12,22 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class DatabaseAction implements Metric {
+public final class DatabaseRequestStage extends Stage {
 
-	private String name; //rename to name
-	private Instant start;
-	private Instant end;
-	private ExceptionInfo exception; 
-	private long[] count; // only for BATCH|UPDATE|FETCH
+	private long[] count; // only for BATCH|EXECUTE|FETCH
 
 	@Deprecated(forRemoval = true, since = "v22")
 	public void setType(String type) {
-		this.name = type;
+		setName(type);
 	}
 
 	@Deprecated(forRemoval = true, since = "v22")
 	public String getType() {
-		return name;
+		return getName();
 	}
 	
 	@Override
 	public String toString() {
-		return name + " {" + duration() + "ms}";
+		return super.toString() + " " + Arrays.toString(count);
 	}
 }

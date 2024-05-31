@@ -1,4 +1,4 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.jdbc;
 
 /**
  * 
@@ -7,7 +7,7 @@ package org.usf.traceapi.core;
  */
 public enum JDBCAction {
 	
-	CONNECTION, STATEMENT, METADATA, //DISCONNECT
+	CONNECTION, STATEMENT, METADATA, DISCONNECTION,
 	BATCH, EXECUTE, FETCH,
 	SAVEPOINT, COMMIT, ROLLBACK, //TCL
 	@Deprecated(forRemoval = true, since = "17") RESULTSET,

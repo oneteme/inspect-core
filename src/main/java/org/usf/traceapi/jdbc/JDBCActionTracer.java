@@ -1,4 +1,4 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.jdbc;
 
 import static java.time.Instant.now;
 import static java.util.Arrays.copyOf;
@@ -6,18 +6,19 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.JDBCAction.BATCH;
-import static org.usf.traceapi.core.JDBCAction.COMMIT;
-import static org.usf.traceapi.core.JDBCAction.CONNECTION;
-import static org.usf.traceapi.core.JDBCAction.EXECUTE;
-import static org.usf.traceapi.core.JDBCAction.FETCH;
-import static org.usf.traceapi.core.JDBCAction.METADATA;
-import static org.usf.traceapi.core.JDBCAction.ROLLBACK;
-import static org.usf.traceapi.core.JDBCAction.SAVEPOINT;
-import static org.usf.traceapi.core.JDBCAction.STATEMENT;
 import static org.usf.traceapi.core.MetricsTracker.call;
 import static org.usf.traceapi.core.MetricsTracker.supply;
-import static org.usf.traceapi.core.SqlCommand.mainCommand;
+import static org.usf.traceapi.jdbc.JDBCAction.BATCH;
+import static org.usf.traceapi.jdbc.JDBCAction.COMMIT;
+import static org.usf.traceapi.jdbc.JDBCAction.CONNECTION;
+import static org.usf.traceapi.jdbc.JDBCAction.DISCONNECTION;
+import static org.usf.traceapi.jdbc.JDBCAction.EXECUTE;
+import static org.usf.traceapi.jdbc.JDBCAction.FETCH;
+import static org.usf.traceapi.jdbc.JDBCAction.METADATA;
+import static org.usf.traceapi.jdbc.JDBCAction.ROLLBACK;
+import static org.usf.traceapi.jdbc.JDBCAction.SAVEPOINT;
+import static org.usf.traceapi.jdbc.JDBCAction.STATEMENT;
+import static org.usf.traceapi.jdbc.SqlCommand.mainCommand;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -31,6 +32,8 @@ import java.util.LinkedList;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
+import org.usf.traceapi.core.DatabaseRequestStage;
+import org.usf.traceapi.core.SafeSupplier;
 import org.usf.traceapi.core.SafeSupplier.MetricsConsumer;
 import org.usf.traceapi.core.SafeSupplier.SafeRunnable;
 
@@ -46,13 +49,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JDBCActionTracer {
 	
-	private final LinkedList<DatabaseAction> actions = new LinkedList<>();
+	private final LinkedList<DatabaseRequestStage> actions = new LinkedList<>();
 	private final LinkedList<SqlCommand> commands = new LinkedList<>();
 	
-	private DatabaseAction exec;
+	private DatabaseRequestStage exec;
 	
 	public ConnectionWrapper connection(SafeSupplier<Connection, SQLException> supplier) throws SQLException {
 		return new ConnectionWrapper(supply(supplier, appendAction(CONNECTION)), this);
+	}
+
+	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
+		call(method, appendAction(DISCONNECTION));
 	}
 	
 	public StatementWrapper statement(SafeSupplier<Statement, SQLException> supplier) throws SQLException {
@@ -84,7 +91,7 @@ public class JDBCActionTracer {
 	}
 	
 	public int executeUpdate(String sql, SafeSupplier<Integer, SQLException> supplier) throws SQLException {
-		return execute(sql, supplier,  n-> new long[] {n});
+		return execute(sql, supplier, n-> new long[] {n});
 	}
 	
 	public long executeLargeUpdate(String sql, SafeSupplier<Long, SQLException> supplier) throws SQLException {
@@ -103,11 +110,7 @@ public class JDBCActionTracer {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} //BATCH otherwise 
-		return supply(supplier, (s,e,o,t)->{
-			exec = action(EXECUTE, s, e, t);
-			exec.setCount(countFn.apply(o));
-			actions.add(exec);
-		});
+		return supply(supplier, appendAction(EXECUTE, countFn));
 	}
 
 	public <T> T savePoint(SafeSupplier<T, SQLException> supplier) throws SQLException {
@@ -118,8 +121,8 @@ public class JDBCActionTracer {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} // PreparedStatement otherwise 
-		call(method, nonNull(sql) || actions.isEmpty() || !actions.getLast().getName().equals(BATCH.name())
-				? appendAction(BATCH)  //statement | 
+		call(method, nonNull(sql) || actions.isEmpty() || !BATCH.name().equals(actions.getLast().getName())
+				? appendAction(BATCH, v-> new long[] {1})  //statement | first batch
 				: this::updateLast);
 	}
 	
@@ -132,11 +135,7 @@ public class JDBCActionTracer {
 	}
 	
 	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
-		call(()-> start, method, (s,e,o,t)-> {  // differed start
-			var act = action(FETCH, s, e, t);
-			act.setCount(new long[] {n});
-			actions.add(act);
-		});
+		call(()-> start, method, appendAction(FETCH, v-> new long[] {n}));
 	}
 
 	public boolean moreResults(Statement st, SafeSupplier<Boolean, SQLException> supplier) throws SQLException {
@@ -161,26 +160,28 @@ public class JDBCActionTracer {
 		action.setEnd(end); // shift end
 		if(nonNull(t) && isNull(action.getException())) {
 			action.setException(mainCauseException(t));
-		}
-		if(isNull(action.getCount())) {
-			action.setCount(new long[] {0});
-		}
+		} //else illegal state
 		action.getCount()[0]++;
 	}
-	
+
 	<T> MetricsConsumer<T> appendAction(JDBCAction action) {
-		return (s,e,o,t)-> actions.add(action(action, s, e, t));
+		return appendAction(action, null);
 	}
 	
-	static DatabaseAction action(JDBCAction action, Instant start, Instant end, Throwable t) {
-		var fa = new DatabaseAction();
-		fa.setName(action.name());
-		fa.setStart(start);
-		fa.setEnd(end);
-		fa.setException(mainCauseException(t));
-		return fa;
+	<T> MetricsConsumer<T> appendAction(JDBCAction action, Function<T, long[]> countFn) {
+		return (s,e,o,t)->{
+			var rs = new DatabaseRequestStage();
+			rs.setName(action.name());
+			rs.setStart(s);
+			rs.setEnd(e);
+			rs.setException(mainCauseException(t));
+			if(nonNull(countFn)) {
+				rs.setCount(countFn.apply(o));
+			}
+			actions.add(rs);
+		};
 	}
-		
+	
 	static long[] appendLong(long[]arr, long v) {
 		var a = copyOf(arr, arr.length+1);
 		a[arr.length] = v;

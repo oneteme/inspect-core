@@ -8,5 +8,4 @@ package org.usf.traceapi.core;
 public enum InstantType {
 
 	SERVER, CLIENT;
-	
 }

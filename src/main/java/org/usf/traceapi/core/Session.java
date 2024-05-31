@@ -23,17 +23,17 @@ public interface Session extends Metric {
 	
 	void setId(String id); //used in server side
 	
-	Collection<ApiRequest> getRequests();
+	Collection<RestRequest> getRequests();	  // rename to getApiRequests
 
 	Collection<FtpRequest> getFtpRequests();
 	
-	Collection<DatabaseRequest> getQueries();
+	Collection<DatabaseRequest> getQueries(); //rename to getDatabaseRequests
 
-	Collection<RunnableStage> getStages();
+	Collection<SessionStage> getStages();
 	
 	AtomicInteger getLock();
 	
-	default void append(ApiRequest request) {
+	default void append(RestRequest request) {
 		getRequests().add(request);
 	}
 
@@ -45,7 +45,7 @@ public interface Session extends Metric {
 		getQueries().add(query);
 	}
 	
-	default void append(RunnableStage stage) {
+	default void append(SessionStage stage) {
 		getStages().add(stage);
 	}
 	

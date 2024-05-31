@@ -8,7 +8,6 @@ import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
-import static org.usf.traceapi.core.Helper.application;
 import static org.usf.traceapi.core.Helper.basePackage;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.InstantType.SERVER;
@@ -29,6 +28,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.usf.traceapi.jdbc.DataSourceWrapper;
+import org.usf.traceapi.rest.RestRequestInterceptor;
+import org.usf.traceapi.rest.RestSessionFilter;
 
 import jakarta.servlet.Filter;
 
@@ -45,15 +47,15 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	@Value("${api.tracing.exclude:}")
 	private String[] excludes;
 	
-	private ApiSessionFilter sessionFilter;
+	private RestSessionFilter sessionFilter;
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config, @Value("${api.tracing.base-package:}") String pkg) {
-		application = currentInstance(env);
+		var inst = currentInstance(env);
 		basePackage = pkg;
 		register(config.getHost().isBlank() 
         		? res-> {} // cache traces !?
-        		: new RemoteTraceSender(config, application));
-		log.info("app.env : {}", application);
+        		: new RemoteTraceSender(config, inst));
+		log.info("app.env : {}", inst);
 	}
 
 	@Override
@@ -71,16 +73,16 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	return rb;
     }
     
-    private ApiSessionFilter sessionFilter() {
+    private RestSessionFilter sessionFilter() {
     	if(isNull(sessionFilter)) {
-    		sessionFilter = new ApiSessionFilter(excludes);
+    		sessionFilter = new RestSessionFilter(excludes);
     	}
     	return sessionFilter;
     }
 
     @Bean //do not rename this method see @Qualifier
-    public ApiRequestInterceptor apiRequestInterceptor() {
-        return new ApiRequestInterceptor();
+    public RestRequestInterceptor apiRequestInterceptor() {
+        return new RestRequestInterceptor();
     }
     
     @Bean

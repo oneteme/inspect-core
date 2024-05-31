@@ -12,13 +12,12 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class FtpAction implements Metric {
-	
+public class Stage implements Metric {
+
 	private String name;
 	private Instant start;
 	private Instant end;
 	private ExceptionInfo exception; 
-	private String[] args;
 	
 	@Override
 	public String toString() {

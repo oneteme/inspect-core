@@ -13,7 +13,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonIgnoreProperties("location")
-public class ApiRequest extends RunnableStage {
+public class RestRequest extends SessionStage {
 
 	private String id; // <= Traceable server
 	private String method; //GET, POST, PUT,..
@@ -31,4 +31,5 @@ public class ApiRequest extends RunnableStage {
 	private String inContentEncoding; //gzip, compress, identity,..
 	private String outContentEncoding; //gzip, compress, identity,..
 	// => in/out Content [type, size, encoding]
+	//rest-collector
 }

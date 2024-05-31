@@ -1,11 +1,10 @@
-package org.usf.traceapi.core;
+package org.usf.traceapi.rest;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
-import static org.usf.traceapi.core.ApiSessionFilter.TRACE_HEADER;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
@@ -14,6 +13,7 @@ import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.MetricsTracker.supply;
+import static org.usf.traceapi.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.io.IOException;
 
@@ -22,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
+import org.usf.traceapi.core.RestRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,7 +32,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor {
+public final class RestRequestInterceptor implements ClientHttpRequestInterceptor {
 	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
@@ -41,7 +42,7 @@ public final class ApiRequestInterceptor implements ClientHttpRequestInterceptor
 			return execution.execute(request, body);
 		}
 		log.trace("outcoming request : {}", request.getURI());
-		var out = new ApiRequest();
+		var out = new RestRequest();
 		return supply(()-> execution.execute(request, body), (s,e,res,t)->{
 			out.setMethod(request.getMethod().name());
 			out.setProtocol(request.getURI().getScheme());
