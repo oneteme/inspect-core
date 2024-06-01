@@ -8,6 +8,7 @@ import static org.usf.traceapi.mail.MailAction.CONNECTION;
 import static org.usf.traceapi.mail.MailAction.DISCONNECTION;
 import static org.usf.traceapi.mail.MailAction.SEND;
 
+import java.util.LinkedList;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -21,11 +22,12 @@ import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.Delegate;
 
 @RequiredArgsConstructor
 public final class TransportWrapper  {
 	
-//	@Delegate
+	@Delegate
 	private final Transport trsp;
 	private final MailRequest req;
 	
@@ -101,5 +103,11 @@ public final class TransportWrapper  {
 	
 	private static <T> T requireNonNull(T o, Supplier<T> supp) {
 		return isNull(o) ? supp.get() : o;
+	}
+	
+	public static TransportWrapper wrap(Transport trsp) {
+		var req = new MailRequest();
+		req.setActions(new LinkedList<>());
+		return new TransportWrapper(trsp, req);
 	}
 }
