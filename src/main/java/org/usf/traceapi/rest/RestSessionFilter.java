@@ -76,7 +76,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	    		in.setQuery(req.getQueryString());
 	    		in.setContentType(res.getContentType());
 				in.setStatus(res.getStatus());
-				in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION)));
+				in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
 				in.setInDataSize(req.getContentLength());
 				in.setOutDataSize(cRes.getContentSize());
 				in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));

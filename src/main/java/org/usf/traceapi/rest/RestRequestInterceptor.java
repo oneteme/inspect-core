@@ -8,7 +8,6 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
