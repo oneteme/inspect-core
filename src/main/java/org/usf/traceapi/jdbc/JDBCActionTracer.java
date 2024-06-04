@@ -6,8 +6,8 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.StageTracker.run;
 import static org.usf.traceapi.core.StageTracker.call;
-import static org.usf.traceapi.core.StageTracker.supply;
 import static org.usf.traceapi.jdbc.JDBCAction.BATCH;
 import static org.usf.traceapi.jdbc.JDBCAction.COMMIT;
 import static org.usf.traceapi.jdbc.JDBCAction.CONNECTION;
@@ -33,8 +33,8 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import org.usf.traceapi.core.DatabaseRequestStage;
-import org.usf.traceapi.core.SafeSupplier;
-import org.usf.traceapi.core.SafeSupplier.SafeRunnable;
+import org.usf.traceapi.core.SafeCallable;
+import org.usf.traceapi.core.SafeCallable.SafeRunnable;
 import org.usf.traceapi.core.StageTracker.StageConsumer;
 
 import lombok.Getter;
@@ -54,91 +54,91 @@ public class JDBCActionTracer {
 	
 	private DatabaseRequestStage exec;
 	
-	public ConnectionWrapper connection(SafeSupplier<Connection, SQLException> supplier) throws SQLException {
-		return new ConnectionWrapper(supply(supplier, appendAction(CONNECTION)), this);
+	public ConnectionWrapper connection(SafeCallable<Connection, SQLException> supplier) throws SQLException {
+		return new ConnectionWrapper(call(supplier, appendAction(CONNECTION)), this);
 	}
 
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
-		call(method, appendAction(DISCONNECTION));
+		run(method, appendAction(DISCONNECTION));
 	}
 	
-	public StatementWrapper statement(SafeSupplier<Statement, SQLException> supplier) throws SQLException {
-		return new StatementWrapper(supply(supplier, appendAction(STATEMENT)), this);
+	public StatementWrapper statement(SafeCallable<Statement, SQLException> supplier) throws SQLException {
+		return new StatementWrapper(call(supplier, appendAction(STATEMENT)), this);
 	}
 	
-	public PreparedStatementWrapper preparedStatement(String sql, SafeSupplier<PreparedStatement, SQLException> supplier) throws SQLException {
-		return new PreparedStatementWrapper(supply(supplier, appendAction(STATEMENT)), this, sql); //parse command on exec
+	public PreparedStatementWrapper preparedStatement(String sql, SafeCallable<PreparedStatement, SQLException> supplier) throws SQLException {
+		return new PreparedStatementWrapper(call(supplier, appendAction(STATEMENT)), this, sql); //parse command on exec
 	}
 
-	public DatabaseMetaData connectionMetadata(SafeSupplier<DatabaseMetaData, SQLException> supplier) throws SQLException {
-		return supply(supplier, appendAction(METADATA));
+	public DatabaseMetaData connectionMetadata(SafeCallable<DatabaseMetaData, SQLException> supplier) throws SQLException {
+		return call(supplier, appendAction(METADATA));
 	}
 
-	public ResultSetMetaData resultSetMetadata(SafeSupplier<ResultSetMetaData, SQLException> supplier) throws SQLException {
-		return supply(supplier, appendAction(METADATA));
+	public ResultSetMetaData resultSetMetadata(SafeCallable<ResultSetMetaData, SQLException> supplier) throws SQLException {
+		return call(supplier, appendAction(METADATA));
 	}
 
-	public ResultSetWrapper resultSet(SafeSupplier<ResultSet, SQLException> supplier) throws SQLException {
+	public ResultSetWrapper resultSet(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
 		return new ResultSetWrapper(supplier.get(), this, now());  // no need to trace this
 	}
 
-	public ResultSetWrapper executeQuery(String sql, SafeSupplier<ResultSet, SQLException> supplier) throws SQLException {
+	public ResultSetWrapper executeQuery(String sql, SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
 		return new ResultSetWrapper(execute(sql, supplier, rs-> null), this, now()); // no count 
 	}
 
-	public boolean execute(String sql, SafeSupplier<Boolean, SQLException> supplier) throws SQLException {
+	public boolean execute(String sql, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, b-> null);
 	}
 	
-	public int executeUpdate(String sql, SafeSupplier<Integer, SQLException> supplier) throws SQLException {
+	public int executeUpdate(String sql, SafeCallable<Integer, SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> new long[] {n});
 	}
 	
-	public long executeLargeUpdate(String sql, SafeSupplier<Long, SQLException> supplier) throws SQLException {
+	public long executeLargeUpdate(String sql, SafeCallable<Long, SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> new long[] {n});
 	}
 
-	public int[] executeBatch(String sql, SafeSupplier<int[], SQLException> supplier) throws SQLException {
+	public int[] executeBatch(String sql, SafeCallable<int[], SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> IntStream.of(n).mapToLong(v-> v).toArray());
 	}
 	
-	public long[] executeLargeBatch(String sql, SafeSupplier<long[], SQLException> supplier) throws SQLException {
+	public long[] executeLargeBatch(String sql, SafeCallable<long[], SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> n);
 	}
 
-	private <T> T execute(String sql, SafeSupplier<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
+	private <T> T execute(String sql, SafeCallable<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} //BATCH otherwise 
-		return supply(supplier, appendAction(EXECUTE, countFn));
+		return call(supplier, appendAction(EXECUTE, countFn));
 	}
 
-	public <T> T savePoint(SafeSupplier<T, SQLException> supplier) throws SQLException {
-		return supply(supplier, appendAction(SAVEPOINT));
+	public <T> T savePoint(SafeCallable<T, SQLException> supplier) throws SQLException {
+		return call(supplier, appendAction(SAVEPOINT));
 	}
 
 	public void addBatch(String sql, SafeRunnable<SQLException> method) throws SQLException {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} // PreparedStatement otherwise 
-		call(method, nonNull(sql) || actions.isEmpty() || !BATCH.name().equals(actions.getLast().getName())
+		run(method, nonNull(sql) || actions.isEmpty() || !BATCH.name().equals(actions.getLast().getName())
 				? appendAction(BATCH, v-> new long[] {1})  //statement | first batch
 				: this::updateLast);
 	}
 	
 	public void commit(SafeRunnable<SQLException> method) throws SQLException {
-		call(method, appendAction(COMMIT));
+		run(method, appendAction(COMMIT));
 	}
 	
 	public void rollback(SafeRunnable<SQLException> method) throws SQLException {
-		call(method, appendAction(ROLLBACK));
+		run(method, appendAction(ROLLBACK));
 	}
 	
 	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
-		call(()-> start, method, appendAction(FETCH, v-> new long[] {n}));
+		run(()-> start, method, appendAction(FETCH, v-> new long[] {n}));
 	}
 
-	public boolean moreResults(Statement st, SafeSupplier<Boolean, SQLException> supplier) throws SQLException {
+	public boolean moreResults(Statement st, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
 		if(supplier.get()) { // no need to trace this
 			if(nonNull(exec)) {
 				try {

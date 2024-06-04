@@ -3,7 +3,7 @@ package org.usf.traceapi.mail;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
-import static org.usf.traceapi.core.StageTracker.call;
+import static org.usf.traceapi.core.StageTracker.run;
 import static org.usf.traceapi.mail.MailAction.CONNECTION;
 import static org.usf.traceapi.mail.MailAction.DISCONNECTION;
 import static org.usf.traceapi.mail.MailAction.SEND;
@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 
 import org.usf.traceapi.core.MailRequest;
 import org.usf.traceapi.core.MailRequestStage;
-import org.usf.traceapi.core.SafeSupplier.SafeRunnable;
+import org.usf.traceapi.core.SafeCallable.SafeRunnable;
 import org.usf.traceapi.core.StageTracker.StageConsumer;
 
 import jakarta.mail.Address;
@@ -49,21 +49,23 @@ public final class TransportWrapper  {
 
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
 		try {
-			call(()-> trsp.sendMessage(arg0, arg1), appendAction(SEND));
+			run(()-> trsp.sendMessage(arg0, arg1), appendAction(SEND));
 		}
-		finally {
-			req.setSubject(arg0.getSubject());
-			req.setFrom(Stream.of(arg0.getFrom()).map(Address::toString).toArray(String[]::new));
-			req.setContentType(arg0.getContentType());
-			req.setRecipients(Stream.of(arg0.getAllRecipients()).map(Address::toString).toArray(String[]::new));
-			req.setReplyTo(Stream.of(arg0.getReplyTo()).map(Address::toString).toArray(String[]::new));
-			req.setSize(arg0.getSize());
+		finally { //safe
+			var mail = new Mail();
+			mail.setSubject(arg0.getSubject());
+			mail.setFrom(toStringArray(arg0.getFrom()));
+			mail.setContentType(arg0.getContentType());
+			mail.setRecipients(toStringArray(arg0.getAllRecipients()));
+			mail.setReplyTo(toStringArray(arg0.getReplyTo()));
+			mail.setSize(arg0.getSize());
+			req.getMails().add(mail);
 		}
 	}
 
 	public void close() throws MessagingException {
 		try {
-			call(trsp::close, appendAction(DISCONNECTION));
+			run(trsp::close, appendAction(DISCONNECTION));
 		}
 		finally {
 			req.setEnd(now());
@@ -72,7 +74,7 @@ public final class TransportWrapper  {
 	
 	private void connect(String host, Integer port, String user, SafeRunnable<MessagingException> runnable) throws MessagingException {
 		try {
-			call(runnable, appendAction(CONNECTION));
+			run(runnable, appendAction(CONNECTION));
 		}
 		finally {
 			var url = trsp.getURLName();
@@ -92,22 +94,29 @@ public final class TransportWrapper  {
 	
 	<T> StageConsumer<T> appendAction(MailAction action) {
 		return (s,e,o,t)-> {
-			var fa = new MailRequestStage();
-			fa.setName(action.name());
-			fa.setStart(s);
-			fa.setEnd(e);
-			fa.setException(mainCauseException(t));
-			req.getActions().add(fa);
+			var rs = new MailRequestStage();
+			rs.setName(action.name());
+			rs.setStart(s);
+			rs.setEnd(e);
+			rs.setException(mainCauseException(t));
+			req.getActions().add(rs);
 		};
+	}
+	
+	public static TransportWrapper wrap(Transport trsp) {
+		var req = new MailRequest();
+		req.setActions(new LinkedList<>());
+		req.setMails(new LinkedList<>());
+		return new TransportWrapper(trsp, req);
 	}
 	
 	private static <T> T requireNonNull(T o, Supplier<T> supp) {
 		return isNull(o) ? supp.get() : o;
 	}
 	
-	public static TransportWrapper wrap(Transport trsp) {
-		var req = new MailRequest();
-		req.setActions(new LinkedList<>());
-		return new TransportWrapper(trsp, req);
+	private static String[] toStringArray(Address... address) {
+		return isNull(address) 
+			? null 
+			: Stream.of(address).map(Address::toString).toArray(String[]::new);
 	}
 }

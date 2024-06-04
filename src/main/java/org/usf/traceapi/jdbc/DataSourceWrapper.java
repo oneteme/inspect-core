@@ -10,7 +10,7 @@ import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
-import static org.usf.traceapi.core.StageTracker.supply;
+import static org.usf.traceapi.core.StageTracker.call;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 import javax.sql.DataSource;
 
 import org.usf.traceapi.core.DatabaseRequest;
-import org.usf.traceapi.core.SafeSupplier;
+import org.usf.traceapi.core.SafeCallable;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
@@ -48,14 +48,14 @@ public final class DataSourceWrapper implements DataSource {
 		return getConnection(()-> ds.getConnection(username, password));
 	}
 	
-	private Connection getConnection(SafeSupplier<Connection, SQLException> cnSupp) throws SQLException {
+	private Connection getConnection(SafeCallable<Connection, SQLException> cnSupp) throws SQLException {
 		var session = localTrace.get();
 		if(isNull(session)) {
 			warnNoActiveSession();
 			return cnSupp.get();
 		}
 		JDBCActionTracer tracer = new JDBCActionTracer();
-		return supply(()-> tracer.connection(cnSupp), (s,e,cn,t)->{
+		return call(()-> tracer.connection(cnSupp), (s,e,cn,t)->{
 			var out = new DatabaseRequest();
 			out.setStart(s);
 			out.setThreadName(threadName());

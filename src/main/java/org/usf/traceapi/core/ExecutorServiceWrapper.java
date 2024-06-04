@@ -1,16 +1,12 @@
 package org.usf.traceapi.core;
 
 import static java.util.Objects.isNull;
-import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.stackTraceElement;
-import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
+import static org.usf.traceapi.core.Session.sessionStageAppender;
 import static org.usf.traceapi.core.StageTracker.call;
-import static org.usf.traceapi.core.StageTracker.supply;
+import static org.usf.traceapi.core.StageTracker.run;
 
-import java.time.Instant;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -55,13 +51,13 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		}
 		session.lock(); //important! sync lock
 		try {
-			var ost = stackTraceElement(); //important! on parent thread
+			var app = sessionStageAppender(session); //important! run on parent thread
 			return fn.apply(()->{
 		    	if(localTrace.get() != session) {
 		    		localTrace.set(session); //thread already exists
 		    	}
 		    	try {
-			    	call(command::run, (s,e,o,t)-> session.append(createStage(ost, s, e, t)));
+			    	run(command::run, app);
 		    	}
 		    	finally {
 					session.unlock();
@@ -83,13 +79,13 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		}
 		session.lock(); //important! sync lock
 		try {
-			var ost = stackTraceElement(); //important! on parent thread
+			var app = sessionStageAppender(session); //important! run on parent thread
 			return fn.apply(()->{
 		    	if(localTrace.get() != session) {
 		    		localTrace.set(session); //thread already exists
 		    	}
 		    	try {
-		    		return supply(command::call, (s,e,o,t)-> session.append(createStage(ost, s, e, t)));
+		    		return call(command::call, app);
 		    	}
 		    	finally {
 					session.unlock();
@@ -105,19 +101,5 @@ public final class ExecutorServiceWrapper implements ExecutorService {
         
 	public static ExecutorServiceWrapper wrap(@NonNull ExecutorService es) {
 		return new ExecutorServiceWrapper(es);
-	}
-	
-	static SessionStage createStage(Optional<StackTraceElement> ost, Instant beg, Instant fin, Throwable ex) {
-    	var rs = new SessionStage();
-		rs.setStart(beg);
-		rs.setEnd(fin);
-		rs.setThreadName(threadName());
-		rs.setException(mainCauseException(ex));
-		ost.ifPresent(st->{
-    		rs.setName(st.getMethodName());
-    		rs.setLocation(st.getClassName());
-		});
-		//no user
-		return rs;
 	}
 }

@@ -3,12 +3,11 @@ package org.usf.traceapi.core;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
 import static org.usf.traceapi.core.Session.nextId;
-import static org.usf.traceapi.core.StageTracker.supply;
+import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
 import java.time.Instant;
@@ -51,7 +50,7 @@ public class TraceableAspect {
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
 		var session = localTrace.get();
     	if(nonNull(localTrace.get())) { //sub trace
-    		return supply(joinPoint::proceed, (s,e,o,t)-> {
+    		return call(joinPoint::proceed, (s,e,o,t)-> {
     	    	var rs = new SessionStage();
     			fill(rs, s, e, joinPoint, t);
     			session.append(rs);
@@ -59,9 +58,8 @@ public class TraceableAspect {
     	} //TD merge 2 block
     	var ms = synchronizedMainSession(nextId());
     	localTrace.set(ms);
-    	log.trace("session : {} <= {}", ms.getId(), joinPoint.getSignature());
     	try {
-        	return supply(joinPoint::proceed, (s,e,o,t)-> {
+        	return call(joinPoint::proceed, (s,e,o,t)-> {
     			ms.setType(((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class).type().toString());
     			fill(ms, s, e, joinPoint, t);
     			emit(ms);

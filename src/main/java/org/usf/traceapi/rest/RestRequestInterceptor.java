@@ -11,7 +11,7 @@ import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
-import static org.usf.traceapi.core.StageTracker.supply;
+import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.io.IOException;
@@ -40,7 +40,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			warnNoActiveSession();
 			return execution.execute(request, body);
 		}
-		return supply(()-> execution.execute(request, body), (s,e,res,t)->{
+		return call(()-> execution.execute(request, body), (s,e,res,t)->{
 			var out = new RestRequest();
 			out.setMethod(request.getMethod().name());
 			out.setProtocol(request.getURI().getScheme());

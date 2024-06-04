@@ -18,7 +18,7 @@ import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.RestSession.synchronizedApiSession;
 import static org.usf.traceapi.core.Session.nextId;
-import static org.usf.traceapi.core.StageTracker.call;
+import static org.usf.traceapi.core.StageTracker.run;
 import static org.usf.traceapi.core.StageUpdater.getUser;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
@@ -66,7 +66,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 		var cRes = new ContentCachingResponseWrapper(res);
     	try {
-        	call(()-> filterChain.doFilter(req, cRes), (s,e,o,t)->{
+        	run(()-> filterChain.doFilter(req, cRes), (s,e,o,t)->{
 	    		var uri = create(req.getRequestURL().toString());
 	    		in.setMethod(req.getMethod());
 	    		in.setProtocol(uri.getScheme());

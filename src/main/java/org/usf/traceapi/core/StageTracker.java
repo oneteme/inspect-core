@@ -6,7 +6,7 @@ import static org.usf.traceapi.core.Helper.log;
 import java.time.Instant;
 import java.util.function.Supplier;
 
-import org.usf.traceapi.core.SafeSupplier.SafeRunnable;
+import org.usf.traceapi.core.SafeCallable.SafeRunnable;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -19,24 +19,24 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StageTracker {
 
-	public static <E extends Throwable> void call(SafeRunnable<E> fn, StageConsumer<Void> cons) throws E {
-		supply(fn, cons);
+	public static <E extends Throwable> void run(SafeRunnable<E> fn, StageConsumer<? super Void> cons) throws E {
+		call(fn, cons);
 	}
 
-	public static <E extends Throwable> void call(Supplier<Instant> startSupp, SafeRunnable<E> fn, StageConsumer<Void> cons) throws E {
-		supply(startSupp, fn, cons);
+	public static <E extends Throwable> void run(Supplier<Instant> startSupp, SafeRunnable<E> fn, StageConsumer<? super Void> cons) throws E {
+		call(startSupp, fn, cons);
 	}
 
-	public static <T, E extends Throwable> T supply(SafeSupplier<T,E> fn, StageConsumer<T> cons) throws E {
-		return supply(Instant::now, fn, cons);
+	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, StageConsumer<? super T> cons) throws E {
+		return call(Instant::now, fn, cons);
 	}
 
-	public static <T, E extends Throwable> T supply(Supplier<Instant> startSupp, SafeSupplier<T,E> fn, StageConsumer<T> cons) throws E {
+	public static <T, E extends Throwable> T call(Supplier<Instant> startSupp, SafeCallable<T,E> fn, StageConsumer<? super T> cons) throws E {
 		T o = null;
 		Throwable t = null;
 		var s = startSupp.get();
 		try {
-			return (o = fn.get());
+			return (o = fn.call());
 		}
 		catch(Throwable e) { //also error
 			t  = e;

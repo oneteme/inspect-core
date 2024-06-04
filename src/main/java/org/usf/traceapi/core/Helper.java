@@ -62,7 +62,6 @@ public final class Helper {
 		return empty();
 	}
 	
-	
 	public static void warnNoActiveSession() {
 		log.warn("no active session");
 		if(nonNull(basePackage) && !basePackage.isBlank()) {
