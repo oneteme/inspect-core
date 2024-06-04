@@ -4,11 +4,18 @@ import static java.time.Duration.ofSeconds;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.usf.traceapi.core.Helper.log;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
@@ -69,11 +76,27 @@ public final class RemoteTraceSender implements TraceHandler {
 	private static RestTemplate createRestTemplate() {
 		var convert = new MappingJackson2HttpMessageConverter(createObjectMapper());
 	    var timeout = ofSeconds(30);
-	    return new RestTemplateBuilder()
+	    return new RestTemplateBuilder() 
+	    		.interceptors(RemoteTraceSender::compressRequest)
 	    		.messageConverters(singletonList(convert))
 				.setConnectTimeout(timeout)
 				.setReadTimeout(timeout)
 				.build();
+	}
+	
+	public static ClientHttpResponse compressRequest(HttpRequest req, byte[] body, ClientHttpRequestExecution exec) throws IOException {
+		if(body.length >= 5_000) { //over 5Ko
+		    var baos = new ByteArrayOutputStream();
+		    try (var gzipOutputStream = new GZIPOutputStream(baos)) {
+		        gzipOutputStream.write(body);
+			    req.getHeaders().add(CONTENT_ENCODING, "gzip");
+		        body = baos.toByteArray();
+		    }
+		    catch (Exception e) {
+		    	//do not throw exception
+		    }
+		}
+    	return exec.execute(req, body);
 	}
 	
 	private static ObjectMapper createObjectMapper() {

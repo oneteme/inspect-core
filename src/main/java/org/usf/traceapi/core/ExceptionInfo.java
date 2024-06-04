@@ -19,5 +19,4 @@ public final class ExceptionInfo {
 		}
 		return null;
 	}
-
 }
