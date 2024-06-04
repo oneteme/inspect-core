@@ -106,7 +106,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 				env.getProperty("spring.application.version"),
 				hostAddress(),
 				join(",", env.getActiveProfiles()),
-				getProperty("os.name"), //window 10 / Linux
+				getProperty("os.name"), //version ? window 10 / Linux
 				"java " + getProperty("java.version"),
 				getProperty("user.name"),
 				SERVER,

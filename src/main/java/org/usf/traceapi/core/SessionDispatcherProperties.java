@@ -37,6 +37,6 @@ public class SessionDispatcherProperties {
 		if(v > 0) {
 			return v;
 		}
-		throw new IllegalArgumentException(name + "=" +  v + " <= 0");
+		throw new IllegalArgumentException("trace." + name + "=" +  v + " <= 0");
 	}
 }

@@ -85,7 +85,7 @@ public final class RemoteTraceSender implements TraceHandler {
 	}
 	
 	public static ClientHttpResponse compressRequest(HttpRequest req, byte[] body, ClientHttpRequestExecution exec) throws IOException {
-		if(body.length >= 5_000) { //over 5Ko
+		if(body.length >= 5_000) { //over 5Ko config ?
 		    var baos = new ByteArrayOutputStream();
 		    try (var gzipOutputStream = new GZIPOutputStream(baos)) {
 		        gzipOutputStream.write(body);

@@ -28,9 +28,10 @@ public final class MainSession extends SessionStage implements Session {
 	@Deprecated(forRemoval = true, since = "v22")
 	private InstanceEnvironment application;
 	private Collection<RestRequest> requests;
-	private Collection<FtpRequest> ftpRequests;
 	private Collection<DatabaseRequest> queries;
 	private Collection<SessionStage> stages;
+	//v22
+	private Collection<FtpRequest> ftpRequests;
 
 	private final AtomicInteger lock = new AtomicInteger();
 	
