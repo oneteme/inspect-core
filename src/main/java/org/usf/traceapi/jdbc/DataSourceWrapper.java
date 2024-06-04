@@ -52,7 +52,7 @@ public final class DataSourceWrapper implements DataSource {
 		var session = localTrace.get();
 		if(isNull(session)) {
 			warnNoActiveSession();
-			return cnSupp.get();
+			return cnSupp.call();
 		}
 		JDBCActionTracer tracer = new JDBCActionTracer();
 		return call(()-> tracer.connection(cnSupp), (s,e,cn,t)->{

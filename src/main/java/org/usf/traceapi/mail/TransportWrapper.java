@@ -3,7 +3,7 @@ package org.usf.traceapi.mail;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
-import static org.usf.traceapi.core.StageTracker.run;
+import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.mail.MailAction.CONNECTION;
 import static org.usf.traceapi.mail.MailAction.DISCONNECTION;
 import static org.usf.traceapi.mail.MailAction.SEND;
@@ -49,7 +49,7 @@ public final class TransportWrapper  {
 
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
 		try {
-			run(()-> trsp.sendMessage(arg0, arg1), appendAction(SEND));
+			exec(()-> trsp.sendMessage(arg0, arg1), appendAction(SEND));
 		}
 		finally { //safe
 			var mail = new Mail();
@@ -65,7 +65,7 @@ public final class TransportWrapper  {
 
 	public void close() throws MessagingException {
 		try {
-			run(trsp::close, appendAction(DISCONNECTION));
+			exec(trsp::close, appendAction(DISCONNECTION));
 		}
 		finally {
 			req.setEnd(now());
@@ -74,7 +74,7 @@ public final class TransportWrapper  {
 	
 	private void connect(String host, Integer port, String user, SafeRunnable<MessagingException> runnable) throws MessagingException {
 		try {
-			run(runnable, appendAction(CONNECTION));
+			exec(runnable, appendAction(CONNECTION));
 		}
 		finally {
 			var url = trsp.getURLName();

@@ -6,7 +6,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.StageTracker.run;
+import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.jdbc.JDBCAction.BATCH;
 import static org.usf.traceapi.jdbc.JDBCAction.COMMIT;
@@ -59,7 +59,7 @@ public class JDBCActionTracer {
 	}
 
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
-		run(method, appendAction(DISCONNECTION));
+		exec(method, appendAction(DISCONNECTION));
 	}
 	
 	public StatementWrapper statement(SafeCallable<Statement, SQLException> supplier) throws SQLException {
@@ -79,7 +79,7 @@ public class JDBCActionTracer {
 	}
 
 	public ResultSetWrapper resultSet(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
-		return new ResultSetWrapper(supplier.get(), this, now());  // no need to trace this
+		return new ResultSetWrapper(supplier.call(), this, now());  // no need to trace this
 	}
 
 	public ResultSetWrapper executeQuery(String sql, SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
@@ -121,25 +121,25 @@ public class JDBCActionTracer {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} // PreparedStatement otherwise 
-		run(method, nonNull(sql) || actions.isEmpty() || !BATCH.name().equals(actions.getLast().getName())
+		exec(method, nonNull(sql) || actions.isEmpty() || !BATCH.name().equals(actions.getLast().getName())
 				? appendAction(BATCH, v-> new long[] {1})  //statement | first batch
 				: this::updateLast);
 	}
 	
 	public void commit(SafeRunnable<SQLException> method) throws SQLException {
-		run(method, appendAction(COMMIT));
+		exec(method, appendAction(COMMIT));
 	}
 	
 	public void rollback(SafeRunnable<SQLException> method) throws SQLException {
-		run(method, appendAction(ROLLBACK));
+		exec(method, appendAction(ROLLBACK));
 	}
 	
 	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
-		run(()-> start, method, appendAction(FETCH, v-> new long[] {n}));
+		exec(()-> start, method, appendAction(FETCH, v-> new long[] {n}));
 	}
 
 	public boolean moreResults(Statement st, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
-		if(supplier.get()) { // no need to trace this
+		if(supplier.call()) { // no need to trace this
 			if(nonNull(exec)) {
 				try {
 					var rows = st.getUpdateCount();

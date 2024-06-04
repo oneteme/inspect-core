@@ -18,7 +18,7 @@ import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.RestSession.synchronizedApiSession;
 import static org.usf.traceapi.core.Session.nextId;
-import static org.usf.traceapi.core.StageTracker.run;
+import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.core.StageUpdater.getUser;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
@@ -66,7 +66,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 		var cRes = new ContentCachingResponseWrapper(res);
     	try {
-        	run(()-> filterChain.doFilter(req, cRes), (s,e,o,t)->{
+        	exec(()-> filterChain.doFilter(req, cRes), (s,e,o,t)->{
 	    		var uri = create(req.getRequestURL().toString());
 	    		in.setMethod(req.getMethod());
 	    		in.setProtocol(uri.getScheme());
@@ -109,7 +109,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		        .anyMatch(p -> matcher.match(p, request.getServletPath()));
 	}
 	
-    @Override
+    @Override //Session stage !?
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
     	var in = (RestSession) localTrace.get();
         if(isNull(in)) {

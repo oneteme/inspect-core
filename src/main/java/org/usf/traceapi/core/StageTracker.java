@@ -19,11 +19,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StageTracker {
 
-	public static <E extends Throwable> void run(SafeRunnable<E> fn, StageConsumer<? super Void> cons) throws E {
+	public static <E extends Throwable> void exec(SafeRunnable<E> fn, StageConsumer<? super Void> cons) throws E {
 		call(fn, cons);
 	}
 
-	public static <E extends Throwable> void run(Supplier<Instant> startSupp, SafeRunnable<E> fn, StageConsumer<? super Void> cons) throws E {
+	public static <E extends Throwable> void exec(Supplier<Instant> startSupp, SafeRunnable<E> fn, StageConsumer<? super Void> cons) throws E {
 		call(startSupp, fn, cons);
 	}
 

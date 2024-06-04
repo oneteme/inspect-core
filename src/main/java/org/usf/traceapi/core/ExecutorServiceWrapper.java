@@ -5,7 +5,7 @@ import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.Session.sessionStageAppender;
 import static org.usf.traceapi.core.StageTracker.call;
-import static org.usf.traceapi.core.StageTracker.run;
+import static org.usf.traceapi.core.StageTracker.exec;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -57,7 +57,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		    		localTrace.set(session); //thread already exists
 		    	}
 		    	try {
-			    	run(command::run, app);
+			    	exec(command::run, app);
 		    	}
 		    	finally {
 					session.unlock();

@@ -7,7 +7,7 @@ import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
-import static org.usf.traceapi.core.StageTracker.run;
+import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.ftp.FtpAction.CD;
 import static org.usf.traceapi.ftp.FtpAction.CHGRP;
@@ -56,57 +56,57 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	@Override
 	public void connect() throws JSchException {
-		run(channel::connect, this.appendConnection());
+		exec(channel::connect, this.appendConnection());
 	}
 	
 	@Override
 	public void connect(int connectTimeout) throws JSchException {
-		run(()-> channel.connect(connectTimeout), appendConnection());
+		exec(()-> channel.connect(connectTimeout), appendConnection());
 	}
 	
 	@Override
 	public void disconnect() {
-		run(channel::disconnect, appendDisconnection());
+		exec(channel::disconnect, appendDisconnection());
 	}
 	
 	@Override
 	public void quit() {
-		run(channel::quit, appendDisconnection());
+		exec(channel::quit, appendDisconnection());
 	}
 	
 	@Override
 	public void exit() {
-		run(channel::exit, appendDisconnection());
+		exec(channel::exit, appendDisconnection());
 	}
 	
 	@Override
 	public void get(String src, String dst) throws SftpException {
-		run(()-> channel.get(src, dst), appendAction(GET, src, dst));
+		exec(()-> channel.get(src, dst), appendAction(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		run(()-> channel.get(src, dst, monitor), appendAction(GET, src, dst));
+		exec(()-> channel.get(src, dst, monitor), appendAction(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		run(()-> channel.get(src, dst, monitor, mode), appendAction(GET, src, dst));
+		exec(()-> channel.get(src, dst, monitor, mode), appendAction(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst) throws SftpException {
-		run(()-> channel.get(src, dst), appendAction(GET, src));
+		exec(()-> channel.get(src, dst), appendAction(GET, src));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst, SftpProgressMonitor monitor) throws SftpException {
-		run(()-> channel.get(src, dst, monitor), appendAction(GET, src));
+		exec(()-> channel.get(src, dst, monitor), appendAction(GET, src));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst, SftpProgressMonitor monitor, int mode, long skip) throws SftpException {
-		run(()-> channel.get(src, dst, monitor, mode, skip), appendAction(GET, src));
+		exec(()-> channel.get(src, dst, monitor, mode, skip), appendAction(GET, src));
 	}
 
 	@Override
@@ -147,54 +147,54 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	
 	@Override
 	public void ls(String path, LsEntrySelector selector) throws SftpException {
-		run(()-> channel.ls(path, selector), appendAction(LS, path));
+		exec(()-> channel.ls(path, selector), appendAction(LS, path));
 	}
 	
 	/* write */
 
 	@Override
 	public void put(String src, String dst) throws SftpException {
-		run(()-> channel.put(src, dst), appendAction(PUT, src, dst));
+		exec(()-> channel.put(src, dst), appendAction(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, int mode) throws SftpException {
-		run(()-> channel.put(src, dst, mode), appendAction(PUT, src, dst));
+		exec(()-> channel.put(src, dst, mode), appendAction(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		run(()-> channel.put(src, dst, monitor), appendAction(PUT, src, dst));
+		exec(()-> channel.put(src, dst, monitor), appendAction(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		run(()-> channel.put(src, dst, monitor, mode), appendAction(PUT, src, dst));
+		exec(()-> channel.put(src, dst, monitor, mode), appendAction(PUT, src, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst) throws SftpException {
-		run(()-> channel.put(src, dst), appendAction(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst), appendAction(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, int mode) throws SftpException {
-		run(()-> channel.put(src, dst, mode), appendAction(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, mode), appendAction(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		run(()-> channel.put(src, dst, monitor), appendAction(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, monitor), appendAction(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		run(()-> channel.put(src, dst, monitor, mode), appendAction(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, monitor, mode), appendAction(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void _put(InputStream src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		run(()-> channel._put(src, dst, monitor, mode), appendAction(PUT, BYTES, dst));
+		exec(()-> channel._put(src, dst, monitor, mode), appendAction(PUT, BYTES, dst));
 	}
 
 	@Override
@@ -219,42 +219,42 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	@Override
 	public void mkdir(String path) throws SftpException {
-		run(()-> channel.mkdir(path), appendAction(MKDIR, path));
+		exec(()-> channel.mkdir(path), appendAction(MKDIR, path));
 	}
 	
 	@Override
 	public void rename(String oldpath, String newpath) throws SftpException {
-		run(()-> channel.rename(oldpath, newpath), appendAction(RENAME, oldpath, newpath));
+		exec(()-> channel.rename(oldpath, newpath), appendAction(RENAME, oldpath, newpath));
 	}
 	
 	@Override
 	public void cd(String path) throws SftpException {
-		run(()-> channel.cd(path), appendAction(CD, path));
+		exec(()-> channel.cd(path), appendAction(CD, path));
 	}
 	
 	@Override
 	public void chmod(int permissions, String path) throws SftpException {
-		run(()-> channel.chmod(permissions, path), appendAction(CHMOD, ""+permissions, path));
+		exec(()-> channel.chmod(permissions, path), appendAction(CHMOD, ""+permissions, path));
 	}
 	
 	@Override
 	public void chown(int uid, String path) throws SftpException {
-		run(()-> channel.chown(uid, path), appendAction(CHOWN, ""+uid, path));
+		exec(()-> channel.chown(uid, path), appendAction(CHOWN, ""+uid, path));
 	}
 
 	@Override
 	public void chgrp(int gid, String path) throws SftpException {
-		run(()-> channel.chgrp(gid, path), appendAction(CHGRP, ""+gid, path));
+		exec(()-> channel.chgrp(gid, path), appendAction(CHGRP, ""+gid, path));
 	}
 	
 	@Override
 	public void rm(String path) throws SftpException {
-		run(()-> channel.rm(path), appendAction(RM, path));
+		exec(()-> channel.rm(path), appendAction(RM, path));
 	}
 	
 	@Override
 	public void rmdir(String path) throws SftpException {
-		run(()-> channel.rmdir(path), appendAction(RM, path));
+		exec(()-> channel.rmdir(path), appendAction(RM, path));
 	}
 	
 	StageConsumer<Void> appendConnection() {
