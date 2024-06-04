@@ -6,6 +6,7 @@ import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
+import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.StageTracker.call;
 
 import java.util.Collection;
@@ -84,7 +85,11 @@ public interface Session extends Metric {
 	
 	static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
 		var ses = localTrace.get();
-		return isNull(ses) ? fn.call() : call(fn, sessionStageAppender(name, ses));
+        if(isNull(ses)) {
+        	warnNoActiveSession();
+        	return fn.call();
+        }
+		return call(fn, sessionStageAppender(name, ses));
 	}
 
 	static StageConsumer<Object> sessionStageAppender(Session session) {

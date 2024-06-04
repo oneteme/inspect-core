@@ -27,7 +27,7 @@ public final class RestSession extends RestRequest implements Session { //Incomi
 	private InstanceEnvironment application;
 	private Collection<RestRequest> requests;	
 	private Collection<DatabaseRequest> queries;
-	private Collection<SessionStage> stages;
+	private Collection<SessionStage> stages; //RunnableStage
 	//v22
 	private Collection<FtpRequest> ftpRequests;
 	private String signature;

@@ -13,7 +13,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonIgnoreProperties("location")
-public class RestRequest extends SessionStage {
+public class RestRequest extends SessionStage { //APiRequest
 
 	private String id; // <= Traceable server
 	private String method; //GET, POST, PUT,..

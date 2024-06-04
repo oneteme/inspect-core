@@ -11,6 +11,7 @@ public final class ExceptionInfo {
 	
 	private final String classname; //type
 	private final String message;
+	//stack
 	
 	public static ExceptionInfo mainCauseException(Throwable t) {
 		if(nonNull(t)) {

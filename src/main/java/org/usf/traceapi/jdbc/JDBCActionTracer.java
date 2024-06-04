@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.LinkedList;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -110,7 +111,7 @@ public class JDBCActionTracer {
 		if(nonNull(sql)) {
 			commands.add(mainCommand(sql));
 		} //BATCH otherwise 
-		return call(supplier, appendAction(EXECUTE, countFn));
+		return call(supplier, appendAction(EXECUTE, (a,r)-> a.setCount(countFn.apply(r))));
 	}
 
 	public <T> T savePoint(SafeCallable<T, SQLException> supplier) throws SQLException {
@@ -122,7 +123,7 @@ public class JDBCActionTracer {
 			commands.add(mainCommand(sql));
 		} // PreparedStatement otherwise 
 		exec(method, nonNull(sql) || actions.isEmpty() || !BATCH.name().equals(actions.getLast().getName())
-				? appendAction(BATCH, v-> new long[] {1})  //statement | first batch
+				? appendAction(BATCH, (a,v)-> a.setCount(new long[] {1})) //statement | first batch
 				: this::updateLast);
 	}
 	
@@ -135,7 +136,10 @@ public class JDBCActionTracer {
 	}
 	
 	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
-		exec(()-> start, method, appendAction(FETCH, v-> new long[] {n}));
+		exec(method, appendAction(FETCH, (a, v)-> {
+			a.setStart(start); // differed start
+			a.setCount(new long[] {n});
+		}));
 	}
 
 	public boolean moreResults(Statement st, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
@@ -170,17 +174,17 @@ public class JDBCActionTracer {
 		return appendAction(action, null);
 	}
 	
-	<T> StageConsumer<T> appendAction(JDBCAction action, Function<T, long[]> countFn) {
+	<T> StageConsumer<T> appendAction(JDBCAction action, BiConsumer<DatabaseRequestStage, T> cons) {
 		return (s,e,o,t)->{
-			var rs = new DatabaseRequestStage();
-			rs.setName(action.name());
-			rs.setStart(s);
-			rs.setEnd(e);
-			rs.setException(mainCauseException(t));
-			if(nonNull(countFn)) {
-				rs.setCount(countFn.apply(o));
+			var stg = new DatabaseRequestStage();
+			stg.setName(action.name());
+			stg.setStart(s);
+			stg.setEnd(e);
+			stg.setException(mainCauseException(t));
+			if(nonNull(cons)) {
+				cons.accept(stg,o);
 			}
-			actions.add(rs);
+			actions.add(stg);
 		};
 	}
 	
