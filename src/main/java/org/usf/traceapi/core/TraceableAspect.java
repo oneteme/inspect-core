@@ -1,10 +1,12 @@
 package org.usf.traceapi.core;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
 import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.StageTracker.call;
@@ -19,6 +21,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.usf.traceapi.core.StageTracker.StageConsumer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,7 +38,10 @@ public class TraceableAspect {
     @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
     Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
 		var session = (RestSession) localTrace.get();
-		if(nonNull(session) && nonNull(joinPoint.getArgs())) {
+		if(isNull(session)) {
+			warnNoActiveSession();
+		}
+		else if(nonNull(joinPoint.getArgs())) {
 			Stream.of(joinPoint.getArgs())
 					.filter(Throwable.class::isInstance)
 					.findFirst()
@@ -48,12 +54,12 @@ public class TraceableAspect {
 	
     @Around("@annotation(TraceableStage)")
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
-		var session = localTrace.get();
+		var ses = localTrace.get();
     	if(nonNull(localTrace.get())) { //sub trace
     		return call(joinPoint::proceed, (s,e,o,t)-> {
-    	    	var rs = new SessionStage();
-    			fill(rs, s, e, joinPoint, t);
-    			session.append(rs);
+    	    	var ss = new SessionStage();
+    			fill(ss, s, e, joinPoint, t);
+    			ses.append(ss);
     		});
     	} //TD merge 2 block
     	var ms = synchronizedMainSession(nextId());
@@ -69,7 +75,7 @@ public class TraceableAspect {
 			localTrace.remove();
     	}
     }
-
+    
     static void fill(SessionStage sg, Instant beg, Instant fin, ProceedingJoinPoint joinPoint, Throwable e) {
     	var ant = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class);
 		sg.setStart(beg);

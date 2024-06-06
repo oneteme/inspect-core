@@ -287,29 +287,30 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		var session = localTrace.get();
 		if(isNull(session)) {
 			warnNoActiveSession();
-			return channel;
 		}
-		try {
-			var ses = channel.getSession();
-			var req = new FtpRequest();
-			req.setHost(ses.getHost());
-			req.setPort(ses.getPort());
-			req.setServerVersion(ses.getServerVersion());
-			req.setClientVersion(ses.getClientVersion());
-			stackTraceElement().ifPresent(s->{
-				req.setName(s.getMethodName());
-				req.setLocation(s.getClassName());
-			});
-			req.setThreadName(threadName());
-			req.setUser(ses.getUserName());
-			req.setActions(new LinkedList<>());
-//			req.setHome(channel.getHome())
-			session.append(req);
-			return new ChannelSftpWrapper(channel, req);
+		else {
+			try {
+				var ses = channel.getSession();
+				var req = new FtpRequest();
+				req.setHost(ses.getHost());
+				req.setPort(ses.getPort());
+				req.setServerVersion(ses.getServerVersion());
+				req.setClientVersion(ses.getClientVersion());
+				stackTraceElement().ifPresent(s->{
+					req.setName(s.getMethodName());
+					req.setLocation(s.getClassName());
+				});
+				req.setThreadName(threadName());
+				req.setUser(ses.getUserName());
+				req.setActions(new LinkedList<>());
+//				req.setHome(channel.getHome())
+				session.append(req);
+				return new ChannelSftpWrapper(channel, req);
+			}
+			catch (Exception e) {
+				//do not throw exception
+			}
 		}
-		catch (Exception e) {
-			//do not throw exception
-			return channel;
-		}
+		return channel;
 	}
 }
