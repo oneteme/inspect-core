@@ -24,7 +24,7 @@ import lombok.Setter;
 public final class MainSession extends SessionStage implements Session {
 	
 	private String id;
-	private String type; //@see 
+	private String type; //@see MainSessionType
 	@Deprecated(forRemoval = true, since = "v22")
 	private InstanceEnvironment application;
 	private Collection<RestRequest> requests;

@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import org.usf.traceapi.core.Mail;
 import org.usf.traceapi.core.MailRequest;
 import org.usf.traceapi.core.MailRequestStage;
 import org.usf.traceapi.core.SafeCallable.SafeRunnable;

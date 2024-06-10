@@ -56,10 +56,8 @@ public final class ScheduledSessionDispatcher {
 			log.trace("{} sessions buffered", queue.size());
 			return true;
 		}
-    	else {
-    		log.warn("{} sessions rejected, dispatcher.state={}", sessions.length, state);
-    		return false;
-    	}
+		log.warn("{} sessions rejected, dispatcher.state={}", sessions.length, state);
+		return false;
 	}
 	
 	public void updateState(State state) {
@@ -73,6 +71,15 @@ public final class ScheduledSessionDispatcher {
     	else {
     		log.warn("dispatcher.state={}", state);
     	}
+    	if(state != DISPACH || attempts > 0) {
+        	doSync(q-> { //state != DISPATCH || !dispatch
+        		if(properties.getBufferMaxSize() > -1 && q.size() > properties.getBufferMaxSize()) {
+        			var diff = q.size() - properties.getBufferMaxSize();
+        			q.subList(properties.getBufferMaxSize(), q.size()).clear();  //remove exceeding cache sessions (LIFO)
+    	    		log.warn("{} last sessions have been removed from buffer", diff); 
+        		}
+    		});
+    	}
     }
 
     private void dispatch() {
@@ -85,17 +92,11 @@ public final class ScheduledSessionDispatcher {
 	        	}
 	    	}
 	    	catch (Exception e) {// do not throw exception : retry later
-	    		log.warn("error while dispatching {} sessions, attempts={} because : {}", cs.size(), attempts, e.getMessage()); //do not log exception stack trace
+	    		log.warn("error while dispatching {} sessions, attempts={} because : {}", 
+	    				cs.size(), attempts, e.getMessage()); //do not log exception stack trace
 			}
 	        if(attempts > 0) { //exception | !dispatch
-	        	doSync(q-> {
-	        		q.addAll(0, cs);
-		    		if(properties.getBufferMaxSize() > -1 && q.size() > properties.getBufferMaxSize()) {
-		    			var diff = q.size() - properties.getBufferMaxSize();
-		    			q.subList(properties.getBufferMaxSize(), q.size()).clear();  //remove exceeding cache sessions (LIFO)
-			    		log.warn("{} last sessions have been removed from buffer", diff); 
-		    		}
-				});
+	        	doSync(q-> q.addAll(0, cs));
 	        }
         }
     }
@@ -179,6 +180,6 @@ public final class ScheduledSessionDispatcher {
 	@FunctionalInterface
 	public interface Dispatcher {
 		
-		boolean dispatch(int attempts, List<Session> sessions);
+		boolean dispatch(int attempts, List<Session> sessions) throws Exception; //TD return List<Session> dispatched sessions  
 	}
 }

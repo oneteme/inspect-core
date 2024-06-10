@@ -21,7 +21,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.usf.traceapi.core.StageTracker.StageConsumer;
 
 import lombok.RequiredArgsConstructor;
 

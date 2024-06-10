@@ -8,7 +8,6 @@ import static org.usf.traceapi.jdbc.SqlCommand.mainCommand;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
-import org.usf.traceapi.jdbc.SqlCommand;
 
 //https://www.guru99.com/sql-commands-dbms-query.html
 

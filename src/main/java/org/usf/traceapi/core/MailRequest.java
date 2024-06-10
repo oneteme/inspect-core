@@ -2,11 +2,14 @@ package org.usf.traceapi.core;
 
 import java.util.List;
 
-import org.usf.traceapi.mail.Mail;
-
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Setter
 @Getter
 public final class MailRequest extends SessionStage {
