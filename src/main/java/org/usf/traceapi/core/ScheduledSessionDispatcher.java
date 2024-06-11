@@ -69,11 +69,11 @@ public final class ScheduledSessionDispatcher {
     	else {
     		log.warn("dispatcher.state={}", state);
     	}
-    	if(state != DISPACH || attempts > 0) { // !DISPACH | dispatch=fail
+    	if(properties.getBufferMaxSize() > -1 && (state != DISPACH || attempts > 0)) { // !DISPACH | dispatch=fail
         	doSync(q-> { 
-        		if(properties.getBufferMaxSize() > -1 && q.size() > properties.getBufferMaxSize()) {
+        		if(q.size() > properties.getBufferMaxSize()) {
         			var diff = q.size() - properties.getBufferMaxSize();
-        			q.subList(properties.getBufferMaxSize(), q.size()).clear();  //remove exceeding cache sessions (LIFO)
+        			q.subList(properties.getBufferMaxSize(), q.size()).clear(); //remove exceeding cache sessions (LIFO)
     	    		log.warn("{} last sessions have been removed from buffer", diff); 
         		}
     		});
@@ -147,7 +147,7 @@ public final class ScheduledSessionDispatcher {
     }
  
     public void shutdown() throws InterruptedException {
-    	updateState(DISABLE); //stop add Sessions
+    	updateState(DISABLE); //stop add sessions
     	log.info("shutting down scheduler service");
     	try {
     		executor.shutdown(); //cancel future
