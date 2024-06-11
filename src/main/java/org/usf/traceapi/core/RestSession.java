@@ -21,7 +21,7 @@ import lombok.Setter;
 @Setter
 @JsonTypeName("api")
 @JsonIgnoreProperties("lock")
-public final class RestSession extends RestRequest implements Session { //IncomingRequest
+public final class RestSession extends RestRequest implements Session {
 
 	@Deprecated(forRemoval = true, since = "v22")
 	private InstanceEnvironment application;
@@ -30,7 +30,8 @@ public final class RestSession extends RestRequest implements Session { //Incomi
 	private Collection<SessionStage> stages; //RunnableStage
 	//v22
 	private Collection<FtpRequest> ftpRequests;
-	private String signature;
+	private String userAgent; //Mozilla, Chrome, curl, PostmanRuntime, ..
+	private String signature; //method name
 
 	private final AtomicInteger lock = new AtomicInteger();
 	

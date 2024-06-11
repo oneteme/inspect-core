@@ -6,13 +6,11 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toCollection;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.State.DISABLE;
 import static org.usf.traceapi.core.State.DISPACH;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
@@ -71,8 +69,8 @@ public final class ScheduledSessionDispatcher {
     	else {
     		log.warn("dispatcher.state={}", state);
     	}
-    	if(state != DISPACH || attempts > 0) {
-        	doSync(q-> { //state != DISPATCH || !dispatch
+    	if(state != DISPACH || attempts > 0) { // !DISPACH | dispatch=fail
+        	doSync(q-> { 
         		if(properties.getBufferMaxSize() > -1 && q.size() > properties.getBufferMaxSize()) {
         			var diff = q.size() - properties.getBufferMaxSize();
         			q.subList(properties.getBufferMaxSize(), q.size()).clear();  //remove exceeding cache sessions (LIFO)
@@ -110,7 +108,7 @@ public final class ScheduledSessionDispatcher {
     		if(nonNull(filter)) {
     			s = s.filter(filter);
     		}
-    		return s.collect(toCollection(SessionList::new));
+    		return s.toList();
     	});
     }
     
@@ -120,11 +118,11 @@ public final class ScheduledSessionDispatcher {
     			return emptyList();
     		}
     		if(isNull(filter)) {
-    			var c = new SessionList(q);
+    			var c = new ArrayList<>(q);
     			q.clear();
     			return c;
     		}
-    		var c = new SessionList(q.size());
+    		var c = new ArrayList<Session>(q.size());
     		for(var it=q.iterator(); it.hasNext();) {
     			var o = it.next();
     			if(filter.test(o)) {
@@ -159,27 +157,10 @@ public final class ScheduledSessionDispatcher {
     		tryDispatch();
 		}
     }
-    
-	//jackson issue @JsonTypeInfo : https://github.com/FasterXML/jackson-databind/issues/23
-	@SuppressWarnings("serial") 
-	static final class SessionList extends ArrayList<Session> {
-
-		public SessionList() {
-			super();
-		}
-		
-		public SessionList(int initialCapacity) {
-			super(initialCapacity);
-		}
-
-		public SessionList(Collection<? extends Session> c) {
-			super(c);
-		}
-	}
 	
 	@FunctionalInterface
 	public interface Dispatcher {
 		
-		boolean dispatch(int attempts, List<Session> sessions) throws Exception; //TD return List<Session> dispatched sessions  
+		boolean dispatch(int attempts, List<? extends Session> sessions) throws Exception; //TD return List<Session> dispatched sessions  
 	}
 }

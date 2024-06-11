@@ -9,6 +9,7 @@ import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
+import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
@@ -81,6 +82,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				in.setOutDataSize(cRes.getContentSize());
 				in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 				in.setOutContentEncoding(res.getHeader(CONTENT_ENCODING)); 
+				in.setUserAgent(res.getHeader(USER_AGENT));
 	    		in.setStart(s);
 	    		in.setEnd(e);
     			in.setThreadName(threadName());

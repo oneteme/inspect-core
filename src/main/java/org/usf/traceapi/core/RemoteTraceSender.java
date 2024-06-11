@@ -67,7 +67,7 @@ public final class RemoteTraceSender implements TraceHandler {
     private boolean sendCompleted(int attemps, List<? extends Session> sessions) {
     	tryRegisterServer(); //if not already registered
     	if(nonNull(instanceId)) {
-    		template.put(properties.sessionApiURL(), sessions, instanceId);
+    		template.put(properties.sessionApiURL(), sessions.toArray(Session[]::new), instanceId);
     		return true;
     	}
     	return false;
@@ -87,20 +87,18 @@ public final class RemoteTraceSender implements TraceHandler {
 	public static ClientHttpResponse compressRequest(HttpRequest req, byte[] body, ClientHttpRequestExecution exec) throws IOException {
 		if(body.length >= 5_000) { //over 5Ko config ?
 		    var baos = new ByteArrayOutputStream();
-		    try (var gzipOutputStream = new GZIPOutputStream(baos)) {
-		        gzipOutputStream.write(body);
+		    try (var gos = new GZIPOutputStream(baos)) {
+		        gos.write(body);
 			    req.getHeaders().add(CONTENT_ENCODING, "gzip");
 		        body = baos.toByteArray();
 		    }
-		    catch (Exception e) {
-		    	//do not throw exception
-		    }
+		    catch (Exception e) {/*do not throw exception */}
 		}
     	return exec.execute(req, body);
 	}
 	
 	private static ObjectMapper createObjectMapper() {
-	     ObjectMapper mapper = new ObjectMapper();
+	     var mapper = new ObjectMapper();
 	     mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required
 	     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY); //v22
 //	     mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
