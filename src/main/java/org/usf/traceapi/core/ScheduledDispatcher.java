@@ -30,7 +30,7 @@ public final class ScheduledDispatcher<T> {
 	
     private final SessionDispatcherProperties properties;
     private final Dispatcher<T> dispatcher;
-    private final Predicate<T> filter;
+    private final Predicate<? super T> filter;
     private final List<T> queue;
     @Getter
     private volatile State state = DISPACH;
@@ -40,7 +40,7 @@ public final class ScheduledDispatcher<T> {
     	this(properties, dispatcher, null);
     }
     
-	public ScheduledDispatcher(SessionDispatcherProperties properties, Dispatcher<T> dispatcher, Predicate<T> filter) {
+	public ScheduledDispatcher(SessionDispatcherProperties properties, Dispatcher<T> dispatcher, Predicate<? super T> filter) {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.filter = filter;
