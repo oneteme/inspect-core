@@ -24,37 +24,38 @@ import lombok.Getter;
  * @author u$f
  *
  */
-public final class ScheduledSessionDispatcher {
+public final class ScheduledDispatcher<T> {
 	
 	final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 	
-    private final List<Session> queue;
     private final SessionDispatcherProperties properties;
-    private final Dispatcher dispatcher;
-    private final Predicate<Session> filter;
+    private final Dispatcher<T> dispatcher;
+    private final Predicate<T> filter;
+    private final List<T> queue;
     @Getter
     private volatile State state = DISPACH;
     private int attempts;
     
-    public ScheduledSessionDispatcher(SessionDispatcherProperties properties, Dispatcher dispatcher) {
-    	this(properties, null, dispatcher);
+    public ScheduledDispatcher(SessionDispatcherProperties properties, Dispatcher<T> dispatcher) {
+    	this(properties, dispatcher, null);
     }
     
-	public ScheduledSessionDispatcher(SessionDispatcherProperties properties, Predicate<Session> filter, Dispatcher dispatcher) {
-		this.queue = new ArrayList<>(properties.getBufferSize());
+	public ScheduledDispatcher(SessionDispatcherProperties properties, Dispatcher<T> dispatcher, Predicate<T> filter) {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.filter = filter;
+		this.queue = new ArrayList<>(properties.getBufferSize());
     	executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 
-	public boolean add(Session... sessions) {
+	@SuppressWarnings("unchecked")
+	public boolean add(T... arr) {
 		if(state != DISABLE) { // CACHE | DISPATCH
-			doSync(q-> addAll(q, sessions));
-			log.trace("{} sessions buffered", queue.size());
+			doSync(q-> addAll(q, arr));
+			log.trace("{} items buffered", queue.size());
 			return true;
 		}
-		log.warn("{} sessions rejected, dispatcher.state={}", sessions.length, state);
+		log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
 		return false;
 	}
 	
@@ -74,23 +75,23 @@ public final class ScheduledSessionDispatcher {
         		if(q.size() > properties.getBufferMaxSize()) {
         			var diff = q.size() - properties.getBufferMaxSize();
         			q.subList(properties.getBufferMaxSize(), q.size()).clear(); //remove exceeding cache sessions (LIFO)
-    	    		log.warn("{} last sessions have been removed from buffer", diff); 
+    	    		log.warn("{} last items have been removed from buffer", diff); 
         		}
     		});
     	}
     }
 
     private void dispatch() {
-    	var cs = popSessions();
+    	var cs = pop();
         if(!cs.isEmpty()) {
-	        log.trace("scheduled dispatching {} sessions..", cs.size());
+	        log.trace("scheduled dispatching {} items..", cs.size());
 	        try {
 	        	if(dispatcher.dispatch(++attempts, cs)) {
 	        		attempts=0;
 	        	}
 	    	}
 	    	catch (Exception e) {// do not throw exception : retry later
-	    		log.warn("error while dispatching {} sessions, attempts={} because : {}", 
+	    		log.warn("error while dispatching {} items, attempts={} because : {}", 
 	    				cs.size(), attempts, e.getMessage()); //do not log exception stack trace
 			}
 	        if(attempts > 0) { //exception | !dispatch
@@ -99,7 +100,7 @@ public final class ScheduledSessionDispatcher {
         }
     }
 
-    public List<Session> peekSessions() {
+    public List<T> peek() {
     	return applySync(q-> {
     		if(q.isEmpty()) {
     			return emptyList();
@@ -112,7 +113,7 @@ public final class ScheduledSessionDispatcher {
     	});
     }
     
-    List<Session> popSessions() {
+    List<T> pop() {
     	return applySync(q-> {
     		if(q.isEmpty()) {
     			return emptyList();
@@ -122,7 +123,7 @@ public final class ScheduledSessionDispatcher {
     			q.clear();
     			return c;
     		}
-    		var c = new ArrayList<Session>(q.size());
+    		var c = new ArrayList<T>(q.size());
     		for(var it=q.iterator(); it.hasNext();) {
     			var o = it.next();
     			if(filter.test(o)) {
@@ -134,20 +135,20 @@ public final class ScheduledSessionDispatcher {
     	});
     }
 
-    private void doSync(Consumer<List<Session>> cons) {
+    private void doSync(Consumer<List<T>> cons) {
     	synchronized(queue){
 			cons.accept(queue);
 		}
     }
 
-    private <T> T applySync(Function<List<Session>, T> fn) {
+    private <R> R applySync(Function<List<T>, R> fn) {
 		synchronized(queue){
 			return fn.apply(queue);
 		}
     }
  
     public void shutdown() throws InterruptedException {
-    	updateState(DISABLE); //stop add sessions
+    	updateState(DISABLE); //stop add items
     	log.info("shutting down scheduler service");
     	try {
     		executor.shutdown(); //cancel future
@@ -159,8 +160,8 @@ public final class ScheduledSessionDispatcher {
     }
 	
 	@FunctionalInterface
-	public interface Dispatcher {
+	public interface Dispatcher<T> {
 		
-		boolean dispatch(int attempts, List<? extends Session> sessions) throws Exception; //TD return List<Session> dispatched sessions  
+		boolean dispatch(int attempts, List<? extends T> list) throws Exception; //TD return List<Session> dispatched sessions  
 	}
 }

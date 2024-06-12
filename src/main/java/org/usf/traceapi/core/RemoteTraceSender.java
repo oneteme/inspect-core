@@ -32,8 +32,8 @@ public final class RemoteTraceSender implements TraceHandler {
 	
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
-	private final ScheduledSessionDispatcher dispatcher;
 	private final InstanceEnvironment application;
+	private final ScheduledDispatcher<Session> dispatcher;
 	private String instanceId;
 
 	public RemoteTraceSender(TraceConfigurationProperties properties, InstanceEnvironment application) {
@@ -44,7 +44,7 @@ public final class RemoteTraceSender implements TraceHandler {
 		this.properties = properties;
 		this.template = template;
 		this.application = application;
-		this.dispatcher = new ScheduledSessionDispatcher(properties, Session::wasCompleted, this::sendCompleted);
+		this.dispatcher = new ScheduledDispatcher<Session>(properties, this::send, Session::completed); //java compiler !?
 		tryRegisterServer();
 	}
 	
@@ -64,7 +64,7 @@ public final class RemoteTraceSender implements TraceHandler {
 		dispatcher.add(session);
 	}
 	
-    private boolean sendCompleted(int attemps, List<? extends Session> sessions) {
+    private boolean send(int attemps, List<? extends Session> sessions) {
     	tryRegisterServer(); //if not already registered
     	if(nonNull(instanceId)) {
     		template.put(properties.sessionApiURL(), sessions.toArray(Session[]::new), instanceId);

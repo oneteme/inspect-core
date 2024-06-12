@@ -66,7 +66,7 @@ public interface Session extends Metric {
 		getLock().decrementAndGet();
 	}
 	
-	default boolean wasCompleted() {
+	default boolean completed() {
 		var c = getLock().get();
 		if(c < 0) {
 			log.warn("illegal session lock state={}, {}", c, this);
