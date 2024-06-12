@@ -44,7 +44,7 @@ public final class RemoteTraceSender implements TraceHandler {
 		this.properties = properties;
 		this.template = template;
 		this.application = application;
-		this.dispatcher = new ScheduledDispatcher<Session>(properties, this::send, Session::completed); //java compiler !?
+		this.dispatcher = new ScheduledDispatcher<>(properties, this::send, Session::completed);
 		tryRegisterServer();
 	}
 	
