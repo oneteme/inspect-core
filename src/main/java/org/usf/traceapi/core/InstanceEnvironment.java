@@ -7,7 +7,7 @@ import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.InstantType.SERVER;
+import static org.usf.traceapi.core.InstanceType.SERVER;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -37,7 +37,7 @@ public class InstanceEnvironment {
 	private final String re;  //runtime environment : JAVA, Browsers,..
 	//v22
 	private final String user; //system user
-	private final InstantType type; //server, client
+	private final InstanceType type; //server, client
 	private final Instant instant; //startup time
 	private final String collector; //spring-collector-xx, ng-collector-xx,..
 	//commit, branch !?

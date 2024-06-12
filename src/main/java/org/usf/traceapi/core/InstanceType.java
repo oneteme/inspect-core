@@ -5,7 +5,7 @@ package org.usf.traceapi.core;
  * @author u$f
  *
  */
-public enum InstantType {
+public enum InstanceType {
 
 	SERVER, CLIENT;
 }
