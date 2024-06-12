@@ -2,6 +2,7 @@ package org.usf.traceapi.core;
 
 import static java.util.Collections.addAll;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -45,7 +46,7 @@ public final class ScheduledDispatcher<T> {
 		this.dispatcher = dispatcher;
 		this.filter = filter;
 		this.queue = new ArrayList<>(properties.getBufferSize());
-    	executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
+    	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -86,7 +87,7 @@ public final class ScheduledDispatcher<T> {
         if(!cs.isEmpty()) {
 	        log.trace("scheduled dispatching {} items..", cs.size());
 	        try {
-	        	if(dispatcher.dispatch(++attempts, cs)) {
+	        	if(dispatcher.dispatch(++attempts, unmodifiableList(cs))) {
 	        		attempts=0;
 	        	}
 	    	}
@@ -162,6 +163,6 @@ public final class ScheduledDispatcher<T> {
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
-		boolean dispatch(int attempts, List<T> list) throws Exception; //TD return List<Session> dispatched sessions  
+		boolean dispatch(int attempts, List<T> list) throws Exception; //TD return List<T> dispatched sessions  
 	}
 }
