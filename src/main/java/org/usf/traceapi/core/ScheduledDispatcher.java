@@ -162,6 +162,6 @@ public final class ScheduledDispatcher<T> {
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
-		boolean dispatch(int attempts, List<? extends T> list) throws Exception; //TD return List<Session> dispatched sessions  
+		boolean dispatch(int attempts, List<T> list) throws Exception; //TD return List<Session> dispatched sessions  
 	}
 }
