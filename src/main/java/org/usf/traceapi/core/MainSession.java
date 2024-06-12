@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import lombok.Getter;
 import lombok.Setter;
-
 /**
  * 
  * @author u$f
@@ -21,7 +20,7 @@ import lombok.Setter;
 @Setter
 @JsonTypeName("main")
 @JsonIgnoreProperties("lock")
-public final class MainSession extends SessionStage implements Session {
+public class MainSession extends SessionStage implements Session {
 	
 	private String id;
 	private String type; //@see MainSessionType
@@ -45,9 +44,9 @@ public final class MainSession extends SessionStage implements Session {
 		this.type = type;
 	}
 	
-	public static MainSession synchronizedMainSession(String id) {
+	public static MainSession synchronizedMainSession() {
 		var ss = new MainSession();
-		ss.setId(id);
+		ss.setId(Session.nextId());
 		ss.setRequests(synchronizedCollection(new LinkedList<>()));
 		ss.setQueries(synchronizedCollection(new LinkedList<>()));
 		ss.setFtpRequests(synchronizedCollection(new LinkedList<>()));

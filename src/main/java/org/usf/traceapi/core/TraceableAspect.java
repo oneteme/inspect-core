@@ -8,7 +8,6 @@ import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
-import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
 
@@ -54,14 +53,14 @@ public class TraceableAspect {
     @Around("@annotation(TraceableStage)")
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
 		var ses = localTrace.get();
-    	if(nonNull(localTrace.get())) { //sub trace
+    	if(nonNull(ses)) { //sub trace
     		return call(joinPoint::proceed, (s,e,o,t)-> {
     	    	var ss = new SessionStage();
     			fill(ss, s, e, joinPoint, t);
     			ses.append(ss);
     		});
     	} //TD merge 2 block
-    	var ms = synchronizedMainSession(nextId());
+    	var ms = synchronizedMainSession();
     	localTrace.set(ms);
     	try {
         	return call(joinPoint::proceed, (s,e,o,t)-> {

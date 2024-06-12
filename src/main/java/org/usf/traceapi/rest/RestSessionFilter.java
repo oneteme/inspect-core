@@ -18,7 +18,6 @@ import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.RestSession.synchronizedApiSession;
-import static org.usf.traceapi.core.Session.nextId;
 import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.core.StageUpdater.getUser;
 import static org.usf.traceapi.core.TraceMultiCaster.emit;
@@ -61,7 +60,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-    	var in = synchronizedApiSession(nextId());
+    	var in = synchronizedApiSession();
     	localTrace.set(in);
 		res.addHeader(TRACE_HEADER, in.getId());
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);

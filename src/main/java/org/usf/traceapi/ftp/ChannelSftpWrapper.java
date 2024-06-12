@@ -303,13 +303,10 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 				req.setThreadName(threadName());
 				req.setUser(ses.getUserName());
 				req.setActions(new LinkedList<>());
-//				req.setHome(channel.getHome())
 				session.append(req);
 				return new ChannelSftpWrapper(channel, req);
 			}
-			catch (Exception e) {
-				//do not throw exception
-			}
+			catch (Exception e) {/* do not throw exception */}
 		}
 		return channel;
 	}

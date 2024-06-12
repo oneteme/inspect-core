@@ -26,6 +26,12 @@ public final class Helper {
 	static String basePackage;
 
 	public static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
+	
+	public static void updateThreadLocalSession(Session s) {
+		if(localTrace.get() != s) { // null || previous session
+			localTrace.set(s);
+		}
+	}
 
 	public static String threadName() {
 		return currentThread().getName();

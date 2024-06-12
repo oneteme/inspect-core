@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.Collections.synchronizedCollection;
+import static org.usf.traceapi.core.Session.nextId;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -21,7 +22,7 @@ import lombok.Setter;
 @Setter
 @JsonTypeName("api")
 @JsonIgnoreProperties("lock")
-public final class RestSession extends RestRequest implements Session {
+public class RestSession extends RestRequest implements Session {
 
 	@Deprecated(forRemoval = true, since = "v22")
 	private InstanceEnvironment application;
@@ -35,9 +36,9 @@ public final class RestSession extends RestRequest implements Session {
 
 	private final AtomicInteger lock = new AtomicInteger();
 	
-	public static RestSession synchronizedApiSession(String id) {
+	public static RestSession synchronizedApiSession() {
 		var ss = new RestSession();
-		ss.setId(id);	
+		ss.setId(nextId());	
 		ss.setRequests(synchronizedCollection(new LinkedList<>()));
 		ss.setQueries(synchronizedCollection(new LinkedList<>()));
 		ss.setFtpRequests(synchronizedCollection(new LinkedList<>()));
