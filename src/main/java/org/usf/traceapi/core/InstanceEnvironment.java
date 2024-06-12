@@ -15,7 +15,7 @@ import lombok.With;
 @Getter
 @ToString
 @RequiredArgsConstructor
-public final class InstanceEnvironment {
+public class InstanceEnvironment {
 	
 	private final String name; //project name
 	private final String version; //project version using : maven, NPM, ..
