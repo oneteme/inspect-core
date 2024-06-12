@@ -31,6 +31,7 @@ public class MainSession extends SessionStage implements Session {
 	private Collection<SessionStage> stages;
 	//v22
 	private Collection<FtpRequest> ftpRequests;
+	private Collection<MailRequest> mailRequests;
 
 	private final AtomicInteger lock = new AtomicInteger();
 	

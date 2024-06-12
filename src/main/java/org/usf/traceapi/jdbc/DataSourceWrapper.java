@@ -58,6 +58,9 @@ public final class DataSourceWrapper implements DataSource {
 		return call(()-> tracer.connection(cnSupp), (s,e,cn,t)->{
 			var out = new DatabaseRequest();
 			out.setStart(s);
+			if(nonNull(t)) {
+				out.setEnd(e); //!connected
+			}
 			out.setThreadName(threadName());
 			out.setActions(tracer.getActions());
 			out.setCommands(tracer.getCommands());

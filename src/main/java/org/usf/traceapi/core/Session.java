@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
@@ -11,6 +12,8 @@ import static org.usf.traceapi.core.StageTracker.call;
 
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.usf.traceapi.core.SafeCallable.SafeRunnable;
 import org.usf.traceapi.core.StageTracker.StageConsumer;
@@ -33,29 +36,33 @@ public interface Session extends Metric {
 	void setId(String id); //used in server side
 	
 	Collection<RestRequest> getRequests();	  // rename to getApiRequests
-
-	Collection<FtpRequest> getFtpRequests();
 	
 	Collection<DatabaseRequest> getQueries(); //rename to getDatabaseRequests
 
 	Collection<SessionStage> getStages();
 	
+	Collection<FtpRequest> getFtpRequests();
+
+	Collection<MailRequest> getMailRequests();
+	
 	AtomicInteger getLock();
 	
-	default void append(RestRequest request) {
-		getRequests().add(request);
-	}
-
-	default void append(FtpRequest request) {
-		getFtpRequests().add(request);
-	}
-	
-	default void append(DatabaseRequest query) {
-		getQueries().add(query);
-	}
-	
 	default void append(SessionStage stage) {
-		getStages().add(stage);
+		if(stage instanceof RestRequest rest) {
+			getRequests().add(rest);
+		}
+		else if(stage instanceof DatabaseRequest db) {
+			getQueries().add(db);
+		}
+		else if(stage instanceof FtpRequest ftp) {
+			getFtpRequests().add(ftp);
+		}
+		else if(stage instanceof MailRequest mail) {
+			getMailRequests().add(mail);
+		}
+		else {
+			getStages().add(stage);
+		}
 	}
 	
 	default void lock(){
@@ -112,5 +119,15 @@ public interface Session extends Metric {
 			});
 			session.append(stg);
 		};
+	}
+	
+	static void appendSessionStage(SessionStage stg) {
+		var ses = localTrace.get();
+		if(nonNull(ses)) {
+			ses.append(stg);
+		}
+		else {
+			warnNoActiveSession(stg);
+		}
 	}
 }

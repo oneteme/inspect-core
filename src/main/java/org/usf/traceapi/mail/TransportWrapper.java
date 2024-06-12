@@ -1,15 +1,18 @@
 package org.usf.traceapi.mail;
 
-import static java.time.Instant.now;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+import static java.util.Optional.ofNullable;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
+import static org.usf.traceapi.core.Helper.stackTraceElement;
+import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.MailRequest.newMailRequest;
+import static org.usf.traceapi.core.Session.appendSessionStage;
 import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.mail.MailAction.CONNECTION;
 import static org.usf.traceapi.mail.MailAction.DISCONNECTION;
 import static org.usf.traceapi.mail.MailAction.SEND;
 
-import java.util.LinkedList;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.usf.traceapi.core.Mail;
@@ -22,15 +25,16 @@ import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
+import jakarta.mail.URLName;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
 @RequiredArgsConstructor
-public final class TransportWrapper  {
+public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	
 	@Delegate
 	private final Transport trsp;
-	private final MailRequest req;
+	private MailRequest req = newMailRequest(); //avoid nullPointer
 	
 	public void connect() throws MessagingException {
 		connect(null, null, null, trsp::connect);
@@ -65,32 +69,31 @@ public final class TransportWrapper  {
 	}
 
 	public void close() throws MessagingException {
-		try {
-			exec(trsp::close, appendAction(DISCONNECTION));
-		}
-		finally {
-			req.setEnd(now());
-		}
+		exec(trsp::close, (s,e,o,t)-> {
+			appendAction(DISCONNECTION).accept(s, e, o, t);
+			req.setEnd(e); //same end
+		});
 	}
 	
 	private void connect(String host, Integer port, String user, SafeRunnable<MessagingException> runnable) throws MessagingException {
-		try {
-			exec(runnable, appendAction(CONNECTION));
-		}
-		finally {
-			var url = trsp.getURLName();
-			if(isNull(url)) {
-				req.setHost(host);
-				req.setPort(port);
-				req.setUser(user);
+		exec(runnable, (s,e,o,t)-> {
+			var url = ofNullable(trsp.getURLName());
+			req = newMailRequest();
+			req.setHost(url.map(URLName::getHost).orElse(host));
+			req.setPort(url.map(URLName::getPort).orElse(port));
+			req.setUser(url.map(URLName::getUsername).orElse(user));
+			req.setStart(s);
+			if(nonNull(t)) {
+				req.setEnd(e); // !connected
 			}
-			else {
-				req.setProtocol(url.getProtocol());
-				req.setHost(requireNonNull(host, url::getHost));
-				req.setPort(requireNonNull(port, url::getPort));
-				req.setUser(requireNonNull(user, url::getUsername));
-			}
-		}
+			stackTraceElement().ifPresent(st->{
+				req.setName(st.getMethodName());
+				req.setLocation(st.getClassName());
+			});
+			req.setThreadName(threadName());
+			appendAction(CONNECTION).accept(s, e, o, t);
+			appendSessionStage(req);
+		});
 	}
 	
 	<T> StageConsumer<T> appendAction(MailAction action) {
@@ -105,14 +108,7 @@ public final class TransportWrapper  {
 	}
 	
 	public static TransportWrapper wrap(Transport trsp) {
-		var req = new MailRequest();
-		req.setActions(new LinkedList<>());
-		req.setMails(new LinkedList<>());
-		return new TransportWrapper(trsp, req);
-	}
-	
-	private static <T> T requireNonNull(T o, Supplier<T> supp) {
-		return isNull(o) ? supp.get() : o;
+		return new TransportWrapper(trsp);
 	}
 	
 	private static String[] toStringArray(Address... address) {

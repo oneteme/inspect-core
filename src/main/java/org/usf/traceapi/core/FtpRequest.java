@@ -19,5 +19,5 @@ public final class FtpRequest extends SessionStage {
 	private String serverVersion;
 	private String clientVersion;
 	private List<FtpRequestStage> actions;
-	//fta-collector
+	//ftp-collector
 }

@@ -1,7 +1,5 @@
 package org.usf.traceapi.core;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,17 +10,16 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@JsonIgnoreProperties("location")
 public class RestRequest extends SessionStage { //APiRequest
 
 	private String id; // <= Traceable server
 	private String method; //GET, POST, PUT,..
 	private String protocol; //HTTP, HTTPS
-	private String host; //IP, domaine
-	private int port; // -1 otherwise
-	private String path;
-	private String query; //text/html, application/json, application/xml,..
-	private String contentType; //nullable
+	private String host; //IP, domain
+	private int port; // positive number, -1 otherwise
+	private String path; //request path
+	private String query; //request parameters
+	private String contentType; //text/html, application/json, application/xml,..
 	private String authScheme; //Basic, Bearer, Digest, OAuth,..
 	private int status; //2xx, 4xx, 5xx, 0 otherwise
 	private long inDataSize; //-1 otherwise

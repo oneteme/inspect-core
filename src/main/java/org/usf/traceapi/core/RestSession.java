@@ -31,7 +31,8 @@ public class RestSession extends RestRequest implements Session {
 	private Collection<SessionStage> stages; //RunnableStage
 	//v22
 	private Collection<FtpRequest> ftpRequests;
-	private String userAgent; //Mozilla, Chrome, curl, PostmanRuntime, ..
+	private Collection<MailRequest> mailRequests;
+	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String signature; //method name
 
 	private final AtomicInteger lock = new AtomicInteger();

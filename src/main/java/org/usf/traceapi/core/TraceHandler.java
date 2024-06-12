@@ -9,5 +9,4 @@ package org.usf.traceapi.core;
 public interface TraceHandler {
 	
 	void handle(Session session);
-
 }
