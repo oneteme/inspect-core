@@ -293,7 +293,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		};
 	}
 	
-	public static final ChannelSftp wrap(ChannelSftp channel) {
+	public static final ChannelSftpWrapper wrap(ChannelSftp channel) {
 		return new ChannelSftpWrapper(channel);
 	}
 }

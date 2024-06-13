@@ -25,10 +25,16 @@ import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
-@RequiredArgsConstructor
+/**
+ * 
+ * @author u$f
+ *
+ */
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	
 	@Delegate
@@ -107,13 +113,13 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 		};
 	}
 	
-	public static TransportWrapper wrap(Transport trsp) {
-		return new TransportWrapper(trsp);
-	}
-	
 	private static String[] toStringArray(Address... address) {
 		return isNull(address) 
 			? null 
 			: Stream.of(address).map(Address::toString).toArray(String[]::new);
+	}
+	
+	public static TransportWrapper wrap(Transport trsp) {
+		return new TransportWrapper(trsp);
 	}
 }
