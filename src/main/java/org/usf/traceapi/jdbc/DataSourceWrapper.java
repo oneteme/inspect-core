@@ -7,6 +7,7 @@ import javax.sql.DataSource;
 
 import org.usf.traceapi.core.SafeCallable;
 
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
@@ -15,7 +16,7 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DataSourceWrapper implements DataSource {
 	
 	@Delegate
@@ -33,5 +34,9 @@ public final class DataSourceWrapper implements DataSource {
 	
 	private Connection getConnection(SafeCallable<Connection, SQLException> cnSupp) throws SQLException {
 		return new JDBCActionTracer().connection(cnSupp);
+	}
+	
+	public static final DataSourceWrapper wrap(DataSource ds) {
+		return new DataSourceWrapper(ds);
 	}
 }

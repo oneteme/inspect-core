@@ -1,25 +1,10 @@
 package org.usf.traceapi.jdbc;
 
-import static java.lang.Thread.currentThread;
-import static java.lang.Thread.sleep;
-import static java.time.Instant.now;
-import static java.time.temporal.ChronoUnit.MILLIS;
-import static java.util.Objects.isNull;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.usf.traceapi.jdbc.JDBCActionTracer.decodeURL;
 
-import java.sql.SQLException;
-import java.time.Instant;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class JDBCActionTracerTest {
 	

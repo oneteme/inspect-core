@@ -47,7 +47,6 @@ import org.usf.traceapi.core.SafeCallable;
 import org.usf.traceapi.core.SafeCallable.SafeRunnable;
 import org.usf.traceapi.core.StageTracker.StageConsumer;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -55,7 +54,6 @@ import lombok.RequiredArgsConstructor;
  * @author u$f
  *
  */
-@Getter
 @RequiredArgsConstructor
 public class JDBCActionTracer {
 	

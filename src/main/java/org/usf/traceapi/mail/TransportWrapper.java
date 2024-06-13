@@ -74,7 +74,7 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 		});
 	}
 	
-	private StageConsumer<Void> appendConnection(String host, Integer port, String user) {
+	StageConsumer<Void> appendConnection(String host, Integer port, String user) {
 		return (s,e,v,t)-> {
 			var url = ofNullable(trsp.getURLName());
 			req = newMailRequest();

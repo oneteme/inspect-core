@@ -7,8 +7,6 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
@@ -17,7 +15,6 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-@Getter(AccessLevel.PACKAGE)
 @RequiredArgsConstructor
 public final class ConnectionWrapper implements Connection {
 	

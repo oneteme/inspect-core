@@ -36,7 +36,6 @@ import com.jcraft.jsch.SftpException;
 import com.jcraft.jsch.SftpProgressMonitor;
 
 import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -44,7 +43,6 @@ import lombok.RequiredArgsConstructor;
  * @author u$f
  *
  */
-@Getter
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ChannelSftpWrapper extends ChannelSftp {
 	
