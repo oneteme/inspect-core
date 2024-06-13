@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 import org.usf.traceapi.core.Mail;
 import org.usf.traceapi.core.MailRequest;
 import org.usf.traceapi.core.MailRequestStage;
-import org.usf.traceapi.core.SafeCallable.SafeRunnable;
 import org.usf.traceapi.core.StageTracker.StageConsumer;
 
 import jakarta.mail.Address;
@@ -37,19 +36,19 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	private MailRequest req = newMailRequest(); //avoid nullPointer
 	
 	public void connect() throws MessagingException {
-		connect(null, null, null, trsp::connect);
+		exec(trsp::connect, appendConnection(null, null, null));
 	}
 
 	public void connect(String user, String password) throws MessagingException {
-		connect(null, null, user, ()-> trsp.connect(user, password));
+		exec(()->trsp.connect(user, password), appendConnection(null, null, user));
 	}
 
 	public void connect(String host, String user, String password) throws MessagingException {
-		connect(host, null, host, ()-> trsp.connect(host, user, password));
+		exec(()-> trsp.connect(host, user, password), appendConnection(host, null, user));
 	}
 	
 	public void connect(String arg0, int arg1, String arg2, String arg3) throws MessagingException {
-		connect(arg0, arg1, arg2, ()-> trsp.connect(arg0, arg1, arg2, arg3));
+		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), appendConnection(arg0, arg1, arg2));
 	}
 
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
@@ -69,31 +68,32 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	}
 
 	public void close() throws MessagingException {
-		exec(trsp::close, (s,e,o,t)-> {
-			appendAction(DISCONNECTION).accept(s, e, o, t);
-			req.setEnd(e); //same end
+		exec(trsp::close, (s,e,v,t)-> {
+			appendAction(DISCONNECTION).accept(s, e, v, t);
+			req.setEnd(e);
 		});
 	}
 	
-	private void connect(String host, Integer port, String user, SafeRunnable<MessagingException> runnable) throws MessagingException {
-		exec(runnable, (s,e,o,t)-> {
+	private StageConsumer<Void> appendConnection(String host, Integer port, String user) {
+		return (s,e,v,t)-> {
 			var url = ofNullable(trsp.getURLName());
 			req = newMailRequest();
 			req.setHost(url.map(URLName::getHost).orElse(host));
 			req.setPort(url.map(URLName::getPort).orElse(port));
 			req.setUser(url.map(URLName::getUsername).orElse(user));
 			req.setStart(s);
-			if(nonNull(t)) {
-				req.setEnd(e); // !connected
+			if(nonNull(t)) { //fail
+				req.setEnd(e);
+				//do not setException, already set in action
 			}
 			stackTraceElement().ifPresent(st->{
 				req.setName(st.getMethodName());
 				req.setLocation(st.getClassName());
 			});
 			req.setThreadName(threadName());
-			appendAction(CONNECTION).accept(s, e, o, t);
+			appendAction(CONNECTION).accept(s, e, v, t);
 			appendSessionStage(req);
-		});
+		};
 	}
 	
 	<T> StageConsumer<T> appendAction(MailAction action) {

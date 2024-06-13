@@ -16,7 +16,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import lombok.With;
 
 /**
  * 
@@ -30,7 +29,6 @@ public class InstanceEnvironment {
 	
 	private final String name; //project name
 	private final String version; //project version using : maven, NPM, ..
-	@With
 	private final String address; //IP address
 	private final String env; //dev, test, prod,..
 	private final String os;  //operating system : Window, Linux,..

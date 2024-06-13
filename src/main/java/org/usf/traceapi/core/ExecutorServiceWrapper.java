@@ -1,6 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.updateThreadLocalSession;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
@@ -46,54 +46,54 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 	
     private static <T> T aroundRunnable(Runnable command, Function<Runnable, T> fn) {
     	var session = localTrace.get();
-		if(isNull(session)) {
-			warnNoActiveSession();
-			return fn.apply(command);
+		if(nonNull(session)) {
+			session.lock(); //important! sync lock
+			try {
+				var app = sessionStageAppender(session); //important! run on parent thread
+				return fn.apply(()->{
+					updateThreadLocalSession(session); //thread already exists
+			    	try {
+				    	exec(command::run, app);
+			    	}
+			    	finally {
+						session.unlock();
+						localTrace.remove(); 
+			    	}
+				});
+			}
+			catch (Exception e) {  //@see Executor::execute
+				session.unlock();
+				throw e;
+			}
 		}
-		session.lock(); //important! sync lock
-		try {
-			var app = sessionStageAppender(session); //important! run on parent thread
-			return fn.apply(()->{
-				updateThreadLocalSession(session); //thread already exists
-		    	try {
-			    	exec(command::run, app);
-		    	}
-		    	finally {
-					session.unlock();
-					localTrace.remove(); 
-		    	}
-			});
-		}
-		catch (Exception e) {  //@see Executor::execute
-			session.unlock();
-			throw e;
-		}
+		warnNoActiveSession();
+		return fn.apply(command);
     }
 
     private static <T,V> V aroundCallable(Callable<T> command, Function<Callable<T>, V> fn) {
     	var session = localTrace.get();
-		if(isNull(session)) {
-			warnNoActiveSession();
-			return fn.apply(command);
+		if(nonNull(session)) {
+			session.lock(); //important! sync lock
+			try {
+				var app = sessionStageAppender(session); //important! run on parent thread
+				return fn.apply(()->{
+					updateThreadLocalSession(session); //thread already exists
+			    	try {
+			    		return call(command::call, app);
+			    	}
+			    	finally {
+						session.unlock();
+						localTrace.remove(); 
+			    	}
+				});
+			}
+			catch (Exception e) {  //@see Executor::execute
+				session.unlock();
+				throw e;
+			}
 		}
-		session.lock(); //important! sync lock
-		try {
-			var app = sessionStageAppender(session); //important! run on parent thread
-			return fn.apply(()->{
-				updateThreadLocalSession(session); //thread already exists
-		    	try {
-		    		return call(command::call, app);
-		    	}
-		    	finally {
-					session.unlock();
-					localTrace.remove(); 
-		    	}
-			});
-		}
-		catch (Exception e) {  //@see Executor::execute
-			session.unlock();
-			throw e;
-		}
+		warnNoActiveSession();
+		return fn.apply(command);
     }
         
 	public static ExecutorServiceWrapper wrap(@NonNull ExecutorService es) {

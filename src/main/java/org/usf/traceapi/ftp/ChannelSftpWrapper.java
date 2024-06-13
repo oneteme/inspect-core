@@ -1,12 +1,11 @@
 package org.usf.traceapi.ftp;
 
-import static java.time.Instant.now;
-import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
-import static org.usf.traceapi.core.Helper.localTrace;
+import static org.usf.traceapi.core.FtpRequest.newFtpRequest;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
-import static org.usf.traceapi.core.Helper.warnNoActiveSession;
+import static org.usf.traceapi.core.Session.appendSessionStage;
 import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.ftp.FtpAction.CD;
@@ -24,7 +23,7 @@ import static org.usf.traceapi.ftp.FtpAction.RM;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.LinkedList;
+import java.time.Instant;
 import java.util.Vector;
 
 import org.usf.traceapi.core.FtpRequest;
@@ -52,31 +51,31 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	private static final String BYTES = "[BYTES]";
 	
 	private final ChannelSftp channel;
-	private final FtpRequest request;
+	private FtpRequest req = newFtpRequest(); //avoid nullPointer
 
 	@Override
 	public void connect() throws JSchException {
-		exec(channel::connect, this.appendConnection());
+		exec(channel::connect, this::appendConnection);
 	}
 	
 	@Override
 	public void connect(int connectTimeout) throws JSchException {
-		exec(()-> channel.connect(connectTimeout), appendConnection());
+		exec(()-> channel.connect(connectTimeout), this::appendConnection);
 	}
 	
 	@Override
 	public void disconnect() {
-		exec(channel::disconnect, appendDisconnection());
+		exec(channel::disconnect, this::appendDisconnection);
 	}
 	
 	@Override
 	public void quit() {
-		exec(channel::quit, appendDisconnection());
+		exec(channel::quit, this::appendDisconnection);
 	}
 	
 	@Override
 	public void exit() {
-		exec(channel::exit, appendDisconnection());
+		exec(channel::exit, this::appendDisconnection);
 	}
 	
 	@Override
@@ -256,21 +255,34 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	public void rmdir(String path) throws SftpException {
 		exec(()-> channel.rmdir(path), appendAction(RM, path));
 	}
-	
-	StageConsumer<Void> appendConnection() {
-		request.setStart(now());
-		return appendAction(CONNECTION);
+
+	void appendConnection(Instant start, Instant end, Void o, Throwable t) throws Exception {
+		var cs = channel.getSession();
+		req = newFtpRequest();
+		req.setStart(start);
+		if(nonNull(t)) { // fail
+			req.setEnd(end);
+			//do not setException, already set in action
+		}
+		req.setHost(cs.getHost());
+		req.setPort(cs.getPort());
+		req.setUser(cs.getUserName());
+		req.setThreadName(threadName());
+		req.setServerVersion(cs.getServerVersion());
+		req.setClientVersion(cs.getClientVersion());
+		stackTraceElement().ifPresent(st->{
+			req.setName(st.getMethodName());
+			req.setLocation(st.getClassName());
+		});
+		appendAction(CONNECTION).accept(start, end, o, t);
+		appendSessionStage(req);
 	}
 	
-	StageConsumer<Void> appendDisconnection() {
-		try {
-			return appendAction(DISCONNECTION);
-		}
-		finally {
-			request.setEnd(now());
-		}
+	void appendDisconnection(Instant start, Instant end, Void o, Throwable t) throws Exception {
+		appendAction(DISCONNECTION).accept(start, end, o, t);
+		req.setEnd(end);
 	}
-	
+
 	<T> StageConsumer<T> appendAction(FtpAction action, String... args) {
 		return (s,e,o,t)-> {
 			var fa = new FtpRequestStage();
@@ -279,35 +291,11 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			fa.setEnd(e);
 			fa.setException(mainCauseException(t));
 			fa.setArgs(args);
-			request.getActions().add(fa);
+			req.getActions().add(fa);
 		};
 	}
 	
 	public static final ChannelSftp wrap(ChannelSftp channel) {
-		var session = localTrace.get();
-		if(isNull(session)) {
-			warnNoActiveSession();
-		}
-		else {
-			try {
-				var ses = channel.getSession();
-				var req = new FtpRequest();
-				req.setHost(ses.getHost());
-				req.setPort(ses.getPort());
-				req.setServerVersion(ses.getServerVersion());
-				req.setClientVersion(ses.getClientVersion());
-				stackTraceElement().ifPresent(s->{
-					req.setName(s.getMethodName());
-					req.setLocation(s.getClassName());
-				});
-				req.setThreadName(threadName());
-				req.setUser(ses.getUserName());
-				req.setActions(new LinkedList<>());
-				session.append(req);
-				return new ChannelSftpWrapper(channel, req);
-			}
-			catch (Exception e) {/* do not throw exception */}
-		}
-		return channel;
+		return new ChannelSftpWrapper(channel);
 	}
 }

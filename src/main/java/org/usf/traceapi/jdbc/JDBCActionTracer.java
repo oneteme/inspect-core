@@ -4,8 +4,15 @@ import static java.time.Instant.now;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.Optional.ofNullable;
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
+import static java.util.regex.Pattern.compile;
+import static org.usf.traceapi.core.DatabaseRequest.newDatabaseRequest;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.Helper.stackTraceElement;
+import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.Session.appendSessionStage;
 import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.jdbc.JDBCAction.BATCH;
@@ -28,11 +35,13 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
+import org.usf.traceapi.core.DatabaseRequest;
 import org.usf.traceapi.core.DatabaseRequestStage;
 import org.usf.traceapi.core.SafeCallable;
 import org.usf.traceapi.core.SafeCallable.SafeRunnable;
@@ -50,17 +59,46 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JDBCActionTracer {
 	
-	private final LinkedList<DatabaseRequestStage> actions = new LinkedList<>();
-	private final LinkedList<SqlCommand> commands = new LinkedList<>();
+	private static final Pattern hostPattern = compile("^jdbc:[\\w:]+@?//([-\\w\\.]+)(:(\\d+))?(/(\\w+)|/(\\w+)[\\?,;].*|.*)$", CASE_INSENSITIVE);
+	private static final Pattern dbPattern = compile("database=(\\w+)", CASE_INSENSITIVE);
 	
-	private DatabaseRequestStage exec;
+	private DatabaseRequest req = newDatabaseRequest(); //avoid nullPointer
+	private DatabaseRequestStage exec; //last execute
 	
 	public ConnectionWrapper connection(SafeCallable<Connection, SQLException> supplier) throws SQLException {
-		return new ConnectionWrapper(call(supplier, appendAction(CONNECTION)), this);
+		return new ConnectionWrapper(call(supplier, (s,e,cn,t)->{
+			req = newDatabaseRequest();
+			req.setStart(s);
+			if(nonNull(t)) { // fail
+				req.setEnd(e);
+				//do not setException, already set in action
+			}
+			req.setThreadName(threadName());
+			stackTraceElement().ifPresent(st->{
+				req.setName(st.getMethodName());
+				req.setLocation(st.getClassName());
+			});
+			if(nonNull(cn)) {
+				var meta = cn.getMetaData();
+				var args = decodeURL(meta.getURL());
+				req.setHost(args[0]);
+				req.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(-1));
+				req.setDatabase(args[2]);
+				req.setUser(meta.getUserName());
+				req.setDatabaseName(meta.getDatabaseProductName());
+				req.setDatabaseVersion(meta.getDatabaseProductVersion());
+				req.setDriverVersion(meta.getDriverVersion());
+			}
+			appendAction(CONNECTION).accept(s, e, cn, t);
+			appendSessionStage(req);
+		}), this);
 	}
 
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
-		exec(method, appendAction(DISCONNECTION));
+		exec(method, (s,e,v,t)->{
+			appendAction(DISCONNECTION).accept(s, e, v, t);
+			req.setEnd(e);
+		});
 	}
 	
 	public StatementWrapper statement(SafeCallable<Statement, SQLException> supplier) throws SQLException {
@@ -109,7 +147,7 @@ public class JDBCActionTracer {
 
 	private <T> T execute(String sql, SafeCallable<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
 		if(nonNull(sql)) {
-			commands.add(mainCommand(sql));
+			req.getCommands().add(mainCommand(sql));
 		} //BATCH otherwise 
 		return call(supplier, appendAction(EXECUTE, (a,r)-> a.setCount(countFn.apply(r))));
 	}
@@ -120,9 +158,9 @@ public class JDBCActionTracer {
 
 	public void addBatch(String sql, SafeRunnable<SQLException> method) throws SQLException {
 		if(nonNull(sql)) {
-			commands.add(mainCommand(sql));
+			req.getCommands().add(mainCommand(sql));
 		} // PreparedStatement otherwise 
-		exec(method, nonNull(sql) || actions.isEmpty() || !BATCH.name().equals(actions.getLast().getName())
+		exec(method, nonNull(sql) || req.getActions().isEmpty() || !BATCH.name().equals(last(req.getActions()).getName())
 				? appendAction(BATCH, (a,v)-> a.setCount(new long[] {1})) //statement | first batch
 				: this::updateLast);
 	}
@@ -162,7 +200,7 @@ public class JDBCActionTracer {
 	}
 
 	void updateLast(Instant start, Instant end, Void v, Throwable t) {
-		var action = actions.getLast();
+		var action = last(req.getActions());
 		action.setEnd(end); // shift end
 		if(nonNull(t) && isNull(action.getException())) {
 			action.setException(mainCauseException(t));
@@ -184,7 +222,7 @@ public class JDBCActionTracer {
 			if(nonNull(cons)) {
 				cons.accept(stg,o);
 			}
-			actions.add(stg);
+			req.getActions().add(stg);
 		};
 	}
 	
@@ -192,5 +230,27 @@ public class JDBCActionTracer {
 		var a = copyOf(arr, arr.length+1);
 		a[arr.length] = v;
 		return a;
+	}
+	
+	static String[] decodeURL(String url) {
+		var m = hostPattern.matcher(url);
+		String[] arr = new String[3];
+		if(m.find()) {
+			arr[0] = m.group(1);
+			arr[1] = m.group(3);
+			int i = 5;
+			while(i<=m.groupCount() && isNull(arr[2] = m.group(i++)));
+		}
+		if(isNull(arr[2])) {
+			m = dbPattern.matcher(url);
+			if(m.find()) {
+				arr[2] = m.group(1);
+			}
+		}
+		return arr;
+	}
+	
+	private static <T> T last(List<T> list) { //safe
+		return list.get(list.size()-1);
 	}
 }

@@ -1,7 +1,5 @@
 package org.usf.traceapi.jdbc;
 
-import static java.util.Objects.nonNull;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -12,7 +10,6 @@ import java.sql.Statement;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.Delegate;
 
 /**
@@ -21,14 +18,12 @@ import lombok.experimental.Delegate;
  *
  */
 @Getter(AccessLevel.PACKAGE)
-@Setter(AccessLevel.PACKAGE)
 @RequiredArgsConstructor
 public final class ConnectionWrapper implements Connection {
 	
 	@Delegate
 	private final Connection cn;
 	private final JDBCActionTracer tracer;
-	private Runnable onClose;
 
 	@Override
 	public Statement createStatement() throws SQLException {
@@ -107,18 +102,6 @@ public final class ConnectionWrapper implements Connection {
 	
 	@Override
 	public void close() throws SQLException {
-		try {
-			tracer.disconnection(cn::close);
-		}
-		finally {
-			if(nonNull(onClose)) {
-				try {
-					onClose.run();
-				}
-				catch (Exception e) {
-					//do nothing
-				}
-			}
-		}
+		tracer.disconnection(cn::close);
 	}
 }

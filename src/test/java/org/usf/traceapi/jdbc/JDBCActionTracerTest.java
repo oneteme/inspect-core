@@ -11,15 +11,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.usf.traceapi.jdbc.JDBCActionTracer.decodeURL;
 
 import java.sql.SQLException;
 import java.time.Instant;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class JDBCActionTracerTest {
+	
+	@ParameterizedTest
+	@CsvSource(nullValues = {""}, value={
+			"jdbc:teradata://TDHOST/CHARSET=UTF8;DATABASE=my_data;SLOB_RECEIVE_THRESHOLD=15000,TDHOST,,my_data",
+			"jdbc:teradata://TDHOST:666/database=my_data;CHARSET=UTF8;SLOB_RECEIVE_THRESHOLD=15000,TDHOST,666,my_data",
+			"jdbc:teradata://TDHOST/CHARSET=UTF8,TDHOST,,",
+			"jdbc:oracle:thin:@//myoracle.db.server:1521/my_servicename,myoracle.db.server,1521,my_servicename",
+			"jdbc:mysql://mysql.db.server:3306/my_database?useSSL=false&serverTimezone=UTC,mysql.db.server,3306,my_database",
+			"jdbc:postgresql//10.123.321.44:4455/db,10.123.321.44,4455,db"})
+	void testShortURL(String origin, String host, String port, String schema) {
+		var arr = decodeURL(origin);
+		assertEquals(host, arr[0]);
+		assertEquals(port, arr[1]);
+		assertEquals(schema, arr[2]);
+	}
 	
 //	static final String query = "dummy query";
 //	static final Instant[] period = new Instant[2];

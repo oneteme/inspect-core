@@ -67,9 +67,9 @@ public final class Helper {
 		}
 		return empty();
 	}
-	
-	public static void warnNoActiveSession(SessionStage stage) {
-		log.warn("no active session, cannot append stage {}", stage);
+
+	public static void warnNoActiveSession() {
+		log.warn("no active session");
 		if(nonNull(basePackage) && !basePackage.isBlank()) {
 			var arr = currentThread().getStackTrace();
 			for(var st : arr) {
@@ -78,5 +78,9 @@ public final class Helper {
 				}
 			}
 		}
+	}
+	
+	public static void warnNoActiveSession(SessionStage stage) {
+		log.warn("no active session : cannot append stage {}", stage);
 	}
 }

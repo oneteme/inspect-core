@@ -1,6 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.updateThreadLocalSession;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
@@ -30,13 +30,13 @@ public final class StreamWrapper {
 
 	public static <T> Stream<T> parallel(Stream<T> stream) {
 		var s = localTrace.get();
-        if(isNull(s)) {
-        	warnNoActiveSession();
-        	return stream.parallel();
-        } //lock session !?
-		return stream.parallel().map(c-> {
-			updateThreadLocalSession(s);
-			return c;
-		});//.onClose(()->localTrace.remove())
+        if(nonNull(s)) {
+    		return stream.parallel().map(c-> {//lock session !?
+    			updateThreadLocalSession(s);
+    			return c;
+    		});//.onClose(()->localTrace.remove())
+        } 
+    	warnNoActiveSession();
+    	return stream.parallel();
 	}
 }

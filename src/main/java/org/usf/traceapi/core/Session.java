@@ -12,8 +12,6 @@ import static org.usf.traceapi.core.StageTracker.call;
 
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.usf.traceapi.core.SafeCallable.SafeRunnable;
 import org.usf.traceapi.core.StageTracker.StageConsumer;
@@ -91,12 +89,7 @@ public interface Session extends Metric {
 	}
 	
 	static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
-		var ses = localTrace.get();
-        if(isNull(ses)) {
-        	warnNoActiveSession();
-        	return fn.call();
-        }
-		return call(fn, sessionStageAppender(name, ses));
+		return call(fn, sessionStageAppender(name, localTrace.get()));
 	}
 
 	static StageConsumer<Object> sessionStageAppender(Session session) {
@@ -117,17 +110,20 @@ public interface Session extends Metric {
 				}
 				stg.setLocation(st.getClassName());
 			});
-			session.append(stg);
+			appendSessionStage(session, stg);
 		};
 	}
 	
-	static void appendSessionStage(SessionStage stg) {
-		var ses = localTrace.get();
-		if(nonNull(ses)) {
-			ses.append(stg);
+	static boolean appendSessionStage(SessionStage stg) {
+		return appendSessionStage(localTrace.get(), stg);
+	}
+
+	private static boolean appendSessionStage(Session session, SessionStage stg) {
+		if(nonNull(session)) {
+			session.append(stg);
+			return true;
 		}
-		else {
-			warnNoActiveSession(stg);
-		}
+		warnNoActiveSession(stg);
+		return false;
 	}
 }
