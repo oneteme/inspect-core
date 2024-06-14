@@ -27,8 +27,8 @@ public final class Helper {
 
 	public static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	
-	public static void updateThreadLocalSession(Session s) {
-		if(localTrace.get() != s) { // null || previous session
+	public static void setThreadLocalSession(Session s) {
+		if(localTrace.get() != s) { // null || local previous session
 			localTrace.set(s);
 		}
 	}

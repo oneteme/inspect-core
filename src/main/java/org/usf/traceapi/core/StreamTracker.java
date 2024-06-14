@@ -2,7 +2,7 @@ package org.usf.traceapi.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.updateThreadLocalSession;
+import static org.usf.traceapi.core.Helper.setThreadLocalSession;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 
 import java.util.Collection;
@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class StreamWrapper {
+public final class StreamTracker {
 
     @SafeVarargs
 	public static <T> Stream<T> parallelStream(T... array) {
@@ -31,10 +31,10 @@ public final class StreamWrapper {
 	public static <T> Stream<T> parallel(Stream<T> stream) {
 		var s = localTrace.get();
         if(nonNull(s)) {
-    		return stream.parallel().map(c-> {//lock session !?
-    			updateThreadLocalSession(s);
+    		return stream.parallel().map(c-> {
+    			setThreadLocalSession(s);
     			return c;
-    		});//.onClose(()->localTrace.remove())
+    		});
         } 
     	warnNoActiveSession();
     	return stream.parallel();

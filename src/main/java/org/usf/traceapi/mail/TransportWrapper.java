@@ -6,13 +6,13 @@ import static java.util.Optional.ofNullable;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
-import static org.usf.traceapi.core.MailRequest.newMailRequest;
 import static org.usf.traceapi.core.Session.appendSessionStage;
 import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.mail.MailAction.CONNECTION;
 import static org.usf.traceapi.mail.MailAction.DISCONNECTION;
 import static org.usf.traceapi.mail.MailAction.SEND;
 
+import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import org.usf.traceapi.core.Mail;
@@ -39,7 +39,7 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	
 	@Delegate
 	private final Transport trsp;
-	private MailRequest req = newMailRequest(); //avoid nullPointer
+	private MailRequest req;
 	
 	public void connect() throws MessagingException {
 		exec(trsp::connect, appendConnection(null, null, null));
@@ -83,20 +83,21 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	StageConsumer<Void> appendConnection(String host, Integer port, String user) {
 		return (s,e,v,t)-> {
 			var url = ofNullable(trsp.getURLName());
-			req = newMailRequest();
+			req = new MailRequest();
 			req.setHost(url.map(URLName::getHost).orElse(host));
 			req.setPort(url.map(URLName::getPort).orElse(port));
 			req.setUser(url.map(URLName::getUsername).orElse(user));
 			req.setStart(s);
-			if(nonNull(t)) { //fail
+			if(nonNull(t)) { // fail: do not setException, already set in action
 				req.setEnd(e);
-				//do not setException, already set in action
 			}
 			stackTraceElement().ifPresent(st->{
 				req.setName(st.getMethodName());
 				req.setLocation(st.getClassName());
 			});
 			req.setThreadName(threadName());
+			req.setActions(new ArrayList<>());
+			req.setMails(new ArrayList<>());
 			appendAction(CONNECTION).accept(s, e, v, t);
 			appendSessionStage(req);
 		};
@@ -104,12 +105,12 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	
 	<T> StageConsumer<T> appendAction(MailAction action) {
 		return (s,e,o,t)-> {
-			var rs = new MailRequestStage();
-			rs.setName(action.name());
-			rs.setStart(s);
-			rs.setEnd(e);
-			rs.setException(mainCauseException(t));
-			req.getActions().add(rs);
+			var stg = new MailRequestStage();
+			stg.setName(action.name());
+			stg.setStart(s);
+			stg.setEnd(e);
+			stg.setException(mainCauseException(t));
+			req.getActions().add(stg);
 		};
 	}
 	

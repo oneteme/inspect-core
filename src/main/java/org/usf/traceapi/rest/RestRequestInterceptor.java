@@ -52,7 +52,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				req.setName(st.getMethodName());
 				req.setLocation(st.getClassName());
 			});
-//			setUser if auth=Basic !
+			//setUser(decode AUTHORIZATION)
 			if(nonNull(res)) {
 				req.setStatus(res.getStatusCode().value());
 				req.setInDataSize(res.getBody().available()); //estimated !

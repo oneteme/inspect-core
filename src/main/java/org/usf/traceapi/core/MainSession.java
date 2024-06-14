@@ -1,9 +1,10 @@
 package org.usf.traceapi.core;
 
 import static java.util.Collections.synchronizedCollection;
+import static org.usf.traceapi.core.Session.nextId;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -47,11 +48,11 @@ public class MainSession extends SessionStage implements Session {
 	
 	public static MainSession synchronizedMainSession() {
 		var ss = new MainSession();
-		ss.setId(Session.nextId());
-		ss.setRequests(synchronizedCollection(new LinkedList<>()));
-		ss.setQueries(synchronizedCollection(new LinkedList<>()));
-		ss.setFtpRequests(synchronizedCollection(new LinkedList<>()));
-		ss.setStages(synchronizedCollection(new LinkedList<>()));
+		ss.setId(nextId());
+		ss.setRequests(synchronizedCollection(new ArrayList<>()));
+		ss.setQueries(synchronizedCollection(new ArrayList<>()));
+		ss.setFtpRequests(synchronizedCollection(new ArrayList<>()));
+		ss.setStages(synchronizedCollection(new ArrayList<>()));
 		return ss;
 	}
 }

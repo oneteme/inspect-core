@@ -2,7 +2,6 @@ package org.usf.traceapi.ftp;
 
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
-import static org.usf.traceapi.core.FtpRequest.newFtpRequest;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Session.appendSessionStage;
@@ -24,6 +23,7 @@ import static org.usf.traceapi.ftp.FtpAction.RM;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Vector;
 
 import org.usf.traceapi.core.FtpRequest;
@@ -49,7 +49,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	private static final String BYTES = "[BYTES]";
 	
 	private final ChannelSftp channel;
-	private FtpRequest req = newFtpRequest(); //avoid nullPointer
+	private FtpRequest req;
 
 	@Override
 	public void connect() throws JSchException {
@@ -256,11 +256,10 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	void appendConnection(Instant start, Instant end, Void o, Throwable t) throws Exception {
 		var cs = channel.getSession();
-		req = newFtpRequest();
+		req = new FtpRequest();
 		req.setStart(start);
-		if(nonNull(t)) { // fail
+		if(nonNull(t)) { // fail: do not setException, already set in action
 			req.setEnd(end);
-			//do not setException, already set in action
 		}
 		req.setHost(cs.getHost());
 		req.setPort(cs.getPort());
@@ -272,6 +271,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			req.setName(st.getMethodName());
 			req.setLocation(st.getClassName());
 		});
+		req.setActions(new ArrayList<>());
 		appendAction(CONNECTION).accept(start, end, o, t);
 		appendSessionStage(req);
 	}
@@ -283,13 +283,13 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	<T> StageConsumer<T> appendAction(FtpAction action, String... args) {
 		return (s,e,o,t)-> {
-			var fa = new FtpRequestStage();
-			fa.setName(action.name());
-			fa.setStart(s);
-			fa.setEnd(e);
-			fa.setException(mainCauseException(t));
-			fa.setArgs(args);
-			req.getActions().add(fa);
+			var stg = new FtpRequestStage();
+			stg.setName(action.name());
+			stg.setStart(s);
+			stg.setEnd(e);
+			stg.setException(mainCauseException(t));
+			stg.setArgs(args);
+			req.getActions().add(stg);
 		};
 	}
 	

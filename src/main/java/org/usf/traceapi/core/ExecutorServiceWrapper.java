@@ -2,7 +2,7 @@ package org.usf.traceapi.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.Helper.localTrace;
-import static org.usf.traceapi.core.Helper.updateThreadLocalSession;
+import static org.usf.traceapi.core.Helper.setThreadLocalSession;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.Session.sessionStageAppender;
 import static org.usf.traceapi.core.StageTracker.call;
@@ -51,7 +51,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			try {
 				var app = sessionStageAppender(session); //important! run on parent thread
 				return fn.apply(()->{
-					updateThreadLocalSession(session); //thread already exists
+					setThreadLocalSession(session);
 			    	try {
 				    	exec(command::run, app);
 			    	}
@@ -77,7 +77,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			try {
 				var app = sessionStageAppender(session); //important! run on parent thread
 				return fn.apply(()->{
-					updateThreadLocalSession(session); //thread already exists
+					setThreadLocalSession(session);
 			    	try {
 			    		return call(command::call, app);
 			    	}
@@ -99,4 +99,5 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 	public static ExecutorServiceWrapper wrap(@NonNull ExecutorService es) {
 		return new ExecutorServiceWrapper(es);
 	}
+	
 }

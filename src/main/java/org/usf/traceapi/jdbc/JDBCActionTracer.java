@@ -7,7 +7,6 @@ import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
-import static org.usf.traceapi.core.DatabaseRequest.newDatabaseRequest;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.stackTraceElement;
@@ -35,6 +34,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -60,16 +60,15 @@ public class JDBCActionTracer {
 	private static final Pattern hostPattern = compile("^jdbc:[\\w:]+@?//([-\\w\\.]+)(:(\\d+))?(/(\\w+)|/(\\w+)[\\?,;].*|.*)$", CASE_INSENSITIVE);
 	private static final Pattern dbPattern = compile("database=(\\w+)", CASE_INSENSITIVE);
 	
-	private DatabaseRequest req = newDatabaseRequest(); //avoid nullPointer
+	private DatabaseRequest req;
 	private DatabaseRequestStage exec; //last execute
 	
 	public ConnectionWrapper connection(SafeCallable<Connection, SQLException> supplier) throws SQLException {
 		return new ConnectionWrapper(call(supplier, (s,e,cn,t)->{
-			req = newDatabaseRequest();
+			req = new DatabaseRequest();
 			req.setStart(s);
-			if(nonNull(t)) { // fail
+			if(nonNull(t)) { // fail: do not setException, already set in action
 				req.setEnd(e);
-				//do not setException, already set in action
 			}
 			req.setThreadName(threadName());
 			stackTraceElement().ifPresent(st->{
@@ -87,6 +86,8 @@ public class JDBCActionTracer {
 				req.setDatabaseVersion(meta.getDatabaseProductVersion());
 				req.setDriverVersion(meta.getDriverVersion());
 			}
+			req.setActions(new ArrayList<>());
+			req.setCommands(new ArrayList<>());
 			appendAction(CONNECTION).accept(s, e, cn, t);
 			appendSessionStage(req);
 		}), this);
@@ -160,7 +161,7 @@ public class JDBCActionTracer {
 		} // PreparedStatement otherwise 
 		exec(method, nonNull(sql) || req.getActions().isEmpty() || !BATCH.name().equals(last(req.getActions()).getName())
 				? appendAction(BATCH, (a,v)-> a.setCount(new long[] {1})) //statement | first batch
-				: this::updateLast);
+				: updateLast(last(req.getActions())));
 	}
 	
 	public void commit(SafeRunnable<SQLException> method) throws SQLException {
@@ -197,13 +198,14 @@ public class JDBCActionTracer {
 		return false;
 	}
 
-	void updateLast(Instant start, Instant end, Void v, Throwable t) {
-		var action = last(req.getActions());
-		action.setEnd(end); // shift end
-		if(nonNull(t) && isNull(action.getException())) {
-			action.setException(mainCauseException(t));
-		} //else illegal state
-		action.getCount()[0]++;
+	<T> StageConsumer<T> updateLast(DatabaseRequestStage stg) {
+		return (s,e,o,t)->{
+			stg.setEnd(e); 
+			if(nonNull(t) && isNull(stg.getException())) {
+				stg.setException(mainCauseException(t));
+			} //else illegal state
+			stg.getCount()[0]++;
+		};
 	}
 
 	<T> StageConsumer<T> appendAction(JDBCAction action) {
@@ -248,7 +250,7 @@ public class JDBCActionTracer {
 		return arr;
 	}
 	
-	private static <T> T last(List<T> list) { //safe
+	private static <T> T last(List<T> list) { //!empty
 		return list.get(list.size()-1);
 	}
 }

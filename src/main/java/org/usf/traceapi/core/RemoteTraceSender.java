@@ -65,7 +65,7 @@ public final class RemoteTraceSender implements TraceHandler {
 	}
 	
     private boolean send(int attemps, List<? extends Session> sessions) {
-    	tryRegisterServer(); //if not already registered
+    	tryRegisterServer(); //if not registered before
     	if(nonNull(instanceId)) {
     		template.put(properties.sessionApiURL(), sessions.toArray(Session[]::new), instanceId);
     		return true;

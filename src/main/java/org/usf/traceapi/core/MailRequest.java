@@ -1,13 +1,10 @@
 package org.usf.traceapi.core;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -18,7 +15,6 @@ import lombok.Setter;
 @Setter
 @Getter
 @JsonIgnoreProperties("exception")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public final class MailRequest extends SessionStage {
 	
 	private String host;
@@ -35,12 +31,5 @@ public final class MailRequest extends SessionStage {
 	@Override
 	public void setException(ExceptionInfo exception) {
 		throw new UnsupportedOperationException();
-	}
-
-	public static MailRequest newMailRequest() {
-		var req = new MailRequest();
-		req.setActions(new ArrayList<>());
-		req.setMails(new ArrayList<>());
-		return req;
 	}
 }

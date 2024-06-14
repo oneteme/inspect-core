@@ -95,8 +95,8 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
     	catch (IOException | ServletException | RuntimeException e) {
     		throw e;
     	}
-    	catch (Exception e) {
-    		throw new IllegalStateException(e); //should never happen
+    	catch (Exception e) { //should never happen
+    		throw new IllegalStateException(e); 
     	}
     	finally {
 			localTrace.remove();

@@ -9,9 +9,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class ExceptionInfo {
 	
-	private final String classname; //type
+	private final String type;
 	private final String message;
 	//stack
+
+	@Deprecated(forRemoval = true, since = "v22")
+	public String getClassname() {
+		return type;
+	}
 	
 	public static ExceptionInfo mainCauseException(Throwable t) {
 		if(nonNull(t)) {
