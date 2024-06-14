@@ -1,6 +1,6 @@
 package org.usf.traceapi.core;
 
-import static java.lang.String.format;
+import static java.util.Objects.nonNull;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -21,8 +21,7 @@ public class SessionStage extends Stage implements MutableStage {
 	
 	@Override
 	public String toString() {
-		return format("%-25s", threadName) + ": " 
-				+ this.getClass().getSimpleName() 
-				+ " {" +  format("%5s", duration()) + "ms}";
+		var s = getName() + "(" + location + ") {" + duration() + "ms}";
+		return nonNull(user) ? '<'+user+'>'+s : s;
 	}
 }

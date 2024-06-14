@@ -25,4 +25,9 @@ public final class ExceptionInfo {
 		}
 		return null;
 	}
+	
+	@Override
+	public String toString() {
+		return type + ": " + message;
+	}
 }

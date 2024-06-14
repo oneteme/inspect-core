@@ -40,7 +40,7 @@ public class TraceableAspect {
 			warnNoActiveSession();
 		}
 		else if(nonNull(joinPoint.getArgs())) {
-			Stream.of(joinPoint.getArgs())
+			Stream.of(joinPoint.getArgs()) //trying to find the exception argument
 					.filter(Throwable.class::isInstance)
 					.findFirst()
 					.map(Throwable.class::cast)
@@ -74,18 +74,18 @@ public class TraceableAspect {
     	}
     }
     
-    static void fill(SessionStage sg, Instant beg, Instant fin, ProceedingJoinPoint joinPoint, Throwable e) {
+    static void fill(SessionStage stg, Instant start, Instant end, ProceedingJoinPoint joinPoint, Throwable e) {
     	var ant = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class);
-		sg.setStart(beg);
-		sg.setEnd(fin);
-		sg.setName(ant.value().isBlank() ? joinPoint.getSignature().getName() : ant.value());
-		sg.setLocation(joinPoint.getSignature().getDeclaringTypeName());
-		sg.setThreadName(threadName());
-		sg.setUser(null); // default user supplier
-		sg.setException(mainCauseException(e));
+		stg.setStart(start);
+		stg.setEnd(end);
+		stg.setName(ant.value().isBlank() ? joinPoint.getSignature().getName() : ant.value());
+		stg.setLocation(joinPoint.getSignature().getDeclaringTypeName());
+		stg.setThreadName(threadName());
+		stg.setUser(null); // default user supplier
+		stg.setException(mainCauseException(e));
     	if(ant.sessionUpdater() != StageUpdater.class) { //specific.
     		newInstance(ant.sessionUpdater())
-    		.ifPresent(u-> u.update(sg, joinPoint));
+    		.ifPresent(u-> u.update(stg, joinPoint));
     	}
     }
 }

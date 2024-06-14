@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.Objects.isNull;
+import static org.usf.traceapi.core.Helper.prettyFormat;
 
 import java.util.List;
 
@@ -43,5 +44,10 @@ public class DatabaseRequest extends SessionStage {
 	@Override
 	public void setException(ExceptionInfo exception) {
 		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public String toString() {
+		return '['+databaseName+"] "+ prettyFormat(getUser(), "JDBC", host, port, database);
 	}
 }

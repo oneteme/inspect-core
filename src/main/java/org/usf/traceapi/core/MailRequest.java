@@ -1,5 +1,7 @@
 package org.usf.traceapi.core;
 
+import static org.usf.traceapi.core.Helper.prettyFormat;
+
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -31,5 +33,10 @@ public final class MailRequest extends SessionStage {
 	@Override
 	public void setException(ExceptionInfo exception) {
 		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public String toString() {
+		return prettyFormat(getUser(), "SMTP", host, port, null);
 	}
 }

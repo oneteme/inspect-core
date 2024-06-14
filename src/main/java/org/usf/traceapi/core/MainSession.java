@@ -55,4 +55,9 @@ public class MainSession extends SessionStage implements Session {
 		ss.setStages(synchronizedCollection(new ArrayList<>()));
 		return ss;
 	}
+	
+	@Override
+	public String toString() {
+		return '['+type+"] "+ super.toString();
+	}
 }

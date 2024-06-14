@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.Thread.currentThread;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -81,6 +82,21 @@ public final class Helper {
 	}
 	
 	public static void warnNoActiveSession(SessionStage stage) {
-		log.warn("no active session : cannot append stage {}", stage);
+		log.warn("no active session for stage {}", stage);
+	}
+	
+	public static String prettyFormat(String user, String protocol, String host, int port, String path) {
+		var s = isNull(path) ? "" : '<' + user + '>';
+		s += protocol + "://" + host;
+		if(port > 0) {
+			s+= ':'+port;
+		}
+		if(nonNull(path)) {
+			if(!path.endsWith("/")) {
+				s+= '/';
+			}
+			s+= path;
+		}
+		return s;
 	}
 }
