@@ -32,7 +32,7 @@ public class SessionPrettyLogger implements TraceHandler {
 	private void printSessionStage(SessionStage stg) {
 		log.info("\t{}", stg);
 	}
-	private void printStages(Collection<? extends Stage> stages) {
+	private void printStages(Collection<? extends RequestStage> stages) {
 		for(var stg : stages) {
 			log.info("\t\t{}", stg);
 		}

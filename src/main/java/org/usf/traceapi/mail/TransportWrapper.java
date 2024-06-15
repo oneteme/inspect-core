@@ -4,7 +4,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
-import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Session.appendSessionStage;
 import static org.usf.traceapi.core.StageTracker.exec;
@@ -91,10 +90,6 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 			if(nonNull(t)) { // fail: do not setException, already set in action
 				req.setEnd(e);
 			}
-			stackTraceElement().ifPresent(st->{
-				req.setName(st.getMethodName());
-				req.setLocation(st.getClassName());
-			});
 			req.setThreadName(threadName());
 			req.setActions(new ArrayList<>());
 			req.setMails(new ArrayList<>());

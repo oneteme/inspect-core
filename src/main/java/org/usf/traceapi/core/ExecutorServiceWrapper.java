@@ -4,9 +4,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.setThreadLocalSession;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
-import static org.usf.traceapi.core.Session.sessionStageAppender;
-import static org.usf.traceapi.core.StageTracker.call;
-import static org.usf.traceapi.core.StageTracker.exec;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -49,11 +46,10 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		if(nonNull(session)) {
 			session.lock(); //important! sync lock
 			try {
-				var app = sessionStageAppender(session); //important! run on parent thread
 				return fn.apply(()->{
 					setThreadLocalSession(session);
 			    	try {
-				    	exec(command::run, app);
+				    	command.run();
 			    	}
 			    	finally {
 						session.unlock();
@@ -75,11 +71,10 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		if(nonNull(session)) {
 			session.lock(); //important! sync lock
 			try {
-				var app = sessionStageAppender(session); //important! run on parent thread
 				return fn.apply(()->{
 					setThreadLocalSession(session);
 			    	try {
-			    		return call(command::call, app);
+			    		return command.call();
 			    	}
 			    	finally {
 						session.unlock();

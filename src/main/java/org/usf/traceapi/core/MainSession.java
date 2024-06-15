@@ -21,7 +21,7 @@ import lombok.Setter;
 @Setter
 @JsonTypeName("main")
 @JsonIgnoreProperties("lock")
-public class MainSession extends SessionStage implements Session {
+public class MainSession extends RunnableStage implements Session {
 	
 	private String id;
 	private String type; //@see MainSessionType
@@ -29,7 +29,7 @@ public class MainSession extends SessionStage implements Session {
 	private InstanceEnvironment application;
 	private Collection<RestRequest> requests;
 	private Collection<DatabaseRequest> queries;
-	private Collection<SessionStage> stages;
+	private Collection<RunnableStage> stages;
 	//v22
 	private Collection<FtpRequest> ftpRequests;
 	private Collection<MailRequest> mailRequests;

@@ -48,10 +48,6 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			req.setOutContentEncoding(request.getHeaders().getFirst(CONTENT_ENCODING)); 
 			req.setException(mainCauseException(t));
 			req.setThreadName(threadName());
-			stackTraceElement().ifPresent(st->{
-				req.setName(st.getMethodName());
-				req.setLocation(st.getClassName());
-			});
 			//setUser(decode AUTHORIZATION)
 			if(nonNull(res)) {
 				req.setStatus(res.getStatusCode().value());

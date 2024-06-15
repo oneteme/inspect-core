@@ -20,7 +20,7 @@ public final class ExceptionInfo {
 	
 	@Override
 	public String toString() {
-		return type + ": " + message;
+		return " >> " + type + ": " + message;
 	}
 	
 	public static ExceptionInfo mainCauseException(Throwable t) {

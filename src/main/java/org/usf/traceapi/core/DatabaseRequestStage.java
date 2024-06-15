@@ -1,5 +1,7 @@
 package org.usf.traceapi.core;
 
+import static java.util.Objects.nonNull;
+
 import java.util.Arrays;
 
 import lombok.Getter;
@@ -12,7 +14,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class DatabaseRequestStage extends Stage {
+public final class DatabaseRequestStage extends RequestStage {
 
 	private long[] count; // only for BATCH|EXECUTE|FETCH
 
@@ -27,7 +29,11 @@ public final class DatabaseRequestStage extends Stage {
 	}
 	
 	@Override
-	public String toString() {
-		return super.toString() + " " + Arrays.toString(count);
+	public String prettyFormat() {
+		var s = getName();
+		if(nonNull(count)) {// !exception
+			s += " >> " + Arrays.toString(count);
+		}
+		return s;
 	}
 }

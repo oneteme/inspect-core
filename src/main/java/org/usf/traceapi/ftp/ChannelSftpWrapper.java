@@ -2,7 +2,6 @@ package org.usf.traceapi.ftp;
 
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
-import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Session.appendSessionStage;
 import static org.usf.traceapi.core.StageTracker.call;
@@ -268,10 +267,6 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		req.setThreadName(threadName());
 		req.setServerVersion(cs.getServerVersion());
 		req.setClientVersion(cs.getClientVersion());
-		stackTraceElement().ifPresent(st->{
-			req.setName(st.getMethodName());
-			req.setLocation(st.getClassName());
-		});
 		req.setActions(new ArrayList<>());
 		appendAction(CONNECTION).accept(start, end, o, t);
 		appendSessionStage(req);

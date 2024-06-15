@@ -37,7 +37,7 @@ public interface Session extends Metric {
 	
 	Collection<DatabaseRequest> getQueries(); //rename to getDatabaseRequests
 
-	Collection<SessionStage> getStages();
+	Collection<RunnableStage> getStages();
 	
 	Collection<FtpRequest> getFtpRequests();
 
@@ -58,8 +58,11 @@ public interface Session extends Metric {
 		else if(stage instanceof MailRequest mail) {
 			getMailRequests().add(mail);
 		}
+		else if(stage instanceof RunnableStage run) {
+			getStages().add(run);
+		}
 		else {
-			getStages().add(stage);
+			log.warn("unsupported session stage {}", stage);
 		}
 	}
 	
@@ -99,7 +102,7 @@ public interface Session extends Metric {
 	static StageConsumer<Object> sessionStageAppender(String name, Session session) {
 		var stack = stackTraceElement(); // !important keep out it of consumer
 		return (s,e,o,t)->{
-			var stg = new SessionStage();
+			var stg = new RunnableStage();
 			stg.setStart(s);
 			stg.setEnd(e);
 			stg.setException(mainCauseException(t));

@@ -85,7 +85,7 @@ public final class Helper {
 		log.warn("no active session for stage {}", stage);
 	}
 	
-	public static String prettyFormat(String user, String protocol, String host, int port, String path) {
+	public static String prettyURLFormat(String user, String protocol, String host, int port, String path) {
 		var s = isNull(path) ? "" : '<' + user + '>';
 		s += protocol + "://" + host;
 		if(port > 0) {

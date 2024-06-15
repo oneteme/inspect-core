@@ -123,8 +123,6 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
         		in.setException(mainCauseException(ex));
         	}
 	        if(handler instanceof HandlerMethod hm) {//important! !static resource 
-	        	in.setSignature(hm.getMethod().getName());
-	        	in.setLocation(hm.getBeanType().getName());
 	        	TraceableStage a = hm.getMethodAnnotation(TraceableStage.class);
 	            if(nonNull(a)) {
 	            	if(!a.value().isBlank()) {

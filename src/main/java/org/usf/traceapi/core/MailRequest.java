@@ -1,10 +1,8 @@
 package org.usf.traceapi.core;
 
-import static org.usf.traceapi.core.Helper.prettyFormat;
+import static org.usf.traceapi.core.Helper.prettyURLFormat;
 
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +14,6 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-@JsonIgnoreProperties("exception")
 public final class MailRequest extends SessionStage {
 	
 	private String host;
@@ -26,17 +23,7 @@ public final class MailRequest extends SessionStage {
 	//mail-collector
 	
 	@Override
-	public ExceptionInfo getException() {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public void setException(ExceptionInfo exception) {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public String toString() {
-		return prettyFormat(getUser(), "SMTP", host, port, null);
+	public String prettyFormat() {
+		return prettyURLFormat(getUser(), "SMTP", host, port, null);
 	}
 }

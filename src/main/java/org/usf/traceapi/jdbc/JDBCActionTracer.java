@@ -9,7 +9,6 @@ import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Session.appendSessionStage;
 import static org.usf.traceapi.core.StageTracker.call;
@@ -71,10 +70,6 @@ public class JDBCActionTracer {
 				req.setEnd(e);
 			}
 			req.setThreadName(threadName());
-			stackTraceElement().ifPresent(st->{
-				req.setName(st.getMethodName());
-				req.setLocation(st.getClassName());
-			});
 			if(nonNull(cn)) {
 				var meta = cn.getMetaData();
 				var args = decodeURL(meta.getURL());

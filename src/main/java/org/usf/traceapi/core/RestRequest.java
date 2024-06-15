@@ -1,9 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.traceapi.core.Helper.prettyFormat;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import static org.usf.traceapi.core.Helper.prettyURLFormat;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +13,6 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-//@JsonIgnoreProperties("exception") //@see RestSession
 public class RestRequest extends SessionStage { //APiRequest
 
 	private String id; // <= Traceable server
@@ -33,16 +30,16 @@ public class RestRequest extends SessionStage { //APiRequest
 	//v22
 	private String inContentEncoding; //gzip, compress, identity,..
 	private String outContentEncoding; //gzip, compress, identity,..
+	private ExceptionInfo exception;
 	// => in/out Content [type, size, encoding]
 	//rest-collector
 	
 	@Override
-	public String toString() {
-		var s = '['+method+"] "+ prettyFormat(getUser(), protocol, host, port, path);
+	public String prettyFormat() {
+		var s = '['+method+"] "+ prettyURLFormat(getUser(), protocol, host, port, path);
 		if(nonNull(query)) {
-			s += '?'+query;
+			s += '?' + query;
 		}
-		s += " | "+status;
-		return s;
+		return s + " >> " + status;
 	}
 }

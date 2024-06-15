@@ -22,4 +22,7 @@ public interface Metric {
 				: between(getStart(), getEnd()).toMillis();
 	}
 
+	static String prettyDurationFormat(Metric m) {
+		return " in " + m.duration() + "ms";
+	}
 }

@@ -1,13 +1,11 @@
 package org.usf.traceapi.core;
 
 import static java.util.Objects.isNull;
-import static org.usf.traceapi.core.Helper.prettyFormat;
+import static org.usf.traceapi.core.Helper.prettyURLFormat;
 
 import java.util.List;
 
 import org.usf.traceapi.jdbc.SqlCommand;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -19,7 +17,6 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@JsonIgnoreProperties("exception")
 public class DatabaseRequest extends SessionStage {
 
 	private String host; //IP, domaine
@@ -37,17 +34,8 @@ public class DatabaseRequest extends SessionStage {
 	}
 	
 	@Override
-	public ExceptionInfo getException() {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public void setException(ExceptionInfo exception) {
-		throw new UnsupportedOperationException();
-	}
-	
-	@Override
-	public String toString() {
-		return '['+databaseName+"] "+ prettyFormat(getUser(), "JDBC", host, port, database);
+	public String prettyFormat() {
+		return '['+databaseName+"] " 
+				+prettyURLFormat(getUser(), "JDBC", host, port, database);
 	}
 }
