@@ -18,16 +18,16 @@ public final class ExceptionInfo {
 		return type;
 	}
 	
+	@Override
+	public String toString() {
+		return type + ": " + message;
+	}
+	
 	public static ExceptionInfo mainCauseException(Throwable t) {
 		if(nonNull(t)) {
 			while(nonNull(t.getCause()) && t != t.getCause()) t = t.getCause();
 			return new ExceptionInfo(t.getClass().getName(), t.getMessage());
 		}
 		return null;
-	}
-	
-	@Override
-	public String toString() {
-		return type + ": " + message;
 	}
 }

@@ -46,6 +46,11 @@ public class MainSession extends SessionStage implements Session {
 		this.type = type;
 	}
 	
+	@Override
+	public String toString() {
+		return '['+type+"] "+ super.toString();
+	}
+	
 	public static MainSession synchronizedMainSession() {
 		var ss = new MainSession();
 		ss.setId(nextId());
@@ -54,10 +59,5 @@ public class MainSession extends SessionStage implements Session {
 		ss.setFtpRequests(synchronizedCollection(new ArrayList<>()));
 		ss.setStages(synchronizedCollection(new ArrayList<>()));
 		return ss;
-	}
-	
-	@Override
-	public String toString() {
-		return '['+type+"] "+ super.toString();
 	}
 }
