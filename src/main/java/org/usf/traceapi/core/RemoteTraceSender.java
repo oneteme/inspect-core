@@ -15,9 +15,7 @@ import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.StringHttpMessageConverter;
@@ -27,9 +25,6 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
-import io.netty.handler.codec.http2.Http2Headers;
-import jakarta.activation.MimeType;
 
 /**
  * 
