@@ -6,7 +6,6 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.extractAuthScheme;
-import static org.usf.traceapi.core.Helper.stackTraceElement;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Session.appendSessionStage;
 import static org.usf.traceapi.core.StageTracker.call;
@@ -34,7 +33,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		return call(()-> execution.execute(request, body), (s,e,res,t)->{
-			var req = new RestRequest();
+			var req = new RestRequest(); //see WebClientInterceptor
 			req.setMethod(request.getMethod().name());
 			req.setProtocol(request.getURI().getScheme());
 			req.setHost(request.getURI().getHost());

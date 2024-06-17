@@ -54,6 +54,11 @@
 		  <artifactId>spring-boot-starter-aop</artifactId>
       	<version>${spring.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+      		<version>${spring.version}</version>
+        </dependency>
 		<dependency>
 		  <groupId>com.jcraft</groupId>
 		  <artifactId>jsch</artifactId>
