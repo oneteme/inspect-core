@@ -14,15 +14,15 @@ public class SessionPrettyLogger implements TraceHandler {
 		}
 		for(var req : session.getQueries()) {
 			printSessionStage(req);
-			printStages(req.getActions());
+			printRequestStages(req.getActions());
 		}
 		for(var req : session.getFtpRequests()) {
 			printSessionStage(req);
-			printStages(req.getActions());
+			printRequestStages(req.getActions());
 		}
 		for(var req : session.getMailRequests()) {
 			printSessionStage(req);
-			printStages(req.getActions());
+			printRequestStages(req.getActions());
 		}
 		for(var req : session.getStages()) {
 			printSessionStage(req);
@@ -30,11 +30,11 @@ public class SessionPrettyLogger implements TraceHandler {
 	}
 
 	private void printSessionStage(SessionStage stg) {
-		log.info("\t{}", stg);
+		log.info("\t{}-", stg);
 	}
-	private void printStages(Collection<? extends RequestStage> stages) {
+	private void printRequestStages(Collection<? extends RequestStage> stages) {
 		for(var stg : stages) {
-			log.info("\t\t{}", stg);
+			log.info("\t\t{}-", stg);
 		}
 	}
 
