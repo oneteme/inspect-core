@@ -19,7 +19,7 @@ import lombok.experimental.Delegate;
 public final class ExecutorServiceWrapper implements ExecutorService {
 	
 	@Delegate
-	private final ExecutorService es;
+	private final ExecutorService es;  //Future::cancel !?
 	
 	@Override
 	public <T> Future<T> submit(Callable<T> task) {

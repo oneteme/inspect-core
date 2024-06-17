@@ -6,6 +6,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.Helper.logSessions;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -64,9 +65,10 @@ public final class RemoteTraceSender implements TraceHandler {
 		dispatcher.add(session);
 	}
 	
-    private boolean send(int attemps, List<? extends Session> sessions) {
+    private boolean send(int attemps, List<Session> sessions) {
     	tryRegisterServer(); //if not registered before
     	if(nonNull(instanceId)) {
+    		logSessions(sessions);
     		template.put(properties.sessionApiURL(), sessions.toArray(Session[]::new), instanceId);
     		return true;
     	}
