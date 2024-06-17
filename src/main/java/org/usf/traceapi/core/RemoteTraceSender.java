@@ -7,7 +7,6 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.Helper.logSessions;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -21,6 +20,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
+import org.usf.traceapi.core.ScheduledDispatcher.Dispatcher;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,12 +31,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
  * @author u$f
  *
  */
-public final class RemoteTraceSender implements TraceHandler {
+public final class RemoteTraceSender implements Dispatcher<Session> {
 	
 	private final TraceConfigurationProperties properties;
 	private final RestTemplate template;
 	private final InstanceEnvironment application;
-	private final ScheduledDispatcher<Session> dispatcher;
 	private String instanceId;
 
 	public RemoteTraceSender(TraceConfigurationProperties properties, InstanceEnvironment application) {
@@ -46,33 +45,20 @@ public final class RemoteTraceSender implements TraceHandler {
 	public RemoteTraceSender(TraceConfigurationProperties properties, InstanceEnvironment application, RestTemplate template) {
 		this.properties = properties;
 		this.template = template;
-		this.application = application;
-		this.dispatcher = new ScheduledDispatcher<>(properties, this::send, Session::completed);
-		tryRegisterServer();
+		this.application = application; 
 	}
 	
-	void tryRegisterServer() {
-		if(isNull(instanceId)) {
+	@Override
+    public boolean dispatch(int attemps, List<Session> sessions) {
+		if(isNull(instanceId)) {//if not registered before
 			try {
 				instanceId = template.postForObject(properties.instanceApiURL(), application, String.class);
 			}
 			catch (Exception e) {
 				log.warn("cannot register instance=" + application, e);
 			}
-		}
-	}
-	
-	@Override
-	public void handle(Session session) {
-		dispatcher.add(session);
-	}
-	
-    private boolean send(int attemps, List<Session> sessions) {
-    	tryRegisterServer(); //if not registered before
+		} 
     	if(nonNull(instanceId)) {
-    		if(log.isDebugEnabled()) {
-    			logSessions(sessions);
-    		}
     		template.put(properties.sessionApiURL(), sessions.toArray(Session[]::new), instanceId);
     		return true;
     	}

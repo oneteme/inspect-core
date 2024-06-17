@@ -18,9 +18,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TraceMultiCaster {
 	
-    static final List<TraceHandler> handlers = synchronizedList(new ArrayList<>());
+    static final List<SessionHandler> handlers = synchronizedList(new ArrayList<>());
     
-	public static void register(TraceHandler sender) {
+	public static void register(SessionHandler sender) {
 		handlers.add(sender);
 	}
 	

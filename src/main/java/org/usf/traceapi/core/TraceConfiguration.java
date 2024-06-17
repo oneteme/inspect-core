@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.Helper.basePackage;
@@ -20,10 +21,13 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.usf.traceapi.core.ScheduledDispatcher.Dispatcher;
 import org.usf.traceapi.rest.RestRequestInterceptor;
 import org.usf.traceapi.rest.RestSessionFilter;
+import org.usf.traceapi.rest.WebClientInterceptor;
 
 import jakarta.servlet.Filter;
 
@@ -44,17 +48,10 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config, @Value("${api.tracing.base-package:}") String pkg) {
 		basePackage = pkg;
-		if(isNull(config.getHost()) || config.getHost().isBlank()) {
-			log.warn("TraceAPI remote host not configured !");
-			register(new SessionLogger(config));
-		}
-		else {
-			var inst = localInstance(
-					env.getProperty("spring.application.name"),
-					env.getProperty("spring.application.version"),
-					env.getActiveProfiles());
-			log.info("instance env. : {}", inst);
-			register(new RemoteTraceSender(config, inst));
+		var sd = sessionDispatcher(config, env);
+		if(nonNull(sd)) {
+			var handler = new ScheduledDispatcher<Session>(config, sd);
+			register(handler::add);
 		}
 	}
 
@@ -68,7 +65,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     @Bean
     public FilterRegistrationBean<Filter> apiSessionFilter() {
     	var rb = new FilterRegistrationBean<Filter>(sessionFilter());
-    	rb.setOrder(HIGHEST_PRECEDENCE);
+    	rb.setOrder(	HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*"); //check that
     	return rb;
     }
@@ -89,6 +86,12 @@ public class TraceConfiguration implements WebMvcConfigurer {
     public TraceableAspect traceableAspect() {
     	return new TraceableAspect();
     }
+    
+    @Bean
+    public void webClientBuilder(WebClient.Builder webClientBuilder) { //TODOD
+        webClientBuilder.filter(new WebClientInterceptor());
+    }
+    
 
     @Bean
     public BeanPostProcessor dataSourceWrapper() {
@@ -98,5 +101,21 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	            return bean instanceof DataSource ds ? wrap(ds) : bean;
     		}
 		};
+    }
+    
+    static Dispatcher<Session> sessionDispatcher(TraceConfigurationProperties config, Environment env) {
+    	Dispatcher<Session> ds1 = null;
+		if(log.isDebugEnabled()) {
+			ds1 = new SessionLogger();
+		}
+    	if(isNull(config.getHost()) || config.getHost().isBlank()) {
+			log.warn("TraceAPI remote host not configured !");
+			return ds1;
+    	}
+		var ds2 = new RemoteTraceSender(config, localInstance(
+				env.getProperty("spring.application.name"),
+				env.getProperty("spring.application.version"),
+				env.getActiveProfiles()));
+		return isNull(ds1) ? ds2 : ds1.thenDispatch(ds2); //debug 1st after send
     }
 }

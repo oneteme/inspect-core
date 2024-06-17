@@ -6,7 +6,6 @@ import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -99,38 +98,5 @@ public final class Helper {
 			s+= path;
 		}
 		return s;
-	}
-
-	public static void logSessions(List<Session> sessions) {
-		for(var s : sessions) {
-			log.debug("{}", s);
-			for(var req : s.getRequests()) {
-				printSessionStage(req);
-			}
-			for(var req : s.getQueries()) {
-				printSessionStage(req);
-				printRequestStages(req.getActions());
-			}
-			for(var req : s.getFtpRequests()) {
-				printSessionStage(req);
-				printRequestStages(req.getActions());
-			}
-			for(var req : s.getMailRequests()) {
-				printSessionStage(req);
-				printRequestStages(req.getActions());
-			}
-			for(var req : s.getStages()) {
-				printSessionStage(req);
-			}
-		}
-	}
-
-	private static void printSessionStage(SessionStage stg) {
-		log.debug("\t{}-", stg);
-	}
-	private static void printRequestStages(Collection<? extends RequestStage> stages) {
-		for(var stg : stages) {
-			log.debug("\t\t{}-", stg);
-		}
 	}
 }

@@ -26,7 +26,7 @@ public final class TraceConfigurationProperties extends SessionDispatcherPropert
 	private String sessionApi  = "v3/trace/instance/${id}/session"; //[PUT] async
 	
 	public void setHost(String host) {
-		if(nonNull(host) && !host.matches(HOST_PATTERN)) {
+		if(nonNull(host) && !host.isBlank() && !host.matches(HOST_PATTERN)) {
 			throw new IllegalArgumentException("bad host value : " + host);
 		}
 		this.host = host; //nullable
