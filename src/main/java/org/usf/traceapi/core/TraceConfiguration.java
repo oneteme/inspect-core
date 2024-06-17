@@ -43,15 +43,19 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	private RestSessionFilter sessionFilter;
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config, @Value("${api.tracing.base-package:}") String pkg) {
-		var inst = localInstance(
-				env.getProperty("spring.application.name"),
-				env.getProperty("spring.application.version"),
-				env.getActiveProfiles());
 		basePackage = pkg;
-		register(config.getHost().isBlank() 
-        		? new SessionLogger(config) // cache traces !?
-        		: new RemoteTraceSender(config, inst));
-		log.info("app.env : {}", inst);
+		if(isNull(config.getHost()) || config.getHost().isBlank()) {
+			log.warn("TraceAPI remote host not configured !");
+			register(new SessionLogger(config));
+		}
+		else {
+			var inst = localInstance(
+					env.getProperty("spring.application.name"),
+					env.getProperty("spring.application.version"),
+					env.getActiveProfiles());
+			log.info("instance env. : {}", inst);
+			register(new RemoteTraceSender(config, inst));
+		}
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.Helper.logSessions;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -69,6 +70,9 @@ public final class RemoteTraceSender implements TraceHandler {
     private boolean send(int attemps, List<Session> sessions) {
     	tryRegisterServer(); //if not registered before
     	if(nonNull(instanceId)) {
+    		if(log.isDebugEnabled()) {
+    			logSessions(sessions);
+    		}
     		template.put(properties.sessionApiURL(), sessions.toArray(Session[]::new), instanceId);
     		return true;
     	}
