@@ -15,13 +15,13 @@ import javax.sql.DataSource;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.traceapi.core.ScheduledDispatcher.Dispatcher;
@@ -88,10 +88,10 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
     
     @Bean
-    public void webClientBuilder(WebClient.Builder webClientBuilder) { //TODOD
-        webClientBuilder.filter(new WebClientInterceptor());
+    @ConditionalOnClass(name="org.springframework.web.reactive.function.client.ExchangeFilterFunction")
+    public WebClientInterceptor webClientBuilder() { 
+        return new WebClientInterceptor();
     }
-    
 
     @Bean
     public BeanPostProcessor dataSourceWrapper() {
