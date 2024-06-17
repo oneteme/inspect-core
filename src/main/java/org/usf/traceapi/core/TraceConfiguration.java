@@ -49,7 +49,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 				env.getActiveProfiles());
 		basePackage = pkg;
 		register(config.getHost().isBlank() 
-        		? res-> {} // cache traces !?
+        		? new SessionLogger(config) // cache traces !?
         		: new RemoteTraceSender(config, inst));
 		log.info("app.env : {}", inst);
 	}

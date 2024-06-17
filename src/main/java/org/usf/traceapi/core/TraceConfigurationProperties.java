@@ -1,6 +1,7 @@
 package org.usf.traceapi.core;
 
 import static java.lang.String.join;
+import static java.util.Objects.nonNull;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -17,11 +18,19 @@ import lombok.Setter;
 @ConfigurationProperties(prefix = "api.tracing")
 public final class TraceConfigurationProperties extends SessionDispatcherProperties {
 	
+	private static final String HOST_PATTERN = "https?://[\\w\\-\\.]+(:\\d{2,5})?\\/?";
 	private static final String SLASH = "/";
 	
 	private String host = "localhost:9000";
 	private String instanceApi = "v3/trace/instance"; //[POST] async
 	private String sessionApi  = "v3/trace/instance/${id}/session"; //[PUT] async
+	
+	public void setHost(String host) {
+		if(nonNull(host) && !host.matches(HOST_PATTERN)) {
+			throw new IllegalArgumentException("bad host value : " + host);
+		}
+		this.host = host; //nullable
+	}
 	
 	public String instanceApiURL() {
 		return toURL(host, instanceApi);
