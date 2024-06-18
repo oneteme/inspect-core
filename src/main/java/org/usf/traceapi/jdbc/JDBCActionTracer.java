@@ -72,7 +72,7 @@ public class JDBCActionTracer {
 			req.setThreadName(threadName());
 			if(nonNull(cn)) {
 				var meta = cn.getMetaData();
-				var args = decodeURL(meta.getURL());
+				var args = decodeURL(meta.getURL()); //H2
 				req.setHost(args[0]);
 				req.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(-1));
 				req.setDatabase(args[2]);

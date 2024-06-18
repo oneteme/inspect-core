@@ -100,14 +100,14 @@ public interface Session extends Metric {
 	}
 	
 	static StageConsumer<Object> runnableStageAppender(String name, Session session) {
-		var stack = outerStackTraceElement(); // !important keep out it of consumer
+		var stk = outerStackTraceElement(); // !important keep out it of consumer
 		return (s,e,o,t)->{
 			var stg = new RunnableStage();
 			stg.setStart(s);
 			stg.setEnd(e);
 			stg.setException(mainCauseException(t));
 			stg.setName(name);
-			stack.ifPresent(st-> {
+			stk.ifPresent(st-> {
 				if(isNull(name)) {
 					stg.setName(st.getMethodName());
 				}

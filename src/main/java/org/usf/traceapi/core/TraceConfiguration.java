@@ -14,7 +14,6 @@ import javax.sql.DataSource;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -26,7 +25,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.traceapi.core.ScheduledDispatcher.Dispatcher;
 import org.usf.traceapi.rest.RestRequestInterceptor;
 import org.usf.traceapi.rest.RestSessionFilter;
-import org.usf.traceapi.rest.WebClientFilter;
 
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.Filter;
@@ -87,12 +85,6 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	return new TraceableAspect();
     }
     
-    @Bean
-    @ConditionalOnClass(name="org.springframework.web.reactive.function.client.ExchangeFilterFunction")
-    public WebClientFilter webClientFilter() { 
-        return new WebClientFilter();
-    }
-
     @Bean
     public BeanPostProcessor dataSourceWrapper() {
     	return new BeanPostProcessor() {

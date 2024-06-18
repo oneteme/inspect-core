@@ -27,10 +27,10 @@ public class RestRequest extends SessionStage { //APiRequest
 	private int status; //2xx, 4xx, 5xx, 0 otherwise
 	private long inDataSize; //-1 otherwise
 	private long outDataSize; //-1 otherwise
+	private ExceptionInfo exception;
 	//v22
 	private String inContentEncoding; //gzip, compress, identity,..
 	private String outContentEncoding; //gzip, compress, identity,..
-	private ExceptionInfo exception;
 	// => in/out Content [type, size, encoding]
 	//rest-collector
 	
