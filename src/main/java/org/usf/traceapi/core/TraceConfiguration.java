@@ -65,7 +65,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     @Bean
     public FilterRegistrationBean<Filter> apiSessionFilter() {
     	var rb = new FilterRegistrationBean<Filter>(sessionFilter());
-    	rb.setOrder(	HIGHEST_PRECEDENCE);
+    	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*"); //check that
     	return rb;
     }
@@ -109,7 +109,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 			ds1 = new SessionLogger();
 		}
     	if(isNull(config.getHost()) || config.getHost().isBlank()) {
-			log.warn("TraceAPI remote host not configured !");
+			log.warn("TraceAPI remote host not configured, {}", config);
 			return ds1;
     	}
 		var ds2 = new RemoteTraceSender(config, localInstance(

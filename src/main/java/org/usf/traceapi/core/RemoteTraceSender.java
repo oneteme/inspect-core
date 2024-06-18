@@ -26,26 +26,23 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * 
  * @author u$f
  *
  */
+@RequiredArgsConstructor
 public final class RemoteTraceSender implements Dispatcher<Session> {
 	
 	private final TraceConfigurationProperties properties;
-	private final RestTemplate template;
 	private final InstanceEnvironment application;
+	private final RestTemplate template;
 	private String instanceId;
 
 	public RemoteTraceSender(TraceConfigurationProperties properties, InstanceEnvironment application) {
-		this(properties, application, createRestTemplate());
-	}
-	
-	public RemoteTraceSender(TraceConfigurationProperties properties, InstanceEnvironment application, RestTemplate template) {
-		this.properties = properties;
-		this.template = template;
-		this.application = application; 
+		this(properties, application, defaultRestTemplate());
 	}
 	
 	@Override
@@ -65,7 +62,7 @@ public final class RemoteTraceSender implements Dispatcher<Session> {
     	return false;
     }
 
-	private static RestTemplate createRestTemplate() {
+	private static RestTemplate defaultRestTemplate() {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //instanceID
 	    var timeout = ofSeconds(30);
@@ -86,7 +83,9 @@ public final class RemoteTraceSender implements Dispatcher<Session> {
 			    req.getHeaders().add(CONTENT_ENCODING, "gzip");
 		        body = baos.toByteArray();
 		    }
-		    catch (Exception e) {/*do not throw exception */}
+		    catch (Exception e) {/*do not throw exception */
+		    	log.warn("cannot compress sessions, {}", e.getMessage());
+		    }
 		}
     	return exec.execute(req, body);
 	}

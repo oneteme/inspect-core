@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 
@@ -15,6 +16,7 @@ import lombok.Setter;
  */
 @Setter
 @Getter
+@ToString
 @ConfigurationProperties(prefix = "api.tracing")
 public final class TraceConfigurationProperties extends SessionDispatcherProperties {
 	
@@ -23,7 +25,7 @@ public final class TraceConfigurationProperties extends SessionDispatcherPropert
 	
 	private String host = "http://localhost:9000";
 	private String instanceApi = "v3/trace/instance"; //[POST] async
-	private String sessionApi  = "v3/trace/instance/${id}/session"; //[PUT] async
+	private String sessionApi  = "v3/trace/instance/{id}/session"; //[PUT] async
 	
 	public void setHost(String host) {
 		if(nonNull(host) && !host.isBlank() && !host.matches(HOST_PATTERN)) {
