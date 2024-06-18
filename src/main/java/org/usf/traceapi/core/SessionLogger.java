@@ -18,7 +18,7 @@ public final class SessionLogger implements Dispatcher<Session> {
     public boolean dispatch(int attemps, List<Session> sessions) {
 		try {
 			for(var s : sessions) {
-				log.debug("{}", s);
+				log.debug("| {}", s);
 				for(var req : s.getRequests()) {
 					printSessionStage(req);
 				}
@@ -46,11 +46,11 @@ public final class SessionLogger implements Dispatcher<Session> {
     }
 
 	private static void printSessionStage(SessionStage stg) {
-		log.debug("\t{}-", stg);
+		log.debug("\t- {}", stg);
 	}
 	private static void printRequestStages(Collection<? extends RequestStage> stages) {
 		for(var stg : stages) {
-			log.debug("\t\t{}-", stg);
+			log.debug("\t\t- {}", stg);
 		}
 	}
 }
