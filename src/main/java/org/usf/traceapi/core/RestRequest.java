@@ -36,7 +36,7 @@ public class RestRequest extends SessionStage { //APiRequest
 	
 	@Override
 	public String prettyFormat() {
-		var s = '['+method+"] "+ prettyURLFormat(getUser(), protocol, host, port, path);
+		var s = '['+method+']'+ prettyURLFormat(getUser(), protocol, host, port, path);
 		if(nonNull(query)) {
 			s += '?' + query;
 		}

@@ -48,7 +48,7 @@ public class MainSession extends RunnableStage implements Session {
 	
 	@Override
 	public String toString() {
-		return '['+type+"] "+ super.toString();
+		return '['+type+']'+ super.toString();
 	}
 	
 	public static MainSession synchronizedMainSession() {

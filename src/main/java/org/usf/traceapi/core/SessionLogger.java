@@ -30,7 +30,7 @@ public final class SessionLogger implements Dispatcher<Session> {
     }
 	
 	private static void printSession(Session s) {
-		log.debug("| {}", s);
+		log.debug("+ {}", s);
 		for(var req : s.getRequests()) {
 			printSessionStage(req);
 		}
