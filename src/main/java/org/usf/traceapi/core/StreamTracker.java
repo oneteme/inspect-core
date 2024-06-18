@@ -36,7 +36,7 @@ public final class StreamTracker {
     			return c;
     		});
         } 
-    	warnNoActiveSession();
+    	warnNoActiveSession("");
     	return stream.parallel();
 	}
 }

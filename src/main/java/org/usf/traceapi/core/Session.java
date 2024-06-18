@@ -126,7 +126,7 @@ public interface Session extends Metric {
 			session.append(stg);
 			return true;
 		}
-		warnNoActiveSession(stg);
+		warnNoActiveSession(stg); //log untracked stage
 		return false;
 	}
 }

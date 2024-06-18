@@ -13,7 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
  * @author u$f
  *
  */
-public interface StageUpdater { //TODO
+public interface StageUpdater {
 
     default void update(MutableStage session, HttpServletRequest req) { }
     

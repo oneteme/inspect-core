@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
  * @author u$f
  *
  */
-@Aspect
+@Aspect //TD fork ControllerAdvice & TraceableStage
 @RequiredArgsConstructor
 public class TraceableAspect {
 	
@@ -37,7 +37,8 @@ public class TraceableAspect {
     Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
 		var session = (RestSession) localTrace.get();
 		if(isNull(session)) {
-			warnNoActiveSession();
+			var sign = joinPoint.getSignature();
+			warnNoActiveSession(sign.getName() + "::" + sign.getDeclaringTypeName()); //TD check this
 		}
 		else if(nonNull(joinPoint.getArgs())) {
 			Stream.of(joinPoint.getArgs()) //trying to find the exception argument

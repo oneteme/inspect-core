@@ -62,7 +62,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 				throw e;
 			}
 		}
-		warnNoActiveSession();
+		warnNoActiveSession("");
 		return fn.apply(command);
     }
 
@@ -87,7 +87,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 				throw e;
 			}
 		}
-		warnNoActiveSession();
+		warnNoActiveSession("");
 		return fn.apply(command);
     }
         

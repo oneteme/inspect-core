@@ -16,7 +16,6 @@ import static org.usf.traceapi.core.Helper.extractAuthScheme;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
-import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.RestSession.synchronizedApiSession;
 import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.core.StageUpdater.getUser;
@@ -81,7 +80,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				in.setOutDataSize(cRes.getContentSize());
 				in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 				in.setOutContentEncoding(res.getHeader(CONTENT_ENCODING)); 
-				in.setUserAgent(res.getHeader(USER_AGENT));
+				in.setUserAgent(req.getHeader(USER_AGENT));
 	    		in.setStart(s);
 	    		in.setEnd(e);
     			in.setThreadName(threadName());
@@ -113,15 +112,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
     @Override //Session stage !?
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
     	var in = (RestSession) localTrace.get();
-        if(isNull(in)) {
-        	warnNoActiveSession();
-        }
-        else {
-			in.setName(defaultEndpointName(req));
-        	in.setUser(getUser(req));
-        	if(nonNull(ex) && isNull(in.getException())) {//already set with Aspect
-        		in.setException(mainCauseException(ex));
-        	}
+        if(nonNull(in)) {
 	        if(handler instanceof HandlerMethod hm) {//important! !static resource 
 	        	TraceableStage a = hm.getMethodAnnotation(TraceableStage.class);
 	            if(nonNull(a)) {
@@ -132,10 +123,19 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	            		newInstance(a.sessionUpdater())
 	            		.ifPresent(u-> u.update(in, req));
 	            	}
-	            	//no location
                 }
             }
+	        if(isNull(in.getName())) {
+				in.setName(defaultEndpointName(req));
+	        }
+	        if(isNull(in.getUser())) {
+	        	in.setUser(getUser(req));
+	        }
+        	if(nonNull(ex) && isNull(in.getException())) {//already set with Aspect
+        		in.setException(mainCauseException(ex));
+        	}
         }
+        //else !?
     }
 
 	@SuppressWarnings("unchecked")

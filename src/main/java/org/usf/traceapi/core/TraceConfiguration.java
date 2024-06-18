@@ -4,7 +4,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
-import static org.usf.traceapi.core.Helper.basePackage;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.InstanceEnvironment.localInstance;
 import static org.usf.traceapi.core.TraceMultiCaster.register;
@@ -48,8 +47,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	private RestSessionFilter sessionFilter;
 	private ScheduledDispatcher<Session> handler;
 	
-	public TraceConfiguration(Environment env, TraceConfigurationProperties config, @Value("${api.tracing.base-package:}") String pkg) {
-		basePackage = pkg;
+	public TraceConfiguration(Environment env, TraceConfigurationProperties config) {
 		var sd = sessionDispatcher(config, env);
 		if(nonNull(sd)) {
 			this.handler = new ScheduledDispatcher<>(config, sd);

@@ -1,5 +1,6 @@
 package org.usf.traceapi.core;
 
+import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -8,6 +9,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 
@@ -22,9 +25,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Helper {
 	
-	public static final Logger log = getLogger(Helper.class.getPackage().getName() + ".TraceAPI");
+	private static final int MAX_STACK = 6 + 1; //skipped
+	private static final String BASE_PACKAGE = Helper.class.getPackageName();
 	
-	static String basePackage;
+	public static final Logger log = getLogger(BASE_PACKAGE + ".TraceAPI");
 
 	public static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	
@@ -58,31 +62,23 @@ public final class Helper {
 	}
 	
 	public static Optional<StackTraceElement> stackTraceElement() {
-		if(nonNull(basePackage) && !basePackage.isBlank()) {
-			var arr = currentThread().getStackTrace();
-			var i = 1; //location, internal call
-			while (++i<arr.length && !arr[i].getClassName().startsWith(basePackage));
-			if(i<arr.length) {
-				return Optional.of(arr[i]);
-			}
-		}
-		return empty();
-	}
-
-	public static void warnNoActiveSession() {
-		log.warn("no active session");
-		if(nonNull(basePackage) && !basePackage.isBlank()) {
-			var arr = currentThread().getStackTrace();
-			for(var st : arr) {
-				if(st.getClassName().startsWith(basePackage)) {
-					log.warn("\tat  {}", st);
-				}
-			}
-		}
+		var arr = currentThread().getStackTrace();
+		var i = 1; //location, internal call
+		while (++i<arr.length && arr[i].getClassName().startsWith(BASE_PACKAGE));
+		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
-	public static void warnNoActiveSession(SessionStage stage) {
-		log.warn("no active session for stage {}", stage);
+	public static void warnNoActiveSession(Object o) { 
+		log.warn("no active session: {}", o);
+		var arr = currentThread().getStackTrace();
+		var i = 0; //skip this method call
+		var max = min(arr.length, MAX_STACK);
+		while (++i<max) {
+			log.warn("\tat {}", arr[i]);
+		}
+		if(i<arr.length) {
+			log.warn("\t...");
+		}
 	}
 	
 	public static String prettyURLFormat(String user, String protocol, String host, int port, String path) {
