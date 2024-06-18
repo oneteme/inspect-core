@@ -1,5 +1,6 @@
 package org.usf.traceapi.core;
 
+import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.Helper.log;
 
 import java.util.Collection;

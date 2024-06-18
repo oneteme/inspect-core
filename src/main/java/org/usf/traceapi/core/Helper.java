@@ -87,7 +87,7 @@ public final class Helper {
 	}
 	
 	public static String prettyURLFormat(String user, String protocol, String host, int port, String path) {
-		var s = isNull(path) ? "" : '<' + user + '>';
+		var s = isNull(user) ? "" : '<' + user + '>';
 		s += protocol + "://" + host;
 		if(port > 0) {
 			s+= ':'+port;

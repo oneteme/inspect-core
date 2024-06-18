@@ -52,7 +52,7 @@ public final class RemoteTraceSender implements Dispatcher<Session> {
 				instanceId = template.postForObject(properties.instanceApiURL(), application, String.class);
 			}
 			catch (Exception e) {
-				log.warn("cannot register instance=" + application, e);
+				log.warn("cannot register instance, {}", e.getMessage());
 			}
 		} 
     	if(nonNull(instanceId)) {

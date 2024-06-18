@@ -38,12 +38,13 @@ public class RestSession extends RestRequest implements Session, MutableStage {
 	private final AtomicInteger lock = new AtomicInteger();
 	
 	public static RestSession synchronizedApiSession() {
-		var ss = new RestSession();
-		ss.setId(nextId());	
-		ss.setRequests(synchronizedCollection(new ArrayList<>()));
-		ss.setQueries(synchronizedCollection(new ArrayList<>()));
-		ss.setFtpRequests(synchronizedCollection(new ArrayList<>()));
-		ss.setStages(synchronizedCollection(new ArrayList<>()));
-		return ss;
+		var ses = new RestSession();
+		ses.setId(nextId());	
+		ses.setRequests(synchronizedCollection(new ArrayList<>()));
+		ses.setQueries(synchronizedCollection(new ArrayList<>()));
+		ses.setFtpRequests(synchronizedCollection(new ArrayList<>()));
+		ses.setMailRequests(synchronizedCollection(new ArrayList<>()));
+		ses.setStages(synchronizedCollection(new ArrayList<>()));
+		return ses;
 	}	
 }
