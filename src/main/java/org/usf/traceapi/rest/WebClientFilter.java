@@ -30,7 +30,7 @@ import reactor.core.publisher.Mono;
  * @author u$f
  *
  */
-public final class WebClientInterceptor implements ExchangeFilterFunction  {
+public final class WebClientFilter implements ExchangeFilterFunction  {
 
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest req, ExchangeFunction exc) {

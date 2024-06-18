@@ -27,7 +27,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.traceapi.core.ScheduledDispatcher.Dispatcher;
 import org.usf.traceapi.rest.RestRequestInterceptor;
 import org.usf.traceapi.rest.RestSessionFilter;
-import org.usf.traceapi.rest.WebClientInterceptor;
+import org.usf.traceapi.rest.WebClientFilter;
 
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.Filter;
@@ -91,8 +91,8 @@ public class TraceConfiguration implements WebMvcConfigurer {
     
     @Bean
     @ConditionalOnClass(name="org.springframework.web.reactive.function.client.ExchangeFilterFunction")
-    public WebClientInterceptor webClientBuilder() { 
-        return new WebClientInterceptor();
+    public WebClientFilter webClientFilter() { 
+        return new WebClientFilter();
     }
 
     @Bean
