@@ -19,6 +19,6 @@ public final class Mail {
 	private String[] from;
  	private String[] recipients; 
 	private String[] replyTo;
-	private int size; //size in bytes, -1 otherwise
+	private int size; //in bytes, -1 otherwise
 	
 }
