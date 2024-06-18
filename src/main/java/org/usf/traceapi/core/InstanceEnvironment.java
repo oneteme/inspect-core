@@ -24,7 +24,7 @@ import lombok.ToString;
  */
 @Getter
 @ToString
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public class InstanceEnvironment {
 	
 	private final String name; //project name

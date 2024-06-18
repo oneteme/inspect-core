@@ -1,8 +1,7 @@
 package org.usf.traceapi.core;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-
-import java.util.Objects;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -22,7 +21,7 @@ public class RunnableStage extends SessionStage implements MutableStage {
 	
 	@Override
 	String prettyFormat() {
-		var s = Objects.isNull(getUser()) ? "" : '<' + getUser() + '>';
+		var s = isNull(getUser()) ? "" : '<' + getUser() + '>';
 		s+= name + "(" + location + ")";
 		if(nonNull(exception)) {
 			s += exception;
