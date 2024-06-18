@@ -29,6 +29,7 @@ import org.usf.traceapi.rest.RestRequestInterceptor;
 import org.usf.traceapi.rest.RestSessionFilter;
 import org.usf.traceapi.rest.WebClientInterceptor;
 
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.Filter;
 
 /**
@@ -45,12 +46,13 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	private String[] excludes;
 	
 	private RestSessionFilter sessionFilter;
+	private ScheduledDispatcher<Session> handler;
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config, @Value("${api.tracing.base-package:}") String pkg) {
 		basePackage = pkg;
 		var sd = sessionDispatcher(config, env);
 		if(nonNull(sd)) {
-			var handler = new ScheduledDispatcher<Session>(config, sd);
+			this.handler = new ScheduledDispatcher<>(config, sd);
 			register(handler::add);
 		}
 	}
@@ -103,19 +105,26 @@ public class TraceConfiguration implements WebMvcConfigurer {
 		};
     }
     
+    @PreDestroy
+    void shutdown() throws InterruptedException {
+    	if(nonNull(handler)) {
+    		handler.shutdown();
+    	}
+    }
+    
     static Dispatcher<Session> sessionDispatcher(TraceConfigurationProperties config, Environment env) {
-    	Dispatcher<Session> ds1 = null;
+    	Dispatcher<Session> dt1 = null;
 		if(log.isDebugEnabled()) {
-			ds1 = new SessionLogger();
+			dt1 = new SessionLogger();
 		}
     	if(isNull(config.getHost()) || config.getHost().isBlank()) {
 			log.warn("TraceAPI remote host not configured, {}", config);
-			return ds1;
+			return dt1;
     	}
-		var ds2 = new RemoteTraceSender(config, localInstance(
+		var dt2 = new RemoteTraceSender(config, localInstance(
 				env.getProperty("spring.application.name"),
 				env.getProperty("spring.application.version"),
 				env.getActiveProfiles()));
-		return isNull(ds1) ? ds2 : ds1.thenDispatch(ds2); //debug 1st after send
+		return isNull(dt1) ? dt2 : dt1.thenDispatch(dt2); //debug 1st after send
     }
 }

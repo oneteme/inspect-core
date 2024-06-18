@@ -16,28 +16,33 @@ public final class SessionLogger implements Dispatcher<Session> {
 	
 	@Override
     public boolean dispatch(int attemps, List<Session> sessions) {
-		for(var s : sessions) {
-			log.debug("{}", s);
-			for(var req : s.getRequests()) {
-				printSessionStage(req);
-			}
-			for(var req : s.getQueries()) {
-				printSessionStage(req);
-				printRequestStages(req.getActions());
-			}
-			for(var req : s.getFtpRequests()) {
-				printSessionStage(req);
-				printRequestStages(req.getActions());
-			}
-			for(var req : s.getMailRequests()) {
-				printSessionStage(req);
-				printRequestStages(req.getActions());
-			}
-			for(var req : s.getStages()) {
-				printSessionStage(req);
+		try {
+			for(var s : sessions) {
+				log.debug("{}", s);
+				for(var req : s.getRequests()) {
+					printSessionStage(req);
+				}
+				for(var req : s.getQueries()) {
+					printSessionStage(req);
+					printRequestStages(req.getActions());
+				}
+				for(var req : s.getFtpRequests()) {
+					printSessionStage(req);
+					printRequestStages(req.getActions());
+				}
+				for(var req : s.getMailRequests()) {
+					printSessionStage(req);
+					printRequestStages(req.getActions());
+				}
+				for(var req : s.getStages()) {
+					printSessionStage(req);
+				}
 			}
 		}
-		return true;
+		catch (Exception e) {
+			log.warn("error while loggin sessions {}", e.getMessage());
+		}
+		return true; //important! always returns true
     }
 
 	private static void printSessionStage(SessionStage stg) {

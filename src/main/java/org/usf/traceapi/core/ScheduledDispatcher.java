@@ -53,7 +53,7 @@ public final class ScheduledDispatcher<T> {
 	public boolean add(T... arr) {
 		if(state != DISABLE) { // CACHE | DISPATCH
 			doSync(q-> addAll(q, arr));
-			log.trace("{} items buffered", queue.size());
+			log.trace("{} new items buffered", arr.length);
 			return true;
 		}
 		log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
@@ -149,6 +149,7 @@ public final class ScheduledDispatcher<T> {
     }
  
     public void shutdown() throws InterruptedException {
+    	var stt = this.state;
     	updateState(DISABLE); //stop add items
     	log.info("shutting down scheduler service");
     	try {
@@ -156,7 +157,12 @@ public final class ScheduledDispatcher<T> {
     		while(!executor.awaitTermination(5, SECONDS)); //wait for last save complete
     	}
     	finally {
-    		tryDispatch();
+    		if(stt == DISPACH) {
+    			dispatch(); //force last dispatch
+    		}
+    		else {
+    			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
+    		}
 		}
     }
 	
