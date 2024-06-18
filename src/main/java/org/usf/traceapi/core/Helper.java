@@ -9,8 +9,6 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 
@@ -25,12 +23,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Helper {
 	
-	private static final int MAX_STACK = 6 + 1; //skipped
-	private static final String BASE_PACKAGE = Helper.class.getPackageName();
+	private static final int MAX_STACK = 5; //skipped
+	private static final String ROOT_PACKAGE;
 	
-	public static final Logger log = getLogger(BASE_PACKAGE + ".TraceAPI");
+	public static final Logger log;
 
 	public static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
+	
+	static {
+		var p = Helper.class.getPackageName();
+		ROOT_PACKAGE = p.substring(0, p.lastIndexOf(".")); //root
+		log = getLogger(ROOT_PACKAGE + ".Collector");
+	}
 	
 	public static void setThreadLocalSession(Session s) {
 		if(localTrace.get() != s) { // null || local previous session
@@ -61,20 +65,21 @@ public final class Helper {
 		}
 	}
 	
-	public static Optional<StackTraceElement> stackTraceElement() {
+	public static Optional<StackTraceElement> outerStackTraceElement() {
 		var arr = currentThread().getStackTrace();
-		var i = 1; //location, internal call
-		while (++i<arr.length && arr[i].getClassName().startsWith(BASE_PACKAGE));
+		var i = 1; //skip this method call
+		while(i<arr.length && arr[i].getClassName().startsWith(ROOT_PACKAGE)) {i++;}
 		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
-	public static void warnNoActiveSession(Object o) { 
+	public static void warnNoActiveSession(Object o) {
 		log.warn("no active session: {}", o);
 		var arr = currentThread().getStackTrace();
-		var i = 0; //skip this method call
-		var max = min(arr.length, MAX_STACK);
-		while (++i<max) {
-			log.warn("\tat {}", arr[i]);
+		var i = 1; //skip this method call
+		while(i<arr.length && arr[i].getClassName().startsWith(ROOT_PACKAGE)) {i++;}
+		var max = min(arr.length, --i+MAX_STACK); //first JQuery method call
+		while (i<max) {
+			log.warn("\tat {}", arr[i++]);
 		}
 		if(i<arr.length) {
 			log.warn("\t...");

@@ -6,7 +6,7 @@ import static java.util.UUID.randomUUID;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.Helper.stackTraceElement;
+import static org.usf.traceapi.core.Helper.outerStackTraceElement;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.StageTracker.call;
 
@@ -92,15 +92,15 @@ public interface Session extends Metric {
 	}
 	
 	static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
-		return call(fn, sessionStageAppender(name, localTrace.get()));
+		return call(fn, runnableStageAppender(name, localTrace.get()));
 	}
 
-	static StageConsumer<Object> sessionStageAppender(Session session) {
-		return sessionStageAppender(null, session);
+	static StageConsumer<Object> runnableStageAppender(Session session) {
+		return runnableStageAppender(null, session);
 	}
 	
-	static StageConsumer<Object> sessionStageAppender(String name, Session session) {
-		var stack = stackTraceElement(); // !important keep out it of consumer
+	static StageConsumer<Object> runnableStageAppender(String name, Session session) {
+		var stack = outerStackTraceElement(); // !important keep out it of consumer
 		return (s,e,o,t)->{
 			var stg = new RunnableStage();
 			stg.setStart(s);
