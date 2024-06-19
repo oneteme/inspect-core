@@ -66,7 +66,7 @@ public class JDBCActionTracer {
 		return new ConnectionWrapper(call(supplier, (s,e,cn,t)->{
 			req = new DatabaseRequest();
 			req.setStart(s);
-			if(nonNull(t)) { // fail: do not setException, already set in action
+			if(nonNull(t)) {
 				req.setEnd(e);
 			}
 			req.setThreadName(threadName());

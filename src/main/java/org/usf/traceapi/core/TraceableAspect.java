@@ -41,9 +41,9 @@ public class TraceableAspect {
 			warnNoActiveSession(sign.getName() + "::" + sign.getDeclaringTypeName()); //TD check this
 		}
 		else if(nonNull(joinPoint.getArgs())) {
-			Stream.of(joinPoint.getArgs()) //trying to find the exception argument
+			Stream.of(joinPoint.getArgs())
 					.filter(Throwable.class::isInstance)
-					.findFirst()
+					.findFirst() //trying to find the exception argument
 					.map(Throwable.class::cast)
 					.map(ExceptionInfo::mainCauseException)
 					.ifPresent(session::setException);

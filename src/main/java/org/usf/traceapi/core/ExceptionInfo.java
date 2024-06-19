@@ -5,6 +5,11 @@ import static java.util.Objects.nonNull;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Getter
 @RequiredArgsConstructor
 public final class ExceptionInfo {
