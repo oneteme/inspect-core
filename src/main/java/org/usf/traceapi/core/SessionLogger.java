@@ -45,7 +45,7 @@ public final class SessionLogger implements SessionHandler {
 	
 	private static void printRequestStages(Collection<? extends RequestStage> stages) {
 		for(var stg : stages) {
-			log.debug("\t\t- {}", stg);
+			log.trace("\t\t- {}", stg);
 		}
 	}
 }

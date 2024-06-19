@@ -36,6 +36,6 @@ public class DatabaseRequest extends SessionStage {
 	@Override
 	public String prettyFormat() {
 		return '['+databaseName+']' 
-				+ prettyURLFormat(getUser(), "JDBC", host, port, database);
+				+ prettyURLFormat(getUser(), "jdbc", host, port, database);
 	}
 }

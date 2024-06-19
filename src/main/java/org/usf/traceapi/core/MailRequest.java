@@ -24,6 +24,6 @@ public final class MailRequest extends SessionStage {
 	
 	@Override
 	public String prettyFormat() {
-		return prettyURLFormat(getUser(), "SMTP", host, port, null);
+		return prettyURLFormat(getUser(), "smtp", host, port, null);
 	}
 }
