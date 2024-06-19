@@ -46,6 +46,9 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	private ScheduledDispatcher<Session> handler;
 	
 	public TraceConfiguration(Environment env, TraceConfigurationProperties config) {
+		if(log.isDebugEnabled()) {
+			register(new SessionLogger());
+		}
 		var sd = sessionDispatcher(config, env);
 		if(nonNull(sd)) {
 			this.handler = new ScheduledDispatcher<>(config, sd);
@@ -103,18 +106,13 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
     
     static Dispatcher<Session> sessionDispatcher(TraceConfigurationProperties config, Environment env) {
-    	Dispatcher<Session> dt1 = null;
-		if(log.isDebugEnabled()) {
-			dt1 = new SessionLogger();
-		}
-    	if(isNull(config.getHost()) || config.getHost().isBlank()) {
-			log.warn("TraceAPI remote host not configured, {}", config);
-			return dt1;
+    	if(nonNull(config.getHost()) && !config.getHost().isBlank()) {
+			return new RemoteTraceSender(config, localInstance(
+					env.getProperty("spring.application.name"),
+					env.getProperty("spring.application.version"),
+					env.getActiveProfiles()));
     	}
-		var dt2 = new RemoteTraceSender(config, localInstance(
-				env.getProperty("spring.application.name"),
-				env.getProperty("spring.application.version"),
-				env.getActiveProfiles()));
-		return isNull(dt1) ? dt2 : dt1.thenDispatch(dt2); //debug 1st after send
+		log.warn("TraceAPI remote host not configured, {}", config);
+		return null;
     }
 }
