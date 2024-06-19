@@ -8,6 +8,7 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
@@ -77,9 +78,10 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				in.setStatus(res.getStatus());
 				in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
 				in.setInDataSize(req.getContentLength());
-				in.setOutDataSize(cRes.getContentSize());
+				in.setOutDataSize(cRes.getContentSize()); //exact size
 				in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 				in.setOutContentEncoding(res.getHeader(CONTENT_ENCODING)); 
+				in.setCacheControl(res.getHeader(CACHE_CONTROL));
 				in.setUserAgent(req.getHeader(USER_AGENT));
 	    		in.setStart(s);
 	    		in.setEnd(e);
@@ -113,6 +115,11 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
     	var in = (RestSession) localTrace.get();
         if(nonNull(in)) {
+			in.setName(defaultEndpointName(req));
+        	in.setUser(getUser(req));
+        	if(nonNull(ex) && isNull(in.getException())) {//may be already set in Controller Advise
+        		in.setException(mainCauseException(ex));
+        	}
 	        if(handler instanceof HandlerMethod hm) {//important! !static resource 
 	        	TraceableStage a = hm.getMethodAnnotation(TraceableStage.class);
 	            if(nonNull(a)) {
@@ -125,15 +132,6 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	            	}
                 }
             }
-	        if(isNull(in.getName())) {
-				in.setName(defaultEndpointName(req));
-	        }
-	        if(isNull(in.getUser())) {
-	        	in.setUser(getUser(req));
-	        }
-        	if(nonNull(ex) && isNull(in.getException())) {//already set with Aspect
-        		in.setException(mainCauseException(ex));
-        	}
         }
         //else !?
     }

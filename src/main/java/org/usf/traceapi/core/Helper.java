@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Helper {
 	
-	private static final int MAX_STACK = 5; //skipped
+	private static final int MAX_STACK = 5;
 	private static final String ROOT_PACKAGE;
 	
 	public static final Logger log;

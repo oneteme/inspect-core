@@ -170,9 +170,5 @@ public final class ScheduledDispatcher<T> {
 	public interface Dispatcher<T> {
 		
 		boolean dispatch(int attempts, List<T> list) throws Exception; //TD return List<T> dispatched sessions
-		
-		default Dispatcher<T> thenDispatch(Dispatcher<T> fn) {
-			return (attp, list)-> dispatch(attp, list) && fn.dispatch(attp, list);
-		}
 	}
 }

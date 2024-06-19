@@ -65,7 +65,7 @@ public final class WebClientFilter implements ExchangeFilterFunction  {
 				req.setStatus(response.statusCode().value());
 				req.setInDataSize(-2); //unknown !
 				req.setContentType(response.headers().contentType().map(MediaType::getType).orElse(null));
-				req.setOutContentEncoding(getFirstOrNull(response.headers().header(CONTENT_ENCODING))); 
+				req.setInContentEncoding(getFirstOrNull(response.headers().header(CONTENT_ENCODING))); 
 				req.setId(getFirstOrNull(response.headers().header(TRACE_HEADER))); //+ send api_name !?
 			}
 			session.append(req);

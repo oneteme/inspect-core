@@ -34,6 +34,7 @@ public class RestSession extends RestRequest implements Session, MutableStage {
 	private Collection<FtpRequest> ftpRequests;
 	private Collection<MailRequest> mailRequests;
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
+	private String cacheControl; //max-age, no-cache
 
 	private final AtomicInteger lock = new AtomicInteger();
 	
