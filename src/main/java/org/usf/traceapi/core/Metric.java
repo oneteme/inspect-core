@@ -23,6 +23,6 @@ public interface Metric {
 	}
 
 	static String prettyDurationFormat(Metric m) {
-		return " (in " + m.duration() + "ms)";
+		return "(in " + m.duration() + "ms)";
 	}
 }

@@ -23,7 +23,7 @@ public abstract class SessionStage implements Metric {
 	
 	@Override
 	public String toString() {
-		return prettyFormat() + prettyDurationFormat(this);
+		return prettyFormat() + " " + prettyDurationFormat(this);
 	}
 	
 	abstract String prettyFormat();
