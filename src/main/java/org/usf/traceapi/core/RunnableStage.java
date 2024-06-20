@@ -24,7 +24,7 @@ public class RunnableStage extends SessionStage implements MutableStage {
 		var s = isNull(getUser()) ? "" : '<' + getUser() + '>';
 		s+= name + "(" + location + ")";
 		if(nonNull(exception)) {
-			s += exception;
+			s += " >> " + exception;
 		}
 		return s;
 	}

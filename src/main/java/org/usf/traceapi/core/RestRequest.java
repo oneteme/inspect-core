@@ -40,6 +40,10 @@ public class RestRequest extends SessionStage { //APiRequest
 		if(nonNull(query)) {
 			s += '?' + query;
 		}
-		return s + " >> " + status;
+		s += " >> " + status;
+		if(nonNull(exception)) {
+			s += exception;
+		}
+		return s;
 	}
 }

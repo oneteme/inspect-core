@@ -26,7 +26,7 @@ public abstract class RequestStage implements Metric {
 	public String toString() {
 		var s = prettyFormat();
 		if(nonNull(exception)) {
-			s += exception;
+			s += " >> " + exception;
 		}
 		return s + " " + prettyDurationFormat(this);
 	}
