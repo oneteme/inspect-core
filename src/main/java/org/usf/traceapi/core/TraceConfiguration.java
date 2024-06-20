@@ -79,7 +79,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     }
 
     @Bean //do not rename this method see @Qualifier
-    public RestRequestInterceptor apiRequestInterceptor() {
+    public RestRequestInterceptor restRequestInterceptor() {
         return new RestRequestInterceptor();
     }
     

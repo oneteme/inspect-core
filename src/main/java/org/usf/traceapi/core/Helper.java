@@ -92,7 +92,7 @@ public final class Helper {
 		if(port > 0) {
 			s+= ':'+port;
 		}
-		if(nonNull(host)) {
+		if(nonNull(path)) {
 			if(!path.startsWith("/")) {
 				s+= '/';
 			}
