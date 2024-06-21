@@ -116,7 +116,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     		if(nonNull(filter)) {
     			s = s.filter(filter);
     		}
-    		return s.toList();
+    		return s.toList(); //unmodifiable list
     	});
     }
     
@@ -161,7 +161,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     	log.info("shutting down scheduler service");
     	try {
     		executor.shutdown(); //cancel future
-    		while(!executor.awaitTermination(5, SECONDS)); //wait for last save complete
+    		while(!executor.awaitTermination(5, SECONDS)); //wait for last dispatch complete
     	}
     	finally {
     		if(stt == DISPACH) {
