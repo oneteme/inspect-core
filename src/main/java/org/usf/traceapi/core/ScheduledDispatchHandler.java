@@ -25,7 +25,7 @@ import lombok.Getter;
  * @author u$f
  *
  */
-public final class ScheduledDispatcher<T> {
+public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 	
@@ -37,16 +37,22 @@ public final class ScheduledDispatcher<T> {
     private volatile State state = DISPACH;
     private int attempts;
     
-    public ScheduledDispatcher(SessionDispatcherProperties properties, Dispatcher<T> dispatcher) {
+    public ScheduledDispatchHandler(SessionDispatcherProperties properties, Dispatcher<T> dispatcher) {
     	this(properties, dispatcher, null);
     }
     
-	public ScheduledDispatcher(SessionDispatcherProperties properties, Dispatcher<T> dispatcher, Predicate<? super T> filter) {
+	public ScheduledDispatchHandler(SessionDispatcherProperties properties, Dispatcher<T> dispatcher, Predicate<? super T> filter) {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.filter = filter;
 		this.queue = new ArrayList<>(properties.getBufferSize());
     	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
+	}
+	
+	@Override
+	@SuppressWarnings("unchecked")
+	public void handle(T session) {
+		add(session);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -148,7 +154,8 @@ public final class ScheduledDispatcher<T> {
 		}
     }
  
-    public void shutdown() throws InterruptedException {
+    @Override
+    public void complete() throws InterruptedException {
     	var stt = this.state;
     	updateState(DISABLE); //stop add items
     	log.info("shutting down scheduler service");

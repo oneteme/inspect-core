@@ -6,7 +6,9 @@ package org.usf.traceapi.core;
  *
  */
 @FunctionalInterface
-public interface SessionHandler {
+public interface SessionHandler<T> {
+
+	void handle(T session);
 	
-	void handle(Session session);
+	default void complete() throws Exception {}
 }

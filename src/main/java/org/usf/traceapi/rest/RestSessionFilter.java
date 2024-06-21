@@ -20,7 +20,7 @@ import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.RestSession.synchronizedApiSession;
 import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.core.StageUpdater.getUser;
-import static org.usf.traceapi.core.TraceMultiCaster.emit;
+import static org.usf.traceapi.core.SessionPublisher.emit;
 
 import java.io.IOException;
 import java.util.Map;

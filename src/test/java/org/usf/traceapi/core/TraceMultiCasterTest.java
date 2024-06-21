@@ -6,9 +6,9 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.IntStream.range;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.traceapi.core.TraceMultiCaster.emit;
-import static org.usf.traceapi.core.TraceMultiCaster.handlers;
-import static org.usf.traceapi.core.TraceMultiCaster.register;
+import static org.usf.traceapi.core.SessionPublisher.emit;
+import static org.usf.traceapi.core.SessionPublisher.handlers;
+import static org.usf.traceapi.core.SessionPublisher.register;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;

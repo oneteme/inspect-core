@@ -9,7 +9,7 @@ import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
 import static org.usf.traceapi.core.StageTracker.call;
-import static org.usf.traceapi.core.TraceMultiCaster.emit;
+import static org.usf.traceapi.core.SessionPublisher.emit;
 
 import java.time.Instant;
 import java.util.stream.Stream;

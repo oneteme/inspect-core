@@ -9,7 +9,7 @@ import java.util.Collection;
  * @author u$f
  *
  */
-public final class SessionLogger implements SessionHandler {
+public final class SessionLogger implements SessionHandler<Session> {
 	
 	@Override
     public void handle(Session s) {

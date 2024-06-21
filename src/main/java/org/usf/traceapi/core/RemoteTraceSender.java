@@ -20,7 +20,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
-import org.usf.traceapi.core.ScheduledDispatcher.Dispatcher;
+import org.usf.traceapi.core.ScheduledDispatchHandler.Dispatcher;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
