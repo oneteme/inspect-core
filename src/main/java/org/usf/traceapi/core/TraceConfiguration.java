@@ -4,6 +4,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
+import static org.usf.traceapi.core.DispatchMode.REMOTE;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.InstanceEnvironment.localInstance;
 import static org.usf.traceapi.core.SessionPublisher.complete;
@@ -13,8 +14,9 @@ import static org.usf.traceapi.jdbc.DataSourceWrapper.wrap;
 import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -23,7 +25,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.usf.traceapi.core.ScheduledDispatchHandler.Dispatcher;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.usf.traceapi.rest.ControllerAdviceAspect;
 import org.usf.traceapi.rest.RestRequestInterceptor;
 import org.usf.traceapi.rest.RestSessionFilter;
 
@@ -36,33 +39,39 @@ import jakarta.servlet.Filter;
  *
  */
 @Configuration
-@EnableConfigurationProperties(TraceConfigurationProperties.class)
-@ConditionalOnProperty(prefix = "api.tracing", name = "enabled", havingValue = "true")
+@EnableConfigurationProperties(InspectConfigurationProperties.class)
+@ConditionalOnProperty(prefix = "inspect", name = "enabled", havingValue = "true")
 public class TraceConfiguration implements WebMvcConfigurer {
 	
-	@Value("${api.tracing.exclude:}")
-	private String[] excludes;
-	
+	private final InspectConfigurationProperties config;
+
 	private RestSessionFilter sessionFilter;
 	
-	public TraceConfiguration(Environment env, TraceConfigurationProperties conf) {
+	public TraceConfiguration(Environment env, InspectConfigurationProperties conf) {
+		this.config = conf.validate();
 		if(log.isDebugEnabled()) {
-			register(new SessionLogger());
+			register(new SessionLogger()); //log first
 		}
-		var disp = sessionDispatcher(conf, env);
-		if(nonNull(disp)) {
-			register(new ScheduledDispatchHandler<>(conf, disp));
+		if(conf.getMode() == REMOTE) {
+			var disp = new RemoteTraceSender(conf.getServer(), localInstance(
+					env.getProperty("spring.application.name"),
+					env.getProperty("spring.application.version"),
+					env.getActiveProfiles()));
+			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp));
 		}
 	}
 
 	@Override
+//  @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
     public void addInterceptors(InterceptorRegistry registry) {
-    	registry.addInterceptor(sessionFilter())
-    	.order(LOWEST_PRECEDENCE)
-    	.excludePathPatterns(excludes);
+		if(nonNull(config.getTrack().getRestSession())) {
+			registry.addInterceptor(sessionFilter()).order(LOWEST_PRECEDENCE);
+//			.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
+		}
     }
 	
     @Bean
+    @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
     public FilterRegistrationBean<Filter> apiSessionFilter() {
     	var rb = new FilterRegistrationBean<Filter>(sessionFilter());
     	rb.setOrder(HIGHEST_PRECEDENCE);
@@ -70,24 +79,21 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	return rb;
     }
     
-    private RestSessionFilter sessionFilter() {
-    	if(isNull(sessionFilter)) {
-    		sessionFilter = new RestSessionFilter(excludes);
-    	}
-    	return sessionFilter;
+    @Bean
+    @ConditionalOnBean(ResponseEntityExceptionHandler.class)
+    @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
+    public ControllerAdviceAspect controllerAdviceAspect() {
+    	return new ControllerAdviceAspect();
     }
-
+    
     @Bean //do not rename this method see @Qualifier
+    @ConditionalOnExpression("${inspect.track.rest-request:true}!=false")
     public RestRequestInterceptor restRequestInterceptor() {
         return new RestRequestInterceptor();
     }
     
     @Bean
-    public TraceableAspect traceableAspect() {
-    	return new TraceableAspect();
-    }
-    
-    @Bean
+    @ConditionalOnExpression("${inspect.track.jdbc-request:true}!=false")
     public BeanPostProcessor dataSourceWrapper() {
     	return new BeanPostProcessor() {
     		@Override
@@ -97,19 +103,21 @@ public class TraceConfiguration implements WebMvcConfigurer {
 		};
     }
     
+    @Bean
+    @ConditionalOnExpression("${inspect.track.main-session:true}!=false")
+    public MainSessionAspect traceableAspect() {
+    	return new MainSessionAspect();
+    }
+    
     @PreDestroy
     void shutdown() {
     	complete();
     }
     
-    static Dispatcher<Session> sessionDispatcher(TraceConfigurationProperties config, Environment env) {
-    	if(nonNull(config.getHost()) && !config.getHost().isBlank()) {
-			return new RemoteTraceSender(config, localInstance(
-					env.getProperty("spring.application.name"),
-					env.getProperty("spring.application.version"),
-					env.getActiveProfiles()));
+    private RestSessionFilter sessionFilter() {
+    	if(isNull(sessionFilter)) {
+    		sessionFilter = new RestSessionFilter(config.getTrack().getRestSession());
     	}
-		log.warn("TraceAPI remote host not configured, {}", config);
-		return null;
+    	return sessionFilter;
     }
 }

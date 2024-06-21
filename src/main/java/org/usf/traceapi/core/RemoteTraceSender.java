@@ -36,27 +36,27 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class RemoteTraceSender implements Dispatcher<Session> {
 	
-	private final TraceConfigurationProperties properties;
+	private final RemoteTracerProperties properties;
 	private final InstanceEnvironment application;
 	private final RestTemplate template;
 	private String instanceId;
 
-	public RemoteTraceSender(TraceConfigurationProperties properties, InstanceEnvironment application) {
+	public RemoteTraceSender(RemoteTracerProperties properties, InstanceEnvironment application) {
 		this(properties, application, defaultRestTemplate());
 	}
 	
 	@Override
-    public boolean dispatch(int attemps, List<Session> sessions) {
+    public boolean dispatch(boolean complete, int attemps, List<Session> sessions) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
-				instanceId = template.postForObject(properties.instanceApiURL(), application, String.class);
+				instanceId = template.postForObject(properties.getInstanceApi(), application, String.class);
 			}
 			catch (Exception e) {
 				log.warn("cannot register instance, {}", e.getMessage());
 			}
 		} 
     	if(nonNull(instanceId)) {
-    		template.put(properties.sessionApiURL(), sessions.toArray(Session[]::new), instanceId);
+    		template.put(properties.getSessionApi(), sessions.toArray(Session[]::new), instanceId);
     		return true;
     	}
     	return false;

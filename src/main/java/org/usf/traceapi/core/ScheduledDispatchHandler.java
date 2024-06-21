@@ -4,9 +4,9 @@ import static java.util.Collections.addAll;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Stream.empty;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.State.DISABLE;
 import static org.usf.traceapi.core.State.DISPACH;
@@ -17,6 +17,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import lombok.Getter;
 
@@ -29,7 +30,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 	
-    private final SessionDispatcherProperties properties;
+    private final ScheduledDispatchProperties properties;
     private final Dispatcher<T> dispatcher;
     private final Predicate<? super T> filter;
     private final List<T> queue;
@@ -37,11 +38,11 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     private volatile State state = DISPACH;
     private int attempts;
     
-    public ScheduledDispatchHandler(SessionDispatcherProperties properties, Dispatcher<T> dispatcher) {
+    public ScheduledDispatchHandler(ScheduledDispatchProperties properties, Dispatcher<T> dispatcher) {
     	this(properties, dispatcher, null);
     }
     
-	public ScheduledDispatchHandler(SessionDispatcherProperties properties, Dispatcher<T> dispatcher, Predicate<? super T> filter) {
+	public ScheduledDispatchHandler(ScheduledDispatchProperties properties, Dispatcher<T> dispatcher, Predicate<? super T> filter) {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.filter = filter;
@@ -51,10 +52,10 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	@Override
 	@SuppressWarnings("unchecked")
-	public void handle(T session) {
-		submit(session);
+	public void handle(T o) {
+		submit(o);
 	}
-
+	
 	@SuppressWarnings("unchecked")
 	public boolean submit(T... arr) {
 		if(state != DISABLE) { // CACHE | DISPATCH
@@ -72,7 +73,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
     private void tryDispatch() {
     	if(state == DISPACH) {
-    		dispatch();
+    		dispatch(false);
     	}
     	else {
     		log.warn("dispatcher.state={}", state);
@@ -88,12 +89,12 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     	}
     }
 
-    private void dispatch() {
+    private void dispatch(boolean complete) {
     	var cs = pop();
         if(!cs.isEmpty()) {
 	        log.trace("scheduled dispatching {} items..", cs.size());
 	        try {
-	        	if(dispatcher.dispatch(++attempts, unmodifiableList(cs))) {
+	        	if(dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs))) {
 	        		attempts=0;
 	        	}
 	    	}
@@ -107,16 +108,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
         }
     }
 
-    public List<T> peek() {
+    public Stream<T> peek() {
     	return applySync(q-> {
     		if(q.isEmpty()) {
-    			return emptyList();
+    			return empty();
     		}
     		var s = q.stream();
-    		if(nonNull(filter)) {
-    			s = s.filter(filter);
-    		}
-    		return s.toList(); //unmodifiable list
+    		return isNull(filter) ? s : s.filter(filter);
     	});
     }
     
@@ -165,7 +163,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     	}
     	finally {
     		if(stt == DISPACH) {
-    			dispatch(); //force last dispatch
+    			dispatch(true); //complete signal
     		}
     		else {
     			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
@@ -176,6 +174,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
-		boolean dispatch(int attempts, List<T> list) throws Exception; //TD return List<T> dispatched sessions
+		boolean dispatch(boolean complete, int attempts, List<T> list) throws Exception; //TD return List<T> dispatched sessions
+
 	}
 }

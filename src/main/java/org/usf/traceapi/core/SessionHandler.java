@@ -8,7 +8,7 @@ package org.usf.traceapi.core;
 @FunctionalInterface
 public interface SessionHandler<T> {
 
-	void handle(T session);
+	void handle(T obj);
 	
 	default void complete() throws Exception {}
 }

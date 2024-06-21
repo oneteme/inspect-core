@@ -1,25 +1,20 @@
 package org.usf.traceapi.core;
 
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
-import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
-import static org.usf.traceapi.core.StageTracker.call;
 import static org.usf.traceapi.core.SessionPublisher.emit;
+import static org.usf.traceapi.core.StageTracker.call;
 
 import java.time.Instant;
-import java.util.stream.Stream;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,28 +23,9 @@ import lombok.RequiredArgsConstructor;
  * @author u$f
  *
  */
-@Aspect //TD fork ControllerAdvice & TraceableStage
+@Aspect
 @RequiredArgsConstructor
-public class TraceableAspect {
-	
-    @ConditionalOnBean(ControllerAdvice.class)
-    @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
-    Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
-		var session = (RestSession) localTrace.get();
-		if(isNull(session)) {
-			var sign = joinPoint.getSignature();
-			warnNoActiveSession(sign.getName() + "::" + sign.getDeclaringTypeName()); //TD check this
-		}
-		else if(nonNull(joinPoint.getArgs())) {
-			Stream.of(joinPoint.getArgs())
-					.filter(Throwable.class::isInstance)
-					.findFirst() //trying to find the exception argument
-					.map(Throwable.class::cast)
-					.map(ExceptionInfo::mainCauseException)
-					.ifPresent(session::setException);
-		}
-		return joinPoint.proceed();
-    }
+public class MainSessionAspect {
 	
     @Around("@annotation(TraceableStage)")
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {

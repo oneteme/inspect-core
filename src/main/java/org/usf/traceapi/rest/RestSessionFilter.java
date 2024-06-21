@@ -24,6 +24,7 @@ import static org.usf.traceapi.core.SessionPublisher.emit;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
@@ -33,6 +34,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import org.usf.traceapi.core.RestSession;
+import org.usf.traceapi.core.RestSessionTrackConfiguration;
 import org.usf.traceapi.core.StageUpdater;
 import org.usf.traceapi.core.TraceableStage;
 
@@ -47,17 +49,29 @@ import lombok.RequiredArgsConstructor;
  * @author u$f 
  *
  */
-@RequiredArgsConstructor
 public final class RestSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 	
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
-
 	static final String TRACE_HEADER = "x-tracert";
 	
-	private final String[] excludeUrlPatterns;
+	private final Predicate<HttpServletRequest> excludeFilter;
 	
-	private final AntPathMatcher matcher = new AntPathMatcher();
-	
+	public RestSessionFilter(RestSessionTrackConfiguration config) {
+		Predicate<HttpServletRequest> pre = req-> false;
+		if(!config.getExcludes().isEmpty()) {
+			var pArr = config.excludedPaths();
+			if(pArr.length > 0) {
+				var matcher = new AntPathMatcher();
+				pre = req-> Stream.of(pArr).anyMatch(p-> matcher.match(p, req.getServletPath()));
+			}
+			var mArr = config.excludedMethods();
+			if(mArr.length > 0) {
+				pre = pre.or(req-> Stream.of(mArr).anyMatch(m-> m.equals(req.getMethod())));
+			}
+		}
+		this.excludeFilter = pre;
+	}
+
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
     	var in = synchronizedApiSession();
@@ -107,33 +121,34 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-		return nonNull(excludeUrlPatterns) && Stream.of(excludeUrlPatterns)
-		        .anyMatch(p -> matcher.match(p, request.getServletPath()));
+		return excludeFilter.test(request);
 	}
 	
     @Override //Session stage !?
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-    	var in = (RestSession) localTrace.get();
-        if(nonNull(in)) {
-			in.setName(defaultEndpointName(req));
-        	in.setUser(getUser(req));
-        	if(nonNull(ex) && isNull(in.getException())) {//may be already set in Controller Advise
-        		in.setException(mainCauseException(ex));
-        	}
-	        if(handler instanceof HandlerMethod hm) {//important! !static resource 
-	        	TraceableStage a = hm.getMethodAnnotation(TraceableStage.class);
-	            if(nonNull(a)) {
-	            	if(!a.value().isBlank()) {
-	        			in.setName(a.value());
-	            	}
-	            	if(a.sessionUpdater() != StageUpdater.class) {
-	            		newInstance(a.sessionUpdater())
-	            		.ifPresent(u-> u.update(in, req));
-	            	}
-                }
-            }
-        }
-        //else !?
+    	if(!shouldNotFilter(req)) {
+	    	var in = (RestSession) localTrace.get();
+	        if(nonNull(in)) {
+				in.setName(defaultEndpointName(req));
+	        	in.setUser(getUser(req));
+	        	if(nonNull(ex) && isNull(in.getException())) {//may be already set in Controller Advise
+	        		in.setException(mainCauseException(ex));
+	        	}
+		        if(handler instanceof HandlerMethod hm) {//important! !static resource 
+		        	TraceableStage a = hm.getMethodAnnotation(TraceableStage.class);
+		            if(nonNull(a)) {
+		            	if(!a.value().isBlank()) {
+		        			in.setName(a.value());
+		            	}
+		            	if(a.sessionUpdater() != StageUpdater.class) {
+		            		newInstance(a.sessionUpdater())
+		            		.ifPresent(u-> u.update(in, req));
+		            	}
+	                }
+	            }
+	        }
+	        //else !?
+    	}
     }
 
 	@SuppressWarnings("unchecked")

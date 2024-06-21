@@ -10,9 +10,9 @@ import java.util.Collection;
  *
  */
 public final class SessionLogger implements SessionHandler<Session> {
-	
+
 	@Override
-    public void handle(Session s) {
+	public void handle(Session s) {
 		log.debug("+ {}", s);
 		for(var req : s.getRequests()) {
 			printSessionStage(req);
@@ -33,7 +33,6 @@ public final class SessionLogger implements SessionHandler<Session> {
 			printSessionStage(req);
 		}
     }
-	
 	private static void printSessionStage(SessionStage stg) {
 		log.debug("\t- {}", stg);
 	}
