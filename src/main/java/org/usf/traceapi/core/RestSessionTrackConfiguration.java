@@ -34,8 +34,16 @@ public final class RestSessionTrackConfiguration {
 	public String[] excludedPaths() {
 		return excludes.get(PATH_KEY);
 	}
+
+	void validate() {
+		if(isNull(excludes)) {
+			excludes = new HashMap<>(2);
+		}
+		excludes.compute(METH_KEY, (key,arr)-> assertAllNonEmpty(arr, String::toUpperCase));
+		excludes.compute(PATH_KEY, (key,arr)-> assertAllNonEmpty(arr, identity()));
+	}
 	
-	static String[] assertContainsNoEmpty(String[] arr, UnaryOperator<String> fn) {
+	static String[] assertAllNonEmpty(String[] arr, UnaryOperator<String> fn) {
 		if(isNull(arr)) {
 			return EMPTY;
 		}
@@ -49,13 +57,5 @@ public final class RestSessionTrackConfiguration {
 			}
 		}
 		return arr;
-	}
-
-	void validate() {
-		if(isNull(excludes)) {
-			excludes = new HashMap<>(2);
-		}
-		excludes.compute(METH_KEY, (key,arr)-> assertContainsNoEmpty(arr, String::toUpperCase));
-		excludes.compute(PATH_KEY, (key,arr)-> assertContainsNoEmpty(arr, identity()));
 	}
 }

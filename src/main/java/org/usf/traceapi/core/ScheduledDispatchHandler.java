@@ -6,7 +6,6 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Stream.empty;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.State.DISABLE;
 import static org.usf.traceapi.core.State.DISPACH;
@@ -17,7 +16,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import lombok.Getter;
 
@@ -108,13 +106,16 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
         }
     }
 
-    public Stream<T> peek() {
+    public List<T> peek() {
     	return applySync(q-> {
     		if(q.isEmpty()) {
-    			return empty();
+    			return emptyList();
     		}
     		var s = q.stream();
-    		return isNull(filter) ? s : s.filter(filter);
+    		if(isNull(filter)) {
+    			s = s.filter(filter);
+    		}
+    		return s.toList();
     	});
     }
     

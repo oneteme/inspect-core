@@ -18,9 +18,9 @@ import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.newInstance;
 import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.RestSession.synchronizedApiSession;
+import static org.usf.traceapi.core.SessionPublisher.emit;
 import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.core.StageUpdater.getUser;
-import static org.usf.traceapi.core.SessionPublisher.emit;
 
 import java.io.IOException;
 import java.util.Map;
@@ -42,7 +42,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 
 /**
  * 

@@ -28,7 +28,7 @@ public final class TrackingProperties {
 			restSession = conf;
 		}
 		else {
-			throw new UnsupportedOperationException("unknown rest-session config : " + String.valueOf(o));
+			throw new UnsupportedOperationException("unknown rest-session config : " + o);
 		}
 	}
 
