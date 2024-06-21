@@ -16,6 +16,7 @@ import java.util.zip.GZIPOutputStream;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -42,7 +43,7 @@ public final class RemoteTraceSender implements Dispatcher<Session> {
 	private String instanceId;
 
 	public RemoteTraceSender(RemoteTracerProperties properties, InstanceEnvironment application) {
-		this(properties, application, defaultRestTemplate());
+		this(properties, application, defaultRestTemplate(properties));
 	}
 	
 	@Override
@@ -62,32 +63,36 @@ public final class RemoteTraceSender implements Dispatcher<Session> {
     	return false;
     }
 
-	private static RestTemplate defaultRestTemplate() {
+	static RestTemplate defaultRestTemplate(RemoteTracerProperties properties) {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //instanceID
 	    var timeout = ofSeconds(30);
-	    return new RestTemplateBuilder()
-	    		.interceptors(RemoteTraceSender::compressRequest)
-	    		.messageConverters(json, plain)
+	    var rt = new RestTemplateBuilder();
+	    if(properties.getCompressMinSize() > -1) {
+	    	rt = rt.interceptors(compressRequest(properties));
+	    }
+	    return rt.messageConverters(json, plain)
 				.setConnectTimeout(timeout)
 				.setReadTimeout(timeout)
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
 				.build();
 	}
 	
-	public static ClientHttpResponse compressRequest(HttpRequest req, byte[] body, ClientHttpRequestExecution exec) throws IOException {
-		if(body.length >= 5_000) { //over 5Ko config ?
-		    var baos = new ByteArrayOutputStream();
-		    try (var gos = new GZIPOutputStream(baos)) {
-		        gos.write(body);
-			    req.getHeaders().add(CONTENT_ENCODING, "gzip");
-		        body = baos.toByteArray();
-		    }
-		    catch (Exception e) {/*do not throw exception */
-		    	log.warn("cannot compress sessions, {}", e.getMessage());
-		    }
-		}
-    	return exec.execute(req, body);
+	static ClientHttpRequestInterceptor compressRequest(RemoteTracerProperties properties) {
+		return (req, body, exec)->{
+			if(body.length >= properties.getCompressMinSize()) { //over 5Ko config ?
+			    var baos = new ByteArrayOutputStream();
+			    try (var gos = new GZIPOutputStream(baos)) {
+			        gos.write(body);
+				    req.getHeaders().add(CONTENT_ENCODING, "gzip");
+			        body = baos.toByteArray();
+			    }
+			    catch (Exception e) {/*do not throw exception */
+			    	log.warn("cannot compress sessions, {}", e.getMessage());
+			    }
+			}
+	    	return exec.execute(req, body);
+		};
 	}
 	
 	private static ObjectMapper createObjectMapper() {
