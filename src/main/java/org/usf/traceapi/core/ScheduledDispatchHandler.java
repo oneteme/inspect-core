@@ -52,11 +52,11 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void handle(T session) {
-		add(session);
+		submit(session);
 	}
 
 	@SuppressWarnings("unchecked")
-	public boolean add(T... arr) {
+	public boolean submit(T... arr) {
 		if(state != DISABLE) { // CACHE | DISPATCH
 			doSync(q-> addAll(q, arr));
 			log.trace("{} new items buffered", arr.length);
