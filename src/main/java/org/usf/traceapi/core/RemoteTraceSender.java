@@ -63,20 +63,19 @@ public final class RemoteTraceSender implements Dispatcher<Session> {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //instanceID
 	    var timeout = ofSeconds(30);
-	    var rt = new RestTemplateBuilder();
-	    if(properties.getCompressMinSize() > -1) {
-	    	rt = rt.interceptors(compressRequest(properties));
-	    }
-	    return rt.messageConverters(json, plain)
+	    var rt = new RestTemplateBuilder().messageConverters(json, plain)
 				.setConnectTimeout(timeout)
 				.setReadTimeout(timeout)
-				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-				.build();
+				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
+	    if(properties.getCompressMinSize() > 0) {
+	    	rt = rt.interceptors(compressRequest(properties));
+	    }
+	    return rt.build();
 	}
 	
-	static ClientHttpRequestInterceptor compressRequest(RemoteTracerProperties properties) {
+	static ClientHttpRequestInterceptor compressRequest(final RemoteTracerProperties properties) {
 		return (req, body, exec)->{
-			if(body.length >= properties.getCompressMinSize()) { //over 5Ko config ?
+			if(body.length >= properties.getCompressMinSize()) {
 			    var baos = new ByteArrayOutputStream();
 			    try (var gos = new GZIPOutputStream(baos)) {
 			        gos.write(body);
