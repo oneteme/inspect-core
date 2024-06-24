@@ -41,7 +41,7 @@ public class MainSessionAspect {
     	localTrace.set(ms);
     	try {
         	return call(joinPoint::proceed, (s,e,o,t)-> {
-    			ms.setType(((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class).type().toString());
+    			ms.setType(MainSessionType.BATCH.name());
     			fill(ms, s, e, joinPoint, t);
     			emit(ms);
         	});

@@ -19,7 +19,7 @@ import lombok.Setter;
 public final class InspectConfigurationProperties {
 	
 	private boolean enabled = false;
-	private DispatchMode mode = null; //no dispatch by default
+	private DispatchMode mode = null; //enabled but not dispatching => logging only
 	private TrackingProperties track = new TrackingProperties();
 	private RemoteTracerProperties server = new RemoteTracerProperties();
 	private ScheduledDispatchProperties dispatch = new ScheduledDispatchProperties();

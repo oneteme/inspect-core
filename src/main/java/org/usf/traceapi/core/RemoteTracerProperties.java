@@ -24,7 +24,7 @@ public final class RemoteTracerProperties {
 	private String host = "http://localhost:9000";
 	private String instanceApi = "v3/trace/instance"; //[POST] async
 	private String sessionApi  = "v3/trace/instance/{id}/session"; //[PUT] async
-	private int compressMinSize = 5_000; //in bytes, -1 otherwise
+	private int compressMinSize = 5_000; //in bytes, -1 no compress
 	
 	void validate() {
 		assertMatches(host, HOST_PATTERN);

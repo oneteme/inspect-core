@@ -16,12 +16,14 @@ import static org.usf.traceapi.core.StageTracker.exec;
 import static org.usf.traceapi.jdbc.JDBCAction.BATCH;
 import static org.usf.traceapi.jdbc.JDBCAction.COMMIT;
 import static org.usf.traceapi.jdbc.JDBCAction.CONNECTION;
+import static org.usf.traceapi.jdbc.JDBCAction.DATABASE;
 import static org.usf.traceapi.jdbc.JDBCAction.DISCONNECTION;
 import static org.usf.traceapi.jdbc.JDBCAction.EXECUTE;
 import static org.usf.traceapi.jdbc.JDBCAction.FETCH;
 import static org.usf.traceapi.jdbc.JDBCAction.METADATA;
 import static org.usf.traceapi.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.traceapi.jdbc.JDBCAction.SAVEPOINT;
+import static org.usf.traceapi.jdbc.JDBCAction.SCHEMA;
 import static org.usf.traceapi.jdbc.JDBCAction.STATEMENT;
 import static org.usf.traceapi.jdbc.SqlCommand.mainCommand;
 
@@ -31,6 +33,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -104,7 +107,15 @@ public class JDBCActionTracer {
 	}
 
 	public DatabaseMetaData connectionMetadata(SafeCallable<DatabaseMetaData, SQLException> supplier) throws SQLException {
-		return call(supplier, appendAction(METADATA));
+		return new DatabaseMetaDataWrapper(call(supplier, appendAction(METADATA)), this);
+	}
+	
+	public String databaseInfo(SafeCallable<String, SQLException> supplier) throws SQLException {
+		return call(supplier, appendAction(DATABASE));
+	}
+
+	public ResultSetWrapper schemaInfo(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
+		return new ResultSetWrapper(call(supplier, appendAction(SCHEMA)), this, now());
 	}
 
 	public ResultSetMetaData resultSetMetadata(SafeCallable<ResultSetMetaData, SQLException> supplier) throws SQLException {
@@ -146,7 +157,7 @@ public class JDBCActionTracer {
 		return call(supplier, appendAction(EXECUTE, (a,r)-> a.setCount(countFn.apply(r))));
 	}
 
-	public <T> T savePoint(SafeCallable<T, SQLException> supplier) throws SQLException {
+	public Savepoint savePoint(SafeCallable<Savepoint, SQLException> supplier) throws SQLException {
 		return call(supplier, appendAction(SAVEPOINT));
 	}
 
