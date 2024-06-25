@@ -44,8 +44,8 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.filter = filter;
-		this.queue = new ArrayList<>(properties.getBufferSize());
 		this.state = properties.getState();
+		this.queue = new ArrayList<>(properties.getBufferSize());
     	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 	
@@ -161,13 +161,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     	log.info("shutting down scheduler service");
     	try {
     		executor.shutdown(); //cancel future
-    		while(!executor.awaitTermination(5, SECONDS)); //wait for last dispatch complete
+    		while(!executor.awaitTermination(10, SECONDS)); //wait for last dispatch complete
     	}
     	finally {
     		if(stt == DISPACH) {
     			dispatch(true); //complete signal
     		}
-    		else {
+    		if(!queue.isEmpty()) { //!dispatch || dispatch=fail
     			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
     		}
 		}
