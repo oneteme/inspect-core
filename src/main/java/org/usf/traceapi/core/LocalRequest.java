@@ -13,7 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class RunnableStage extends SessionStage implements MutableStage {
+public class LocalRequest extends SessionStage implements MutableStage {
 
 	private String name; //method, title
 	private String location; //class, URL

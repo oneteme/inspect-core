@@ -29,7 +29,7 @@ public class RestSession extends RestRequest implements Session, MutableStage {
 	private InstanceEnvironment application;
 	private Collection<RestRequest> requests;	
 	private Collection<DatabaseRequest> queries;
-	private Collection<RunnableStage> stages; //RunnableStage
+	private Collection<LocalRequest> stages; //RunnableStage
 	//v22
 	private Collection<FtpRequest> ftpRequests;
 	private Collection<MailRequest> mailRequests;

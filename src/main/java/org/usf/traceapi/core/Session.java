@@ -37,7 +37,7 @@ public interface Session extends Metric {
 	
 	Collection<DatabaseRequest> getQueries(); //rename to getDatabaseRequests
 
-	Collection<RunnableStage> getStages();
+	Collection<LocalRequest> getStages();
 	
 	Collection<FtpRequest> getFtpRequests();
 
@@ -58,7 +58,7 @@ public interface Session extends Metric {
 		else if(stage instanceof MailRequest mail) {
 			getMailRequests().add(mail);
 		}
-		else if(stage instanceof RunnableStage run) {
+		else if(stage instanceof LocalRequest run) {
 			getStages().add(run);
 		}
 		else {
@@ -102,7 +102,7 @@ public interface Session extends Metric {
 	static StageConsumer<Object> runnableStageAppender(String name, Session session) {
 		var stk = outerStackTraceElement(); // !important keep out it of consumer
 		return (s,e,o,t)->{
-			var stg = new RunnableStage();
+			var stg = new LocalRequest();
 			stg.setStart(s);
 			stg.setEnd(e);
 			stg.setException(mainCauseException(t));

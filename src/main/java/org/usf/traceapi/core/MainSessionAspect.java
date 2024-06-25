@@ -32,7 +32,7 @@ public class MainSessionAspect {
 		var ses = localTrace.get();
     	if(nonNull(ses)) { //sub trace
     		return call(joinPoint::proceed, (s,e,o,t)-> {
-    	    	var ss = new RunnableStage();
+    	    	var ss = new LocalRequest();
     			fill(ss, s, e, joinPoint, t);
     			ses.append(ss);
     		});
@@ -51,7 +51,7 @@ public class MainSessionAspect {
     	}
     }
     
-    static void fill(RunnableStage stg, Instant start, Instant end, ProceedingJoinPoint joinPoint, Throwable e) {
+    static void fill(LocalRequest stg, Instant start, Instant end, ProceedingJoinPoint joinPoint, Throwable e) {
     	var ant = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class);
 		stg.setStart(start);
 		stg.setEnd(end);
