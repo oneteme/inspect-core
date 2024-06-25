@@ -61,7 +61,7 @@ public class JDBCActionTracer {
 	private static final Pattern dbPattern = compile("database=(\\w+)", CASE_INSENSITIVE);
 	
 	private DatabaseRequest req;
-	private DatabaseRequestStage exec; //last execute
+	private DatabaseRequestStage exec; //hold last execution stage
 	
 	public ConnectionWrapper connection(SafeCallable<Connection, SQLException> supplier) throws SQLException {
 		return new ConnectionWrapper(call(supplier, (s,e,cn,t)->{
@@ -154,7 +154,7 @@ public class JDBCActionTracer {
 		} //BATCH otherwise 
 		return call(supplier, appendAction(EXECUTE, (a,r)->{
 			a.setCount(countFn.apply(r));
-			exec = a; //hold last execute stage
+			exec = a; //!important
 		}));
 	}
 
