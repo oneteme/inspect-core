@@ -1,6 +1,8 @@
 package org.usf.traceapi.core;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.usf.traceapi.core.DispatchState.DISPACH;
 
 import java.util.concurrent.TimeUnit;
 
@@ -15,16 +17,18 @@ public class ScheduledDispatchProperties {
 	private TimeUnit unit = SECONDS;
 	private int bufferSize = 100; // {n} sessions
 	private int bufferMaxSize = 5_000; // {n} sessions, -1: unlimited
+	private DispatchState state = DISPACH;
 
 	void validate() {
 		assertPositive(delay, "delay");
 		assertPositive(bufferSize, "bufferSize");
+		requireNonNull(state, "state cannot be null");
 	}
 
 	private static int assertPositive(int v, String name) {
 		if(v > 0) {
 			return v;
 		}
-		throw new IllegalArgumentException("trace." + name + "=" +  v + " <= 0");
+		throw new IllegalArgumentException(name + "=" +  v + " must be > 0");
 	}
 }

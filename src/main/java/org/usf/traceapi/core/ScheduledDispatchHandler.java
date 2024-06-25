@@ -7,8 +7,8 @@ import static java.util.Objects.isNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.traceapi.core.Helper.log;
-import static org.usf.traceapi.core.State.DISABLE;
-import static org.usf.traceapi.core.State.DISPACH;
+import static org.usf.traceapi.core.DispatchState.DISABLE;
+import static org.usf.traceapi.core.DispatchState.DISPACH;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +33,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     private final Predicate<? super T> filter;
     private final List<T> queue;
     @Getter
-    private volatile State state = DISPACH;
+    private volatile DispatchState state;
     private int attempts;
     
     public ScheduledDispatchHandler(ScheduledDispatchProperties properties, Dispatcher<T> dispatcher) {
@@ -45,6 +45,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 		this.dispatcher = dispatcher;
 		this.filter = filter;
 		this.queue = new ArrayList<>(properties.getBufferSize());
+		this.state = properties.getState();
     	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 	
@@ -65,7 +66,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 		return false;
 	}
 	
-	public void updateState(State state) {
+	public void updateState(DispatchState state) {
 		this.state = state;
 	}
 	

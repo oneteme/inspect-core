@@ -49,13 +49,13 @@ import jakarta.servlet.Filter;
 @Configuration
 @EnableConfigurationProperties(InspectConfigurationProperties.class)
 @ConditionalOnProperty(prefix = "inspect", name = "enabled", havingValue = "true")
-public class TraceConfiguration implements WebMvcConfigurer {
+class TraceConfiguration implements WebMvcConfigurer {
 	
 	private final InspectConfigurationProperties config;
 
 	private RestSessionFilter sessionFilter;
 	
-	public TraceConfiguration(Environment env, InspectConfigurationProperties conf) {
+	TraceConfiguration(Environment env, InspectConfigurationProperties conf) {
 		var inst = localInstance(
 				env.getProperty("spring.application.name"),
 				env.getProperty("spring.application.version"),
@@ -83,7 +83,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
 	
     @Bean
     @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
-    public FilterRegistrationBean<Filter> apiSessionFilter() {
+    FilterRegistrationBean<Filter> apiSessionFilter() {
     	var rb = new FilterRegistrationBean<Filter>(sessionFilter());
     	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*"); //check that
@@ -93,19 +93,19 @@ public class TraceConfiguration implements WebMvcConfigurer {
     @Bean
     @ConditionalOnBean(ResponseEntityExceptionHandler.class)
     @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
-    public ControllerAdviceAspect controllerAdviceAspect() {
+    ControllerAdviceAspect controllerAdviceAspect() {
     	return new ControllerAdviceAspect();
     }
     
     @Bean //do not rename this method see @Qualifier
     @ConditionalOnExpression("${inspect.track.rest-request:true}!=false")
-    public RestRequestInterceptor restRequestInterceptor() {
+    RestRequestInterceptor restRequestInterceptor() {
         return new RestRequestInterceptor();
     }
     
     @Bean
     @ConditionalOnExpression("${inspect.track.jdbc-request:true}!=false")
-    public BeanPostProcessor dataSourceWrapper() {
+    BeanPostProcessor dataSourceWrapper() {
     	return new BeanPostProcessor() {
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -116,7 +116,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     
     @Bean
     @ConditionalOnExpression("${inspect.track.main-session:true}!=false")
-    public MainSessionAspect traceableAspect() {
+    MainSessionAspect traceableAspect() {
     	return new MainSessionAspect();
     }
     

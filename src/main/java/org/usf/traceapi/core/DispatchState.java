@@ -1,6 +1,6 @@
 package org.usf.traceapi.core;
 
-public enum State {
+public enum DispatchState {
 	
 	DISABLE, CACHE, DISPACH;
 
