@@ -21,6 +21,7 @@ import static org.usf.traceapi.jdbc.JDBCAction.DISCONNECTION;
 import static org.usf.traceapi.jdbc.JDBCAction.EXECUTE;
 import static org.usf.traceapi.jdbc.JDBCAction.FETCH;
 import static org.usf.traceapi.jdbc.JDBCAction.METADATA;
+import static org.usf.traceapi.jdbc.JDBCAction.MORE;
 import static org.usf.traceapi.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.traceapi.jdbc.JDBCAction.SAVEPOINT;
 import static org.usf.traceapi.jdbc.JDBCAction.SCHEMA;
@@ -186,9 +187,9 @@ public class JDBCActionTracer {
 	}
 
 	public boolean moreResults(Statement st, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
-		if(supplier.call()) { // no need to trace this
-			if(nonNull(exec)) {
-				try {
+		return call(supplier, appendAction(MORE, (a,v)-> {
+			if(v.booleanValue() && nonNull(exec)) {
+				try { //safe
 					var rows = st.getUpdateCount();
 					if(rows > -1) {
 						var arr = exec.getCount();
@@ -199,9 +200,7 @@ public class JDBCActionTracer {
 					log.warn("getUpdateCount => {}", e.getMessage());
 				}
 			}
-			return true;
-		}
-		return false;
+		}));
 	}
 
 	<T> StageConsumer<T> updateLast(DatabaseRequestStage stg) {
