@@ -56,6 +56,11 @@ public final class ResultSetWrapper implements ResultSet {
 		return updateRows(rs.absolute(row));
 	}
 	
+	@Override
+	public boolean relative(int rows) throws SQLException {
+		return updateRows(rs.relative(rows));
+	}
+	
 	private boolean updateRows(boolean condition) throws SQLException {
 		if(condition) {
 			var row = rs.getRow();

@@ -49,14 +49,11 @@ import org.usf.traceapi.core.SafeCallable;
 import org.usf.traceapi.core.SafeCallable.SafeRunnable;
 import org.usf.traceapi.core.StageTracker.StageConsumer;
 
-import lombok.RequiredArgsConstructor;
-
 /**
  * 
  * @author u$f
  *
  */
-@RequiredArgsConstructor
 public class JDBCActionTracer {
 	
 	private static final Pattern hostPattern = compile("^jdbc:[\\w:]+@?//([-\\w\\.]+)(:(\\d+))?(/(\\w+)|/(\\w+)[\\?,;].*|.*)$", CASE_INSENSITIVE);
@@ -69,10 +66,10 @@ public class JDBCActionTracer {
 		return new ConnectionWrapper(call(supplier, (s,e,cn,t)->{
 			req = new DatabaseRequest();
 			req.setStart(s);
+			req.setThreadName(threadName());
 			if(nonNull(t)) {
 				req.setEnd(e);
 			}
-			req.setThreadName(threadName());
 			if(nonNull(cn)) {
 				var meta = cn.getMetaData();
 				var args = decodeURL(meta.getURL()); //H2
@@ -98,6 +95,14 @@ public class JDBCActionTracer {
 		});
 	}
 	
+	public String databaseInfo(SafeCallable<String, SQLException> supplier) throws SQLException {
+		return call(supplier, appendAction(DATABASE));
+	}
+
+	public ResultSetWrapper schemaInfo(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
+		return new ResultSetWrapper(call(supplier, appendAction(SCHEMA)), this, now());
+	}
+	
 	public StatementWrapper statement(SafeCallable<Statement, SQLException> supplier) throws SQLException {
 		return new StatementWrapper(call(supplier, appendAction(STATEMENT)), this);
 	}
@@ -108,14 +113,6 @@ public class JDBCActionTracer {
 
 	public DatabaseMetaData connectionMetadata(SafeCallable<DatabaseMetaData, SQLException> supplier) throws SQLException {
 		return new DatabaseMetaDataWrapper(call(supplier, appendAction(METADATA)), this);
-	}
-	
-	public String databaseInfo(SafeCallable<String, SQLException> supplier) throws SQLException {
-		return call(supplier, appendAction(DATABASE));
-	}
-
-	public ResultSetWrapper schemaInfo(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
-		return new ResultSetWrapper(call(supplier, appendAction(SCHEMA)), this, now());
 	}
 
 	public ResultSetMetaData resultSetMetadata(SafeCallable<ResultSetMetaData, SQLException> supplier) throws SQLException {
@@ -154,7 +151,10 @@ public class JDBCActionTracer {
 		if(nonNull(sql)) {
 			req.getCommands().add(mainCommand(sql));
 		} //BATCH otherwise 
-		return call(supplier, appendAction(EXECUTE, (a,r)-> a.setCount(countFn.apply(r))));
+		return call(supplier, appendAction(EXECUTE, (a,r)->{
+			a.setCount(countFn.apply(r));
+			exec = a; //hold last execute stage
+		}));
 	}
 
 	public Savepoint savePoint(SafeCallable<Savepoint, SQLException> supplier) throws SQLException {

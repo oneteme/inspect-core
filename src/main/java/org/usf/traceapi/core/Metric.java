@@ -1,7 +1,7 @@
 package org.usf.traceapi.core;
 
-import static java.time.Duration.between;
-import static java.util.Objects.isNull;
+import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.util.Objects.nonNull;
 
 import java.time.Instant;
 
@@ -17,9 +17,9 @@ public interface Metric {
 	Instant getEnd();
 	
 	default long duration(){
-		return isNull(getStart()) || isNull(getEnd()) 
-				? -1 // not set yet
-				: between(getStart(), getEnd()).toMillis();
+		return nonNull(getStart()) && nonNull(getEnd()) 
+				? getStart().until(getEnd(), MILLIS)
+				: -1; // not set yet
 	}
 
 	static String prettyDurationFormat(Metric m) {
