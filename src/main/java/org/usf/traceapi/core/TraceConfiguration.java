@@ -14,7 +14,6 @@ import static org.usf.traceapi.core.MainSessionType.STARTUP;
 import static org.usf.traceapi.core.SessionPublisher.complete;
 import static org.usf.traceapi.core.SessionPublisher.emit;
 import static org.usf.traceapi.core.SessionPublisher.register;
-import static org.usf.traceapi.jdbc.DataSourceWrapper.wrap;
 
 import javax.sql.DataSource;
 
@@ -34,6 +33,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.usf.traceapi.jdbc.DataSourceWrapper;
 import org.usf.traceapi.rest.ControllerAdviceAspect;
 import org.usf.traceapi.rest.RestRequestInterceptor;
 import org.usf.traceapi.rest.RestSessionFilter;
@@ -109,7 +109,7 @@ public class TraceConfiguration implements WebMvcConfigurer {
     	return new BeanPostProcessor() {
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-	            return bean instanceof DataSource ds ? wrap(ds) : bean;
+	            return bean instanceof DataSource ds ? new DataSourceWrapper(ds) : bean;
     		}
 		};
     }

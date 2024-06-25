@@ -258,4 +258,8 @@ public class JDBCActionTracer {
 	private static <T> T last(List<T> list) { //!empty
 		return list.get(list.size()-1);
 	}
+	
+	public static Connection connect(SafeCallable<Connection, SQLException> supplier) throws SQLException {
+		return new JDBCActionTracer().connection(supplier);
+	}
 }
