@@ -20,7 +20,7 @@ public final class ConnectionWrapper implements Connection {
 	
 	@Delegate
 	private final Connection cn;
-	private final JDBCActionTracer tracer;
+	private final DatabaseStageTracker tracer;
 
 	@Override
 	public Statement createStatement() throws SQLException {

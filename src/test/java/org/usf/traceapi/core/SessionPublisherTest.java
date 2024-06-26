@@ -23,7 +23,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  * @author u$f
  *
  */
-class TraceMultiCasterTest {
+class SessionPublisherTest {
 	
 	@BeforeEach
 	void clearHandlers() {

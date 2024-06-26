@@ -11,6 +11,7 @@ import java.util.function.UnaryOperator;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 
@@ -19,6 +20,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@ToString
 public final class RestSessionTrackConfiguration {
 	
 	private static final String[] EMPTY  = new String[0];

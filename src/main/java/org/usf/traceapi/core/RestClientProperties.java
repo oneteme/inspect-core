@@ -15,7 +15,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-public final class RemoteTracerProperties {
+public final class RestClientProperties {
 	
 	private static final String HOST_PATTERN = "https?://[\\w\\-\\.]+(:\\d{2,5})?\\/?";
 	private static final String PATH_PATTERN = "[\\w\\-\\{\\}]+(\\/[\\w\\-\\{\\}]+)*";

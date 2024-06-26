@@ -17,7 +17,7 @@ public class StatementWrapper implements Statement {
 
 	@Delegate
 	protected final Statement st;
-	protected final JDBCActionTracer tracer;
+	protected final DatabaseStageTracker tracer;
 	
 	@Override
 	public void addBatch(String sql) throws SQLException {

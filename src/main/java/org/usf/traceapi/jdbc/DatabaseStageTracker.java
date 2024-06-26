@@ -55,7 +55,7 @@ import org.usf.traceapi.core.StageTracker.StageConsumer;
  * @author u$f
  *
  */
-public class JDBCActionTracer {
+public class DatabaseStageTracker {
 	
 	private static final Pattern hostPattern = compile("^jdbc:[\\w:]+@?//([-\\w\\.]+)(:(\\d+))?(/(\\w+)|/(\\w+)[\\?,;].*|.*)$", CASE_INSENSITIVE);
 	private static final Pattern dbPattern = compile("database=(\\w+)", CASE_INSENSITIVE);
@@ -260,6 +260,6 @@ public class JDBCActionTracer {
 	}
 	
 	public static Connection connect(SafeCallable<Connection, SQLException> supplier) throws SQLException {
-		return new JDBCActionTracer().connection(supplier);
+		return new DatabaseStageTracker().connection(supplier);
 	}
 }

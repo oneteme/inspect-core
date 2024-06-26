@@ -49,13 +49,13 @@ import jakarta.servlet.Filter;
 @Configuration
 @EnableConfigurationProperties(InspectConfigurationProperties.class)
 @ConditionalOnProperty(prefix = "inspect", name = "enabled", havingValue = "true")
-class TraceConfiguration implements WebMvcConfigurer {
+class InspectConfiguration implements WebMvcConfigurer {
 	
 	private final InspectConfigurationProperties config;
 
 	private RestSessionFilter sessionFilter;
 	
-	TraceConfiguration(Environment env, InspectConfigurationProperties conf) {
+	InspectConfiguration(Environment env, InspectConfigurationProperties conf) {
 		var inst = localInstance(
 				env.getProperty("spring.application.name"),
 				env.getProperty("spring.application.version"),
@@ -66,10 +66,11 @@ class TraceConfiguration implements WebMvcConfigurer {
 			register(new SessionLogger()); //log first
 		}
 		if(conf.getMode() == REMOTE) {
-			var disp = new RemoteTraceSender(conf.getServer(), inst);
+			var disp = new InspectRestClient(conf.getServer(), inst);
 			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp));
 		}
-		log.info("inspect enabled, instance={}", inst);
+		log.info("inspect.properties={}", conf);
+		log.info("inspect enabled on instance={}", inst);
 	}
 
 	@Override

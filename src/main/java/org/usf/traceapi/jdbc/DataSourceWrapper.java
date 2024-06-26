@@ -1,6 +1,6 @@
 package org.usf.traceapi.jdbc;
 
-import static org.usf.traceapi.jdbc.JDBCActionTracer.connect;
+import static org.usf.traceapi.jdbc.DatabaseStageTracker.connect;
 
 import java.sql.Connection;
 import java.sql.SQLException;

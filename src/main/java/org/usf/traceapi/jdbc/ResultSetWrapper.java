@@ -17,7 +17,7 @@ public final class ResultSetWrapper implements ResultSet {
 
 	@Delegate
 	private final ResultSet rs;
-	private final JDBCActionTracer tracer;
+	private final DatabaseStageTracker tracer;
 	private final Instant start;
 	private int rows;
 

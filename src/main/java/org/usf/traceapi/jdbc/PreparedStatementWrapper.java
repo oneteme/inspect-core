@@ -19,7 +19,7 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 	private final PreparedStatement ps;
 	private final String sql;
 
-	public PreparedStatementWrapper(PreparedStatement ps, JDBCActionTracer tracer, String sql) {
+	public PreparedStatementWrapper(PreparedStatement ps, DatabaseStageTracker tracer, String sql) {
 		super(ps, tracer);
 		this.ps = ps;
 		this.sql = sql;

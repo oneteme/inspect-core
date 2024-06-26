@@ -7,6 +7,6 @@ package org.usf.traceapi.core;
  */
 public enum DispatchMode {
 	
-	REMOTE;	//, LOCAL;
+	REMOTE;	//LOCAL
 
 }

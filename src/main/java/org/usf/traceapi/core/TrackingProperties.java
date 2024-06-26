@@ -4,6 +4,7 @@ import static java.util.Objects.nonNull;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 
@@ -11,6 +12,7 @@ import lombok.Setter;
  *
  */
 @Getter
+@ToString
 //@Setter do not use this : setRestSession conflict
 public final class TrackingProperties {
 

@@ -12,7 +12,7 @@ public final class DatabaseMetaDataWrapper implements DatabaseMetaData  {
 	
 	@Delegate
 	private final DatabaseMetaData meta;
-	private final JDBCActionTracer tracer;
+	private final DatabaseStageTracker tracer;
 	
 	@Override
 	public String getDatabaseProductName() throws SQLException {

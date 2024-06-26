@@ -41,6 +41,7 @@ public class InstanceEnvironment {
 	//commit, branch !?
 	
     public static InstanceEnvironment localInstance(String name, String version, String... envs) {
+    	var start = now();
     	return new InstanceEnvironment(name, version,
 				hostAddress(),
 				isNull(envs) ? null : join(",", envs),
@@ -48,7 +49,7 @@ public class InstanceEnvironment {
 				"java " + getProperty("java.version"),
 				getProperty("user.name"),
 				SERVER,
-				now(),
+				start,
 				collectorID());
 	}
 
@@ -63,7 +64,7 @@ public class InstanceEnvironment {
 	
 	private static String collectorID() {
 		return "spring-collector-v" //use getImplementationTitle
-				+ ofNullable(TraceConfiguration.class.getPackage().getImplementationVersion())
+				+ ofNullable(InspectConfiguration.class.getPackage().getImplementationVersion())
 				.orElse("?");
 	}
 }

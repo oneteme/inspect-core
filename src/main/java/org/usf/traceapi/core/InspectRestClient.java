@@ -31,14 +31,14 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class RemoteTraceSender implements Dispatcher<Session> {
+public final class InspectRestClient implements Dispatcher<Session> {
 	
-	private final RemoteTracerProperties properties;
+	private final RestClientProperties properties;
 	private final InstanceEnvironment application;
 	private final RestTemplate template;
 	private String instanceId;
 
-	public RemoteTraceSender(RemoteTracerProperties properties, InstanceEnvironment application) {
+	public InspectRestClient(RestClientProperties properties, InstanceEnvironment application) {
 		this(properties, application, defaultRestTemplate(properties));
 	}
 	
@@ -59,7 +59,7 @@ public final class RemoteTraceSender implements Dispatcher<Session> {
     	return false;
     }
 
-	static RestTemplate defaultRestTemplate(RemoteTracerProperties properties) {
+	static RestTemplate defaultRestTemplate(RestClientProperties properties) {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //instanceID
 	    var timeout = ofSeconds(30);
@@ -73,7 +73,7 @@ public final class RemoteTraceSender implements Dispatcher<Session> {
 	    return rt.build();
 	}
 	
-	static ClientHttpRequestInterceptor compressRequest(final RemoteTracerProperties properties) {
+	static ClientHttpRequestInterceptor compressRequest(final RestClientProperties properties) {
 		return (req, body, exec)->{
 			if(body.length >= properties.getCompressMinSize()) {
 			    var baos = new ByteArrayOutputStream();

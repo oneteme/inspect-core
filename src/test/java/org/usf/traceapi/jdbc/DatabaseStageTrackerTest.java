@@ -1,12 +1,12 @@
 package org.usf.traceapi.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.traceapi.jdbc.JDBCActionTracer.decodeURL;
+import static org.usf.traceapi.jdbc.DatabaseStageTracker.decodeURL;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-class JDBCActionTracerTest {
+class DatabaseStageTrackerTest {
 	
 	@ParameterizedTest
 	@CsvSource(nullValues = {""}, value={

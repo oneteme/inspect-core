@@ -8,9 +8,11 @@ import java.util.concurrent.TimeUnit;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString
 public class ScheduledDispatchProperties {
 	
     private int delay = 5;

@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 
@@ -15,13 +16,14 @@ import lombok.Setter;
  */
 @Setter
 @Getter
+@ToString
 @ConfigurationProperties(prefix = "inspect")
 public final class InspectConfigurationProperties {
 	
 	private boolean enabled = false;
 	private DispatchMode mode = null; //enabled but not dispatching => logging only
 	private TrackingProperties track = new TrackingProperties();
-	private RemoteTracerProperties server = new RemoteTracerProperties();
+	private RestClientProperties server = new RestClientProperties();
 	private ScheduledDispatchProperties dispatch = new ScheduledDispatchProperties();
 	
 	public InspectConfigurationProperties validate() {
