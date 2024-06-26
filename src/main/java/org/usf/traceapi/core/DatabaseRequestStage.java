@@ -17,16 +17,6 @@ import lombok.Setter;
 public final class DatabaseRequestStage extends RequestStage {
 
 	private long[] count; // only for BATCH|EXECUTE|FETCH
-
-	@Deprecated(forRemoval = true, since = "v22")
-	public void setType(String type) {
-		setName(type);
-	}
-
-	@Deprecated(forRemoval = true, since = "v22")
-	public String getType() {
-		return getName();
-	}
 	
 	@Override
 	public String prettyFormat() {

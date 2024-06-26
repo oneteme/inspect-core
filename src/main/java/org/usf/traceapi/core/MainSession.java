@@ -25,8 +25,6 @@ public class MainSession extends LocalRequest implements Session {
 	
 	private String id;
 	private String type; //@see MainSessionType
-	@Deprecated(forRemoval = true, since = "v22")
-	private InstanceEnvironment application;
 	private Collection<RestRequest> requests;
 	private Collection<DatabaseRequest> queries;
 	private Collection<LocalRequest> stages;
@@ -35,16 +33,6 @@ public class MainSession extends LocalRequest implements Session {
 	private Collection<MailRequest> mailRequests;
 
 	private final AtomicInteger lock = new AtomicInteger();
-	
-	@Deprecated(forRemoval = true, since = "v22")
-	public String getLaunchMode() {
-		return type;
-	}
-
-	@Deprecated(forRemoval = true, since = "v22")
-	public void setLaunchMode(String type) {
-		this.type = type;
-	}
 	
 	@Override
 	public String toString() {

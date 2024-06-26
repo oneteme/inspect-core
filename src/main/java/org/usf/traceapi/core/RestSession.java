@@ -25,8 +25,6 @@ import lombok.Setter;
 public class RestSession extends RestRequest implements Session, MutableStage {
 
 	private String name;
-	@Deprecated(forRemoval = true, since = "v22")
-	private InstanceEnvironment application;
 	private Collection<RestRequest> requests;	
 	private Collection<DatabaseRequest> queries;
 	private Collection<LocalRequest> stages; //RunnableStage

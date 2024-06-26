@@ -78,8 +78,8 @@ public class DatabaseStageTracker {
 				req.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(-1));
 				req.setDatabase(args[2]);
 				req.setUser(meta.getUserName());
-				req.setDatabaseName(meta.getDatabaseProductName());
-				req.setDatabaseVersion(meta.getDatabaseProductVersion());
+				req.setProductName(meta.getDatabaseProductName());
+				req.setProductVersion(meta.getDatabaseProductVersion());
 				req.setDriverVersion(meta.getDriverVersion());
 			}
 			req.setActions(new ArrayList<>());

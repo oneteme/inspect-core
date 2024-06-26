@@ -23,8 +23,8 @@ public class DatabaseRequest extends SessionStage {
 	private int port; //-1 otherwise
 	private String database; //nullable
 	private String driverVersion;
-	private String databaseName;
-	private String databaseVersion;
+	private String productName;
+	private String productVersion;
 	private List<DatabaseRequestStage> actions;
 	private List<SqlCommand> commands;
 	//java-collector
@@ -35,7 +35,7 @@ public class DatabaseRequest extends SessionStage {
 	
 	@Override
 	public String prettyFormat() {
-		return '['+databaseName+']' 
+		return '['+productName+']' 
 				+ prettyURLFormat(getUser(), "jdbc", host, port, database);
 	}
 }

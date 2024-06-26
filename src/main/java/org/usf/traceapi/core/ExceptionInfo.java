@@ -18,11 +18,6 @@ public final class ExceptionInfo {
 	private final String message;
 	//stack
 
-	@Deprecated(forRemoval = true, since = "v22")
-	public String getClassname() {
-		return type;
-	}
-	
 	@Override
 	public String toString() {
 		return "{" + type + ": " + message + "}";
