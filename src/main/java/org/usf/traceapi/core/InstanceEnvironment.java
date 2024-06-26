@@ -55,7 +55,7 @@ public class InstanceEnvironment {
 
 	private static String hostAddress() {
 		try {
-			return getLocalHost().getHostAddress();
+			return getLocalHost().getHostAddress(); //hostName ?
 		} catch (UnknownHostException e) {
 			log.warn("error while getting host address", e);
 			return null;

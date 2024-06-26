@@ -8,6 +8,7 @@ import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.DispatchMode.REMOTE;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
+import static org.usf.traceapi.core.Helper.threadName;
 import static org.usf.traceapi.core.InstanceEnvironment.localInstance;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
 import static org.usf.traceapi.core.MainSessionType.STARTUP;
@@ -149,6 +150,7 @@ class InspectConfiguration implements WebMvcConfigurer {
         	    	ms.setName("main");
         	    	ms.setType(STARTUP.name());
         	    	ms.setLocation(mainApplicationClass(v.getSource()));
+        	    	ms.setThreadName(threadName());
         			ms.setEnd(end);
         			emit(ms);
         		}
