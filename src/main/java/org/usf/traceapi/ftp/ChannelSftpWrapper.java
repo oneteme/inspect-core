@@ -257,7 +257,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		var cs = channel.getSession();
 		req = new FtpRequest();
 		req.setStart(start);
-		if(nonNull(t)) { // fail: do not setException, already set in action
+		if(nonNull(t)) {
 			req.setEnd(end);
 		}
 		req.setProtocol("ftps");
