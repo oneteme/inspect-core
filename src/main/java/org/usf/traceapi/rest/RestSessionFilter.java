@@ -59,12 +59,12 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		Predicate<HttpServletRequest> pre = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
-			if(pArr.length > 0) {
+			if(nonNull(pArr) && pArr.length > 0) {
 				var matcher = new AntPathMatcher();
 				pre = req-> Stream.of(pArr).anyMatch(p-> matcher.match(p, req.getServletPath()));
 			}
 			var mArr = config.excludedMethods();
-			if(mArr.length > 0) {
+			if(nonNull(mArr) && mArr.length > 0) {
 				pre = pre.or(req-> Stream.of(mArr).anyMatch(m-> m.equals(req.getMethod())));
 			}
 		}

@@ -1,11 +1,11 @@
 package org.usf.traceapi.core;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.function.UnaryOperator.identity;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -39,10 +39,12 @@ public final class RestSessionTrackConfiguration {
 
 	void validate() {
 		if(isNull(excludes)) {
-			excludes = new HashMap<>(2);
+			excludes = emptyMap();
 		}
-		excludes.compute(METH_KEY, (key,arr)-> assertAllNonEmpty(arr, String::toUpperCase));
-		excludes.compute(PATH_KEY, (key,arr)-> assertAllNonEmpty(arr, identity()));
+		else {
+			excludes.computeIfPresent(METH_KEY, (key,arr)-> assertAllNonEmpty(arr, String::toUpperCase));
+			excludes.computeIfPresent(PATH_KEY, (key,arr)-> assertAllNonEmpty(arr, identity()));
+		}
 	}
 	
 	static String[] assertAllNonEmpty(String[] arr, UnaryOperator<String> fn) {
