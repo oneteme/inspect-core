@@ -27,7 +27,7 @@ public final class RestSessionTrackConfiguration {
 	private static final String METH_KEY = "method";
 	private static final String PATH_KEY = "path";
 
-	private Map<String, String[]> excludes; //method, path 
+	private Map<String, String[]> excludes = emptyMap(); //method, path 
 	
 	public String[] excludedMethods() {
 		return excludes.get(METH_KEY);
@@ -38,10 +38,7 @@ public final class RestSessionTrackConfiguration {
 	}
 
 	void validate() {
-		if(isNull(excludes)) {
-			excludes = emptyMap();
-		}
-		else {
+		if(nonNull(excludes) && !excludes.isEmpty()) {
 			excludes.computeIfPresent(METH_KEY, (key,arr)-> assertAllNonEmpty(arr, String::toUpperCase));
 			excludes.computeIfPresent(PATH_KEY, (key,arr)-> assertAllNonEmpty(arr, identity()));
 		}

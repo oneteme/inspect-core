@@ -129,7 +129,7 @@ class InspectConfiguration implements WebMvcConfigurer {
     
     private RestSessionFilter sessionFilter() {
     	if(isNull(sessionFilter)) {
-    		sessionFilter = new RestSessionFilter(config.getTrack().getRestSession());
+    		sessionFilter = new RestSessionFilter(config.getTrack().getRestSession()); //conf !null
     	}
     	return sessionFilter;
     }
