@@ -35,7 +35,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.usf.traceapi.jdbc.DataSourceWrapper;
-import org.usf.traceapi.rest.ControllerAdviceAspect;
+import org.usf.traceapi.rest.ControllerAdviceTracker;
 import org.usf.traceapi.rest.RestRequestInterceptor;
 import org.usf.traceapi.rest.RestSessionFilter;
 
@@ -61,8 +61,8 @@ class InspectConfiguration implements WebMvcConfigurer {
 				env.getProperty("spring.application.name"),
 				env.getProperty("spring.application.version"),
 				env.getActiveProfiles());
-		initStatupSession(inst);
 		this.config = conf.validate();
+		initStatupSession(inst);
 		if(log.isDebugEnabled()) {
 			register(new SessionLogger()); //log first
 		}
@@ -93,10 +93,21 @@ class InspectConfiguration implements WebMvcConfigurer {
     }
     
     @Bean
+    @ConditionalOnExpression("${inspect.track.rest-session:true}==false")
+    Filter cleanThreadLocal() {
+    	return (req, res, chn)-> {
+    		if(nonNull(localTrace.get())) { //STARTUP session
+    			localTrace.remove();
+    		}
+    		chn.doFilter(req, res);
+    	};
+    }
+    
+    @Bean
     @ConditionalOnBean(ResponseEntityExceptionHandler.class)
     @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
-    ControllerAdviceAspect controllerAdviceAspect() {
-    	return new ControllerAdviceAspect();
+    ControllerAdviceTracker controllerAdviceAspect() {
+    	return new ControllerAdviceTracker();
     }
     
     @Bean //do not rename this method see @Qualifier
@@ -135,33 +146,37 @@ class InspectConfiguration implements WebMvcConfigurer {
     }
     
     void initStatupSession(InstanceEnvironment env){
-    	var s = synchronizedMainSession();
-    	s.setStart(env.getInstant()); //same InstanceEnvironment start
-		localTrace.set(s);
+		if(nonNull(config.getTrack().isMainSession())) {
+	    	var s = synchronizedMainSession();
+	    	s.setStart(env.getInstant()); //same InstanceEnvironment start
+			localTrace.set(s);
+		}
     }
     
     @EventListener(ApplicationReadyEvent.class)
     void emitStatupSession(ApplicationReadyEvent v) {
-    	var end = now();
-        var s = localTrace.get();
-        if(nonNull(s)) {
-        	if(s instanceof MainSession ms) {
-        		try {
-        	    	ms.setName("main");
-        	    	ms.setType(STARTUP.name());
-        	    	ms.setLocation(mainApplicationClass(v.getSource()));
-        	    	ms.setThreadName(threadName());
-        			ms.setEnd(end);
-        			emit(ms);
-        		}
-        		finally {
-        			localTrace.remove();
-				}
-        	}
-        	else {
-        		log.warn("unexpected session type {}", s);
-        	}
-        }
+		if(nonNull(config.getTrack().isMainSession())) {
+	    	var end = now();
+	        var s = localTrace.get();
+	        if(nonNull(s)) {
+	        	if(s instanceof MainSession ms) {
+	        		try {
+	        	    	ms.setName("main");
+	        	    	ms.setType(STARTUP.name());
+	        	    	ms.setLocation(mainApplicationClass(v.getSource()));
+	        	    	ms.setThreadName(threadName());
+	        			ms.setEnd(end);
+	        			emit(ms);
+	        		}
+	        		finally {
+	        			localTrace.remove();
+					}
+	        	}
+	        	else {
+	        		log.warn("unexpected session type {}", s);
+	        	}
+	        }
+		}
     }
     
     static String mainApplicationClass(Object source) {

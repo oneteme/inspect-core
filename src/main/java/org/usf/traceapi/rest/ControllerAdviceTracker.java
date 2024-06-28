@@ -14,7 +14,7 @@ import org.usf.traceapi.core.ExceptionInfo;
 import org.usf.traceapi.core.RestSession;
 
 @Aspect 
-public class ControllerAdviceAspect {
+public class ControllerAdviceTracker {
 
     @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
     Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {

@@ -177,6 +177,5 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	public interface Dispatcher<T> {
 		
 		boolean dispatch(boolean complete, int attempts, List<T> list) throws Exception; //TD return List<T> dispatched sessions
-
 	}
 }
