@@ -71,12 +71,14 @@ public class DatabaseStageTracker {
 			if(nonNull(t)) {
 				req.setEnd(e);
 			}
+			System.out.println(cn.getSchema());
 			if(nonNull(cn)) {
 				var meta = cn.getMetaData();
 				var args = decodeURL(meta.getURL()); //H2
 				req.setHost(args[0]);
 				req.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(-1));
-				req.setDatabase(args[2]);
+				req.setName(args[2]); //getCatalog
+				req.setSchema(cn.getSchema());
 				req.setUser(meta.getUserName());
 				req.setProductName(meta.getDatabaseProductName());
 				req.setProductVersion(meta.getDatabaseProductVersion());

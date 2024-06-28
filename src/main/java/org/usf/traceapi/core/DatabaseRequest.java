@@ -21,7 +21,8 @@ public class DatabaseRequest extends SessionStage {
 
 	private String host; //IP, domaine
 	private int port; //-1 otherwise
-	private String database; //nullable
+	private String name; //nullable
+	private String schema;
 	private String driverVersion;
 	private String productName;
 	private String productVersion;
@@ -36,6 +37,6 @@ public class DatabaseRequest extends SessionStage {
 	@Override
 	public String prettyFormat() {
 		return '['+productName+']' 
-				+ prettyURLFormat(getUser(), "jdbc", host, port, database);
+				+ prettyURLFormat(getUser(), "jdbc", host, port, name);
 	}
 }

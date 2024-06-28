@@ -1,10 +1,11 @@
 package org.usf.traceapi.core;
 
-import static java.util.Collections.synchronizedCollection;
+import static java.util.Collections.synchronizedList;
 import static org.usf.traceapi.core.Session.nextId;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -25,12 +26,13 @@ import lombok.Setter;
 public class RestSession extends RestRequest implements Session, MutableStage {
 
 	private String name;
-	private Collection<RestRequest> requests;	
-	private Collection<DatabaseRequest> queries;
-	private Collection<LocalRequest> stages; //RunnableStage
+	private List<RestRequest> restRequests;	
+	private List<DatabaseRequest> databaseRequests;
+	private List<LocalRequest> localRequests; //RunnableStage
 	//v22
-	private Collection<FtpRequest> ftpRequests;
-	private Collection<MailRequest> mailRequests;
+	private List<FtpRequest> ftpRequests;
+	private List<MailRequest> mailRequests;
+	private List<NamingRequest> ldapRequests;
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
 
@@ -39,11 +41,12 @@ public class RestSession extends RestRequest implements Session, MutableStage {
 	public static RestSession synchronizedApiSession() {
 		var ses = new RestSession();
 		ses.setId(nextId());	
-		ses.setRequests(synchronizedCollection(new ArrayList<>()));
-		ses.setQueries(synchronizedCollection(new ArrayList<>()));
-		ses.setFtpRequests(synchronizedCollection(new ArrayList<>()));
-		ses.setMailRequests(synchronizedCollection(new ArrayList<>()));
-		ses.setStages(synchronizedCollection(new ArrayList<>()));
+		ses.setRestRequests(synchronizedList(new ArrayList<>()));
+		ses.setDatabaseRequests(synchronizedList(new ArrayList<>()));
+		ses.setFtpRequests(synchronizedList(new ArrayList<>()));
+		ses.setMailRequests(synchronizedList(new ArrayList<>()));
+		ses.setLdapRequests(synchronizedList(new ArrayList<>()));
+		ses.setLocalRequests(synchronizedList(new ArrayList<>()));
 		return ses;
 	}	
 }

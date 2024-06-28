@@ -10,7 +10,7 @@ import static org.usf.traceapi.core.Helper.outerStackTraceElement;
 import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.StageTracker.call;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.usf.traceapi.core.SafeCallable.SafeRunnable;
@@ -33,33 +33,38 @@ public interface Session extends Metric {
 	
 	void setId(String id); //used in server side
 	
-	Collection<RestRequest> getRequests();	  // rename to getApiRequests
+	List<RestRequest> getRestRequests();	  // rename to getApiRequests
 	
-	Collection<DatabaseRequest> getQueries(); //rename to getDatabaseRequests
+	List<DatabaseRequest> getDatabaseRequests(); //rename to getDatabaseRequests
 
-	Collection<LocalRequest> getStages();
+	List<LocalRequest> getLocalRequests();
 	
-	Collection<FtpRequest> getFtpRequests();
+	List<FtpRequest> getFtpRequests();
 
-	Collection<MailRequest> getMailRequests();
+	List<MailRequest> getMailRequests();
+
+	List<NamingRequest> getLdapRequests();
 	
 	AtomicInteger getLock();
 	
 	default void append(SessionStage stage) {
-		if(stage instanceof RestRequest rest) {
-			getRequests().add(rest);
+		if(stage instanceof RestRequest req) {
+			getRestRequests().add(req);
 		}
-		else if(stage instanceof DatabaseRequest db) {
-			getQueries().add(db);
+		else if(stage instanceof DatabaseRequest req) {
+			getDatabaseRequests().add(req);
 		}
-		else if(stage instanceof FtpRequest ftp) {
-			getFtpRequests().add(ftp);
+		else if(stage instanceof FtpRequest req) {
+			getFtpRequests().add(req);
 		}
-		else if(stage instanceof MailRequest mail) {
-			getMailRequests().add(mail);
+		else if(stage instanceof MailRequest req) {
+			getMailRequests().add(req);
 		}
-		else if(stage instanceof LocalRequest run) {
-			getStages().add(run);
+		else if(stage instanceof NamingRequest req) {
+			getLdapRequests().add(req);
+		}
+		else if(stage instanceof LocalRequest req) {
+			getLocalRequests().add(req);
 		}
 		else {
 			log.warn("unsupported session stage {}", stage);

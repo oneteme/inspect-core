@@ -6,9 +6,9 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.DispatchState.DISABLE;
 import static org.usf.traceapi.core.DispatchState.DISPACH;
+import static org.usf.traceapi.core.Helper.log;
 
 import java.util.ArrayList;
 import java.util.List;
