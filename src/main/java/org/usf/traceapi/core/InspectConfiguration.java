@@ -163,12 +163,12 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
 		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-			emitSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
+			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 			ready = true;
 		}
 	}
 	
-	void emitSession(Object appName, Throwable e){
+	void emitStartupSession(Object appName, Throwable e){
 		if(nonNull(config.getTrack().isMainSession())) {
 	    	var end = now();
 	        var s = localTrace.get();
