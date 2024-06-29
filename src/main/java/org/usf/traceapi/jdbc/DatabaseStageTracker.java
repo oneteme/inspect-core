@@ -5,8 +5,6 @@ import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
-import static java.util.regex.Pattern.CASE_INSENSITIVE;
-import static java.util.regex.Pattern.compile;
 import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
@@ -26,6 +24,7 @@ import static org.usf.traceapi.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.traceapi.jdbc.JDBCAction.SAVEPOINT;
 import static org.usf.traceapi.jdbc.JDBCAction.SCHEMA;
 import static org.usf.traceapi.jdbc.JDBCAction.STATEMENT;
+import static org.usf.traceapi.jdbc.JdbcURLDecoder.decodeUrl;
 import static org.usf.traceapi.jdbc.SqlCommand.mainCommand;
 
 import java.sql.Connection;
@@ -41,7 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 import org.usf.traceapi.core.DatabaseRequest;
@@ -57,9 +55,6 @@ import org.usf.traceapi.core.StageTracker.StageConsumer;
  */
 public class DatabaseStageTracker {
 	
-	private static final Pattern hostPattern = compile("^jdbc:[\\w:]+@?//([-\\w\\.]+)(:(\\d+))?(/(\\w+)|/(\\w+)[\\?,;].*|.*)$", CASE_INSENSITIVE);
-	private static final Pattern dbPattern = compile("database=(\\w+)", CASE_INSENSITIVE);
-	
 	private DatabaseRequest req;
 	private DatabaseRequestStage exec; //hold last execution stage
 	
@@ -71,13 +66,12 @@ public class DatabaseStageTracker {
 			if(nonNull(t)) {
 				req.setEnd(e);
 			}
-			System.out.println(cn.getSchema());
 			if(nonNull(cn)) {
 				var meta = cn.getMetaData();
-				var args = decodeURL(meta.getURL()); //H2
-				req.setHost(args[0]);
-				req.setPort(ofNullable(args[1]).map(Integer::parseInt).orElse(-1));
-				req.setName(args[2]); //getCatalog
+				var args = decodeUrl(meta.getURL()); //H2
+				req.setHost(args[1]);
+				req.setPort(ofNullable(args[2]).map(Integer::parseInt).orElse(-1));
+				req.setName(args[3]); //getCatalog
 				req.setSchema(cn.getSchema());
 				req.setUser(meta.getUserName());
 				req.setProductName(meta.getDatabaseProductName());
@@ -237,24 +231,6 @@ public class DatabaseStageTracker {
 		var a = copyOf(arr, arr.length+1);
 		a[arr.length] = v;
 		return a;
-	}
-	
-	static String[] decodeURL(String url) {
-		var m = hostPattern.matcher(url);
-		String[] arr = new String[3];
-		if(m.find()) {
-			arr[0] = m.group(1);
-			arr[1] = m.group(3);
-			int i = 5;
-			while(i<=m.groupCount() && isNull(arr[2] = m.group(i++)));
-		}
-		if(isNull(arr[2])) {
-			m = dbPattern.matcher(url);
-			if(m.find()) {
-				arr[2] = m.group(1);
-			}
-		}
-		return arr;
 	}
 	
 	private static <T> T last(List<T> list) { //!empty

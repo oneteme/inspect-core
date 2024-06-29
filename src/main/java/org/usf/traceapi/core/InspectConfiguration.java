@@ -6,9 +6,11 @@ import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.traceapi.core.DispatchMode.REMOTE;
+import static org.usf.traceapi.core.ExceptionInfo.mainCauseException;
 import static org.usf.traceapi.core.Helper.localTrace;
 import static org.usf.traceapi.core.Helper.log;
 import static org.usf.traceapi.core.Helper.threadName;
+import static org.usf.traceapi.core.Helper.warnNoActiveSession;
 import static org.usf.traceapi.core.InstanceEnvironment.localInstance;
 import static org.usf.traceapi.core.MainSession.synchronizedMainSession;
 import static org.usf.traceapi.core.MainSessionType.STARTUP;
@@ -24,12 +26,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.event.SpringApplicationEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -50,9 +54,10 @@ import jakarta.servlet.Filter;
 @Configuration
 @EnableConfigurationProperties(InspectConfigurationProperties.class)
 @ConditionalOnProperty(prefix = "inspect", name = "enabled", havingValue = "true")
-class InspectConfiguration implements WebMvcConfigurer {
+class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
 	private final InspectConfigurationProperties config;
+	private volatile boolean ready = false;
 
 	private RestSessionFilter sessionFilter;
 	
@@ -135,7 +140,9 @@ class InspectConfiguration implements WebMvcConfigurer {
     
     @PreDestroy
     void shutdown() {
-    	complete();
+    	if(ready) { //destroy called before ApplicationFailedEvent
+    		complete();
+    	}
     }
     
     private RestSessionFilter sessionFilter() {
@@ -152,9 +159,16 @@ class InspectConfiguration implements WebMvcConfigurer {
 			localTrace.set(s);
 		}
     }
-    
-    @EventListener(ApplicationReadyEvent.class)
-    void emitStatupSession(ApplicationReadyEvent v) {
+
+	@Override
+	public void onApplicationEvent(SpringApplicationEvent e) {
+		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
+			emitSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
+			ready = true;
+		}
+	}
+	
+	void emitSession(Object appName, Throwable e){
 		if(nonNull(config.getTrack().isMainSession())) {
 	    	var end = now();
 	        var s = localTrace.get();
@@ -163,10 +177,16 @@ class InspectConfiguration implements WebMvcConfigurer {
 	        		try {
 	        	    	ms.setName("main");
 	        	    	ms.setType(STARTUP.name());
-	        	    	ms.setLocation(mainApplicationClass(v.getSource()));
+	        	    	ms.setLocation(mainApplicationClass(appName));
 	        	    	ms.setThreadName(threadName());
 	        			ms.setEnd(end);
-	        			emit(ms);
+	        			if(nonNull(e)) {
+	        				ms.setException(mainCauseException(e));
+	        			}
+        				emit(ms);
+        				if(nonNull(e)) {
+        					complete();
+        				}
 	        		}
 	        		finally {
 	        			localTrace.remove();
@@ -176,9 +196,12 @@ class InspectConfiguration implements WebMvcConfigurer {
 	        		log.warn("unexpected session type {}", s);
 	        	}
 	        }
+	        else {
+	        	warnNoActiveSession("startup");
+	        }
 		}
-    }
-    
+	}
+	
     static String mainApplicationClass(Object source) {
     	return (source instanceof SpringApplication app 
     			? app.getMainApplicationClass()

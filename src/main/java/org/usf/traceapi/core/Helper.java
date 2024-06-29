@@ -91,12 +91,14 @@ public final class Helper {
 		if(nonNull(protocol)) {
 			s += protocol + "://";
 		}
-		s+= host;
+		if(nonNull(host)) {
+			s+= host;
+		}
 		if(port > 0) {
 			s+= ":"+port;
 		}
 		if(nonNull(path)) {
-			if(!path.startsWith("/")) {
+			if(!path.startsWith("/") && !s.endsWith("/")) { //host & port are null
 				s+= '/';
 			}
 			s+= path;
