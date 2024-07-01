@@ -97,15 +97,11 @@ public interface Session extends Metric {
 	}
 	
 	static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
-		return call(fn, runnableStageAppender(name, localTrace.get()));
+		return call(fn, localRequestAppender(name, localTrace.get()));
 	}
 
-	static StageConsumer<Object> runnableStageAppender(Session session) {
-		return runnableStageAppender(null, session);
-	}
-	
-	static StageConsumer<Object> runnableStageAppender(String name, Session session) {
-		var stk = outerStackTraceElement(); // !important keep out it of consumer
+	static StageConsumer<Object> localRequestAppender(String name, Session session) {
+		var stk = outerStackTraceElement(); // !important keep it out of consumer
 		return (s,e,o,t)->{
 			var stg = new LocalRequest();
 			stg.setStart(s);
