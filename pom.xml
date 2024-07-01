@@ -3,12 +3,12 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>io.github.oneteme.traceapi</groupId>
-	<artifactId>traceapi-core</artifactId>
-	<version>0.0.21</version>
+	<groupId>io.github.oneteme</groupId>
+	<artifactId>inspect-core</artifactId>
+	<version>0.0.1</version>
 	<packaging>jar</packaging>
-	<name>traceapi-core</name>
-	<description>traceapi-core</description>
+	<name>inspect-core</name>
+	<description>INtegrated System Performance Evaluation and Communication Tracking core libray</description>
 	<url>https://oneteme.github.io/</url>
 	<developers>
 		<developer>
@@ -19,12 +19,12 @@
 		</developer>
 	</developers>
 	<scm>
-		<url>https://github.com/oneteme/traceapi-core</url>
+		<url>https://github.com/oneteme/inspect-core</url>
 	</scm>
 	<licenses>
 		<license>
 			<name>Apache License 2.0</name>
-			<url>https://github.com/oneteme/traceapi-core/blob/main/LICENSE</url>
+			<url>https://github.com/oneteme/inspect-core/blob/main/LICENSE</url>
 		</license>
 	</licenses>
 	<properties>
