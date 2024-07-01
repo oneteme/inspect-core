@@ -13,7 +13,7 @@ import org.junit.jupiter.params.provider.NullSource;
 
 class SqlCommandTest {
 	
-	private static final String whiteSpace = " \t " + lineSeparator();
+	private static final String WHITESPACE = " \t " + lineSeparator();
 	
 	@ParameterizedTest
 	@CsvSource({
@@ -59,9 +59,9 @@ class SqlCommandTest {
 	}
 	
 	static String indent(String s) {
-		return whiteSpace + 
+		return WHITESPACE + 
 				s.replaceAll("\s+(WHERE|FROM|SET)", lineSeparator()+"$1")
 				.replaceAll("(\\)|;)\s*", "$1"+lineSeparator()) +
-				whiteSpace + ";";
+				WHITESPACE + ";";
 	}
 }
