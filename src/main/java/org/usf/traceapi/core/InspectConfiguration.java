@@ -101,7 +101,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @ConditionalOnExpression("${inspect.track.rest-session:true}==false")
     Filter cleanThreadLocal() {
     	return (req, res, chn)-> {
-    		if(nonNull(localTrace.get())) { //STARTUP session
+    		if(nonNull(localTrace.get())) { //remove STARTUP session
     			localTrace.remove();
     		}
     		chn.doFilter(req, res);
@@ -162,44 +162,40 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
-		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
+		if(config.getTrack().isMainSession() && (e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent)) {
 			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 			ready = true;
 		}
 	}
 	
 	void emitStartupSession(Object appName, Throwable e){
-		if(nonNull(config.getTrack().isMainSession())) {
-	    	var end = now();
-	        var s = localTrace.get();
-	        if(nonNull(s)) {
-	        	if(s instanceof MainSession ms) {
-	        		try {
-	        	    	ms.setName("main");
-	        	    	ms.setType(STARTUP.name());
-	        	    	ms.setLocation(mainApplicationClass(appName));
-	        	    	ms.setThreadName(threadName());
-	        			ms.setEnd(end);
-	        			if(nonNull(e)) {
-	        				ms.setException(mainCauseException(e));
-	        			}
-        				emit(ms);
-        				if(nonNull(e)) {
-        					complete();
-        				}
-	        		}
-	        		finally {
-	        			localTrace.remove();
-					}
-	        	}
-	        	else {
-	        		log.warn("unexpected session type {}", s);
-	        	}
-	        }
-	        else {
-	        	warnNoActiveSession("startup");
-	        }
-		}
+    	var end = now();
+        var s = localTrace.get();
+        if(nonNull(s)) {
+        	if(s instanceof MainSession ms) {
+        		try {
+        	    	ms.setName("main");
+        	    	ms.setType(STARTUP.name());
+        	    	ms.setLocation(mainApplicationClass(appName));
+        	    	ms.setThreadName(threadName());
+        			ms.setEnd(end);
+    				ms.setException(mainCauseException(e)); //nullable
+    				emit(ms);
+    				if(nonNull(e)) {
+    					complete();
+    				}
+        		}
+        		finally {
+        			localTrace.remove();
+				}
+        	}
+        	else {
+        		log.warn("unexpected session type {}", s);
+        	}
+        }
+        else {
+        	warnNoActiveSession("startup");
+        }
 	}
 	
     static String mainApplicationClass(Object source) {
