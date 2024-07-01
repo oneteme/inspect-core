@@ -20,9 +20,9 @@ public final class JdbcURLDecoder {
 	private static final String[] UNKNOWN = new String[] {null, null, null, null};
 	
 	private static final Pattern STP1 = compile("^jdbc:(\\w+):", CASE_INSENSITIVE);
-	private static final Pattern STP2 = compile("^//([\\w-\\.]+)(:\\d+)?/?");
+	private static final Pattern STP2 = compile("^//([\\w-\\.]+)(:\\d+)?[,;/]?");
 	private static final Pattern STP3 = compile("^(\\w+)([,;\\?].+)?$"); //mysql|postgresql|db2|mariadb
-	private static final Pattern STP4 = compile("^(?:.+[,;])?database(?:Name)?=(\\w+)", CASE_INSENSITIVE); //teradata|sqlserver
+	private static final Pattern STP4 = compile("^.*database(?:Name)?=(\\w+)", CASE_INSENSITIVE); //teradata|sqlserver
 	private static final Pattern STP5 = compile("^(?:file|mem):([\\w-\\.\\/]+)", CASE_INSENSITIVE);//H2 mem|file
 
 	public static String[] decodeUrl(String url) {

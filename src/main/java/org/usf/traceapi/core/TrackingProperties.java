@@ -18,6 +18,7 @@ public final class TrackingProperties {
 
 	@Setter private boolean jdbcRequest = true;
 	@Setter private boolean restRequest = true;
+	@Setter private boolean startupSession = true;
 	@Setter private boolean mainSession = true;
 	//+ ftp, smtp 
 	private RestSessionTrackConfiguration restSession = new RestSessionTrackConfiguration(); //null => false

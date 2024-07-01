@@ -101,7 +101,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @ConditionalOnExpression("${inspect.track.rest-session:true}==false")
     Filter cleanThreadLocal() {
     	return (req, res, chn)-> {
-    		if(nonNull(localTrace.get())) { //remove STARTUP session
+    		if(nonNull(localTrace.get())) { //clean STARTUP session
     			localTrace.remove();
     		}
     		chn.doFilter(req, res);
@@ -140,7 +140,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     @PreDestroy
     void shutdown() {
-    	if(ready) { //destroy called before ApplicationFailedEvent
+    	if(ready) { //important! PreDestroy called before ApplicationFailedEvent
     		complete();
     	}
     }
@@ -153,16 +153,19 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
     
     void initStatupSession(InstanceEnvironment env){
-		if(nonNull(config.getTrack().isMainSession())) {
+		if(config.getTrack().isStartupSession()) {
 	    	var s = synchronizedMainSession();
+	    	localTrace.set(s);
 	    	s.setStart(env.getInstant()); //same InstanceEnvironment start
-			localTrace.set(s);
+		}
+		else {
+			ready = true;
 		}
     }
 
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
-		if(config.getTrack().isMainSession() && (e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent)) {
+		if(config.getTrack().isStartupSession() && (e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent)) {
 			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 			ready = true;
 		}
