@@ -42,9 +42,9 @@ class JdbcURLDecoderTest {
 	
 	@ParameterizedTest
 	@CsvSource(nullValues="", value={
-		"jdbc:sqlserver://hostname:1234;databaseName=mydatabase;encrypt=true;trustServerCertificate=true;,sqlserver,hostname,1234,mydatabase",
-		"jdbc:sqlserver://hostname:1234;encrypt=true;trustServerCertificate=true;databaseName=mydatabase;,sqlserver,hostname,1234,mydatabase",
-		"jdbc:sqlserver://hostname:1234;encrypt=true;databaseName=mydatabase;trustServerCertificate=true;,sqlserver,hostname,1234,mydatabase",
+		"jdbc:sqlserver://hostname:1234;databaseName=mydatabase;encrypt=true;trustServerCertificate=true,sqlserver,hostname,1234,mydatabase",
+		"jdbc:sqlserver://hostname:1234;encrypt=true;trustServerCertificate=true;databaseName=mydatabase,sqlserver,hostname,1234,mydatabase",
+		"jdbc:sqlserver://hostname:1234;encrypt=true;databaseName=mydatabase;trustServerCertificate=true,sqlserver,hostname,1234,mydatabase",
 	})
 	void testDecode_sqlServer(String origin, String db, String host, String port, String name) {
 		assertURLDecode(origin, db, host, port, name);
