@@ -24,5 +24,4 @@ public interface StageUpdater {
     			.map(Principal::getName)
     			.orElse(null);
     }
-
 }
