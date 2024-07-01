@@ -4,7 +4,6 @@ import static java.util.Collections.synchronizedList;
 import static org.usf.traceapi.core.Session.nextId;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
