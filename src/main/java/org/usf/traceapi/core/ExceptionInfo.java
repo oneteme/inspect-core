@@ -5,12 +5,23 @@ import static java.util.Objects.nonNull;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Getter
 @RequiredArgsConstructor
 public final class ExceptionInfo {
 	
-	private final String classname; //type
+	private final String type;
 	private final String message;
+	//stack
+
+	@Override
+	public String toString() {
+		return "{" + type + ": " + message + "}";
+	}
 	
 	public static ExceptionInfo mainCauseException(Throwable t) {
 		if(nonNull(t)) {
@@ -19,5 +30,4 @@ public final class ExceptionInfo {
 		}
 		return null;
 	}
-
 }

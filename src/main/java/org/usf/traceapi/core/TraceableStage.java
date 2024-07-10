@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
 public @interface TraceableStage {
 
 	String value() default ""; // stage name
-
+	
 	/**
 	 * require default constructor
 	 * 
@@ -23,5 +23,4 @@ public @interface TraceableStage {
 	Class<? extends StageUpdater> sessionUpdater() default StageUpdater.class;
 	
 	//boolean enabled() default true
-	
 }
