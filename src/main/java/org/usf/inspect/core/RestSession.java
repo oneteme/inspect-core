@@ -20,7 +20,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@JsonTypeName("api")
+@JsonTypeName("rest")
 @JsonIgnoreProperties("lock")
 public class RestSession extends RestRequest implements Session, MutableStage {
 
