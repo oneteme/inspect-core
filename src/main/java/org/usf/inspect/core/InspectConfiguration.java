@@ -5,7 +5,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
-import static org.usf.inspect.core.DispatchMode.REMOTE;
+import static org.usf.inspect.core.DispatchTarget.REMOTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.localTrace;
 import static org.usf.inspect.core.Helper.log;
@@ -57,7 +57,7 @@ import jakarta.servlet.Filter;
 class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
 	private final InspectConfigurationProperties config;
-	private volatile boolean ready = false;
+	private volatile boolean ready = true;
 
 	private RestSessionFilter sessionFilter;
 	
@@ -71,7 +71,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		if(log.isDebugEnabled()) {
 			register(new SessionLogger()); //log first
 		}
-		if(conf.getMode() == REMOTE) {
+		if(conf.getTarget() == REMOTE) {
 			var disp = new InspectRestClient(conf.getServer(), inst);
 			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp));
 		}
@@ -101,7 +101,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @ConditionalOnExpression("${inspect.track.rest-session:true}==false")
     Filter cleanThreadLocal() {
     	return (req, res, chn)-> {
-    		if(nonNull(localTrace.get())) { //clean STARTUP session
+    		if(nonNull(localTrace.get())) { //remove STARTUP session
     			localTrace.remove();
     		}
     		chn.doFilter(req, res);
@@ -154,12 +154,10 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     void initStatupSession(InstanceEnvironment env){
 		if(config.getTrack().isStartupSession()) {
+			ready = false;
 	    	var s = synchronizedMainSession();
 	    	localTrace.set(s);
 	    	s.setStart(env.getInstant()); //same InstanceEnvironment start
-		}
-		else {
-			ready = true;
 		}
     }
 
@@ -174,27 +172,25 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	void emitStartupSession(Object appName, Throwable e){
     	var end = now();
         var s = localTrace.get();
-        if(nonNull(s)) {
-        	if(s instanceof MainSession ms) {
-        		try {
-        	    	ms.setName("main");
-        	    	ms.setType(STARTUP.name());
-        	    	ms.setLocation(mainApplicationClass(appName));
-        	    	ms.setThreadName(threadName());
-        			ms.setEnd(end);
-    				ms.setException(mainCauseException(e)); //nullable
-    				emit(ms);
-    				if(nonNull(e)) {
-    					complete();
-    				}
-        		}
-        		finally {
-        			localTrace.remove();
+    	if(s instanceof MainSession ms) {
+    		try {
+    	    	ms.setName("main");
+    	    	ms.setType(STARTUP.name());
+    	    	ms.setLocation(mainApplicationClass(appName));
+    	    	ms.setThreadName(threadName());
+    			ms.setEnd(end);
+				ms.setException(mainCauseException(e)); //nullable
+				emit(ms);
+    		}
+    		finally {
+    			localTrace.remove();
+				if(nonNull(e)) {
+					complete();
 				}
-        	}
-        	else {
-        		log.warn("unexpected session type {}", s);
-        	}
+			}
+    	}
+    	else if(nonNull(s))  {
+    		log.warn("unexpected session type {}", s);
         }
         else {
         	warnNoActiveSession("startup");
