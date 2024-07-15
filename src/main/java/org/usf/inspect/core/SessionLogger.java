@@ -12,7 +12,7 @@ import java.util.Collection;
 public final class SessionLogger implements SessionHandler<Session> {
 
 	@Override
-	public void handle(Session s) {
+	public synchronized void handle(Session s) {
 		log.debug("+ {}", s);
 		for(var req : s.getRestRequests()) {
 			printSessionStage(req);
