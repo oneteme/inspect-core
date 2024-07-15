@@ -3,8 +3,7 @@ package org.usf.inspect.core;
 import static java.util.concurrent.CompletableFuture.allOf;
 import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.concurrent.Executors.newFixedThreadPool;
-import static java.util.stream.IntStream.range;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static java.util.stream.Stream.generate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.SessionPublisher.handlers;
@@ -33,26 +32,33 @@ class SessionPublisherTest {
 	@ParameterizedTest
 	@ValueSource(ints = {1, 5, 10, 20, 50, 100})
 	void testRegister(int n) {
-		var service = newFixedThreadPool(n);
-		var futures = range(0, n)
-		.mapToObj(i-> runAsync(()-> register(s-> {}), service))
-		.toArray(CompletableFuture[]::new);
-		service.shutdown();
-		assertDoesNotThrow(()-> allOf(futures).get());
+		nParallelExec(n, ()-> register(s-> {}));
 		assertEquals(n, handlers.size());
 	}
 
 	@ParameterizedTest
 	@ValueSource(ints = {1, 5, 10, 20, 50, 100})
 	void testEmit(int n) {
-		var reg = new AtomicInteger();
-		register(s-> reg.incrementAndGet());
-		var service = newFixedThreadPool(n);
-		var futures = range(0, n)
-		.mapToObj(i-> runAsync(()-> emit(new RestSession()), service))
-		.toArray(CompletableFuture[]::new);
-		service.shutdown();
-		assertDoesNotThrow(()-> allOf(futures).get());
-		assertEquals(n, reg.get());
+		var reg = generate(AtomicInteger::new).limit(10).toArray(AtomicInteger[]::new);
+		for(var o : reg) {
+			register(s-> o.incrementAndGet());
+		}
+		nParallelExec(n, ()-> emit(new RestSession()));
+		for(var o : reg) {
+			assertEquals(n, o.get());
+		}
+	}
+	
+	static void nParallelExec(int n, Runnable r) {
+		var pool = newFixedThreadPool(n);
+		try {
+			allOf(generate(()-> runAsync(r, pool))
+					.limit(n)
+					.toArray(CompletableFuture[]::new))
+			.join();
+		}
+		finally {
+			pool.shutdown();
+		}
 	}
 }

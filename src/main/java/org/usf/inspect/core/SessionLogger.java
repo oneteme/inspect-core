@@ -11,7 +11,7 @@ import java.util.Collection;
  */
 public final class SessionLogger implements SessionHandler<Session> {
 
-	@Override
+	@Override //sync. avoid session log collision
 	public synchronized void handle(Session s) {
 		log.debug("+ {}", s);
 		for(var req : s.getRestRequests()) {
