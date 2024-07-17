@@ -242,11 +242,12 @@ public class DatabaseStageTracker {
 	}
 	
 	static String getSchema(Connection cnx) {
-		try { //Teradata does not define or inherit an implementation of the resolved method getSchema
+		try { 
 			return cnx.getSchema();
 		}
-		catch (Exception e) {
-			/* do not throw exception */
+		catch (Throwable e) { //
+			// do not throw exception
+			// Teradata does not define or inherit an implementation of the resolved method getSchema
 		}
 		return null;
 	}
