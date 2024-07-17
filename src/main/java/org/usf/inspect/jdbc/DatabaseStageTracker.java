@@ -72,7 +72,7 @@ public class DatabaseStageTracker {
 				req.setHost(args[1]);
 				req.setPort(ofNullable(args[2]).map(Integer::parseInt).orElse(-1));
 				req.setName(args[3]); //getCatalog
-				req.setSchema(cn.getSchema());
+				req.setSchema(getSchema(cn));
 				req.setUser(meta.getUserName());
 				req.setProductName(meta.getDatabaseProductName());
 				req.setProductVersion(meta.getDatabaseProductVersion());
@@ -239,5 +239,15 @@ public class DatabaseStageTracker {
 	
 	public static Connection connect(SafeCallable<Connection, SQLException> supplier) throws SQLException {
 		return new DatabaseStageTracker().connection(supplier);
+	}
+	
+	static String getSchema(Connection cnx) {
+		try { //Teradata does not define or inherit an implementation of the resolved method getSchema
+			return cnx.getSchema();
+		}
+		catch (Exception e) {
+			/* do not throw exception */
+		}
+		return null;
 	}
 }

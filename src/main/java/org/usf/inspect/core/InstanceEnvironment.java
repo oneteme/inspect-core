@@ -5,7 +5,7 @@ import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
-import static java.util.Optional.ofNullable;
+import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.InstanceType.SERVER;
 
@@ -64,7 +64,6 @@ public class InstanceEnvironment {
 	
 	private static String collectorID() {
 		return "spring-collector-v" //use getImplementationTitle
-				+ ofNullable(InspectConfiguration.class.getPackage().getImplementationVersion())
-				.orElse("?");
+				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
 	}
 }

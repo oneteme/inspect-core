@@ -20,7 +20,7 @@ public final class TrackingProperties {
 	@Setter private boolean restRequest = true;
 	@Setter private boolean startupSession = true;
 	@Setter private boolean mainSession = true;
-	//+ ftp, smtp 
+	//+ ftp, smtp, ldap
 	private RestSessionTrackConfiguration restSession = new RestSessionTrackConfiguration(); //null => false
 	
 	public void setRestSession(Object o) {
