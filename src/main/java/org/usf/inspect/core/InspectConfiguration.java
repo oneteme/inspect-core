@@ -9,12 +9,9 @@ import static org.usf.inspect.core.DispatchTarget.REMOTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.Helper.warnNoActiveSession;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
-import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.SessionManager.currentSession;
-import static org.usf.inspect.core.SessionManager.endSession;
-import static org.usf.inspect.core.SessionManager.startMainSession;
+import static org.usf.inspect.core.SessionManager.endStatupSession;
+import static org.usf.inspect.core.SessionManager.startupSession;
 import static org.usf.inspect.core.SessionPublisher.complete;
 import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.SessionPublisher.register;
@@ -58,26 +55,27 @@ import jakarta.servlet.Filter;
 class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
 	private final InspectConfigurationProperties config;
+	private final InstanceEnvironment instance;
 	private volatile boolean ready = true;
 
 	private RestSessionFilter sessionFilter;
 	
 	InspectConfiguration(Environment env, InspectConfigurationProperties conf) {
-		var inst = localInstance(
+		this.instance = localInstance(
 				env.getProperty("spring.application.name"),
 				env.getProperty("spring.application.version"),
 				env.getActiveProfiles());
 		this.config = conf.validate();
-		initStatupSession(inst);
+		initStatupSession();
 		if(log.isDebugEnabled()) {
 			register(new SessionLogger()); //log first
 		}
 		if(conf.getTarget() == REMOTE) {
-			var disp = new InspectRestClient(conf.getServer(), inst);
+			var disp = new InspectRestClient(conf.getServer(), instance);
 			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp, Session::completed));
 		}
 		log.info("inspect.properties={}", conf);
-		log.info("inspect enabled on instance={}", inst);
+		log.info("inspect enabled on instance={}", instance);
 	}
 
 	@Override
@@ -96,15 +94,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*"); //check that
     	return rb;
-    }
-    
-    @Bean
-    @ConditionalOnExpression("${inspect.track.rest-session:true}==false")
-    Filter cleanThreadLocal() {
-    	return (req, res, chn)-> {
-    		endSession();  //remove STARTUP session
-    		chn.doFilter(req, res);
-    	};
     }
     
     @Bean
@@ -151,34 +140,33 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	return sessionFilter;
     }
     
-    void initStatupSession(InstanceEnvironment env){
+    void initStatupSession(){
 		if(config.getTrack().isStartupSession()) {
 			ready = false;
-	    	var s = startMainSession();
-	    	s.setStart(env.getInstant()); //same InstanceEnvironment start
+	    	startupSession();
 		}
     }
 
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
 		if(config.getTrack().isStartupSession() && (e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent)) {
-			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 			ready = true;
+			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 		}
 	}
 	
 	void emitStartupSession(Object appName, Throwable e){
     	var end = now();
-        var ses = endSession();
-    	if(ses instanceof MainSession ms) {
+        var ses = endStatupSession();
+    	if(nonNull(ses)) {
     		try {
-    	    	ms.setName("main");
-    	    	ms.setType(STARTUP.name());
-    	    	ms.setLocation(mainApplicationClass(appName));
-    	    	ms.setThreadName(threadName());
-    			ms.setEnd(end);
-				ms.setException(mainCauseException(e)); //nullable
-				emit(ms);
+    	    	ses.setName("main");
+    	    	ses.setLocation(mainApplicationClass(appName));
+    	    	ses.setThreadName(threadName());
+    	    	ses.setStart(instance.getInstant());
+    			ses.setEnd(end);
+				ses.setException(mainCauseException(e)); //nullable
+				emit(ses);
     		}
     		finally {
 				if(nonNull(e)) {
@@ -186,12 +174,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 				}
 			}
     	}
-    	else if(nonNull(ses))  {
-    		log.warn("unexpected session type {}", ses);
-        }
-        else {
-        	warnNoActiveSession("startup");
-        }
 	}
 	
     static String mainApplicationClass(Object source) {

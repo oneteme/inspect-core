@@ -35,7 +35,6 @@ public class MainSessionAspect {
         	var ms = startBatchSession();
         	try {
             	return call(joinPoint::proceed, (s,e,o,t)-> {
-        			ms.setType(MainSessionType.BATCH.name());
         			fill(ms, s, e, joinPoint, t);
         			emit(ms);
             	});

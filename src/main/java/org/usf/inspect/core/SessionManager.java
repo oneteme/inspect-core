@@ -7,13 +7,14 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.warnNoActiveSession;
+import static org.usf.inspect.core.MainSessionType.BATCH;
+import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.Session.nextId;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 import org.usf.inspect.core.StageTracker.StageConsumer;
@@ -30,12 +31,32 @@ import lombok.NoArgsConstructor;
 public final class SessionManager {
 
 	private static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
-	private static MainSession startupSession;
+	private static MainSession startupSession; //avoid setting startup session on all thread local
 
+	public static <S extends Session> S requireCurrentSession(Class<S> clazz) {
+		var ses = requireCurrentSession();
+		if(clazz.isInstance(ses)) { //nullable
+			return clazz.cast(ses);
+		}
+		log.warn("unexpected session type expected={}, but was {}", clazz.getSimpleName(), ses);
+		return null;
+	}
+		
+	public static Session requireCurrentSession() {
+		var ses = currentSession();
+		if(isNull(ses)) {
+			warnNoActiveSession();
+		}
+		return ses;
+	}
+	
 	public static Session currentSession() {
-		var ses = localTrace.get();
+		var ses = localTrace.get(); // priority
+		if(isNull(ses)) {
+			ses = startupSession;
+		}
 		if(nonNull(ses) && ses.completed()) {
-//			log.warn("current session was completed {}", ses);
+			log.warn("current session was completed {}", ses);
 		}
 		return ses;
 	}
@@ -47,14 +68,14 @@ public final class SessionManager {
 	}
 	
 	public static MainSession startBatchSession() {
-		var ses = mainSession();
+		var ses = mainSession(BATCH);
 		localTrace.set(ses);
 		return ses;
 	}
 	
 	public static MainSession startupSession() {
 		if(isNull(startupSession)) {
-			startupSession = mainSession();
+			startupSession = mainSession(STARTUP);
 		}
 		else {
 			log.warn("startup session already exists {}", startupSession);
@@ -62,9 +83,10 @@ public final class SessionManager {
 		return startupSession;
 	}
 	
-	private static MainSession mainSession() {
+	private static MainSession mainSession(MainSessionType type) {
 		var ses = new MainSession();
 		ses.setId(nextId());
+		ses.setType(type.name());
 		ses.setRestRequests(synchronizedArrayList());
 		ses.setDatabaseRequests(synchronizedArrayList());
 		ses.setFtpRequests(synchronizedArrayList());
@@ -76,7 +98,7 @@ public final class SessionManager {
 	
 	public static RestSession startRestSession() {
 		var ses = new RestSession();
-		ses.setId(nextId());	
+		ses.setId(nextId());
 		ses.setRestRequests(synchronizedArrayList());
 		ses.setDatabaseRequests(synchronizedArrayList());
 		ses.setFtpRequests(synchronizedArrayList());
@@ -93,30 +115,36 @@ public final class SessionManager {
 			localTrace.remove();
 		}
 		else {
-			warnNoActiveSession("");
-		}
+			warnNoActiveSession();
+		}	
 		return ses;
 	}
 	
-	static <T> List<T> synchronizedArrayList() {
-		return synchronizedList(new ArrayList<>());
+	public static MainSession endStatupSession() {
+		var ses = startupSession;
+		if(nonNull(startupSession)) {
+			startupSession = null;
+		}
+		else {
+			warnNoActiveSession();
+		}
+		return ses;
 	}
 
 	public static boolean appendSessionStage(SessionStage stg) {
-		var session = currentSession();
+		var session = requireCurrentSession();
 		if(nonNull(session)) {
 			session.append(stg);
 			return true;
 		}
-		warnNoActiveSession(stg); //log untracked stage
 		return false;
 	}
 	
-	static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
+	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
 		exec(fn, localRequestAppender(name));
 	}
 	
-	static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
+	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
 		return call(fn, localRequestAppender(name));
 	}
 
@@ -135,5 +163,9 @@ public final class SessionManager {
 			});
 			appendSessionStage(stg);
 		};
+	}
+
+	static <T> List<T> synchronizedArrayList() {
+		return synchronizedList(new ArrayList<>());
 	}
 }

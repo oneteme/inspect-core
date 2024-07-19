@@ -9,7 +9,7 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.time.Instant;
@@ -30,16 +30,16 @@ import reactor.core.publisher.Mono;
  * @author u$f
  *
  */
-public final class WebClientFilter implements ExchangeFilterFunction  {
+public final class WebClientFilter implements ExchangeFilterFunction {
 
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest req, ExchangeFunction exc) {
-    	var session = currentSession();
-    	var start = now();
+    	var ses = requireCurrentSession();
+    	var beg = now();
     	var res = exc.exchange(req);
-		return isNull(session) ? res : res.doOnEach(s->{
+		return isNull(ses) ? res : res.doOnEach(s->{
     		if(s.isOnNext() || s.isOnError()) {
-    			appnedRequest(session, start, now(), req, s.get(), s.getThrowable());
+    			appnedRequest(ses, beg, now(), req, s.get(), s.getThrowable());
     		}
     	});
     }

@@ -1,9 +1,7 @@
 package org.usf.inspect.rest;
 
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.warnNoActiveSession;
-import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
 import java.util.stream.Stream;
 
@@ -23,18 +21,14 @@ public class ControllerAdviceTracker {
 
     @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
     Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
-		var session = (RestSession) currentSession();
-		if(isNull(session)) {
-			var sign = joinPoint.getSignature();
-			warnNoActiveSession(sign.getName() + "::" + sign.getDeclaringTypeName()); //TD check this
-		}
-		else if(nonNull(joinPoint.getArgs())) {
+		var ses = requireCurrentSession(RestSession.class);
+		if(nonNull(ses) && nonNull(joinPoint.getArgs())) {
 			Stream.of(joinPoint.getArgs())
 					.filter(Throwable.class::isInstance)
 					.findFirst() //trying to find the exception argument
 					.map(Throwable.class::cast)
 					.map(ExceptionInfo::mainCauseException)
-					.ifPresent(session::setException);
+					.ifPresent(ses::setException);
 		}
 		return joinPoint.proceed();
     }

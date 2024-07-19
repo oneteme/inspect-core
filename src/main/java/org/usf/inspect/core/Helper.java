@@ -64,13 +64,13 @@ public final class Helper {
 		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
-	public static void warnNoActiveSession(Object o) {
-		log.warn("no active session: {}", o);
+	public static void warnNoActiveSession() {
+		log.warn("no active session");
 		var arr = currentThread().getStackTrace();
 		var i = 1; //skip this method call
 		while(i<arr.length && arr[i].getClassName().startsWith(ROOT_PACKAGE)) {i++;}
 		var max = min(arr.length, --i+MAX_STACK); //first JQuery method call
-		while (i<max) {
+		while(i<max) {
 			log.warn("\tat {}", arr[i++]);
 		}
 		if(i<arr.length) {

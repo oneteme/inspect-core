@@ -1,8 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.warnNoActiveSession;
-import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.core.SessionManager.updateCurrentSession;
 
 import java.util.Collection;
@@ -29,14 +28,13 @@ public final class StreamTracker {
 	}
 
 	public static <T> Stream<T> parallel(Stream<T> stream) {
-		var s = currentSession();
+		var s = requireCurrentSession();
         if(nonNull(s)) {
     		return stream.parallel().map(c-> {
     			updateCurrentSession(s);
     			return c;
     		});
         } 
-    	warnNoActiveSession("");
     	return stream.parallel();
 	}
 }

@@ -1,9 +1,8 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.warnNoActiveSession;
-import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.endSession;
+import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.core.SessionManager.updateCurrentSession;
 
 import java.util.concurrent.Callable;
@@ -43,7 +42,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 	}
 	
     private static <T> T aroundRunnable(Runnable command, Function<Runnable, T> fn) {
-    	var session = currentSession();
+    	var session = requireCurrentSession();
 		if(nonNull(session)) {
 			session.lock(); //important! sync lock
 			try {
@@ -63,12 +62,11 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 				throw e;
 			}
 		}
-		warnNoActiveSession("");
 		return fn.apply(command);
     }
 
     private static <T,V> V aroundCallable(Callable<T> command, Function<Callable<T>, V> fn) {
-    	var session = currentSession();
+    	var session = requireCurrentSession();
 		if(nonNull(session)) {
 			session.lock(); //important! sync lock
 			try {
@@ -88,7 +86,6 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 				throw e;
 			}
 		}
-		warnNoActiveSession("");
 		return fn.apply(command);
     }
         
