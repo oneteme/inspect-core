@@ -6,7 +6,7 @@ import static org.usf.inspect.core.Helper.newInstance;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.endSession;
-import static org.usf.inspect.core.SessionManager.startMainSession;
+import static org.usf.inspect.core.SessionManager.startBatchSession;
 import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.StageTracker.call;
 
@@ -32,7 +32,7 @@ public class MainSessionAspect {
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
 		var ses = currentSession();
     	if(isNull(ses) || ses.completed()) { //STARTUP session
-        	var ms = startMainSession();
+        	var ms = startBatchSession();
         	try {
             	return call(joinPoint::proceed, (s,e,o,t)-> {
         			ms.setType(MainSessionType.BATCH.name());

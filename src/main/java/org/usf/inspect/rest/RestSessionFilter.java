@@ -126,8 +126,8 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
     @Override //Session stage !?
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
     	if(!shouldNotFilter(req)) {
-	    	var in = (RestSession) currentSession();
-	        if(nonNull(in)) {
+	    	var ses = currentSession();
+	        if(ses instanceof RestSession in) {
 				in.setName(defaultEndpointName(req));
 	        	in.setUser(getUser(req));
 	        	if(nonNull(ex) && isNull(in.getException())) {//may be already set in Controller Advise

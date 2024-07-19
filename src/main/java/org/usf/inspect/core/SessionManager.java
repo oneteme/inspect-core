@@ -31,7 +31,6 @@ public final class SessionManager {
 
 	private static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
 	private static MainSession startupSession;
-	private static Supplier<Session> lookup = SessionManager::currentSession;
 
 	public static Session currentSession() {
 		var ses = localTrace.get();
