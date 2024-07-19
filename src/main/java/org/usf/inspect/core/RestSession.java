@@ -1,9 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Collections.synchronizedList;
-import static org.usf.inspect.core.Session.nextId;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,15 +33,4 @@ public class RestSession extends RestRequest implements Session, MutableStage {
 
 	private final AtomicInteger lock = new AtomicInteger();
 	
-	public static RestSession synchronizedApiSession() {
-		var ses = new RestSession();
-		ses.setId(nextId());	
-		ses.setRestRequests(synchronizedList(new ArrayList<>()));
-		ses.setDatabaseRequests(synchronizedList(new ArrayList<>()));
-		ses.setFtpRequests(synchronizedList(new ArrayList<>()));
-		ses.setMailRequests(synchronizedList(new ArrayList<>()));
-		ses.setLdapRequests(synchronizedList(new ArrayList<>()));
-		ses.setLocalRequests(synchronizedList(new ArrayList<>()));
-		return ses;
-	}	
 }

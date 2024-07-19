@@ -1,9 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Collections.synchronizedList;
-import static org.usf.inspect.core.Session.nextId;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,17 +34,5 @@ public class MainSession extends LocalRequest implements Session {
 	@Override
 	public String toString() {
 		return '['+type+']'+ super.toString();
-	}
-	
-	public static MainSession synchronizedMainSession() {
-		var ses = new MainSession();
-		ses.setId(nextId());
-		ses.setRestRequests(synchronizedList(new ArrayList<>()));
-		ses.setDatabaseRequests(synchronizedList(new ArrayList<>()));
-		ses.setFtpRequests(synchronizedList(new ArrayList<>()));
-		ses.setMailRequests(synchronizedList(new ArrayList<>()));
-		ses.setLdapRequests(synchronizedList(new ArrayList<>()));
-		ses.setLocalRequests(synchronizedList(new ArrayList<>()));
-		return ses;
 	}
 }

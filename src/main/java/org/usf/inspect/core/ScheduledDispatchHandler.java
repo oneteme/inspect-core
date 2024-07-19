@@ -4,6 +4,7 @@ import static java.util.Collections.addAll;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.DispatchState.DISABLE;
@@ -113,7 +114,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     			return emptyList();
     		}
     		var s = q.stream();
-    		if(isNull(filter)) {
+    		if(nonNull(filter)) {
     			s = s.filter(filter);
     		}
     		return s.toList();

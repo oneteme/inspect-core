@@ -28,20 +28,12 @@ public final class Helper {
 	
 	public static final Logger log;
 
-	public static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
-	
 	static {
 		var p = Helper.class.getPackageName();
 		ROOT_PACKAGE = p.substring(0, p.lastIndexOf(".")); //root
 		log = getLogger(ROOT_PACKAGE + ".Collector");
 	}
 	
-	public static void setThreadLocalSession(Session s) {
-		if(localTrace.get() != s) { // null || local previous session
-			localTrace.set(s);
-		}
-	}
-
 	public static String threadName() {
 		return currentThread().getName();
 	}

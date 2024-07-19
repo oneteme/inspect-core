@@ -3,7 +3,7 @@ package org.usf.inspect.ftp;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.Session.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.appendSessionStage;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
 import static org.usf.inspect.ftp.FtpAction.CD;

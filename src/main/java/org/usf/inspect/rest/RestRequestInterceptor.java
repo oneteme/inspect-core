@@ -7,7 +7,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.Session.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.appendSessionStage;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 

@@ -8,7 +8,7 @@ import static java.util.Optional.ofNullable;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.Session.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.appendSessionStage;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;

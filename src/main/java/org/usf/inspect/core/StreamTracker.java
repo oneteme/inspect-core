@@ -1,9 +1,9 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.localTrace;
-import static org.usf.inspect.core.Helper.setThreadLocalSession;
 import static org.usf.inspect.core.Helper.warnNoActiveSession;
+import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.core.SessionManager.updateCurrentSession;
 
 import java.util.Collection;
 import java.util.stream.Stream;
@@ -29,10 +29,10 @@ public final class StreamTracker {
 	}
 
 	public static <T> Stream<T> parallel(Stream<T> stream) {
-		var s = localTrace.get();
+		var s = currentSession();
         if(nonNull(s)) {
     		return stream.parallel().map(c-> {
-    			setThreadLocalSession(s);
+    			updateCurrentSession(s);
     			return c;
     		});
         } 

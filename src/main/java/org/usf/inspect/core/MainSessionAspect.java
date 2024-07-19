@@ -1,11 +1,12 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
+import static java.util.Objects.isNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.Helper.localTrace;
 import static org.usf.inspect.core.Helper.newInstance;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.MainSession.synchronizedMainSession;
+import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.core.SessionManager.endSession;
+import static org.usf.inspect.core.SessionManager.startMainSession;
 import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.StageTracker.call;
 
@@ -29,26 +30,25 @@ public class MainSessionAspect {
 	
     @Around("@annotation(TraceableStage)")
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
-		var ses = localTrace.get();
-    	if(nonNull(ses)) { //sub trace
-    		return call(joinPoint::proceed, (s,e,o,t)-> {
-    	    	var ss = new LocalRequest();
-    			fill(ss, s, e, joinPoint, t);
-    			ses.append(ss);
-    		});
+		var ses = currentSession();
+    	if(isNull(ses) || ses.completed()) { //STARTUP session
+        	var ms = startMainSession();
+        	try {
+            	return call(joinPoint::proceed, (s,e,o,t)-> {
+        			ms.setType(MainSessionType.BATCH.name());
+        			fill(ms, s, e, joinPoint, t);
+        			emit(ms);
+            	});
+        	}
+        	finally {
+    			endSession();
+        	}
     	} //TD merge 2 block
-    	var ms = synchronizedMainSession();
-    	localTrace.set(ms);
-    	try {
-        	return call(joinPoint::proceed, (s,e,o,t)-> {
-    			ms.setType(MainSessionType.BATCH.name());
-    			fill(ms, s, e, joinPoint, t);
-    			emit(ms);
-        	});
-    	}
-    	finally {
-			localTrace.remove();
-    	}
+    	return call(joinPoint::proceed, (s,e,o,t)-> {
+	    	var ss = new LocalRequest();
+			fill(ss, s, e, joinPoint, t);
+			ses.append(ss);
+		});
     }
     
     static void fill(LocalRequest stg, Instant start, Instant end, ProceedingJoinPoint joinPoint, Throwable e) {

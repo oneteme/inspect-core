@@ -14,10 +14,11 @@ import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
-import static org.usf.inspect.core.Helper.localTrace;
 import static org.usf.inspect.core.Helper.newInstance;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.RestSession.synchronizedApiSession;
+import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.core.SessionManager.endSession;
+import static org.usf.inspect.core.SessionManager.startRestSession;
 import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.StageTracker.exec;
 import static org.usf.inspect.core.StageUpdater.getUser;
@@ -73,8 +74,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-    	var in = synchronizedApiSession();
-    	localTrace.set(in);
+    	var in = startRestSession();
 		res.addHeader(TRACE_HEADER, in.getId());
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 		var cRes = new ContentCachingResponseWrapper(res);
@@ -113,7 +113,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
     		throw new IllegalStateException(e); 
     	}
     	finally {
-			localTrace.remove();
+			endSession();
 		}
 		cRes.copyBodyToResponse();
 	}
@@ -126,7 +126,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
     @Override //Session stage !?
     public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
     	if(!shouldNotFilter(req)) {
-	    	var in = (RestSession) localTrace.get();
+	    	var in = (RestSession) currentSession();
 	        if(nonNull(in)) {
 				in.setName(defaultEndpointName(req));
 	        	in.setUser(getUser(req));
