@@ -42,7 +42,7 @@ public class MainSessionAspect {
         	finally {
     			endSession();
         	}
-    	} //TD merge 2 block
+    	}
     	return call(joinPoint::proceed, (s,e,o,t)-> {
 	    	var ss = new LocalRequest();
 			fill(ss, s, e, joinPoint, t);

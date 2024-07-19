@@ -32,5 +32,4 @@ public class RestSession extends RestRequest implements Session, MutableStage {
 	private String cacheControl; //max-age, no-cache
 
 	private final AtomicInteger lock = new AtomicInteger();
-	
 }
