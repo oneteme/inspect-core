@@ -52,7 +52,7 @@ public final class Helper {
 		try {
 			return Optional.of(clazz.getDeclaredConstructor().newInstance());
 		} catch (Exception e) {
-			log.warn("cannot instantiate class " + clazz.getName(), e);
+			log.warn("cannot instantiate class '{}', exception={}", clazz.getName(), e.getMessage());
 			return empty();
 		}
 	}
@@ -69,7 +69,7 @@ public final class Helper {
 		var arr = currentThread().getStackTrace();
 		var i = 1; //skip this method call
 		while(i<arr.length && arr[i].getClassName().startsWith(ROOT_PACKAGE)) {i++;}
-		var max = min(arr.length, --i+MAX_STACK); //first JQuery method call
+		var max = min(arr.length, --i+MAX_STACK); //first inspect method call
 		while(i<max) {
 			log.warn("\tat {}", arr[i++]);
 		}

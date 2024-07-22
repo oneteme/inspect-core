@@ -129,10 +129,9 @@ public final class SessionManager {
 	}
 
 	public static boolean appendSessionStage(SessionStage stg) {
-		var session = requireCurrentSession();
-		if(nonNull(session)) {
-			session.append(stg);
-			return true;
+		var ses = requireCurrentSession();
+		if(nonNull(ses)) {
+			return ses.append(stg);
 		}
 		return false;
 	}

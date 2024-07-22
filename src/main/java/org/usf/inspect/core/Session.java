@@ -38,7 +38,7 @@ public interface Session extends Metric {
 	
 	AtomicInteger getLock();
 	
-	default void append(SessionStage stage) {
+	default boolean append(SessionStage stage) {
 		if(stage instanceof RestRequest req) {
 			getRestRequests().add(req);
 		}
@@ -59,7 +59,9 @@ public interface Session extends Metric {
 		}
 		else {
 			log.warn("unsupported session stage {}", stage);
+			return false;
 		}
+		return true;
 	}
 	
 	default void lock(){
