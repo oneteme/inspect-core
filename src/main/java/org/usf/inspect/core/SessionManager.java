@@ -6,7 +6,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
-import static org.usf.inspect.core.Helper.warnNoActiveSession;
+import static org.usf.inspect.core.Helper.warnStackTrace;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.Session.nextId;
@@ -41,24 +41,21 @@ public final class SessionManager {
 		log.warn("unexpected session type expected={}, but was {}", clazz.getSimpleName(), ses);
 		return null;
 	}
-		
+	
 	public static Session requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
-			warnNoActiveSession();
+			warnStackTrace("no active session");
+		}
+		else if(ses.completed()) {
+			warnStackTrace("current session was completed: " + ses);
 		}
 		return ses;
 	}
 	
 	public static Session currentSession() {
 		var ses = localTrace.get(); // priority
-		if(isNull(ses)) {
-			ses = startupSession;
-		}
-		if(nonNull(ses) && ses.completed()) {
-			log.warn("current session was completed {}", ses);
-		}
-		return ses;
+		return nonNull(ses) ? ses : startupSession;
 	}
 	
 	public static void updateCurrentSession(Session s) {
@@ -115,7 +112,7 @@ public final class SessionManager {
 			localTrace.remove();
 		}
 		else {
-			warnNoActiveSession();
+			warnStackTrace("no active session");
 		}	
 		return ses;
 	}
@@ -126,7 +123,7 @@ public final class SessionManager {
 			startupSession = null;
 		}
 		else {
-			warnNoActiveSession();
+			warnStackTrace("no startup session");
 		}
 		return ses;
 	}

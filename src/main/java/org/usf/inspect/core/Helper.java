@@ -31,7 +31,7 @@ public final class Helper {
 	static {
 		var p = Helper.class.getPackageName();
 		ROOT_PACKAGE = p.substring(0, p.lastIndexOf(".")); //root
-		log = getLogger(ROOT_PACKAGE + ".Collector");
+		log = getLogger(ROOT_PACKAGE + ".collector");
 	}
 	
 	public static String threadName() {
@@ -64,8 +64,8 @@ public final class Helper {
 		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
-	public static void warnNoActiveSession() {
-		log.warn("no active session");
+	public static void warnStackTrace(String msg) {
+		log.warn(msg);
 		var arr = currentThread().getStackTrace();
 		var i = 1; //skip this method call
 		while(i<arr.length && arr[i].getClassName().startsWith(ROOT_PACKAGE)) {i++;}
