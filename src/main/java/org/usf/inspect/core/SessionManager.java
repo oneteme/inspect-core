@@ -48,7 +48,7 @@ public final class SessionManager {
 			warnStackTrace("no active session");
 		}
 		else if(ses.completed()) {
-			warnStackTrace("current session was completed: " + ses);
+			warnStackTrace("current session already completed: " + ses);
 		}
 		return ses;
 	}

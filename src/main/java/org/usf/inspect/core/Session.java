@@ -24,9 +24,9 @@ public interface Session extends Metric {
 	
 	void setId(String id); //used in server side
 	
-	List<RestRequest> getRestRequests();	  // rename to getApiRequests
+	List<RestRequest> getRestRequests();
 	
-	List<DatabaseRequest> getDatabaseRequests(); //rename to getDatabaseRequests
+	List<DatabaseRequest> getDatabaseRequests();
 
 	List<LocalRequest> getLocalRequests();
 	
