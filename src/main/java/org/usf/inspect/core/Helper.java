@@ -2,11 +2,13 @@ package org.usf.inspect.core;
 
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
+import static java.util.Collections.synchronizedList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -96,5 +98,9 @@ public final class Helper {
 			s+= path;
 		}
 		return s;
+	}
+
+	static <T> List<T> synchronizedArrayList() {
+		return synchronizedList(new ArrayList<>());
 	}
 }

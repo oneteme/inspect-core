@@ -153,7 +153,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	private static String defaultEndpointName(HttpServletRequest req) {
 		var arr = req.getRequestURI().substring(1).split("/");
 		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-		return map == null ? join("_", arr) : Stream.of(arr)
+		return isNull(map) ? join("_", arr) : Stream.of(arr)
 				.filter(not(map.values()::contains))
 				.collect(joiner);
 	}
