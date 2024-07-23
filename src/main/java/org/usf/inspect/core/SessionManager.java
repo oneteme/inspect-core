@@ -38,7 +38,7 @@ public final class SessionManager {
 		if(clazz.isInstance(ses)) { //nullable
 			return clazz.cast(ses);
 		}
-		log.warn("unexpected session type expected={}, but was {}", clazz.getSimpleName(), ses);
+		log.warn("unexpected session type: expected={}, but was={}", clazz.getSimpleName(), ses);
 		return null;
 	}
 	

@@ -40,28 +40,25 @@ public interface Session extends Metric {
 	
 	default boolean append(SessionStage stage) {
 		if(stage instanceof RestRequest req) {
-			getRestRequests().add(req);
+			return getRestRequests().add(req);
 		}
-		else if(stage instanceof DatabaseRequest req) {
-			getDatabaseRequests().add(req);
+		if(stage instanceof DatabaseRequest req) {
+			return getDatabaseRequests().add(req);
 		}
-		else if(stage instanceof FtpRequest req) {
-			getFtpRequests().add(req);
+		if(stage instanceof FtpRequest req) {
+			return getFtpRequests().add(req);
 		}
-		else if(stage instanceof MailRequest req) {
-			getMailRequests().add(req);
+		if(stage instanceof MailRequest req) {
+			return getMailRequests().add(req);
 		}
-		else if(stage instanceof NamingRequest req) {
-			getLdapRequests().add(req);
+		if(stage instanceof NamingRequest req) {
+			return getLdapRequests().add(req);
 		}
-		else if(stage instanceof LocalRequest req) {
-			getLocalRequests().add(req);
+		if(stage instanceof LocalRequest req) {
+			return getLocalRequests().add(req);
 		}
-		else {
-			log.warn("unsupported session stage {}", stage);
-			return false;
-		}
-		return true;
+		log.warn("unsupported session stage {}", stage);
+		return false;
 	}
 	
 	default void lock(){
