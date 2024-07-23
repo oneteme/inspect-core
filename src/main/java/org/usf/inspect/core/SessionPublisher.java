@@ -1,9 +1,8 @@
 package org.usf.inspect.core;
 
-import static java.util.Collections.synchronizedList;
 import static org.usf.inspect.core.Helper.log;
+import static org.usf.inspect.core.Helper.synchronizedArrayList;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import lombok.AccessLevel;
@@ -20,7 +19,7 @@ import lombok.NonNull;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionPublisher {
 	
-    static final List<SessionHandler<Session>> handlers = synchronizedList(new ArrayList<>());
+    static final List<SessionHandler<Session>> handlers = synchronizedArrayList();
     
 	public static void register(@NonNull SessionHandler<Session> sender) {
 		handlers.add(sender);
