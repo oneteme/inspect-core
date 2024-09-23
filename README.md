@@ -9,7 +9,6 @@
 ```
 
 ## Configuration
-
 ```YAML
 inspect:
   enabled: true #activate INSPECT in the host server
@@ -23,3 +22,12 @@ inspect:
         method: OPTIONS #server HTTP method to exclude
         path: /favicon.ico, /error #server endpoint to exclude
 ```
+## Collectors
+
+| Request  | CLASS        |
+|----------|--------------|
+| JDBC     | javax.sql.DataSource |
+| LDAP     | javax.naming.directory.DirContext |
+| SMTP     | jakarta.mail.Transport |
+| HTTP     | org.springframework.http.client.ClientHttpRequestInterceptor <br> org.springframework.web.reactive.function.client.ExchangeFilterFunction |
+| FTP      | com.jcraft.jsch.ChannelSftp |
