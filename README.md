@@ -21,6 +21,9 @@ inspect:
       excludes:
         method: OPTIONS #server HTTP method to exclude
         path: /favicon.ico, /error #server endpoint to exclude
+#   main-session: false
+#   jdbc-request: false
+#   rest-request: false
 ```
 ## Collectors
 
