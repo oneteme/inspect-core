@@ -31,3 +31,4 @@ inspect:
 | SMTP     | jakarta.mail.Transport |
 | HTTP     | org.springframework.http.client.ClientHttpRequestInterceptor <br> org.springframework.web.reactive.function.client.ExchangeFilterFunction |
 | FTP      | com.jcraft.jsch.ChannelSftp |
+| LOCAL    | org.aspectj.lang.annotation.Aspect |
