@@ -10,8 +10,16 @@
 
 ## Configuration
 ```YAML
+spring:
+  application:
+    name: <appName>
+    version: <version>
 inspect:
   enabled: true #activate INSPECT in the host server
+  target: REMOTE #remote INSPECT server
+  server:
+    host: <inspect-server-url>
+    compress-min-size: -1 #no compress
   dispatch:
     delay: 60 #sever trace frequency
     unit: SECONDS
@@ -24,6 +32,7 @@ inspect:
 #   main-session: false
 #   jdbc-request: false
 #   rest-request: false
+
 ```
 ## Collectors
 
