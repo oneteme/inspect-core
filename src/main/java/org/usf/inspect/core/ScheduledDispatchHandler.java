@@ -79,7 +79,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     		log.warn("dispatcher.state={}", state);
     	}
     	if(properties.getBufferMaxSize() > -1 && (state != DISPACH || attempts > 0)) { // !DISPACH | dispatch=fail
-        	doSync(q-> { 
+        	doSync(q-> {
         		if(q.size() > properties.getBufferMaxSize()) {
         			var diff = q.size() - properties.getBufferMaxSize();
         			q.subList(properties.getBufferMaxSize(), q.size()).clear(); //remove exceeding cache sessions (LIFO)
@@ -157,18 +157,18 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
  
     @Override
     public void complete() throws InterruptedException {
-    	var stt = this.state;
+    	var stt = state;
     	updateState(DISABLE); //stop add items
     	log.info("shutting down scheduler service");
+    	executor.shutdown(); //cancel future
     	try {
-    		executor.shutdown(); //cancel future
     		while(!executor.awaitTermination(10, SECONDS)); //wait for last dispatch complete
-    	}
-    	finally {
     		if(stt == DISPACH) {
     			dispatch(true); //complete signal
     		}
-    		if(!queue.isEmpty()) { //!dispatch || dispatch=fail
+    	}
+    	finally {
+    		if(!queue.isEmpty()) { //!dispatch || dispatch=fail + incomplete session
     			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
     		}
 		}
