@@ -115,8 +115,8 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		}
 		finally {
 			endSession();
-			cRes.copyBodyToResponse();
 		}
+		cRes.copyBodyToResponse();
 	}
 
 	@Override
