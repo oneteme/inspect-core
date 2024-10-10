@@ -99,8 +99,8 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	        	}
 	    	}
 	    	catch (Exception e) {// do not throw exception : retry later
-	    		log.warn("error while dispatching {} items, attempts={} because : {}", 
-	    				cs.size(), attempts, e.getMessage()); //do not log exception stack trace
+	    		log.warn("error while dispatching {} items, attempts={} because :[{}] {}", 
+	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
 			}
 	        if(attempts > 0) { //exception | !dispatch
 	        	doSync(q-> q.addAll(0, cs));
