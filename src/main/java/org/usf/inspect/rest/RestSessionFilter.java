@@ -127,7 +127,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	@Override //Session stage !?
 	public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
 		var hm = (handler instanceof HandlerMethod o) ? o : null;
-		if(!shouldNotFilter(req) && (isNull(hm) || BasicErrorController.class != hm.getBean().getClass())) {
+		if(!shouldNotFilter(req) && (isNull(hm) || BasicErrorController.class != hm.getBean().getClass())) { //exclude spring controller, called twice : after throwing exception
 			var ses = requireCurrentSession(RestSession.class);
 			if(nonNull(ses)) {
 				ses.setName(defaultEndpointName(req));

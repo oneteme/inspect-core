@@ -58,13 +58,25 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	@SuppressWarnings("unchecked")
 	public boolean submit(T... arr) {
-		if(state != DISABLE) { // CACHE | DISPATCH
-			doSync(q-> addAll(q, arr));
-			log.trace("{} new items buffered", arr.length);
-			return true;
+		var res = state == DISABLE || applySync(q-> { // CACHE | DISPATCH
+			var size = q.size();
+			var done = false;
+			try {
+				done = addAll(q, arr);  //false | OutOfMemoryError
+			} finally {
+				if(done) {
+					log.trace("{} new items buffered", arr.length);
+				} //addAll or nothing
+				else if(q.size() > size) { //partial add
+					q.subList(size, q.size()).clear();
+				}
+			}
+			return done;
+		});
+		if(!res) {
+			log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
 		}
-		log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
-		return false;
+		return res;
 	}
 	
 	public void updateState(DispatchState state) {
@@ -103,7 +115,18 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
 			}
 	        if(attempts > 0) { //exception | !dispatch
-	        	doSync(q-> q.addAll(0, cs));
+	        	doSync(q-> {
+	        		var size = q.size();
+	        		var done = false;
+	        		try {
+	        			done = q.addAll(0, cs);  //false | OutOfMemoryError
+	        		}
+	        		finally {
+						if(!done) {
+		    	    		log.warn("{} items have been lost from buffer", size + cs.size() - q.size());
+						}
+					}
+	        	});
 	        }
         }
     }
@@ -139,10 +162,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     				it.remove();
     			}
     		}
+    		if(q.size() > c.size()) {
+    			log.info("{}/{} sessions are not yet completed", q.size()-c.size(), q.size());
+    		}
     		return c;
     	});
     }
-
+    
     private void doSync(Consumer<List<T>> cons) {
     	synchronized(queue){
 			cons.accept(queue);

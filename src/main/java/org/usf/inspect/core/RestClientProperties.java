@@ -24,7 +24,7 @@ public final class RestClientProperties {
 	private String host = "http://localhost:9000";
 	private String instanceApi = "v3/trace/instance"; //[POST] async
 	private String sessionApi  = "v3/trace/instance/{id}/session"; //[PUT] async
-	private int compressMinSize = 5_000; //in bytes, -1 no compress
+	private int compressMinSize = 0; //in bytes, 0 no compress
 	
 	void validate() {
 		assertMatches(host, HOST_PATTERN);
