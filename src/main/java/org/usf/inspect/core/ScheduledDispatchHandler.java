@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.lang.Thread.currentThread;
 import static java.util.Collections.addAll;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
@@ -80,7 +81,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	}
 	
 	public void updateState(DispatchState state) {
-		this.state = state;
+		if(this.state != state) {
+			this.state = state;
+		}
+		if(state == DISABLE) {
+			awaitDispatching(); //wait for last dispatch complete
+	    	log.info("dispatcher has been disabled");
+		}
 	}
 	
     private void tryDispatch() {
@@ -132,16 +139,19 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     }
 
     public List<T> peek() {
-    	return applySync(q-> {
-    		if(q.isEmpty()) {
-    			return emptyList();
-    		}
-    		var s = q.stream();
-    		if(nonNull(filter)) {
-    			s = s.filter(filter);
-    		}
-    		return s.toList();
-    	});
+    	if(state == DISABLE) {
+        	return applySync(q-> {
+        		if(q.isEmpty()) {
+        			return emptyList();
+        		}
+        		var s = q.stream();
+        		if(nonNull(filter)) {
+        			s = s.filter(filter);
+        		}
+        		return s.toList();
+        	});
+    	}
+    	throw new IllegalStateException("dispatcher.state=" + state);
     }
     
     List<T> pop() {
@@ -182,24 +192,33 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     }
  
     @Override
-    public void complete() throws InterruptedException {
+    public void complete() {
     	var stt = state;
-    	updateState(DISABLE); //stop add items
     	log.info("shutting down scheduler service");
     	executor.shutdown(); //cancel future
-    	try {
-    		while(!executor.awaitTermination(10, SECONDS)); //wait for last dispatch complete
-    		if(stt == DISPACH) {
+    	updateState(DISABLE); //stop add items
+		if(stt == DISPACH) {
+	    	try {
     			dispatch(true); //complete signal
-    		}
-    	}
-    	finally {
-    		if(!queue.isEmpty()) { //!dispatch || dispatch=fail + incomplete session
-    			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
-    		}
+	    	}
+	    	finally {
+	    		if(!queue.isEmpty()) { //!dispatch || dispatch=fail + incomplete session
+	    			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
+	    		}
+			}
 		}
     }
-	
+    
+    void awaitDispatching() {
+    	try {
+    		while(!executor.awaitTermination(10, SECONDS));
+    	}
+    	catch (InterruptedException e) {
+    		log.error("awaitDispatching interrupted", e);
+    		currentThread().interrupt();
+    	}
+    }
+    
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
