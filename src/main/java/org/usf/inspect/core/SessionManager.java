@@ -1,20 +1,17 @@
 package org.usf.inspect.core;
 
-import static java.util.Collections.synchronizedList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
-import static org.usf.inspect.core.Helper.warnNoActiveSession;
+import static org.usf.inspect.core.Helper.synchronizedArrayList;
+import static org.usf.inspect.core.Helper.warnStackTrace;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.Session.nextId;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 import org.usf.inspect.core.StageTracker.StageConsumer;
@@ -38,27 +35,24 @@ public final class SessionManager {
 		if(clazz.isInstance(ses)) { //nullable
 			return clazz.cast(ses);
 		}
-		log.warn("unexpected session type expected={}, but was {}", clazz.getSimpleName(), ses);
+		log.warn("unexpected session type: expected={}, but was={}", clazz.getSimpleName(), ses);
 		return null;
 	}
-		
+	
 	public static Session requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
-			warnNoActiveSession();
+			warnStackTrace("no active session");
+		}
+		else if(ses.completed()) {
+			warnStackTrace("current session already completed: " + ses);
 		}
 		return ses;
 	}
 	
 	public static Session currentSession() {
 		var ses = localTrace.get(); // priority
-		if(isNull(ses)) {
-			ses = startupSession;
-		}
-		if(nonNull(ses) && ses.completed()) {
-			log.warn("current session was completed {}", ses);
-		}
-		return ses;
+		return nonNull(ses) ? ses : startupSession;
 	}
 	
 	public static void updateCurrentSession(Session s) {
@@ -115,7 +109,7 @@ public final class SessionManager {
 			localTrace.remove();
 		}
 		else {
-			warnNoActiveSession();
+			warnStackTrace("no active session");
 		}	
 		return ses;
 	}
@@ -126,18 +120,14 @@ public final class SessionManager {
 			startupSession = null;
 		}
 		else {
-			warnNoActiveSession();
+			warnStackTrace("no startup session");
 		}
 		return ses;
 	}
 
 	public static boolean appendSessionStage(SessionStage stg) {
-		var session = requireCurrentSession();
-		if(nonNull(session)) {
-			session.append(stg);
-			return true;
-		}
-		return false;
+		var ses = requireCurrentSession();
+		return nonNull(ses) && ses.append(stg);
 	}
 	
 	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
@@ -163,9 +153,5 @@ public final class SessionManager {
 			});
 			appendSessionStage(stg);
 		};
-	}
-
-	static <T> List<T> synchronizedArrayList() {
-		return synchronizedList(new ArrayList<>());
 	}
 }

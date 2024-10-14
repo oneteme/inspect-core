@@ -2,11 +2,13 @@ package org.usf.inspect.core;
 
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
+import static java.util.Collections.synchronizedList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,7 +33,7 @@ public final class Helper {
 	static {
 		var p = Helper.class.getPackageName();
 		ROOT_PACKAGE = p.substring(0, p.lastIndexOf(".")); //root
-		log = getLogger(ROOT_PACKAGE + ".Collector");
+		log = getLogger(ROOT_PACKAGE + ".collector");
 	}
 	
 	public static String threadName() {
@@ -52,7 +54,7 @@ public final class Helper {
 		try {
 			return Optional.of(clazz.getDeclaredConstructor().newInstance());
 		} catch (Exception e) {
-			log.warn("cannot instantiate class " + clazz.getName(), e);
+			log.warn("cannot instantiate class '{}', exception={}", clazz.getName(), e.getMessage());
 			return empty();
 		}
 	}
@@ -64,12 +66,12 @@ public final class Helper {
 		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
-	public static void warnNoActiveSession() {
-		log.warn("no active session");
+	public static void warnStackTrace(String msg) {
+		log.warn(msg);
 		var arr = currentThread().getStackTrace();
 		var i = 1; //skip this method call
 		while(i<arr.length && arr[i].getClassName().startsWith(ROOT_PACKAGE)) {i++;}
-		var max = min(arr.length, --i+MAX_STACK); //first JQuery method call
+		var max = min(arr.length, --i+MAX_STACK); //first inspect method call
 		while(i<max) {
 			log.warn("\tat {}", arr[i++]);
 		}
@@ -81,7 +83,7 @@ public final class Helper {
 	public static String prettyURLFormat(String user, String protocol, String host, int port, String path) {
 		var s = isNull(user) ? "" : '<' + user + '>';
 		if(nonNull(protocol)) {
-			s += protocol + "://";
+			s+= protocol + "://";
 		}
 		if(nonNull(host)) {
 			s+= host;
@@ -96,5 +98,9 @@ public final class Helper {
 			s+= path;
 		}
 		return s;
+	}
+
+	static <T> List<T> synchronizedArrayList() {
+		return synchronizedList(new ArrayList<>());
 	}
 }

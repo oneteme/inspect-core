@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
@@ -77,7 +78,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		var in = startRestSession();
 		res.addHeader(TRACE_HEADER, in.getId());
 		res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
-		var cRes = new ContentCachingResponseWrapper(res);
+		var cRes = new ContentCachingResponseWrapper(res); //see ContentCachingRequestWrapper !?
 		try {
 			exec(()-> filterChain.doFilter(req, cRes), (s,e,o,t)->{
 				var uri = create(req.getRequestURL().toString());
@@ -125,7 +126,8 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 
 	@Override //Session stage !?
 	public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-		if(!shouldNotFilter(req)) {
+		var hm = (handler instanceof HandlerMethod o) ? o : null;
+		if(!shouldNotFilter(req) && (isNull(hm) || BasicErrorController.class != hm.getBean().getClass())) { //exclude spring controller, called twice : after throwing exception
 			var ses = requireCurrentSession(RestSession.class);
 			if(nonNull(ses)) {
 				ses.setName(defaultEndpointName(req));
@@ -133,7 +135,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				if(nonNull(ex) && isNull(ses.getException())) {//may be already set in Controller Advise
 					ses.setException(mainCauseException(ex));
 				}
-				if(handler instanceof HandlerMethod hm) {//important! !static resource 
+				if(nonNull(hm)) {//important! !static resource 
 					TraceableStage a = hm.getMethodAnnotation(TraceableStage.class);
 					if(nonNull(a)) {
 						if(!a.value().isBlank()) {
@@ -153,7 +155,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	private static String defaultEndpointName(HttpServletRequest req) {
 		var arr = req.getRequestURI().substring(1).split("/");
 		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-		return map == null ? join("_", arr) : Stream.of(arr)
+		return isNull(map) ? join("_", arr) : Stream.of(arr)
 				.filter(not(map.values()::contains))
 				.collect(joiner);
 	}

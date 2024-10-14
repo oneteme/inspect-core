@@ -16,6 +16,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.core.Ordered;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,7 +27,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Aspect
 @RequiredArgsConstructor
-public class MainSessionAspect {
+public class MainSessionAspect implements Ordered {
 	
     @Around("@annotation(TraceableStage)")
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -64,4 +65,9 @@ public class MainSessionAspect {
     		.ifPresent(u-> u.update(stg, joinPoint));
     	}
     }
+
+	@Override
+	public int getOrder() { //before @Transactional
+		return HIGHEST_PRECEDENCE;
+	}
 }

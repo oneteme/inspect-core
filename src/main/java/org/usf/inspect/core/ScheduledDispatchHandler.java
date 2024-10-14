@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.lang.Thread.currentThread;
 import static java.util.Collections.addAll;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
@@ -58,17 +59,35 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	@SuppressWarnings("unchecked")
 	public boolean submit(T... arr) {
-		if(state != DISABLE) { // CACHE | DISPATCH
-			doSync(q-> addAll(q, arr));
-			log.trace("{} new items buffered", arr.length);
-			return true;
+		var res = state == DISABLE || applySync(q-> { // CACHE | DISPATCH
+			var size = q.size();
+			var done = false;
+			try {
+				done = addAll(q, arr);  //false | OutOfMemoryError
+			} finally {
+				if(done) {
+					log.trace("{} new items buffered", arr.length);
+				} //addAll or nothing
+				else if(q.size() > size) { //partial add
+					q.subList(size, q.size()).clear();
+				}
+			}
+			return done;
+		});
+		if(!res) {
+			log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
 		}
-		log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
-		return false;
+		return res;
 	}
 	
 	public void updateState(DispatchState state) {
-		this.state = state;
+		if(this.state != state) {
+			this.state = state;
+		}
+		if(state == DISABLE) {
+			awaitDispatching(); //wait for last dispatch complete
+	    	log.info("dispatcher has been disabled");
+		}
 	}
 	
     private void tryDispatch() {
@@ -79,7 +98,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     		log.warn("dispatcher.state={}", state);
     	}
     	if(properties.getBufferMaxSize() > -1 && (state != DISPACH || attempts > 0)) { // !DISPACH | dispatch=fail
-        	doSync(q-> { 
+        	doSync(q-> {
         		if(q.size() > properties.getBufferMaxSize()) {
         			var diff = q.size() - properties.getBufferMaxSize();
         			q.subList(properties.getBufferMaxSize(), q.size()).clear(); //remove exceeding cache sessions (LIFO)
@@ -99,26 +118,40 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	        	}
 	    	}
 	    	catch (Exception e) {// do not throw exception : retry later
-	    		log.warn("error while dispatching {} items, attempts={} because : {}", 
-	    				cs.size(), attempts, e.getMessage()); //do not log exception stack trace
+	    		log.warn("error while dispatching {} items, attempts={} because :[{}] {}", 
+	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
 			}
 	        if(attempts > 0) { //exception | !dispatch
-	        	doSync(q-> q.addAll(0, cs));
+	        	doSync(q-> {
+	        		var size = q.size();
+	        		var done = false;
+	        		try {
+	        			done = q.addAll(0, cs);  //false | OutOfMemoryError
+	        		}
+	        		finally {
+						if(!done) {
+		    	    		log.warn("{} items have been lost from buffer", size + cs.size() - q.size());
+						}
+					}
+	        	});
 	        }
         }
     }
 
     public List<T> peek() {
-    	return applySync(q-> {
-    		if(q.isEmpty()) {
-    			return emptyList();
-    		}
-    		var s = q.stream();
-    		if(nonNull(filter)) {
-    			s = s.filter(filter);
-    		}
-    		return s.toList();
-    	});
+    	if(state == DISABLE) {
+        	return applySync(q-> {
+        		if(q.isEmpty()) {
+        			return emptyList();
+        		}
+        		var s = q.stream();
+        		if(nonNull(filter)) {
+        			s = s.filter(filter);
+        		}
+        		return s.toList();
+        	});
+    	}
+    	throw new IllegalStateException("dispatcher.state=" + state);
     }
     
     List<T> pop() {
@@ -139,10 +172,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     				it.remove();
     			}
     		}
+    		if(q.size() > c.size()) {
+    			log.info("{}/{} sessions are not yet completed", q.size()-c.size(), q.size());
+    		}
     		return c;
     	});
     }
-
+    
     private void doSync(Consumer<List<T>> cons) {
     	synchronized(queue){
 			cons.accept(queue);
@@ -156,24 +192,33 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     }
  
     @Override
-    public void complete() throws InterruptedException {
-    	var stt = this.state;
-    	updateState(DISABLE); //stop add items
+    public void complete() {
+    	var stt = state;
     	log.info("shutting down scheduler service");
-    	try {
-    		executor.shutdown(); //cancel future
-    		while(!executor.awaitTermination(10, SECONDS)); //wait for last dispatch complete
-    	}
-    	finally {
-    		if(stt == DISPACH) {
+    	executor.shutdown(); //cancel future
+    	updateState(DISABLE); //stop add items
+		if(stt == DISPACH) {
+	    	try {
     			dispatch(true); //complete signal
-    		}
-    		if(!queue.isEmpty()) { //!dispatch || dispatch=fail
-    			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
-    		}
+	    	}
+	    	finally {
+	    		if(!queue.isEmpty()) { //!dispatch || dispatch=fail + incomplete session
+	    			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
+	    		}
+			}
 		}
     }
-	
+    
+    void awaitDispatching() {
+    	try {
+    		while(!executor.awaitTermination(10, SECONDS));
+    	}
+    	catch (InterruptedException e) {
+    		log.error("awaitDispatching interrupted", e);
+    		currentThread().interrupt();
+    	}
+    }
+    
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
