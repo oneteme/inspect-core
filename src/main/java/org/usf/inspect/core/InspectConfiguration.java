@@ -82,7 +82,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 //  @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
     public void addInterceptors(InterceptorRegistry registry) {
 		if(nonNull(config.getTrack().getRestSession())) {
-			registry.addInterceptor(sessionFilter()).order(LOWEST_PRECEDENCE); //TODO HIGHEST_PRECEDENCE
+			registry.addInterceptor(sessionFilter()).order(LOWEST_PRECEDENCE); //after auth.,.. interceptors 
 //			.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
 		}
     }
