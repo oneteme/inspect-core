@@ -77,7 +77,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 		if(fail) {
 			log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
 		}
-		return fail;
+		return !fail;
 	}
 	
 	public void updateState(DispatchState state) {
