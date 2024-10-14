@@ -59,7 +59,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	@SuppressWarnings("unchecked")
 	public boolean submit(T... arr) {
-		var res = state == DISABLE || applySync(q-> { // CACHE | DISPATCH
+		var fail = state == DISABLE || !applySync(q-> { // CACHE | DISPATCH
 			var size = q.size();
 			var done = false;
 			try {
@@ -74,10 +74,10 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 			}
 			return done;
 		});
-		if(!res) {
+		if(fail) {
 			log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
 		}
-		return res;
+		return fail;
 	}
 	
 	public void updateState(DispatchState state) {
@@ -115,7 +115,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	        try {
 	        	if(dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs))) {
 	        		if(attempts > 1) { //!first attempt
-	        			log.info("{} items dispatched,  attempts={}", cs.size(), attempts);
+	        			log.info("{} items dispatched, after {} attempts", cs.size(), attempts);
 	        		}
 	        		attempts=0;
 	        	}
@@ -142,7 +142,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     }
 
     public List<T> peek() {
-    	if(state == DISABLE) {
+    	if(state == DISABLE) { //deny buffer peek if dispatcher active
         	return applySync(q-> {
         		if(q.isEmpty()) {
         			return emptyList();
