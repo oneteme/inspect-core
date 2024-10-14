@@ -14,7 +14,7 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-public final class MailRequest extends SessionStage {
+public class MailRequest extends SessionStage {
 	
 	private String host;
 	private int port;

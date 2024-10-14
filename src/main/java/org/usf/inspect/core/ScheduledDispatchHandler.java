@@ -114,6 +114,9 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	        log.trace("scheduled dispatching {} items..", cs.size());
 	        try {
 	        	if(dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs))) {
+	        		if(attempts > 1) { //!first attempt
+	        			log.info("{} items dispatched,  attempts={}", cs.size(), attempts);
+	        		}
 	        		attempts=0;
 	        	}
 	    	}
