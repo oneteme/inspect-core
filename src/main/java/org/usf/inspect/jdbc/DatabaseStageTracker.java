@@ -149,7 +149,9 @@ public class DatabaseStageTracker {
 			req.getCommands().add(mainCommand(sql));
 		} //BATCH otherwise 
 		return call(supplier, appendAction(EXECUTE, (a,r)->{
-			a.setCount(countFn.apply(r));
+			if(nonNull(r)) { //fail
+				a.setCount(countFn.apply(r));
+			}
 			exec = a; //!important
 		}));
 	}
