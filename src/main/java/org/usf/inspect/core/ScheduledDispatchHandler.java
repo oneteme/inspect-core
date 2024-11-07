@@ -60,7 +60,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	@SuppressWarnings("unchecked")
 	public boolean submit(T... arr) {
-		var fail = state == DISABLE || !applySync(q-> { // CACHE | DISPATCH
+		var ok = state != DISABLE && applySync(q-> { // CACHE | DISPATCH
 			var size = q.size();
 			var done = false;
 			try {
@@ -71,14 +71,15 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 				} //addAll or nothing
 				else if(q.size() > size) { //partial add
 					q.subList(size, q.size()).clear();
+					log.warn("revert partial queue add, queue.size={}", q.size());
 				}
 			}
 			return done;
 		});
-		if(fail) {
+		if(!ok) {
 			log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
 		}
-		return !fail;
+		return ok;
 	}
 	
 	public void updateState(DispatchState state) throws InterruptedException {
@@ -125,20 +126,22 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	    		log.warn("error while dispatching {} items, attempts={} because :[{}] {}", 
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
 			}
-	        if(attempts > 0) { //exception | !dispatch
-	        	doSync(q-> {
-	        		var size = q.size();
-	        		var done = false;
-	        		try {
-	        			done = q.addAll(0, cs);  //false | OutOfMemoryError
-	        		}
-	        		finally {
-						if(!done) {
-		    	    		log.warn("{} items have been lost from buffer", size + cs.size() - q.size());
+	        finally {
+		        if(attempts > 0) { //exception | !dispatch
+		        	doSync(q-> {
+		        		var size = q.size();
+		        		var done = false;
+		        		try {
+		        			done = q.addAll(0, cs);  //false | OutOfMemoryError
+		        		}
+		        		finally {
+							if(!done) {
+			    	    		log.warn("{} items have been lost from buffer", size + cs.size() - q.size());
+							}
 						}
-					}
-	        	});
-	        }
+		        	});
+		        }
+			}
         }
     }
 
