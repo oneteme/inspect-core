@@ -4,7 +4,6 @@ import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
-import static org.springframework.core.Ordered.LOWEST_PRECEDENCE;
 import static org.usf.inspect.core.DispatchTarget.REMOTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
@@ -82,7 +81,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 //  @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
     public void addInterceptors(InterceptorRegistry registry) {
 		if(nonNull(config.getTrack().getRestSession())) {
-			registry.addInterceptor(sessionFilter()).order(LOWEST_PRECEDENCE); //after auth.,.. interceptors 
+			registry.addInterceptor(sessionFilter()).order(HIGHEST_PRECEDENCE); //before auth.,.. interceptors 
 //			.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
 		}
     }
