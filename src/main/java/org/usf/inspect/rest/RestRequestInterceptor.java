@@ -21,7 +21,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.usf.inspect.core.ExceptionInfo;
 import org.usf.inspect.core.RestRequest;
 
@@ -74,7 +73,6 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
             return new String(copyToByteArray(response.getBody()), UTF_8); // body is never null
         } catch (IOException e) { //do not throw exception
     		log.warn("cannot extract request body, {}:{}", e.getClass().getSimpleName(), e.getMessage());
-            // ignore
         }
         return null;
     }
