@@ -10,6 +10,7 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.appendSessionStage;
+import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 import static reactor.core.publisher.Mono.just;
 
@@ -40,23 +41,10 @@ import reactor.core.publisher.Mono;
 public final class WebClientFilter implements ExchangeFilterFunction {
 
 	@Override
-	public Mono<ClientResponse> filter(ClientRequest req, ExchangeFunction exc) {
-    	var beg = now(); //doOnSubscribe
-    	var res = exc.exchange(req);
-		var sr = newRequest(beg, req);
-		appendSessionStage(sr);
-		return res.flatMap(cr->{
-			finalizeRequest(sr, now(), cr, null);
-			return cr.statusCode().isError() //4xx|5xx
-					? just(cr.mutate().body(f-> peekContentAsString(f, m-> sr.setException(new ExceptionInfo(null, m)))).build())
-					: just(cr);
-		}).doOnError(e-> finalizeRequest(sr, now(), null, e));
-    }
-    
-    private RestRequest newRequest(Instant start, ClientRequest request) {
-    	var req = new RestRequest(); //see RestRequestInterceptor
-    	try {
-			req.setStart(start);
+	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {
+		var req = new RestRequest(); //see RestRequestInterceptor
+		return call(()-> exc.exchange(request), (s,e,res,t)->{
+			req.setStart(s);
 			req.setThreadName(threadName());
 			req.setProtocol(request.url().getScheme());
 			req.setHost(request.url().getHost());
@@ -67,11 +55,16 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			req.setAuthScheme(extractAuthScheme(request.headers().get(AUTHORIZATION)));
 			req.setOutDataSize(-2); //unknown !
 			req.setOutContentEncoding(getFirstOrNull(request.headers().get(CONTENT_ENCODING))); 
-    	}
-    	catch (Exception e) { //do not throw exception
-    		log.warn("cannot collect request metrics, {}:{}", e.getClass().getSimpleName(), e.getMessage());
-		}
-    	return req;
+			if(nonNull(t)) { //no response
+				finalizeRequest(req, e, null, t);
+			}
+    		appendSessionStage(req);
+		}).flatMap(res->{
+			finalizeRequest(req, now(), res, null);
+			return just(res.statusCode().isError() //4xx|5xx
+					? res.mutate().body(f-> peekContentAsString(f, m-> req.setException(new ExceptionInfo(null, m)))).build()
+					: res);
+		}).doOnError(e-> finalizeRequest(req, now(), null, e)); //0
     }
     
     private void finalizeRequest(RestRequest req, Instant end, ClientResponse response, Throwable t) {

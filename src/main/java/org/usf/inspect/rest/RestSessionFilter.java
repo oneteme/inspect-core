@@ -1,5 +1,6 @@
 package org.usf.inspect.rest;
 
+import static jakarta.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import static java.lang.String.join;
 import static java.net.URI.create;
 import static java.util.Objects.isNull;
@@ -35,7 +36,6 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.util.ContentCachingResponseWrapper;
 import org.usf.inspect.core.RestSession;
 import org.usf.inspect.core.RestSessionTrackConfiguration;
 import org.usf.inspect.core.SessionManager;
@@ -91,9 +91,9 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 					return rs;
 				})
 				.orElseGet(SessionManager::startRestSession);
-		var cRes = new ContentCachingResponseWrapper(res); //see ContentCachingRequestWrapper !?
+//		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
-			exec(()-> filterChain.doFilter(req, cRes), (s,e,o,t)->{
+			exec(()-> filterChain.doFilter(req, res), (s,e,o,t)-> {
 				if(!isAsyncDispatch(req)) { // asyncStarted || sync
 					in.setStart(s);
 					in.setThreadName(threadName());
@@ -114,7 +114,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				if(!isAsyncStarted(req)) { // asyncDispatch || sync
 					in.setEnd(e);
 					in.setStatus(res.getStatus());
-					in.setOutDataSize(cRes.getContentSize()); //exact size
+					in.setOutDataSize(res.getBufferSize()); //!exact size
 					in.setOutContentEncoding(res.getHeader(CONTENT_ENCODING)); 
 					in.setCacheControl(res.getHeader(CACHE_CONTROL));
 					in.setContentType(res.getContentType());
@@ -122,7 +122,8 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				else { //asyncStarted
 					req.setAttribute(ASYNC_SESSION, in);
 				}
-				if(nonNull(t) && isNull(in.getException())) { //may be set in TraceableAspect::aroundAdvice || afterCompletion
+				if(nonNull(t)) {
+					in.setStatus(SC_INTERNAL_SERVER_ERROR); // overwrite default response status
 					in.setException(mainCauseException(t));
 				}
 			});	
@@ -139,7 +140,6 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				emit(in);
 			}
 		}
-		cRes.copyBodyToResponse();
 	}
 
 	@Override
@@ -151,7 +151,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
 		var hm = (handler instanceof HandlerMethod o) ? o : null;
  		if(!shouldNotFilter(req) && (isNull(hm) || BasicErrorController.class != hm.getBean().getClass())) { //exclude spring controller, called twice : after throwing exception
-			var ses = requireCurrentSession(RestSession.class);
+			var ses = requireCurrentSession(RestSession.class); 
 			if(nonNull(ses)) {
 				ses.setName(defaultEndpointName(req));
 				ses.setUser(getUser(req));
