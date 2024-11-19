@@ -19,7 +19,7 @@ inspect:
   target: REMOTE #remote INSPECT server
   server:
     host: <inspect-server-url>
-    compress-min-size: -1 #no compress
+    #compress-min-size: -1 #no compress
   dispatch:
     delay: 60 #sever trace frequency
     unit: SECONDS
@@ -27,11 +27,8 @@ inspect:
   track:
     rest-session:
       excludes:
-        method: OPTIONS #server HTTP method to exclude
-        path: /favicon.ico, /error #server endpoint to exclude
-#   main-session: false
-#   jdbc-request: false
-#   rest-request: false
+        method: OPTIONS #HTTP method to exclude
+        path: /favicon.ico #endpoint to exclude
 
 ```
 ## Collectors
