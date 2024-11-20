@@ -25,8 +25,8 @@ public class RestRequest extends SessionStage { //APiRequest
 	private String contentType; //text/html, application/json, application/xml,..
 	private String authScheme; //Basic, Bearer, Digest, OAuth,..
 	private int status; //2xx, 4xx, 5xx, 0 otherwise
-	private long inDataSize; //in bytes, -1 otherwise
-	private long outDataSize; //in bytes, -1 otherwise
+	private long inDataSize; //in bytes, -1 unknown
+	private long outDataSize; //in bytes, -1 unknown
 	private ExceptionInfo exception;
 	//v22
 	private String inContentEncoding; //gzip, compress, identity,..

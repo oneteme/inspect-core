@@ -78,7 +78,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	}
 	
 	@Override
-	protected boolean shouldNotFilterAsyncDispatch() {
+	protected boolean shouldNotFilterAsyncDispatch() { //Callable | Mono
 		return false;
 	}
 	
