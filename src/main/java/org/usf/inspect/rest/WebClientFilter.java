@@ -45,13 +45,14 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var req = new RestRequest(); //see RestRequestInterceptor
 		return call(()-> exc.exchange(request), (s,e,res,t)->{
 			req.setStart(s);
+			//async end
 			req.setThreadName(threadName());
+			req.setMethod(request.method().name());
 			req.setProtocol(request.url().getScheme());
 			req.setHost(request.url().getHost());
 			req.setPort(request.url().getPort());
 			req.setPath(request.url().getPath());
 			req.setQuery(request.url().getQuery());
-			req.setMethod(request.method().name());
 			req.setAuthScheme(extractAuthScheme(request.headers().get(AUTHORIZATION)));
 			req.setOutDataSize(-2); //unknown !
 			req.setOutContentEncoding(getFirstOrNull(request.headers().get(CONTENT_ENCODING))); 
