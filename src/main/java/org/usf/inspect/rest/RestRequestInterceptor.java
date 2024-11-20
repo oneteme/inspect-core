@@ -15,7 +15,6 @@ import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 import java.io.IOException;
 
 import org.springframework.http.HttpRequest;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
@@ -46,12 +45,12 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			req.setPath(request.getURI().getPath());
 			req.setQuery(request.getURI().getQuery());
 			req.setAuthScheme(extractAuthScheme(request.getHeaders().get(AUTHORIZATION)));
-			req.setOutDataSize(nonNull(body) ? body.length : -1);
+			req.setOutDataSize(nonNull(body) ? body.length : 0);
 			req.setOutContentEncoding(request.getHeaders().getFirst(CONTENT_ENCODING)); 
 			//setUser(decode AUTHORIZATION)
 			if(nonNull(res)) {
 				req.setStatus(res.getStatusCode().value());
-				req.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
+				req.setContentType(ofNullable(res.getHeaders().getContentType()).map(Object::toString).orElse(null));
 				req.setInContentEncoding(res.getHeaders().getFirst(CONTENT_ENCODING)); 
 				req.setId(res.getHeaders().getFirst(TRACE_HEADER));
 				res.doOnClose((len, err)->{ //wait for reading content

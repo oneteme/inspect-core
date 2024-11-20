@@ -19,7 +19,6 @@ import java.util.List;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
@@ -39,7 +38,7 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 public final class WebClientFilter implements ExchangeFilterFunction {
-
+	
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {
 		var req = new RestRequest(); //see RestRequestInterceptor
@@ -54,7 +53,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			req.setPath(request.url().getPath());
 			req.setQuery(request.url().getQuery());
 			req.setAuthScheme(extractAuthScheme(request.headers().get(AUTHORIZATION)));
-			req.setOutDataSize(-2); //unknown !
+			req.setOutDataSize(request.headers().getContentLength()); //-1 unknown !
 			req.setOutContentEncoding(getFirstOrNull(request.headers().get(CONTENT_ENCODING))); 
 			if(nonNull(t)) { //no response
 				finalizeRequest(req, e, null, t);
@@ -73,10 +72,10 @@ public final class WebClientFilter implements ExchangeFilterFunction {
     		req.setEnd(end);
 			if(nonNull(response)) {
 				req.setStatus(response.statusCode().value());
-				req.setContentType(response.headers().contentType().map(MediaType::getType).orElse(null));
+				req.setContentType(response.headers().contentType().map(Object::toString).orElse(null));
 				req.setInContentEncoding(getFirstOrNull(response.headers().header(CONTENT_ENCODING))); 
 				req.setId(getFirstOrNull(response.headers().header(TRACE_HEADER))); //+ send api_name !?
-				req.setInDataSize(-2); //unknown !
+				req.setInDataSize(response.headers().contentLength().orElse(-1)); //-1 unknown !
 			}
 			else if(nonNull(t)) {
 				req.setException(mainCauseException(t));
