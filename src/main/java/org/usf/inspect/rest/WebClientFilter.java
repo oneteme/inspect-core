@@ -45,13 +45,14 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var req = new RestRequest(); //see RestRequestInterceptor
 		return call(()-> exc.exchange(request), (s,e,res,t)->{
 			req.setStart(s);
+			//async end
 			req.setThreadName(threadName());
+			req.setMethod(request.method().name());
 			req.setProtocol(request.url().getScheme());
 			req.setHost(request.url().getHost());
 			req.setPort(request.url().getPort());
 			req.setPath(request.url().getPath());
 			req.setQuery(request.url().getQuery());
-			req.setMethod(request.method().name());
 			req.setAuthScheme(extractAuthScheme(request.headers().get(AUTHORIZATION)));
 			req.setOutDataSize(-2); //unknown !
 			req.setOutContentEncoding(getFirstOrNull(request.headers().get(CONTENT_ENCODING))); 
@@ -72,10 +73,10 @@ public final class WebClientFilter implements ExchangeFilterFunction {
     		req.setEnd(end);
 			if(nonNull(response)) {
 				req.setStatus(response.statusCode().value());
-				req.setInDataSize(-2); //unknown !
 				req.setContentType(response.headers().contentType().map(MediaType::getType).orElse(null));
 				req.setInContentEncoding(getFirstOrNull(response.headers().header(CONTENT_ENCODING))); 
 				req.setId(getFirstOrNull(response.headers().header(TRACE_HEADER))); //+ send api_name !?
+				req.setInDataSize(-2); //unknown !
 			}
 			else if(nonNull(t)) {
 				req.setException(mainCauseException(t));
