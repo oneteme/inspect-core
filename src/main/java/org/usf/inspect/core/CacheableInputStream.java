@@ -5,9 +5,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public final class InputStreamPipe extends InputStream {
+/**
+ * 
+ * @author u$f
+ *
+ */
+public final class CacheableInputStream extends InputStream {
 	
-	public static final OutputStream NO_CACHE = new OutputStream() {
+	static final OutputStream NO_OUT = new OutputStream() {
 		@Override
 		public void write(int b) throws IOException {/* do nothing */}
 	};
@@ -15,10 +20,10 @@ public final class InputStreamPipe extends InputStream {
 	private final InputStream in;
 	private final OutputStream out;
 	private int length;
-	
-	public InputStreamPipe(InputStream in, boolean cacheContent) {
+ 
+	public CacheableInputStream(InputStream in, boolean cache) {
 		this.in = in;
-		this.out = cacheContent ? new ByteArrayOutputStream() : NO_CACHE;
+		this.out = cache ? new ByteArrayOutputStream() : NO_OUT;
 	}
 	
 	//all read, trasfertTo & skip method must call super => this.read()
@@ -55,7 +60,12 @@ public final class InputStreamPipe extends InputStream {
 	
 	@Override
 	public void close() throws IOException {
-		in.close();
+		try {
+			out.close();
+		}
+		finally {
+			in.close();
+		}
 	}
 	
 	public int getDataLength(){

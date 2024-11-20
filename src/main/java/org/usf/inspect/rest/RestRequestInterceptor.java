@@ -54,7 +54,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				req.setContentType(ofNullable(res.getHeaders().getContentType()).map(MediaType::getType).orElse(null));
 				req.setInContentEncoding(res.getHeaders().getFirst(CONTENT_ENCODING)); 
 				req.setId(res.getHeaders().getFirst(TRACE_HEADER));
-				res.setOnClose((err, len)->{ //wait for reading content
+				res.doOnClose((len, err)->{ //wait for reading content
 					req.setInDataSize(len);
 					if(nonNull(err)) { //4xx|5xx
 						req.setException(new ExceptionInfo(null, new String(err, UTF_8)));
