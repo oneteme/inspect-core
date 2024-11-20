@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import lombok.Getter;
-
 public final class InputStreamPipe extends InputStream {
 	
 	public static final OutputStream NO_CACHE = new OutputStream() {
