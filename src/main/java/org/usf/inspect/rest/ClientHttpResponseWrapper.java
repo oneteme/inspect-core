@@ -41,7 +41,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 	@Override
 	public void close() {
 		try {
-			if(nonNull(onClose) && nonNull(pipe)) {
+			if(nonNull(onClose) && nonNull(pipe)) { //unread body 
 				onClose.accept(pipe.getDataLength(), pipe.getData()); //data can be null if status=2xx
 			}
 		}
