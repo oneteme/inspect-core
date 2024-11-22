@@ -13,9 +13,11 @@ import static org.usf.inspect.core.SessionManager.appendSessionStage;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 import static reactor.core.publisher.Mono.just;
+import static reactor.core.publisher.SignalType.CANCEL;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -63,7 +65,13 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			return just(res.statusCode().isError() //4xx|5xx
 					? res.mutate().body(f-> peekContentAsString(f, m-> req.setException(new ExceptionInfo(null, m)))).build()
 					: res);
-		}).doOnError(e-> finalizeRequest(req, now(), null, e)); //0
+		})
+		.doOnError(e-> finalizeRequest(req, now(), null, e)) //DnsNameResolverTimeoutException 
+		.doFinally(v-> {
+			if(v == CANCEL) { //do not use onCancel 'called after complete'
+				finalizeRequest(req, now(), null, new CancellationException(v.toString()));
+			}
+		}); //0
     }
     
     private void finalizeRequest(RestRequest req, Instant end, ClientResponse response, Throwable t) {

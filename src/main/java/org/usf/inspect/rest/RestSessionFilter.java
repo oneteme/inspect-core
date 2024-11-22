@@ -124,7 +124,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				else { //asyncStarted
 					req.setAttribute(ASYNC_SESSION, in);
 				}
-				if(nonNull(t)) { //IO | no ErrorHandler
+				if(nonNull(t)) { //IO | ServletException => no ErrorHandler
 					in.setStatus(SC_INTERNAL_SERVER_ERROR); // overwrite default response status
 					in.setException(mainCauseException(t));
 				}
