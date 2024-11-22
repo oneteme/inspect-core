@@ -20,6 +20,7 @@ import static org.usf.inspect.core.Helper.newInstance;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.endSession;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
+import static org.usf.inspect.core.SessionManager.startRestSession;
 import static org.usf.inspect.core.SessionManager.updateCurrentSession;
 import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.StageTracker.exec;
@@ -84,13 +85,16 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-		var in = ofNullable(req.getAttribute(ASYNC_SESSION))
-				.map(o->{
-					var rs = (RestSession) o;
-					updateCurrentSession(rs); //different thread
-					return rs;
-				})
-				.orElseGet(SessionManager::startRestSession);
+		var att = (RestSession) req.getAttribute(ASYNC_SESSION);
+		if(nonNull(att)) {
+			updateCurrentSession(att); //different thread
+		}
+		else {
+			att = startRestSession();
+			res.addHeader(TRACE_HEADER, att.getId());  //add headers before doFilter
+			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
+		}
+		var in = att;
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
 			exec(()-> filterChain.doFilter(req, res), (s,e,o,t)-> {
@@ -108,8 +112,6 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 					in.setInDataSize(req.getContentLength());
 					in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 					in.setUserAgent(req.getHeader(USER_AGENT));
-					res.addHeader(TRACE_HEADER, in.getId());
-					res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 				}
 				if(!isAsyncStarted(req)) { // asyncDispatch || sync
 					in.setEnd(e);
