@@ -45,7 +45,6 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		return call(()-> exc.exchange(request), (s,e,res,t)->{
 			req.setStart(s);
 			//async end
-			req.setThreadName(threadName());
 			req.setMethod(request.method().name());
 			req.setProtocol(request.url().getScheme());
 			req.setHost(request.url().getHost());
@@ -70,6 +69,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
     private void finalizeRequest(RestRequest req, Instant end, ClientResponse response, Throwable t) {
     	try { 
     		req.setEnd(end);
+			req.setThreadName(threadName()); //parallel thread
 			if(nonNull(response)) {
 				req.setStatus(response.statusCode().value());
 				req.setContentType(response.headers().contentType().map(Object::toString).orElse(null));
