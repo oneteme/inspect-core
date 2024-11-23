@@ -6,6 +6,7 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.synchronizedArrayList;
+import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.Helper.warnStackTrace;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
@@ -46,6 +47,7 @@ public final class SessionManager {
 		}
 		else if(ses.completed()) {
 			warnStackTrace("current session already completed: " + ses);
+			ses = null;
 		}
 		return ses;
 	}
@@ -140,10 +142,9 @@ public final class SessionManager {
 
 	static StageConsumer<Object> localRequestAppender(String name) {
 		return (s,e,o,t)->{
-			var stg = new LocalRequest();
+			var stg = new LocalRequest(); //different thread !?
 			stg.setStart(s);
 			stg.setEnd(e);
-			stg.setException(mainCauseException(t));
 			stg.setName(name);
 			outerStackTraceElement().ifPresent(st-> {
 				if(isNull(name)) {
@@ -151,6 +152,8 @@ public final class SessionManager {
 				}
 				stg.setLocation(st.getClassName());
 			});
+			stg.setThreadName(threadName());
+			stg.setException(mainCauseException(t));
 			appendSessionStage(stg);
 		};
 	}

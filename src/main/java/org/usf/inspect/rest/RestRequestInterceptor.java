@@ -39,15 +39,12 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			req.setEnd(e);
 			req.setThreadName(threadName());
 			req.setMethod(request.getMethod().name());
-			req.setProtocol(request.getURI().getScheme());
-			req.setHost(request.getURI().getHost());
-			req.setPort(request.getURI().getPort());
-			req.setPath(request.getURI().getPath());
-			req.setQuery(request.getURI().getQuery());
+			req.setURI(request.getURI());
 			req.setAuthScheme(extractAuthScheme(request.getHeaders().get(AUTHORIZATION)));
 			req.setOutDataSize(nonNull(body) ? body.length : 0);
 			req.setOutContentEncoding(request.getHeaders().getFirst(CONTENT_ENCODING)); 
 			//setUser(decode AUTHORIZATION)
+			appendSessionStage(req);
 			if(nonNull(res)) {
 				req.setStatus(res.getStatusCode().value());
 				req.setContentType(ofNullable(res.getHeaders().getContentType()).map(Object::toString).orElse(null));
@@ -63,7 +60,6 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			else if(nonNull(t)) { // IOException
 				req.setException(mainCauseException(t));
 			}
-			appendSessionStage(req);
 		});
 	}
 }
