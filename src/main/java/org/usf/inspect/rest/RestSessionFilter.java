@@ -5,7 +5,6 @@ import static java.lang.String.join;
 import static java.net.URI.create;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
@@ -39,7 +38,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.usf.inspect.core.RestSession;
 import org.usf.inspect.core.RestSessionTrackConfiguration;
-import org.usf.inspect.core.SessionManager;
 import org.usf.inspect.core.StageUpdater;
 import org.usf.inspect.core.TraceableStage;
 
@@ -101,13 +99,8 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				if(!isAsyncDispatch(req)) { // asyncStarted || sync
 					in.setStart(s);
 					in.setThreadName(threadName());
-					var uri = create(req.getRequestURL().toString());
-					in.setProtocol(uri.getScheme());
-					in.setHost(uri.getHost());
-					in.setPort(uri.getPort());
 					in.setMethod(req.getMethod());
-					in.setPath(req.getRequestURI());
-					in.setQuery(req.getQueryString());
+					in.setURI(create(req.getRequestURL().toString()));
 					in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
 					in.setInDataSize(req.getContentLength());
 					in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
@@ -124,7 +117,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				else { //asyncStarted
 					req.setAttribute(ASYNC_SESSION, in);
 				}
-				if(nonNull(t)) { //IO | ServletException => no ErrorHandler
+				if(nonNull(t)) { //IO | CancellationException | ServletException => no ErrorHandler
 					in.setStatus(SC_INTERNAL_SERVER_ERROR); // overwrite default response status
 					in.setException(mainCauseException(t));
 				}
