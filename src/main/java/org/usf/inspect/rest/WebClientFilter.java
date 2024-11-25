@@ -46,13 +46,9 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var req = new RestRequest(); //see RestRequestInterceptor
 		return call(()-> exc.exchange(request), (s,e,res,t)->{
 			req.setStart(s);
-			//async end
+			//async thread + end
 			req.setMethod(request.method().name());
-			req.setProtocol(request.url().getScheme());
-			req.setHost(request.url().getHost());
-			req.setPort(request.url().getPort());
-			req.setPath(request.url().getPath());
-			req.setQuery(request.url().getQuery());
+			req.setURI(request.url());
 			req.setAuthScheme(extractAuthScheme(request.headers().get(AUTHORIZATION)));
 			req.setOutDataSize(request.headers().getContentLength()); //-1 unknown !
 			req.setOutContentEncoding(getFirstOrNull(request.headers().get(CONTENT_ENCODING))); 
@@ -94,7 +90,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		}
     }
     
-    static Flux<DataBuffer> peekContentAsString(Flux<DataBuffer> flux, Consumer<String> cons) {
+    static Flux<DataBuffer> peekContentAsString(Flux<DataBuffer> flux, Consumer<String> cons) { //Lazy data read
     	return flux.map(db-> {
 			try { //TD DataBuffer wrapper | pipe
 				byte[] bytes = new byte[db.readableByteCount()];
@@ -104,7 +100,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			}
 			catch (Exception e) {
 				log.warn("cannot extract request body, {}:{}", e.getClass().getSimpleName(), e.getMessage());
-				return db;
+				return db; //maybe consumed
 			}
 		});
 	}

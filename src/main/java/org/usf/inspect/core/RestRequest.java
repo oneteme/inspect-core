@@ -3,6 +3,8 @@ package org.usf.inspect.core;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
+import java.net.URI;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -33,6 +35,14 @@ public class RestRequest extends SessionStage { //APiRequest
 	private String outContentEncoding; //gzip, compress, identity,..
 	// => in/out Content [type, size, encoding]
 	//rest-collector
+	
+	public void setURI(URI uri) {
+		setProtocol(uri.getScheme());
+		setHost(uri.getHost());
+		setPort(uri.getPort());
+		setPath(uri.getPath());
+		setQuery(uri.getQuery());
+	}
 	
 	@Override
 	public String prettyFormat() {
