@@ -38,8 +38,8 @@ public final class StageTracker {
 			try {
 				cons.accept(s, e, o, t);
 			}
-			catch (Throwable ex) {// do not throw exception
-				log.warn("cannot collect stage metrics, {}", ex.getMessage());
+			catch (Exception ex) {// do not throw exception
+				log.warn("cannot collect stage metrics, {}:{}", ex.getClass().getSimpleName(), ex.getMessage());
 			}
 		}
 	}
