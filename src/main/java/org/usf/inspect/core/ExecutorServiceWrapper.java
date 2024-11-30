@@ -51,7 +51,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			    	try {
 				    	command.run();
 			    	}
-			    	finally {
+			    	finally { // InterruptedException
 						session.unlock();
 						endSession(); 
 			    	}
@@ -75,7 +75,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			    	try {
 			    		return command.call();
 			    	}
-			    	finally {
+			    	finally { // InterruptedException
 						session.unlock();
 						endSession(); 
 			    	}
