@@ -3,7 +3,7 @@ package org.usf.inspect.ftp;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
 import static org.usf.inspect.ftp.FtpAction.CD;
@@ -52,12 +52,12 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	@Override
 	public void connect() throws JSchException {
-		exec(channel::connect, this::appendConnection);
+		exec(channel::connect, this::toFtpRequest, requestAppender());
 	}
 	
 	@Override
 	public void connect(int connectTimeout) throws JSchException {
-		exec(()-> channel.connect(connectTimeout), this::appendConnection);
+		exec(()-> channel.connect(connectTimeout), this::toFtpRequest, requestAppender());
 	}
 	
 	@Override
@@ -253,7 +253,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		exec(()-> channel.rmdir(path), appendAction(RM, path));
 	}
 
-	void appendConnection(Instant start, Instant end, Void o, Throwable t) throws Exception {
+	FtpRequest toFtpRequest(Instant start, Instant end, Void v, Throwable t) throws Exception {
 		var cs = channel.getSession();
 		req = new FtpRequest();
 		req.setStart(start);
@@ -268,8 +268,8 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		req.setServerVersion(cs.getServerVersion());
 		req.setClientVersion(cs.getClientVersion());
 		req.setActions(new ArrayList<>());
-		appendAction(CONNECTION).accept(start, end, o, t);
-		appendSessionStage(req);
+		appendAction(CONNECTION).accept(start, end, v, t);
+		return req;
 	}
 	
 	void appendDisconnection(Instant start, Instant end, Void o, Throwable t) throws Exception {

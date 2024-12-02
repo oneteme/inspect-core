@@ -4,7 +4,7 @@ import static java.net.URI.create;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
 import static org.usf.inspect.naming.NamingAction.ATTRIB;
@@ -52,16 +52,16 @@ public class DirContextTracker implements DirContext {
  			if(nonNull(t)) {
 				req.setEnd(e);
 			}
+ 			req.setThreadName(threadName());
  			var url = create(c.getEnvironment().get(PROVIDER_URL).toString());
 			req.setProtocol(url.getScheme());
 			req.setHost(url.getHost());
 			req.setPort(url.getPort());
 			req.setUser(c.getEnvironment().get(SECURITY_PRINCIPAL).toString());
-			req.setThreadName(threadName());
 			req.setActions(new ArrayList<>());
 			appendAction(CONNECTION).accept(s, e, c, t);
-			appendSessionStage(req);
-		});
+			return req;
+		}, requestAppender());
 		return this;
 	}
 

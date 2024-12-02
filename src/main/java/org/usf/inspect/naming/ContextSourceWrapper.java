@@ -8,7 +8,6 @@ import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.ContextSource;
 
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.Delegate;
 
 /**
  * 
@@ -18,7 +17,6 @@ import lombok.experimental.Delegate;
 @RequiredArgsConstructor
 public final class ContextSourceWrapper implements ContextSource  {
 
-	@Delegate
 	private final ContextSource contextSource;
 
 	public DirContext getReadOnlyContext() throws NamingException {
@@ -27,6 +25,11 @@ public final class ContextSourceWrapper implements ContextSource  {
 
 	public DirContext getReadWriteContext() throws NamingException {
 		return connect(contextSource::getReadWriteContext);
+	}
+	
+	@Override
+	public DirContext getContext(String principal, String credentials) throws NamingException {
+		return connect(()-> contextSource.getContext(principal, credentials));
 	}
 	
 	public static ContextSourceWrapper wrap(ContextSource contextSource) {

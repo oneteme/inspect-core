@@ -100,7 +100,12 @@ public final class Helper {
 		return s;
 	}
 
+	public static String formatLocation(String className, String methodName) {
+		return className + "::" + methodName;
+	}
+
 	static <T> List<T> synchronizedArrayList() {
 		return synchronizedList(new ArrayList<>());
 	}
+	
 }

@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
+import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.synchronizedArrayList;
@@ -15,7 +16,8 @@ import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
 
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
-import org.usf.inspect.core.StageTracker.StageConsumer;
+import org.usf.inspect.core.StageTracker.SafeConsumer;
+import org.usf.inspect.core.StageTracker.StageCreator;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -52,7 +54,7 @@ public final class SessionManager {
 		return ses;
 	}
 	
-	public static Session currentSession() {
+	static Session currentSession() {
 		var ses = localTrace.get(); // priority
 		return nonNull(ses) ? ses : startupSession;
 	}
@@ -127,34 +129,38 @@ public final class SessionManager {
 		return ses;
 	}
 
-	public static boolean appendSessionStage(SessionStage stg) {
-		var ses = requireCurrentSession();
-		return nonNull(ses) && ses.append(stg);
-	}
-	
 	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
-		exec(fn, localRequestAppender(name));
+		exec(fn, localRequestMapper(name, stackLocation(), null), requestAppender());
 	}
 	
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
-		return call(fn, localRequestAppender(name));
+		return call(fn, localRequestMapper(name, stackLocation(), null), requestAppender());
 	}
 
-	static StageConsumer<Object> localRequestAppender(String name) {
+	public static <T> StageCreator<T, LocalRequest> localRequestMapper(String name, String location, String user) {
 		return (s,e,o,t)->{
-			var stg = new LocalRequest(); //different thread !?
-			stg.setStart(s);
-			stg.setEnd(e);
-			stg.setName(name);
-			outerStackTraceElement().ifPresent(st-> {
-				if(isNull(name)) {
-					stg.setName(st.getMethodName());
-				}
-				stg.setLocation(st.getClassName());
-			});
-			stg.setThreadName(threadName());
-			stg.setException(mainCauseException(t));
-			appendSessionStage(stg);
+			var req = new LocalRequest();
+			req.setName(name);
+			req.setLocation(location);
+			req.setUser(user);
+			req.setStart(s);
+			req.setEnd(e);
+			req.setThreadName(threadName());
+			if(nonNull(t)) {
+				req.setException(mainCauseException(t));
+			}
+			return req;
 		};
+	}
+	
+	private static String stackLocation() {
+		return outerStackTraceElement()
+				.map(st-> formatLocation(st.getClassName(), st.getMethodName()))
+				.orElse(null);
+	}
+	
+	public static SafeConsumer<SessionStage> requestAppender() {
+		var ses = requireCurrentSession();
+		return isNull(ses) ? req->{} : ses::append;
 	}
 }

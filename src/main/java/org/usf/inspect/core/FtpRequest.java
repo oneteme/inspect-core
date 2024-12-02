@@ -27,4 +27,8 @@ public class FtpRequest extends SessionStage {
 	public String prettyFormat() {
 		return prettyURLFormat(getUser(), protocol, host, port, null);
 	}
+
+	public boolean append(FtpRequestStage action) {
+		return actions.add(action);
+	}
 }

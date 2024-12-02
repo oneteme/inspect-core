@@ -8,7 +8,7 @@ import static java.util.Optional.ofNullable;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
@@ -63,9 +63,6 @@ public class DatabaseStageTracker {
 			req = new DatabaseRequest();
 			req.setStart(s);
 			req.setThreadName(threadName());
-			if(nonNull(t)) {
-				req.setEnd(e);
-			}
 			if(nonNull(cn)) {
 				var meta = cn.getMetaData();
 				var args = decodeUrl(meta.getURL()); //H2
@@ -78,11 +75,14 @@ public class DatabaseStageTracker {
 				req.setProductVersion(meta.getDatabaseProductVersion());
 				req.setDriverVersion(meta.getDriverVersion());
 			}
+			else if(nonNull(t)) {
+				req.setEnd(e);
+			}
 			req.setActions(new ArrayList<>());
 			req.setCommands(new ArrayList<>());
 			appendAction(CONNECTION).accept(s, e, cn, t);
-			appendSessionStage(req);
-		}), this);
+			return req;
+		}, requestAppender()), this);
 	}
 
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
@@ -239,7 +239,7 @@ public class DatabaseStageTracker {
 		return list.get(list.size()-1);
 	}
 	
-	public static Connection connect(SafeCallable<Connection, SQLException> supplier) throws SQLException {
+	public static ConnectionWrapper connect(SafeCallable<Connection, SQLException> supplier) throws SQLException {
 		return new DatabaseStageTracker().connection(supplier);
 	}
 	

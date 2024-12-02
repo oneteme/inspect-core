@@ -5,7 +5,7 @@ import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.StageTracker.exec;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
@@ -18,6 +18,7 @@ import org.usf.inspect.core.Mail;
 import org.usf.inspect.core.MailRequest;
 import org.usf.inspect.core.MailRequestStage;
 import org.usf.inspect.core.StageTracker.StageConsumer;
+import org.usf.inspect.core.StageTracker.StageMapper;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
@@ -41,19 +42,19 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	private MailRequest req;
 	
 	public void connect() throws MessagingException {
-		exec(trsp::connect, appendConnection(null, null, null));
+		exec(trsp::connect, appendConnection(null, null, null), requestAppender());
 	}
 
 	public void connect(String user, String password) throws MessagingException {
-		exec(()->trsp.connect(user, password), appendConnection(null, null, user));
+		exec(()->trsp.connect(user, password), appendConnection(null, null, user), requestAppender());
 	}
 
 	public void connect(String host, String user, String password) throws MessagingException {
-		exec(()-> trsp.connect(host, user, password), appendConnection(host, null, user));
+		exec(()-> trsp.connect(host, user, password), appendConnection(host, null, user), requestAppender());
 	}
 	
 	public void connect(String arg0, int arg1, String arg2, String arg3) throws MessagingException {
-		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), appendConnection(arg0, arg1, arg2));
+		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), appendConnection(arg0, arg1, arg2), requestAppender());
 	}
 
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
@@ -79,10 +80,10 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 		});
 	}
 	
-	StageConsumer<Void> appendConnection(String host, Integer port, String user) {
+	StageMapper<Void, MailRequest> appendConnection(String host, Integer port, String user) {
 		return (s,e,v,t)-> {
-			var url = ofNullable(trsp.getURLName());
 			req = new MailRequest();
+			var url = ofNullable(trsp.getURLName());
 			req.setHost(url.map(URLName::getHost).orElse(host));
 			req.setPort(url.map(URLName::getPort).orElse(port));
 			req.setUser(url.map(URLName::getUsername).orElse(user));
@@ -94,7 +95,7 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 			req.setActions(new ArrayList<>());
 			req.setMails(new ArrayList<>());
 			appendAction(CONNECTION).accept(s, e, v, t);
-			appendSessionStage(req);
+			return req;
 		};
 	}
 	

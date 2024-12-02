@@ -19,6 +19,7 @@ import lombok.Setter;
 @Setter
 public class DatabaseRequest extends SessionStage {
 
+	private String scheme;
 	private String host; //IP, domaine
 	private int port; //-1 otherwise
 	private String name; //nullable
@@ -38,5 +39,9 @@ public class DatabaseRequest extends SessionStage {
 	public String prettyFormat() {
 		return '['+productName+']' 
 				+ prettyURLFormat(getUser(), "jdbc", host, port, name);
+	}
+
+	public boolean append(DatabaseRequestStage action) {
+		return actions.add(action);
 	}
 }

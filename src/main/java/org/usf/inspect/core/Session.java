@@ -61,7 +61,7 @@ public interface Session extends Metric {
 		return false;
 	}
 	
-	default void lock(){
+	default void lock(){ //must be called before session end
 		getLock().incrementAndGet();
 	}
 	
