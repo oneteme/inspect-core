@@ -179,7 +179,7 @@
           <mxGeometry x="439.75" y="138" width="48" height="30" as="geometry" />
         </mxCell>
         <mxCell id="Kd3xXfbBogCMq_-z4xH8-13" value="Client" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="332.37" y="-30" width="104.25" height="100" as="geometry" />
+          <mxGeometry x="332.37" y="-10" width="104.25" height="100" as="geometry" />
         </mxCell>
         <mxCell id="Kd3xXfbBogCMq_-z4xH8-15" value="" style="endArrow=classic;html=1;entryX=0.432;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="Kd3xXfbBogCMq_-z4xH8-13" target="Kd3xXfbBogCMq_-z4xH8-2">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
