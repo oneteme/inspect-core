@@ -187,10 +187,10 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="c9mfgqc8uA1ulqrba2KY-109" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Session&lt;/h1&gt;&lt;p&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;RestSession&lt;/li&gt;&lt;li&gt;MainSession[type=batch]&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;/p&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;fontColor=#456f2c;" vertex="1" parent="1">
-          <mxGeometry x="1030" y="161" width="180" height="120" as="geometry" />
+          <mxGeometry x="1030" y="164.5" width="180" height="120" as="geometry" />
         </mxCell>
         <mxCell id="c9mfgqc8uA1ulqrba2KY-110" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Request&lt;/h1&gt;&lt;div&gt;&lt;ul&gt;&lt;li&gt;DatabaseRequest&lt;/li&gt;&lt;li&gt;RestRequest&lt;/li&gt;&lt;li&gt;FtpRequest&lt;/li&gt;&lt;li&gt;MailRequest&lt;/li&gt;&lt;li&gt;LdapRequest&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;fontColor=#456F2C;" vertex="1" parent="1">
-          <mxGeometry x="1030" y="295" width="180" height="138" as="geometry" />
+          <mxGeometry x="1030" y="316" width="180" height="138" as="geometry" />
         </mxCell>
         <mxCell id="CjWMRqJ_KbCd4pGpkCWm-15" value="" style="group" vertex="1" connectable="0" parent="1">
           <mxGeometry x="909.41" y="441" width="39.190000000000055" height="50" as="geometry" />
