@@ -291,7 +291,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="dqGqwlYTPcpCqpnUJcue" name="collector-2">
-    <mxGraphModel dx="1851" dy="89" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="2083" dy="203" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -413,7 +413,7 @@
           <mxGeometry x="1813.8400000000001" y="1105" width="254" height="70" as="geometry" />
         </mxCell>
         <mxCell id="iTMEuLaaTNvBRRhwc5ZL-50" value="USER" style="shape=actor;whiteSpace=wrap;html=1;verticalAlign=bottom;" vertex="1" parent="1">
-          <mxGeometry x="1209" y="1150" width="67.69" height="72.5" as="geometry" />
+          <mxGeometry x="1207.84" y="1103.75" width="67.69" height="72.5" as="geometry" />
         </mxCell>
         <mxCell id="iTMEuLaaTNvBRRhwc5ZL-51" value="" style="shape=waypoint;sketch=0;fillStyle=solid;size=6;pointerEvents=1;points=[];fillColor=none;resizable=0;rotatable=0;perimeter=centerPerimeter;snapToPoint=1;" vertex="1" parent="1">
           <mxGeometry x="1780.0900000000001" y="1130" width="20" height="20" as="geometry" />
