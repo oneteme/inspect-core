@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" version="25.0.1" pages="3">
   <diagram name="collector" id="uigpwwjzt3T1p5udmavG">
-    <mxGraphModel dx="3176" dy="1784" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1444" dy="811" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -575,6 +575,30 @@
         </mxCell>
         <mxCell id="32zn_rGW6Q-4vEI6jSxJ-87" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Request&lt;/h1&gt;&lt;div&gt;&lt;ul&gt;&lt;li&gt;LocalRequest&lt;/li&gt;&lt;li&gt;RestRequest&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;fontColor=#456F2C;" vertex="1" parent="1">
           <mxGeometry x="2108" y="1066.5" width="200" height="164" as="geometry" />
+        </mxCell>
+        <mxCell id="SJvqcVINFxuRTLieqTK--1" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.concepts.web_page;" vertex="1" parent="1">
+          <mxGeometry x="345" y="1041.25" width="28.84" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="SJvqcVINFxuRTLieqTK--2" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.concepts.web_page;" vertex="1" parent="1">
+          <mxGeometry x="510" y="1040" width="28.84" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="SJvqcVINFxuRTLieqTK--3" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.concepts.web_page;" vertex="1" parent="1">
+          <mxGeometry x="675" y="1040" width="28.84" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="SJvqcVINFxuRTLieqTK--4" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.concepts.web_page;" vertex="1" parent="1">
+          <mxGeometry x="910" y="1040" width="28.84" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="SJvqcVINFxuRTLieqTK--5" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.concepts.web_page;" vertex="1" parent="1">
+          <mxGeometry x="1404" y="1020" width="28.84" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="SJvqcVINFxuRTLieqTK--6" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.concepts.web_page;" vertex="1" parent="1">
+          <mxGeometry x="1575.84" y="1021.25" width="28.84" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="SJvqcVINFxuRTLieqTK--7" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.concepts.web_page;" vertex="1" parent="1">
+          <mxGeometry x="1739" y="1021.25" width="28.84" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="SJvqcVINFxuRTLieqTK--8" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#000000;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.concepts.web_page;" vertex="1" parent="1">
+          <mxGeometry x="1971.84" y="1020" width="28.84" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
