@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" version="25.0.1">
   <diagram name="collector" id="uigpwwjzt3T1p5udmavG">
-    <mxGraphModel dx="993" dy="558" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="1134" dy="637" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -56,10 +56,10 @@
           <mxGeometry x="680" y="170" width="409" height="450" as="geometry" />
         </mxCell>
         <mxCell id="Kd3xXfbBogCMq_-z4xH8-18" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="699.5" y="170" width="370" height="130" as="geometry" />
+          <mxGeometry x="699.5" y="170" width="370" height="100" as="geometry" />
         </mxCell>
         <mxCell id="Kd3xXfbBogCMq_-z4xH8-19" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;points=[[0,0,0,0,0],[0,0.25,0,0,0],[0,0.5,0,0,0],[0,0.75,0,0,0],[0,1,0,0,0],[0.15,0.02,0,0,0],[0.25,1,0,0,0],[0.5,0,0,0,0],[0.5,1,0,0,0],[0.75,0,0,0,0],[0.75,1,0,0,0],[1,0,0,0,0],[1,0.25,0,0,0],[1,0.5,0,0,0],[1,0.75,0,0,0],[1,1,0,0,0]];" vertex="1" parent="1">
-          <mxGeometry x="699.75" y="450" width="370" height="158" as="geometry" />
+          <mxGeometry x="699.75" y="450" width="370" height="110" as="geometry" />
         </mxCell>
         <mxCell id="Kd3xXfbBogCMq_-z4xH8-20" value="Connector" style="whiteSpace=wrap;html=1;aspect=fixed;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="725.25" y="520" width="90" height="90" as="geometry" />
