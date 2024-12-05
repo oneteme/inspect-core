@@ -1246,7 +1246,7 @@
           <mxGeometry x="2070" y="208.75" width="120" height="90" as="geometry" />
         </mxCell>
         <mxCell id="zP3OjfW6LHFVwhZtErTv-1" value="" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
-          <mxGeometry x="1693" y="458" width="70" height="70" as="geometry" />
+          <mxGeometry x="1690" y="458" width="70" height="70" as="geometry" />
         </mxCell>
         <mxCell id="zP3OjfW6LHFVwhZtErTv-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;curved=1;" edge="1" parent="1" source="rI8qwl_EJIvBNCSjrs9K-1" target="zP3OjfW6LHFVwhZtErTv-1">
           <mxGeometry relative="1" as="geometry" />
@@ -1272,13 +1272,13 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="khSafvsSSUewSuaT2HWd-2" value="RestSession" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="1660" y="290" width="110" height="30" as="geometry" />
+          <mxGeometry x="1682" y="288" width="70" height="30" as="geometry" />
         </mxCell>
         <mxCell id="khSafvsSSUewSuaT2HWd-3" value="RestSession" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="1861" y="290" width="110" height="30" as="geometry" />
+          <mxGeometry x="1880" y="288" width="71" height="30" as="geometry" />
         </mxCell>
         <mxCell id="khSafvsSSUewSuaT2HWd-4" value="MainSession" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontFamily=Helvetica;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="1500" y="290" width="110" height="30" as="geometry" />
+          <mxGeometry x="1510" y="288" width="80" height="30" as="geometry" />
         </mxCell>
         <mxCell id="a-SGA_csve0d15C5jlOn-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;curved=1;" edge="1" parent="1" source="MmJNo8ZiRcWZj8HR9yvj-11" target="MmJNo8ZiRcWZj8HR9yvj-12">
           <mxGeometry relative="1" as="geometry" />
