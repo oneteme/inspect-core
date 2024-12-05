@@ -650,7 +650,7 @@
     </mxGraphModel>
   </diagram>
   <diagram name="collector-3" id="uigpwwjzt3T1p5udmavG">
-    <mxGraphModel dx="2083" dy="1857" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="1985" dy="1857" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -875,8 +875,8 @@
             <mxPoint x="39.190000000000055" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="ZsLM2ATUGJwfrd4E45wl-1" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;INSPECT &lt;/font&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;inside&lt;/font&gt;" style="text;strokeColor=none;fillColor=none;html=1;fontSize=24;fontStyle=1;verticalAlign=middle;align=center;fontColor=default;" vertex="1" parent="1">
-          <mxGeometry x="1902.75" y="-699" width="130" height="40" as="geometry" />
+        <mxCell id="bpxQ0GJYrz6rQO_tPiE3-1" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;INSPECT &lt;/font&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;inside&lt;/font&gt;" style="text;strokeColor=none;fillColor=none;html=1;fontSize=24;fontStyle=1;verticalAlign=middle;align=center;fontColor=default;" vertex="1" parent="1">
+          <mxGeometry x="1923.19" y="-699" width="90" height="40" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
