@@ -1176,7 +1176,7 @@
           <mxGeometry x="851" y="540.0300000000001" width="84" height="21.87" as="geometry" />
         </mxCell>
         <mxCell id="OXWFJR7iE9jTB6SQXzQ9-19" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#000000;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.magnifying_glass_2;" vertex="1" parent="1">
-          <mxGeometry x="507" y="397" width="47" height="47" as="geometry" />
+          <mxGeometry x="504" y="399" width="47" height="47" as="geometry" />
         </mxCell>
         <mxCell id="GdJlk97vvJEw1RzfsGBS-13" value="BUFFER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=bottom;" vertex="1" parent="1">
           <mxGeometry x="314.5" y="406.9" width="110" height="35.87" as="geometry" />
