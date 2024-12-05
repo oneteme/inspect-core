@@ -882,7 +882,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="DATNXKUMJaB3XZp_IE49" name="buffer">
-    <mxGraphModel dx="836" dy="434" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="1222" dy="634" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -945,7 +945,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="pbjLLM7L7Xr9Xz930BvR-6" value="BDD" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
-          <mxGeometry x="869.83" y="273.5" width="80" height="105" as="geometry" />
+          <mxGeometry x="864.12" y="270.5" width="80" height="105" as="geometry" />
         </mxCell>
         <mxCell id="fWyeLA3XtMvNuLp2zciD-18" value="state=CACHE" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;" vertex="1" parent="1">
           <mxGeometry x="674" y="484.82" width="75.62" height="30" as="geometry" />
