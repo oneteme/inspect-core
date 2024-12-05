@@ -1215,7 +1215,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="fHc-kdg0hb4DRP3-6ZGG" name="call_chain">
-    <mxGraphModel dx="53" dy="634" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="-176" dy="515" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -1299,7 +1299,7 @@
           <mxGeometry x="1603" y="363.5" width="160" height="50" as="geometry" />
         </mxCell>
         <mxCell id="wyTEShEFjZR6GT54zyMF-1" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#000000;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.magnifying_glass_2;" vertex="1" parent="1">
-          <mxGeometry x="1800" y="363.5" width="47" height="47" as="geometry" />
+          <mxGeometry x="1793" y="356" width="47" height="47" as="geometry" />
         </mxCell>
         <mxCell id="grRGX56FEaODvwbck3P--2" value="FTP" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fontSize=13;fontStyle=3;" vertex="1" parent="1">
           <mxGeometry x="2070" y="90" width="120" height="90" as="geometry" />
