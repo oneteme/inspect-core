@@ -130,14 +130,14 @@ public final class SessionManager {
 	}
 
 	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
-		exec(fn, localRequestMapper(name, stackLocation(), null), requestAppender());
+		exec(fn, localRequestCreator(name, stackLocation(), null), requestAppender());
 	}
 	
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
-		return call(fn, localRequestMapper(name, stackLocation(), null), requestAppender());
+		return call(fn, localRequestCreator(name, stackLocation(), null), requestAppender());
 	}
 
-	public static <T> StageCreator<T, LocalRequest> localRequestMapper(String name, String location, String user) {
+	public static <T> StageCreator<T, LocalRequest> localRequestCreator(String name, String location, String user) {
 		return (s,e,o,t)->{
 			var req = new LocalRequest();
 			req.setName(name);

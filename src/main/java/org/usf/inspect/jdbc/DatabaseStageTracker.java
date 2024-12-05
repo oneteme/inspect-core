@@ -11,6 +11,7 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
+import static org.usf.inspect.jdbc.DatabaseStageTracker.ConnectionInfo.fromMetaData;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -24,7 +25,7 @@ import static org.usf.inspect.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.inspect.jdbc.JDBCAction.SAVEPOINT;
 import static org.usf.inspect.jdbc.JDBCAction.SCHEMA;
 import static org.usf.inspect.jdbc.JDBCAction.STATEMENT;
-import static org.usf.inspect.jdbc.JdbcURLDecoder.decodeUrl;
+import static org.usf.inspect.jdbc.JdbcURLDecoder.decode;
 import static org.usf.inspect.jdbc.SqlCommand.mainCommand;
 
 import java.sql.Connection;
@@ -47,16 +48,22 @@ import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.SafeCallable;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 import org.usf.inspect.core.StageTracker.StageConsumer;
+import org.usf.inspect.core.StageTracker.StageCreator;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * 
  * @author u$f
  *
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DatabaseStageTracker {
 	
 	private DatabaseRequest req;
 	private DatabaseRequestStage exec; //hold last execution stage
+	private ConnectionInfo info;
 	
 	public ConnectionWrapper connection(SafeCallable<Connection, SQLException> supplier) throws SQLException {
 		return new ConnectionWrapper(call(supplier, (s,e,cn,t)->{
@@ -65,55 +72,60 @@ public class DatabaseStageTracker {
 			req.setThreadName(threadName());
 			if(nonNull(cn)) {
 				var meta = cn.getMetaData();
-				var args = decodeUrl(meta.getURL()); //H2
-				req.setHost(args[1]);
-				req.setPort(ofNullable(args[2]).map(Integer::parseInt).orElse(-1));
-				req.setName(args[3]); //getCatalog
-				req.setSchema(getSchema(cn));
-				req.setUser(meta.getUserName());
-				req.setProductName(meta.getDatabaseProductName());
-				req.setProductVersion(meta.getDatabaseProductVersion());
-				req.setDriverVersion(meta.getDriverVersion());
+				if(isNull(info)) {
+					info = fromMetaData(meta);
+				}
+				req.setUser(meta.getUserName()); //do not cache userName
 			}
 			else if(nonNull(t)) {
 				req.setEnd(e);
 			}
+			if(nonNull(info)) {
+				req.setScheme(info.scheme());
+				req.setHost(info.host());
+				req.setPort(info.port());
+				req.setName(info.name()); //getCatalog
+				req.setSchema(info.schema());
+				req.setProductName(info.productName());
+				req.setProductVersion(info.productVersion());
+				req.setDriverVersion(info.driverVersion());		
+			}
 			req.setActions(new ArrayList<>());
 			req.setCommands(new ArrayList<>());
-			appendAction(CONNECTION).accept(s, e, cn, t);
+			req.append(databaseActionCreator(CONNECTION).create(s, e, cn, t));
 			return req;
 		}, requestAppender()), this);
 	}
 
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
-		exec(method, (s,e,v,t)->{
-			appendAction(DISCONNECTION).accept(s, e, v, t);
-			req.setEnd(e);
+		exec(method, databaseActionCreator(DISCONNECTION), stg->{
+			req.append(stg);
+			req.setEnd(stg.getEnd());
 		});
 	}
 	
 	public String databaseInfo(SafeCallable<String, SQLException> supplier) throws SQLException {
-		return call(supplier, appendAction(DATABASE));
+		return call(supplier, databaseActionCreator(DATABASE), req::append);
 	}
 
 	public ResultSetWrapper schemaInfo(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
-		return new ResultSetWrapper(call(supplier, appendAction(SCHEMA)), this, now());
+		return new ResultSetWrapper(call(supplier, databaseActionCreator(SCHEMA), req::append), this, now());
 	}
 	
 	public StatementWrapper statement(SafeCallable<Statement, SQLException> supplier) throws SQLException {
-		return new StatementWrapper(call(supplier, appendAction(STATEMENT)), this);
+		return new StatementWrapper(call(supplier, databaseActionCreator(STATEMENT), req::append), this);
 	}
 	
 	public PreparedStatementWrapper preparedStatement(String sql, SafeCallable<PreparedStatement, SQLException> supplier) throws SQLException {
-		return new PreparedStatementWrapper(call(supplier, appendAction(STATEMENT)), this, sql); //parse command on exec
+		return new PreparedStatementWrapper(call(supplier, databaseActionCreator(STATEMENT), req::append), this, sql); //parse command on exec
 	}
 
 	public DatabaseMetaData connectionMetadata(SafeCallable<DatabaseMetaData, SQLException> supplier) throws SQLException {
-		return new DatabaseMetaDataWrapper(call(supplier, appendAction(METADATA)), this);
+		return new DatabaseMetaDataWrapper(call(supplier, databaseActionCreator(METADATA), req::append), this);
 	}
 
 	public ResultSetMetaData resultSetMetadata(SafeCallable<ResultSetMetaData, SQLException> supplier) throws SQLException {
-		return call(supplier, appendAction(METADATA));
+		return call(supplier, databaseActionCreator(METADATA), req::append);
 	}
 
 	public ResultSetWrapper resultSet(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
@@ -148,16 +160,16 @@ public class DatabaseStageTracker {
 		if(nonNull(sql)) {
 			req.getCommands().add(mainCommand(sql));
 		} //BATCH otherwise 
-		return call(supplier, appendAction(EXECUTE, (a,r)->{
+		return call(supplier, databaseActionCreator(EXECUTE, (a,r)->{
 			if(nonNull(r)) { //fail
 				a.setCount(countFn.apply(r));
 			}
 			exec = a; //!important
-		}));
+		}), req::append);
 	}
 
 	public Savepoint savePoint(SafeCallable<Savepoint, SQLException> supplier) throws SQLException {
-		return call(supplier, appendAction(SAVEPOINT));
+		return call(supplier, databaseActionCreator(SAVEPOINT), req::append);
 	}
 
 	public void addBatch(String sql, SafeRunnable<SQLException> method) throws SQLException {
@@ -165,27 +177,27 @@ public class DatabaseStageTracker {
 			req.getCommands().add(mainCommand(sql));
 		} // PreparedStatement otherwise 
 		exec(method, nonNull(sql) || req.getActions().isEmpty() || !BATCH.name().equals(last(req.getActions()).getName())
-				? appendAction(BATCH, (a,v)-> a.setCount(new long[] {1})) //statement | first batch
+				? databaseActionCreator(BATCH, (a,v)-> a.setCount(new long[] {1})).then(req::append) //statement | first batch
 				: updateLast(last(req.getActions())));
 	}
 	
 	public void commit(SafeRunnable<SQLException> method) throws SQLException {
-		exec(method, appendAction(COMMIT));
+		exec(method, databaseActionCreator(COMMIT), req::append);
 	}
 	
 	public void rollback(SafeRunnable<SQLException> method) throws SQLException {
-		exec(method, appendAction(ROLLBACK));
+		exec(method, databaseActionCreator(ROLLBACK), req::append);
 	}
 	
 	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
-		exec(method, appendAction(FETCH, (a, v)-> {
+		exec(method, databaseActionCreator(FETCH, (a, v)-> {
 			a.setStart(start); // differed start
 			a.setCount(new long[] {n});
-		}));
+		}), req::append);
 	}
 
 	public boolean moreResults(Statement st, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
-		return call(supplier, appendAction(MORE, (a,v)-> {
+		return call(supplier, databaseActionCreator(MORE, (a,v)-> {
 			if(v.booleanValue() && nonNull(exec)) {
 				try { //safe
 					var rows = st.getUpdateCount();
@@ -198,34 +210,36 @@ public class DatabaseStageTracker {
 					log.warn("getUpdateCount => {}", e.getMessage());
 				}
 			}
-		}));
+		}), req::append);
 	}
 
 	<T> StageConsumer<T> updateLast(DatabaseRequestStage stg) {
 		return (s,e,o,t)->{
 			stg.setEnd(e); 
+			stg.getCount()[0]++;
 			if(nonNull(t) && isNull(stg.getException())) {
 				stg.setException(mainCauseException(t));
 			} //else illegal state
-			stg.getCount()[0]++;
 		};
 	}
 
-	<T> StageConsumer<T> appendAction(JDBCAction action) {
-		return appendAction(action, null);
+	StageCreator<Object, DatabaseRequestStage> databaseActionCreator(JDBCAction action) {
+		return databaseActionCreator(action, null);
 	}
 	
-	<T> StageConsumer<T> appendAction(JDBCAction action, BiConsumer<DatabaseRequestStage, T> cons) {
+	<T> StageCreator<T, DatabaseRequestStage> databaseActionCreator(JDBCAction action, BiConsumer<DatabaseRequestStage, T> cons) {
 		return (s,e,o,t)->{
 			var stg = new DatabaseRequestStage();
 			stg.setName(action.name());
 			stg.setStart(s);
 			stg.setEnd(e);
-			stg.setException(mainCauseException(t));
-			if(nonNull(cons)) {
-				cons.accept(stg,o);
+			if(nonNull(t)) {
+				stg.setException(mainCauseException(t));
 			}
-			req.getActions().add(stg);
+			if(nonNull(cons)) {
+				cons.accept(stg,o); //o is nullable
+			}
+			return stg;
 		};
 	}
 	
@@ -238,8 +252,8 @@ public class DatabaseStageTracker {
 	private static <T> T last(List<T> list) { //!empty
 		return list.get(list.size()-1);
 	}
-	
-	public static ConnectionWrapper connect(SafeCallable<Connection, SQLException> supplier) throws SQLException {
+		
+	public static Connection connect(SafeCallable<Connection, SQLException> supplier) throws SQLException {
 		return new DatabaseStageTracker().connection(supplier);
 	}
 	
@@ -253,4 +267,22 @@ public class DatabaseStageTracker {
 		}
 		return null;
 	}
+	
+	public final record ConnectionInfo(
+			String scheme,
+			String host,
+			int port,
+			String name,
+			String schema,
+			String productName, 
+			String productVersion, 
+			String driverVersion) {
+		
+		public static ConnectionInfo fromMetaData(DatabaseMetaData meta) throws SQLException {
+			var args = decode(meta.getURL()); //H2
+			return new ConnectionInfo(args[0], args[1], ofNullable(args[2]).map(Integer::parseInt).orElse(-1), args[3], 
+					getSchema(meta.getConnection()), meta.getDatabaseProductName(), meta.getDatabaseProductVersion(), meta.getDriverVersion());
+		}
+	}
+	
 }

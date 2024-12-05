@@ -6,7 +6,7 @@ import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.newInstance;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.endSession;
-import static org.usf.inspect.core.SessionManager.localRequestMapper;
+import static org.usf.inspect.core.SessionManager.localRequestCreator;
 import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.core.SessionManager.startBatchSession;
@@ -57,7 +57,7 @@ public class MainSessionAspect implements Ordered {
     @Around("@annotation(org.springframework.cache.annotation.Cacheable)")
     Object aroundCacheable(ProceedingJoinPoint joinPoint) throws Throwable {
     	return call(joinPoint::proceed, 
-    			localRequestMapper(joinPoint.getSignature().getName(), formatLocation(joinPoint.getSignature().getName(), joinPoint.getSignature().getDeclaringTypeName()), null), 
+    			localRequestCreator(joinPoint.getSignature().getName(), formatLocation(joinPoint.getSignature().getName(), joinPoint.getSignature().getDeclaringTypeName()), null), 
     			requestAppender());
     }
     
