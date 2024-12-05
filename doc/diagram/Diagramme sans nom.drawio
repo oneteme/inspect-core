@@ -1215,12 +1215,12 @@
     </mxGraphModel>
   </diagram>
   <diagram id="fHc-kdg0hb4DRP3-6ZGG" name="call_chain">
-    <mxGraphModel dx="-176" dy="515" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="53" dy="634" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="a-SGA_csve0d15C5jlOn-4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="1350" y="193.5" width="850" height="116.5" as="geometry" />
+        <mxCell id="a-SGA_csve0d15C5jlOn-4" value="NAMESPACE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=default;strokeColor=#36393d;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="190" width="850" height="120" as="geometry" />
         </mxCell>
         <mxCell id="MmJNo8ZiRcWZj8HR9yvj-19" value="" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=default;strokeColor=default;fontColor=#1C2417;" vertex="1" parent="1">
           <mxGeometry x="1820" y="383.5" width="380" height="284.5" as="geometry" />
