@@ -18,8 +18,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import lombok.Getter;
-
 /**
  * 
  * @author u$f
@@ -33,7 +31,6 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     private final Dispatcher<T> dispatcher;
     private final Predicate<? super T> filter;
     private final List<T> queue;
-    @Getter
     private volatile DispatchState state;
     private int attempts;
 
@@ -123,7 +120,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	    		log.warn("error while dispatching {} items, attempts={} because :[{}] {}", 
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
 			}
-	    	catch (Throwable e) {
+	    	catch (Throwable e) { //will interrupt scheduler
 	    		log.warn("error while dispatching {} items, attempts={} because :[{}] {}", 
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
     			throw e;
@@ -201,7 +198,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     	log.info("shutting down scheduler service");
     	try {
     		executor.shutdown(); //cancel schedule
-    		updateState(DISABLE); //stop add items  wait for last dispatch
+    		updateState(DISABLE); //stop add items & wait for last dispatch
     		if(stt == DISPACH) {
 				dispatch(true); //complete signal
     		}
