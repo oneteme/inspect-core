@@ -54,7 +54,7 @@ public final class SessionManager {
 		return ses;
 	}
 	
-	static Session currentSession() {
+	public static Session currentSession() {
 		var ses = localTrace.get(); // priority
 		return nonNull(ses) ? ses : startupSession;
 	}

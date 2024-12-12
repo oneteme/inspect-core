@@ -5,10 +5,10 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.newInstance;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.endSession;
 import static org.usf.inspect.core.SessionManager.localRequestCreator;
 import static org.usf.inspect.core.SessionManager.requestAppender;
-import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.core.SessionManager.startBatchSession;
 import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.StageTracker.call;
@@ -34,7 +34,7 @@ public class MainSessionAspect implements Ordered {
 	
     @Around("@annotation(TraceableStage)")
     Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
-		var ses = requireCurrentSession();
+		var ses = currentSession();
     	if(isNull(ses)) { //STARTUP session
         	var ms = startBatchSession();
         	try {

@@ -1,6 +1,6 @@
 package org.usf.inspect.core;
 
-import static java.util.Collections.addAll;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
@@ -8,29 +8,32 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.stream.Stream.empty;
 import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.core.DispatchState.DISPACH;
-import static org.usf.inspect.core.Helper.log;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
+@Slf4j
 public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
 	
     private final ScheduledDispatchProperties properties;
     private final Dispatcher<T> dispatcher;
+    private final SafeQueue queue;
     private final Predicate<? super T> filter;
-    private final List<T> queue;
+    @Getter
     private volatile DispatchState state;
     private int attempts;
 
@@ -43,7 +46,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 		this.dispatcher = dispatcher;
 		this.filter = filter;
 		this.state = properties.getState();
-		this.queue = new ArrayList<>(properties.getBufferSize());
+		this.queue = new SafeQueue(properties.getBufferSize());
     	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 	
@@ -55,24 +58,12 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	@SuppressWarnings("unchecked")
 	public boolean submit(T... arr) {
-		if(state == DISABLE) {
-			log.warn("{} items rejected, dispatcher.state={}", arr.length, state);
-			return false;
+		if(state != DISABLE) {
+			queue.addAll(arr);
+			return true;
 		}
-		doSync(q-> { // CACHE | DISPATCH
-			var size = q.size();
-			try {
-				addAll(q, arr);
-				log.trace("{} new items buffered, queue.size={}", arr.length, q.size());
-			} catch (Throwable e) { // OutOfMemoryError
-				if(q.size() > size) {
-					q.subList(size, q.size()).clear(); // partial add
-					log.warn("revert partial queue add, queue.size={}", q.size());
-				}
-				throw e;
-			}
-		});
-		return true;
+		log.warn("rejected {} new items, current dispatcher state: {}", arr.length, state);
+		return false;
 	}
 	
 	public void updateState(DispatchState state) {
@@ -80,7 +71,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 			synchronized (executor) { //wait for dispatch end
 				this.state = state;
 			}
-			log.info("dispatcher.state has been changed to {}", state);
+			log.info("dispatcher state was changed to {}", state);
 		}
 	}
 	
@@ -90,122 +81,60 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     			dispatch(false);
     		}
 	    	else {
-	    		doSync(q-> log.warn("dispatcher.state={}, queue.size={}", state, q.size()));
+	    		log.warn("cannot dispatch items as the dispatcher state is {}, current queue size: {}", state, queue.size());
 	    	}
 	    	if(properties.getBufferMaxSize() > -1 && (state != DISPACH || attempts > 0)) { // !DISPACH | dispatch=fail
-	        	doSync(q-> {
-	        		if(q.size() > properties.getBufferMaxSize()) {
-	        			var diff = q.size() - properties.getBufferMaxSize();
-	        			q.subList(properties.getBufferMaxSize(), q.size()).clear(); //remove exceeding cache sessions (LIFO)
-	    	    		log.warn("{} last items have been removed from buffer", diff); 
-	        		}
-	    		});
+	    		queue.removeRange(properties.getBufferMaxSize()); //remove exceeding cache sessions (LIFO)
 	    	}
     	}
     }
 
     private void dispatch(boolean complete) {
-    	var cs = pop();
+    	var cs = queue.pop(filter);
         if(!cs.isEmpty()) {
-	        log.trace("scheduled dispatching {} items..", cs.size());
+	        log.trace("scheduled dispatch of {} items...", cs.size());
 	        try {
 	        	if(dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs))) {
-	        		if(attempts > 1) { //!first attempt
-	        			log.info("{} items dispatched, after {} attempts", cs.size(), attempts);
+	        		if(attempts > 1) { //more than one attempt
+	        			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);
 	        		}
 	        		attempts=0;
 	        	}
 	    	}
 	    	catch (Exception e) {// do not throw exception : retry later
-	    		log.warn("error while dispatching {} items, attempts={} because :[{}] {}", 
+	    		log.warn("failed to dispatch {} items after {} attempts, cause: [{}] {}", 
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
 			}
-	    	catch (Throwable e) { //will interrupt scheduler
-	    		log.warn("error while dispatching {} items, attempts={} because :[{}] {}", 
-	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
+	    	catch (Throwable e) {
+	    		log.error("failed to dispatch {} items after {} attempts", cs.size(), attempts, e);
     			throw e;
 			}
 	        finally {
 		        if(attempts > 0) { //exception | !dispatch
-		        	doSync(q-> {
-		        		var size = q.size();
-		        		try {
-		        			q.addAll(0, cs);
-		        		}
-		        		catch(Throwable e){  // OutOfMemoryError
-	        				log.warn("{} items have been lost from buffer", size + cs.size() - q.size());
-		        			throw e;
-						}
-		        	});
+		        	queue.addAll(0, cs); //back to queue
 		        }
 			}
         }
     }
-
-    public Stream<T> peek() throws IllegalAccessException {
-    	if(state == DISABLE) { //deny buffer peek if dispatcher active
-        	return applySync(q-> {
-        		if(q.isEmpty()) {
-        			return empty();
-        		}
-        		var s = q.stream();
-        		return isNull(filter) ? s : s.filter(filter);
-        	});
-    	}
-    	throw new IllegalAccessException("dispatcher.state=" + state);
+    
+    public Stream<T> peek() {
+    	return queue.peek(filter);
     }
     
-    List<T> pop() {
-    	return applySync(q-> {
-    		if(q.isEmpty()) {
-    			return emptyList();
-    		}
-    		if(isNull(filter)) {
-    			var c = new ArrayList<>(q);
-    			q.clear();
-    			return c;
-    		}
-    		var c = new ArrayList<T>(q.size());
-    		for(var it=q.iterator(); it.hasNext();) {
-    			var o = it.next();
-    			if(filter.test(o)) {
-    				c.add(o);
-    				it.remove();
-    			}
-    		}
-    		if(q.size() > c.size()) {
-    			log.info("{}/{} sessions are not yet completed", q.size()-c.size(), q.size());
-    		}
-    		return c;
-    	});
-    }
-    
-    private void doSync(Consumer<List<T>> cons) {
-    	synchronized(queue){
-			cons.accept(queue);
-		}
-    }
-
-    private <R> R applySync(Function<List<T>, R> fn) {
-		synchronized(queue){
-			return fn.apply(queue);
-		}
-    }
- 
     @Override
     public void complete() {
     	var stt = state;
-    	log.info("shutting down scheduler service");
+    	log.info("shutting down the scheduler service...");
     	try {
     		executor.shutdown(); //cancel schedule
-    		updateState(DISABLE); //stop add items & wait for last dispatch
+    		updateState(DISABLE); //stop add items  wait for last dispatch
     		if(stt == DISPACH) {
 				dispatch(true); //complete signal
     		}
     	}
     	finally {
-    		if(!queue.isEmpty()) { //!dispatch || dispatch=fail + incomplete session
-    			log.warn("{} items aborted, dispatcher.state={}", queue.size(), stt); // safe queue access
+    		if(queue.size() > 0) { //!dispatch || dispatch=fail + incomplete session
+    			log.warn("{} items were aborted, dispatcher state: {}", queue.size(), stt); // safe queue access
     		}
 		}
     }
@@ -214,5 +143,84 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	public interface Dispatcher<T> {
 		
 		boolean dispatch(boolean complete, int attempts, List<T> list) throws Exception; //TD return List<T> dispatched sessions
+	}
+	
+	private final class SafeQueue {
+	
+	    private final List<T> queue;
+	
+		public SafeQueue(int initialSize) {
+			this.queue = new ArrayList<>(initialSize);
+		}
+		
+		public void addAll(T[] arr){
+	    	addAll(asList(arr)); // see Arrays$ArrayList
+		}
+		
+		public void addAll(Collection<T> arr){
+	    	synchronized(queue){
+				queue.addAll(arr);
+				logAddedItems(arr.size(), queue.size());
+			}
+		}
+		
+		public void addAll(int index, Collection<T> arr){
+	    	synchronized(queue){
+				queue.addAll(index, arr);
+				logAddedItems(arr.size(), queue.size());
+			}
+		}
+	
+	    public Stream<T> peek(Predicate<? super T> filter) {
+	    	synchronized(queue){
+	    		if(queue.isEmpty()) {
+	    			return empty();
+	    		}
+	    		var s = queue.stream();
+	    		return isNull(filter) ? s : s.filter(filter);
+	    	}
+	    }
+	    
+	    public List<T> pop(Predicate<? super T> filter) {
+	    	synchronized(queue){
+	    		if(queue.isEmpty()) {
+	    			return emptyList();
+	    		}
+	    		if(isNull(filter)) {
+	    			var c = new ArrayList<>(queue);
+	    			queue.clear(); //remove items, but preserve capacity
+	    			return c;
+	    		}
+	    		var c = new ArrayList<T>(queue.size());
+	    		for(var it=queue.iterator(); it.hasNext();) {
+	    			var o = it.next();
+	    			if(filter.test(o)) {
+	    				c.add(o);
+	    				it.remove();
+	    			}
+	    		}
+	    		return c;
+	    	}
+	    }
+		
+		public int size() {
+			synchronized (queue) {
+				return queue.size();
+			}
+		}
+		
+		public void removeRange(int fromIndex) {
+			synchronized (queue) {
+				if(fromIndex < queue.size()) {
+					var n = queue.size() - fromIndex;
+					queue.subList(fromIndex, queue.size()).clear();
+					log.warn("removed {} most recent items from the queue, current queue size: {}", n, queue.size());
+				}
+			}
+		}
+	    
+	    static void logAddedItems(int nItems, int queueSize) {
+			log.trace("added {} new items to the queue, current queue size: {}", nItems, queueSize);
+	    }
 	}
 }
