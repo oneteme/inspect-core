@@ -42,30 +42,8 @@ import lombok.experimental.Delegate;
 public class DirContextTracker implements DirContext {
 	
 	@Delegate
-	private DirContext ctx;
-	private NamingRequest req;
-	
-	<T extends Exception> DirContextTracker connection(SafeCallable<DirContext, T> supplier) throws T {
-		ctx = call(supplier, (s,e,c,t)-> {
-			req = new NamingRequest();
-			req.setStart(s);
- 			req.setThreadName(threadName());
- 			if(nonNull(c)) {
- 	 			var url = create(c.getEnvironment().get(PROVIDER_URL).toString());
- 				req.setProtocol(url.getScheme());
- 				req.setHost(url.getHost());
- 				req.setPort(url.getPort());
- 				req.setUser(c.getEnvironment().get(SECURITY_PRINCIPAL).toString());
- 			}
- 			else if(nonNull(t)) {
-				req.setEnd(e);
-			}
-			req.setActions(new ArrayList<>());
-			req.append(namingActionCreator(CONNECTION).create(s, e, c, t));
-			return req;
-		}, requestAppender());
-		return this;
-	}
+	private final DirContext ctx;
+	private final NamingRequest req;
 
 	@Override
 	public Object lookup(Name name) throws NamingException {
@@ -154,7 +132,7 @@ public class DirContextTracker implements DirContext {
 		});
 	}
 
-	StageCreator<Object, NamingRequestStage> namingActionCreator(NamingAction action, String... args) {
+	static StageCreator<Object, NamingRequestStage> namingActionCreator(NamingAction action, String... args) {
 		return (s,e,o,t)-> {
 			var stg = new NamingRequestStage();
 			stg.setName(action.name());
@@ -169,7 +147,25 @@ public class DirContextTracker implements DirContext {
 	}
 	
 	//dummy spring org.springframework.ldap.NamingException
-	public static <T extends Exception> DirContextTracker connect(SafeCallable<DirContext, T> supplier) throws T {
-		return new DirContextTracker().connection(supplier);
+	public static DirContextTracker context(SafeCallable<DirContext, RuntimeException> fn) {
+		var req = new NamingRequest();
+		var ctx = call(fn, (s,e,c,t)-> {
+			req.setStart(s);
+ 			req.setThreadName(threadName());
+ 			if(nonNull(c)) {
+ 	 			var url = create(c.getEnvironment().get(PROVIDER_URL).toString());
+ 				req.setProtocol(url.getScheme());
+ 				req.setHost(url.getHost());
+ 				req.setPort(url.getPort());
+ 				req.setUser(c.getEnvironment().get(SECURITY_PRINCIPAL).toString());
+ 			}
+ 			else if(nonNull(t)) {
+				req.setEnd(e);
+			}
+			req.setActions(new ArrayList<>(3)); //cnx, act, dec
+			req.append(namingActionCreator(CONNECTION).create(s, e, c, t));
+			return req;
+		}, requestAppender());
+		return new DirContextTracker(ctx, req);
 	}
 }

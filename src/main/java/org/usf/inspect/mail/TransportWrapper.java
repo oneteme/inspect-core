@@ -2,7 +2,6 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.Optional.ofNullable;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.requestAppender;
@@ -23,7 +22,6 @@ import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
-import jakarta.mail.URLName;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
@@ -45,7 +43,7 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	}
 
 	public void connect(String user, String password) throws MessagingException {
-		exec(()->trsp.connect(user, password), toMailRequest(null, null, user), requestAppender());
+		exec(()-> trsp.connect(user, password), toMailRequest(null, null, user), requestAppender());
 	}
 
 	public void connect(String host, String user, String password) throws MessagingException {
@@ -78,25 +76,32 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	}
 	
 	StageCreator<Void, MailRequest> toMailRequest(String host, Integer port, String user) {
+		req = new MailRequest();
 		return (s,e,v,t)-> {
-			req = new MailRequest();
 			req.setStart(s);
+			req.setThreadName(threadName());
 			if(nonNull(t)) { // fail: do not setException, already set in action
 				req.setEnd(e);
 			}
-			req.setThreadName(threadName());
-			var url = ofNullable(trsp.getURLName());
-			req.setHost(url.map(URLName::getHost).orElse(host));
-			req.setPort(url.map(URLName::getPort).orElse(port));
-			req.setUser(url.map(URLName::getUsername).orElse(user));
-			req.setActions(new ArrayList<>());
-			req.setMails(new ArrayList<>());
+			var url = trsp.getURLName();
+			if(nonNull(url)) {
+				req.setHost(url.getHost());
+				req.setPort(url.getPort());
+				req.setUser(url.getUsername());
+			}
+			else {
+				req.setHost(host);
+				req.setPort(port);
+				req.setUser(user);
+			}
+			req.setMails(new ArrayList<>(1));
+			req.setActions(new ArrayList<>(3)); //cnx, send, dec
 			req.append(mailActionCreator(CONNECTION).create(s, e, v, t));
 			return req;
 		};
 	}
 	
-	StageCreator<Void, MailRequestStage> mailActionCreator(MailAction action) {
+	static StageCreator<Void, MailRequestStage> mailActionCreator(MailAction action) {
 		return (s,e,o,t)-> {
 			var stg = new MailRequestStage();
 			stg.setName(action.name());

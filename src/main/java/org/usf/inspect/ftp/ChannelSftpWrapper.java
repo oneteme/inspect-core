@@ -21,7 +21,6 @@ import static org.usf.inspect.ftp.FtpAction.RM;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -52,12 +51,12 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	@Override
 	public void connect() throws JSchException {
-		exec(channel::connect, this::toFtpRequest, requestAppender());
+		exec(channel::connect, this.toFtpRequest(), requestAppender());
 	}
 	
 	@Override
 	public void connect(int connectTimeout) throws JSchException {
-		exec(()-> channel.connect(connectTimeout), this::toFtpRequest, requestAppender());
+		exec(()-> channel.connect(connectTimeout), this.toFtpRequest(), requestAppender());
 	}
 	
 	@Override
@@ -253,26 +252,33 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		exec(()-> channel.rmdir(path), ftpActionCreator(RM, path), req::append);
 	}
 
-	FtpRequest toFtpRequest(Instant start, Instant end, Void v, Throwable t) throws Exception {
-		var cs = channel.getSession();
+	StageCreator<Void, FtpRequest> toFtpRequest() {
 		req = new FtpRequest();
-		req.setStart(start);
-		if(nonNull(t)) {
-			req.setEnd(end); //@see  appendDisconnection
-		}
-		req.setThreadName(threadName());
-		req.setProtocol("ftps");
-		req.setHost(cs.getHost());
-		req.setPort(cs.getPort());
-		req.setUser(cs.getUserName());
-		req.setServerVersion(cs.getServerVersion());
-		req.setClientVersion(cs.getClientVersion());
-		req.setActions(new ArrayList<>());
-		req.append(ftpActionCreator(CONNECTION).create(start, end, v, t));
-		return req;
+		return (s,e,v,t)-> {
+			req.setProtocol("ftps");
+			req.setStart(s);
+			req.setThreadName(threadName());
+			if(nonNull(t)) {
+				req.setEnd(e); //@see  appendDisconnection
+			}
+			var cs = channel.getSession();
+			req.setHost(cs.getHost());
+			req.setPort(cs.getPort());
+			req.setUser(cs.getUserName());
+			req.setServerVersion(cs.getServerVersion());
+			req.setClientVersion(cs.getClientVersion());
+			req.setActions(new ArrayList<>(3));  //cnx, act, dec
+			req.append(ftpActionCreator(CONNECTION).create(s, e, v, t));
+			return req;
+		};
 	}
 	
-	StageCreator<Object,FtpRequestStage> ftpActionCreator(FtpAction action, String... args) {
+	void appendDisconnection(FtpRequestStage stg) {
+		req.append(stg);
+		req.setEnd(stg.getEnd());
+	}
+	
+	static StageCreator<Object,FtpRequestStage> ftpActionCreator(FtpAction action, String... args) {
 		return (s,e,o,t)-> {
 			var stg = new FtpRequestStage();
 			stg.setName(action.name());
@@ -284,11 +290,6 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			}
 			return stg;
 		};
-	}
-	
-	void appendDisconnection(FtpRequestStage stg) {
-		req.append(stg);
-		req.setEnd(stg.getEnd());
 	}
 	
 	public static final ChannelSftpWrapper wrap(ChannelSftp channel) {
