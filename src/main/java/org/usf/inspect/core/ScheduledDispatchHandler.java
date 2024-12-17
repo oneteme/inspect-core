@@ -134,7 +134,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     	}
     	finally {
     		if(queue.size() > 0) { //!dispatch || dispatch=fail + incomplete session
-    			log.warn("{} items were aborted, dispatcher state: {}", queue.size(), stt); // safe queue access
+    			log.warn("{} items were aborted, dispatcher state: {}", queue.size(), stt);
     		}
 		}
     }
@@ -222,5 +222,5 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	    static void logAddedItems(int nItems, int queueSize) {
 			log.trace("added {} new items to the queue, current queue size: {}", nItems, queueSize);
 	    }
-	}
+	}	
 }

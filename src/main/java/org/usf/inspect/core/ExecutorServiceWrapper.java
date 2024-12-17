@@ -15,6 +15,11 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExecutorServiceWrapper implements ExecutorService {
 	

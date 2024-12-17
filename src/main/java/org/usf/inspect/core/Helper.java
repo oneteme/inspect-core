@@ -107,5 +107,4 @@ public final class Helper {
 	static <T> List<T> synchronizedArrayList() {
 		return synchronizedList(new ArrayList<>());
 	}
-	
 }
