@@ -26,6 +26,7 @@ import static org.usf.inspect.core.StageTracker.exec;
 import static org.usf.inspect.core.StageUpdater.getUser;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
@@ -100,7 +101,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 					in.setStart(s);
 					in.setThreadName(threadName());
 					in.setMethod(req.getMethod());
-					in.setURI(create(req.getRequestURL().toString()));
+					in.setURI(fromRequest(req));
 					in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
 					in.setInDataSize(req.getContentLength());
 					in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
@@ -177,4 +178,9 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				.filter(not(map.values()::contains))
 				.collect(joiner);
 	}
+	
+    static URI fromRequest(HttpServletRequest req) {
+    	var c = req.getRequestURL().toString();
+        return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
+    }
 }

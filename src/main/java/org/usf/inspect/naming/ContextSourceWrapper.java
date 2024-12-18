@@ -1,6 +1,6 @@
 package org.usf.inspect.naming;
 
-import static org.usf.inspect.naming.DirContextTracker.connect;
+import static org.usf.inspect.naming.DirContextTracker.context;
 
 import javax.naming.directory.DirContext;
 
@@ -8,7 +8,6 @@ import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.ContextSource;
 
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.Delegate;
 
 /**
  * 
@@ -18,15 +17,21 @@ import lombok.experimental.Delegate;
 @RequiredArgsConstructor
 public final class ContextSourceWrapper implements ContextSource  {
 
-	@Delegate
 	private final ContextSource contextSource;
 
+	@Override
 	public DirContext getReadOnlyContext() throws NamingException {
-		return connect(contextSource::getReadOnlyContext);
+		return context(contextSource::getReadOnlyContext);
 	}
 
+	@Override
 	public DirContext getReadWriteContext() throws NamingException {
-		return connect(contextSource::getReadWriteContext);
+		return context(contextSource::getReadWriteContext);
+	}
+	
+	@Override
+	public DirContext getContext(String principal, String credentials) throws NamingException {
+		return context(()-> contextSource.getContext(principal, credentials));
 	}
 	
 	public static ContextSourceWrapper wrap(ContextSource contextSource) {

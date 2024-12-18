@@ -9,7 +9,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 import static reactor.core.publisher.Mono.just;
@@ -55,8 +55,9 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			if(nonNull(t)) { //no response
 				finalizeRequest(req, e, null, t);
 			}
-    		appendSessionStage(req);
-		}).flatMap(res->{
+    		return req;
+		}, requestAppender())
+		.flatMap(res->{
 			finalizeRequest(req, now(), res, null);
 			return just(res.statusCode().isError() //4xx|5xx
 					? res.mutate().body(f-> peekContentAsString(f, m-> req.setException(new ExceptionInfo(null, m)))).build()

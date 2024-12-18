@@ -15,6 +15,11 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExecutorServiceWrapper implements ExecutorService {
 	
@@ -51,7 +56,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			    	try {
 				    	command.run();
 			    	}
-			    	finally {
+			    	finally { // InterruptedException
 						session.unlock();
 						endSession(); 
 			    	}
@@ -75,7 +80,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			    	try {
 			    		return command.call();
 			    	}
-			    	finally {
+			    	finally { // InterruptedException
 						session.unlock();
 						endSession(); 
 			    	}

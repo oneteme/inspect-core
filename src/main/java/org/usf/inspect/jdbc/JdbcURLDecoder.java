@@ -5,9 +5,7 @@ import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 import lombok.AccessLevel;
@@ -16,7 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class JdbcURLDecoder {
 	
-	private static final Map<String, String[]> cache = new HashMap<>();
 	private static final String[] UNKNOWN = new String[] {null, null, null, null};
 	
 	private static final Pattern STP1 = compile("^jdbc:(\\w+):", CASE_INSENSITIVE);
@@ -25,17 +22,7 @@ public final class JdbcURLDecoder {
 	private static final Pattern STP4 = compile("^.*database(?:Name)?=(\\w+)", CASE_INSENSITIVE); //teradata|sqlserver
 	private static final Pattern STP5 = compile("^(?:file|mem):([\\w-\\.\\/]+)", CASE_INSENSITIVE);//H2 mem|file
 
-	public static String[] decodeUrl(String url) {
-		return cache.computeIfAbsent(url, k->{
-			try {
-				return decode(k);
-			} catch (Exception e) {
-				return UNKNOWN;
-			}
-		});
-	}
-	
-	static String[] decode(String url) {
+	public static String[] decode(String url) {
 		var m = STP1.matcher(url);
 		if(m.find()) {
 			List<String> arr = new ArrayList<>(3);
