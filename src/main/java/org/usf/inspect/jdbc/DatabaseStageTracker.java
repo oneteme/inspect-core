@@ -110,8 +110,8 @@ public class DatabaseStageTracker {
 			if(arr.length > 1 && arr[0]==1) { 
 				var i=0;
 				while(++i<arr.length && arr[i]==1);
-				if(i==arr.length){ // [1,1,1,..,1] => [n]
-					return new long[i];
+				if(i==arr.length){
+					return new long[] {i}; // [1,1,1,..,1] => [n]
 				}
 			}
 			return IntStream.of(arr).mapToLong(v->v).toArray();
@@ -123,8 +123,8 @@ public class DatabaseStageTracker {
 			if(arr.length > 1 && arr[0]==1) {
 				var i=0;
 				while(++i<arr.length && arr[i]==1);
-				if(i==arr.length){ // [1,1,1,..,1] => [n]
-					return new long[i];
+				if(i==arr.length){
+					return new long[] {i}; // [1,1,1,..,1] => [n]
 				}
 			}
 			return arr;
