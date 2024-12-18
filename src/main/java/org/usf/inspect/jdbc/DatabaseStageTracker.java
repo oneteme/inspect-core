@@ -18,7 +18,6 @@ import static org.usf.inspect.jdbc.JDBCAction.DISCONNECTION;
 import static org.usf.inspect.jdbc.JDBCAction.EXECUTE;
 import static org.usf.inspect.jdbc.JDBCAction.FETCH;
 import static org.usf.inspect.jdbc.JDBCAction.METADATA;
-import static org.usf.inspect.jdbc.JDBCAction.MORE;
 import static org.usf.inspect.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.inspect.jdbc.JDBCAction.SAVEPOINT;
 import static org.usf.inspect.jdbc.JDBCAction.SCHEMA;
@@ -38,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import java.util.stream.IntStream;
 
 import org.usf.inspect.core.DatabaseRequest;
@@ -152,22 +152,28 @@ public class DatabaseStageTracker {
 			a.setCount(new long[] {n});
 		}), req::append);
 	}
+	
+	public int updateCount(SafeCallable<Integer, SQLException> supplier) throws SQLException {
+		return updateCount(supplier, n-> n);
+	}
 
-	public boolean moreResults(Statement st, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
-		return call(supplier, databaseActionCreator(MORE, (a,v)-> {
-			if(v.booleanValue() && nonNull(exec)) {
-				try { //safe
-					var rows = st.getUpdateCount();
-					if(rows > -1) {
-						var arr = exec.getCount();
-						exec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows));
-					}
-				}
-				catch (Exception e) {
-					log.warn("getUpdateCount => {}", e.getMessage());
-				}
+	public long largeUpdateCount(SafeCallable<Long, SQLException> supplier) throws SQLException {
+		return updateCount(supplier, n-> n);
+	}	
+	
+	private <T> T updateCount(SafeCallable<T, SQLException> supplier, ToLongFunction<T> fn) throws SQLException {
+		var res = supplier.call();
+		var n = fn.applyAsLong(res);
+		if(n > -1 && nonNull(exec)) {
+			try { //safe
+				var arr = exec.getCount();
+				exec.setCount(isNull(arr) ? new long[] {n} : appendLong(arr, n)); // getMoreResults
 			}
-		}), req::append);
+			catch (Exception e) {
+				log.warn("cannot collect updateCount metrics => {}", e.getMessage());
+			}
+		}
+		return res;
 	}
 
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
@@ -217,48 +223,33 @@ public class DatabaseStageTracker {
 		return list.get(list.size()-1);
 	}
 		
-	public static ConnectionWrapper connection(SafeCallable<Connection, SQLException> supplier, SQLFunction<DatabaseMetaData, ConnectionInfo> infoFn) throws SQLException {
+	public static ConnectionWrapper connection(SafeCallable<Connection, SQLException> supplier, SQLFunction<Connection, ConnectionInfo> infoFn) throws SQLException {
 		var req = new DatabaseRequest();
 		var trk = new DatabaseStageTracker(req);
 		var cnx = call(supplier, (s,e,cn,t)->{
 			req.setStart(s);
 			req.setThreadName(threadName());
-			ConnectionInfo info = null;
-			if(nonNull(cn)) {
-				var meta = cn.getMetaData();
-				info = infoFn.apply(meta);
-				req.setUser(meta.getUserName()); //do not cache userName
-				req.setSchema(getSchema(meta.getConnection()));
-				req.setProductName(meta.getDatabaseProductName());
-				req.setProductVersion(meta.getDatabaseProductVersion());
-				req.setDriverVersion(meta.getDriverVersion());		
-			}
-			else if(nonNull(t)) {
+			if(nonNull(t)) {
 				req.setEnd(e);
 			}
+			var info = infoFn.apply(cn); // cn can be null
 			if(nonNull(info)) {
+				req.setSchema(info.schema());
+				req.setUser(info.user()); //TD different user !
 				req.setScheme(info.scheme());
 				req.setHost(info.host());
 				req.setPort(info.port());
 				req.setName(info.name()); //getCatalog
+				req.setProductName(info.productName());
+				req.setProductVersion(info.productVersion());
+				req.setDriverVersion(info.driverVersion());
 			}
-			req.setActions(new ArrayList<>(5));
+			req.setActions(new ArrayList<>(4)); //cnx, stmt, exec, dec
 			req.setCommands(new ArrayList<>(1));
 			req.append(databaseActionCreator(CONNECTION).create(s, e, cn, t));
 			return req;
 		}, requestAppender());
 		return new ConnectionWrapper(cnx, trk);
-	}
-
-	static String getSchema(Connection cnx) {
-		try { 
-			return cnx.getSchema();
-		}
-		catch (Throwable e) { //
-			// do not throw exception
-			// Teradata does not define or inherit an implementation of the resolved method getSchema
-		}
-		return null;
 	}
 	
 	public interface SQLFunction<T,R> {

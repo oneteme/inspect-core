@@ -1,11 +1,11 @@
 package org.usf.inspect.jdbc;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.jdbc.ConnectionInfo.fromMetadata;
 import static org.usf.inspect.jdbc.DatabaseStageTracker.connection;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 import javax.sql.DataSource;
@@ -35,9 +35,9 @@ public final class DataSourceWrapper implements DataSource {
 		return connection(()-> ds.getConnection(username, password), this::connectionInfo);
 	}
 	
-	ConnectionInfo connectionInfo(DatabaseMetaData meta) throws SQLException {
-		if(isNull(info)) {
-			info = fromMetadata(meta);
+	ConnectionInfo connectionInfo(Connection cnx) throws SQLException { //nullable cnx
+		if(isNull(info) && nonNull(cnx)) {
+			info = fromMetadata(cnx.getMetaData());
 		}
 		return info;
 	}

@@ -105,12 +105,12 @@ public class StatementWrapper implements Statement {
 	}
 	
 	@Override
-	public boolean getMoreResults() throws SQLException {
-		return tracer.moreResults(this, st::getMoreResults);
+	public int getUpdateCount() throws SQLException {
+		return tracer.updateCount(st::getUpdateCount);
 	}
 	
 	@Override
-	public boolean getMoreResults(int current) throws SQLException {
-		return tracer.moreResults(this, ()-> st.getMoreResults(current));
+	public long getLargeUpdateCount() throws SQLException {
+		return tracer.largeUpdateCount(st::getLargeUpdateCount);
 	}
 }
