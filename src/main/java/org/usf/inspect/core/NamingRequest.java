@@ -25,4 +25,8 @@ public class NamingRequest extends SessionStage {
 	String prettyFormat() {
 		return prettyURLFormat(getUser(), protocol, host, port, null);
 	}
+	
+	public boolean append(NamingRequestStage action) {
+		return actions.add(action);
+	}
 }

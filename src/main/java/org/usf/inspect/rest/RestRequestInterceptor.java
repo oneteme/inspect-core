@@ -8,7 +8,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.appendSessionStage;
+import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
@@ -29,12 +29,12 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class RestRequestInterceptor implements ClientHttpRequestInterceptor {
+public final class RestRequestInterceptor implements ClientHttpRequestInterceptor { //see WebClientInterceptor
 	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		return call(()-> new ClientHttpResponseWrapper(execution.execute(request, body)), (s,e,res,t)->{
-			var req = new RestRequest(); //see WebClientInterceptor
+			var req = new RestRequest();
 			req.setStart(s);
 			req.setEnd(e);
 			req.setThreadName(threadName());
@@ -44,7 +44,6 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			req.setOutDataSize(nonNull(body) ? body.length : 0);
 			req.setOutContentEncoding(request.getHeaders().getFirst(CONTENT_ENCODING)); 
 			//setUser(decode AUTHORIZATION)
-			appendSessionStage(req);
 			if(nonNull(res)) {
 				req.setStatus(res.getStatusCode().value());
 				req.setContentType(ofNullable(res.getHeaders().getContentType()).map(Object::toString).orElse(null));
@@ -60,7 +59,8 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			else if(nonNull(t)) { // IOException
 				req.setException(mainCauseException(t));
 			}
-		});
+			return req;
+		}, requestAppender());
 	}
 }
 

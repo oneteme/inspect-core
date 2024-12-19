@@ -26,4 +26,8 @@ public class MailRequest extends SessionStage {
 	public String prettyFormat() {
 		return prettyURLFormat(getUser(), "smtp", host, port, null);
 	}
+	
+	public boolean append(MailRequestStage action) {
+		return actions.add(action);
+	}
 }

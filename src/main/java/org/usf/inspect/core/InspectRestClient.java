@@ -62,8 +62,9 @@ public final class InspectRestClient implements Dispatcher<Session> {
 	static RestTemplate defaultRestTemplate(RestClientProperties properties) {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //for instanceID
-	    var timeout = ofSeconds(300); //wait for server startup 
-	    var rt = new RestTemplateBuilder().messageConverters(json, plain)
+	    var timeout = ofSeconds(600); //wait for server startup 
+	    var rt = new RestTemplateBuilder()
+	    		.messageConverters(json, plain)
 				.setConnectTimeout(timeout)
 				.setReadTimeout(timeout)
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
