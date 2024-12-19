@@ -106,11 +106,29 @@ public class DatabaseStageTracker {
 	}
 
 	public int[] executeBatch(String sql, SafeCallable<int[], SQLException> supplier) throws SQLException {
-		return execute(sql, supplier, n-> IntStream.of(n).mapToLong(v-> v).toArray());
+		return execute(sql, supplier, arr-> {
+			if(arr.length > 1) { 
+				var i=0;
+				while(++i<arr.length && arr[i]==arr[0]);
+				if(i==arr.length){
+					return new long[] {i*arr[0]}; // [n,n,n,..,n] => [nN]
+				}
+			}
+			return IntStream.of(arr).mapToLong(v->v).toArray();
+		});
 	}
 	
 	public long[] executeLargeBatch(String sql, SafeCallable<long[], SQLException> supplier) throws SQLException {
-		return execute(sql, supplier, n-> n);
+		return execute(sql, supplier, arr-> {
+			if(arr.length > 1) {
+				var i=0;
+				while(++i<arr.length && arr[i]==arr[0]);
+				if(i==arr.length){
+					return new long[] {i*arr[0]}; // [n,n,n,..,n] => [nN]
+				}
+			}
+			return arr;
+		});
 	}
 
 	private <T> T execute(String sql, SafeCallable<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
