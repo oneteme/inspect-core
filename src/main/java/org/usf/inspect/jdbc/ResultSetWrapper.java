@@ -1,5 +1,7 @@
 package org.usf.inspect.jdbc;
 
+import static java.time.Instant.now;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -18,7 +20,7 @@ public final class ResultSetWrapper implements ResultSet {
 	@Delegate
 	private final ResultSet rs;
 	private final DatabaseStageTracker tracer;
-	private final Instant start;
+	private final Instant start = now();
 	private int rows;
 
 	@Override

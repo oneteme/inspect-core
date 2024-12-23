@@ -28,6 +28,7 @@ public class DatabaseRequest extends SessionStage {
 	private String productName;
 	private String productVersion;
 	private List<DatabaseRequestStage> actions;
+	@Deprecated(forRemoval = true, since = "v19")
 	private List<SqlCommand> commands;
 	//java-collector
 	

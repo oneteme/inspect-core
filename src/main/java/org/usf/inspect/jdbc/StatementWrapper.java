@@ -71,7 +71,7 @@ public class StatementWrapper implements Statement {
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-		return tracer.executeBatch(null, st::executeBatch);
+		return tracer.executeBatch(st::executeBatch);
 	}
 	
 	@Override
@@ -96,7 +96,7 @@ public class StatementWrapper implements Statement {
 	
 	@Override
 	public long[] executeLargeBatch() throws SQLException {
-		return tracer.executeLargeBatch(null, st::executeLargeBatch);
+		return tracer.executeLargeBatch(st::executeLargeBatch);
 	}
 	
 	@Override

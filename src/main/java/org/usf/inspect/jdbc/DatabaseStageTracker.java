@@ -1,6 +1,5 @@
 package org.usf.inspect.jdbc;
 
-import static java.time.Instant.now;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -35,7 +34,6 @@ import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.stream.IntStream;
@@ -44,7 +42,6 @@ import org.usf.inspect.core.DatabaseRequest;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.SafeCallable;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
-import org.usf.inspect.core.StageTracker.StageConsumer;
 import org.usf.inspect.core.StageTracker.StageCreator;
 
 import lombok.AccessLevel;
@@ -59,22 +56,31 @@ import lombok.RequiredArgsConstructor;
 public class DatabaseStageTracker {
 	
 	private final DatabaseRequest req;
-	private DatabaseRequestStage exec; //hold last execution stage
+	private List<SqlCommand> commands;
+	private DatabaseRequestStage exec; // hold last exec stage
+	private boolean prepared;
 	
 	public String databaseInfo(SafeCallable<String, SQLException> supplier) throws SQLException {
 		return call(supplier, databaseActionCreator(DATABASE), req::append);
 	}
 
 	public ResultSetWrapper schemaInfo(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
-		return new ResultSetWrapper(call(supplier, databaseActionCreator(SCHEMA), req::append), this, now());
+		return new ResultSetWrapper(call(supplier, databaseActionCreator(SCHEMA), req::append), this);
 	}
 	
 	public StatementWrapper statement(SafeCallable<Statement, SQLException> supplier) throws SQLException {
+		prepared = false;
+		commands = new ArrayList<>(1);
 		return new StatementWrapper(call(supplier, databaseActionCreator(STATEMENT), req::append), this);
 	}
 	
 	public PreparedStatementWrapper preparedStatement(String sql, SafeCallable<PreparedStatement, SQLException> supplier) throws SQLException {
-		return new PreparedStatementWrapper(call(supplier, databaseActionCreator(STATEMENT), req::append), this, sql); //parse command on exec
+		prepared = true;
+		commands = new ArrayList<>(1);
+		return new PreparedStatementWrapper(call(supplier, databaseActionCreator(STATEMENT), stg->{
+			req.append(stg);
+			commands.add(isNull(sql) ? null : mainCommand(sql));
+		}), this);
 	}
 
 	public DatabaseMetaData connectionMetadata(SafeCallable<DatabaseMetaData, SQLException> supplier) throws SQLException {
@@ -85,12 +91,33 @@ public class DatabaseStageTracker {
 		return call(supplier, databaseActionCreator(METADATA), req::append);
 	}
 
+	public void addBatch(String sql, SafeRunnable<SQLException> method) throws SQLException {
+		exec(method, (s,e,v,t)->{
+			var stg = req.getActions().isEmpty() ? null : req.getActions().getLast();
+			if(isNull(stg) || !BATCH.name().equals(stg.getName())) {
+				stg = databaseActionCreator(BATCH).create(s, e, v, t);
+				stg.setCount(new long[] {1});
+				req.append(stg);
+			}
+			else {
+				stg.setEnd(e); 
+				stg.getCount()[0]++;
+				if(nonNull(t) && isNull(stg.getException())) {
+					stg.setException(mainCauseException(t));
+				} //else illegal state
+			}
+			if(nonNull(sql)) {
+				commands.add(mainCommand(sql));
+			}
+		});
+	}
+
 	public ResultSetWrapper resultSet(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
-		return new ResultSetWrapper(supplier.call(), this, now());  // no need to trace this
+		return new ResultSetWrapper(supplier.call(), this);  // no need to trace this
 	}
 
 	public ResultSetWrapper executeQuery(String sql, SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
-		return new ResultSetWrapper(execute(sql, supplier, rs-> null), this, now()); // no count 
+		return new ResultSetWrapper(execute(sql, supplier, null), this); // no count 
 	}
 
 	public boolean execute(String sql, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
@@ -105,8 +132,8 @@ public class DatabaseStageTracker {
 		return execute(sql, supplier, n-> new long[] {n});
 	}
 
-	public int[] executeBatch(String sql, SafeCallable<int[], SQLException> supplier) throws SQLException {
-		return execute(sql, supplier, arr-> {
+	public int[] executeBatch(SafeCallable<int[], SQLException> supplier) throws SQLException {
+		return execute(null, supplier, arr-> {
 			if(arr.length > 1) { 
 				var i=0;
 				while(++i<arr.length && arr[i]==arr[0]);
@@ -118,8 +145,8 @@ public class DatabaseStageTracker {
 		});
 	}
 	
-	public long[] executeLargeBatch(String sql, SafeCallable<long[], SQLException> supplier) throws SQLException {
-		return execute(sql, supplier, arr-> {
+	public long[] executeLargeBatch(SafeCallable<long[], SQLException> supplier) throws SQLException {
+		return execute(null, supplier, arr-> {
 			if(arr.length > 1) {
 				var i=0;
 				while(++i<arr.length && arr[i]==arr[0]);
@@ -132,28 +159,24 @@ public class DatabaseStageTracker {
 	}
 
 	private <T> T execute(String sql, SafeCallable<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
-		if(nonNull(sql)) {
-			req.getCommands().add(mainCommand(sql));
-		} //BATCH otherwise 
-		return call(supplier, databaseActionCreator(EXECUTE, (a,r)->{
-			if(nonNull(r)) { //fail
-				a.setCount(countFn.apply(r));
+		return call(supplier, (s,e,r,t)->{
+			exec = databaseActionCreator(EXECUTE).create(s, e, r, t); //preserve last exec stage
+			req.append(exec);
+			if(nonNull(r) && nonNull(countFn)) {
+				exec.setCount(countFn.apply(r));
 			}
-			exec = a; //!important
-		}), req::append);
+			if(nonNull(sql)) { //statement
+				commands.add(mainCommand(sql));
+			}
+			exec.setCommands(commands.toArray(SqlCommand[]::new));
+			if(nonNull(sql) || !prepared) { //statement.batch: sql is null
+				commands = new ArrayList<>();
+			}
+		});
 	}
 
 	public Savepoint savePoint(SafeCallable<Savepoint, SQLException> supplier) throws SQLException {
 		return call(supplier, databaseActionCreator(SAVEPOINT), req::append);
-	}
-
-	public void addBatch(String sql, SafeRunnable<SQLException> method) throws SQLException {
-		if(nonNull(sql)) {
-			req.getCommands().add(mainCommand(sql));
-		} // PreparedStatement otherwise 
-		exec(method, nonNull(sql) || req.getActions().isEmpty() || !BATCH.name().equals(last(req.getActions()).getName())
-				? databaseActionCreator(BATCH, (a,v)-> a.setCount(new long[] {1})).then(req::append) //statement | first batch
-				: updateLast(last(req.getActions())));
 	}
 	
 	public void commit(SafeRunnable<SQLException> method) throws SQLException {
@@ -165,33 +188,35 @@ public class DatabaseStageTracker {
 	}
 	
 	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
-		exec(method, databaseActionCreator(FETCH, (a, v)-> {
-			a.setStart(start); // differed start
-			a.setCount(new long[] {n});
-		}), req::append);
+		exec(method, databaseActionCreator(FETCH), stg-> {
+			stg.setStart(start); // differed start
+			stg.setCount(new long[] {n});
+			req.append(stg);
+		});
 	}
 	
 	public int updateCount(SafeCallable<Integer, SQLException> supplier) throws SQLException {
-		return updateCount(supplier, n-> n);
+		var n = supplier.call();
+		updateCount(n);
+		return n;
 	}
 
 	public long largeUpdateCount(SafeCallable<Long, SQLException> supplier) throws SQLException {
-		return updateCount(supplier, n-> n);
+		var n = supplier.call();
+		updateCount(n);
+		return n;
 	}	
 	
-	private <T> T updateCount(SafeCallable<T, SQLException> supplier, ToLongFunction<T> fn) throws SQLException {
-		var res = supplier.call();
-		var n = fn.applyAsLong(res);
+	private void updateCount(long n) {
 		if(n > -1 && nonNull(exec)) {
 			try { //safe
 				var arr = exec.getCount();
 				exec.setCount(isNull(arr) ? new long[] {n} : appendLong(arr, n)); // getMoreResults
 			}
 			catch (Exception e) {
-				log.warn("cannot collect updateCount metrics => {}", e.getMessage());
+				log.warn("cannot collect updateCount metrics => [{}]:{}", e.getClass().getSimpleName(), e.getMessage());
 			}
 		}
-		return res;
 	}
 
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
@@ -201,21 +226,7 @@ public class DatabaseStageTracker {
 		});
 	}
 
-	<T> StageConsumer<T> updateLast(DatabaseRequestStage stg) {
-		return (s,e,o,t)->{
-			stg.setEnd(e); 
-			stg.getCount()[0]++;
-			if(nonNull(t) && isNull(stg.getException())) {
-				stg.setException(mainCauseException(t));
-			} //else illegal state
-		};
-	}
-
 	static StageCreator<Object, DatabaseRequestStage> databaseActionCreator(JDBCAction action) {
-		return databaseActionCreator(action, null);
-	}
-	
-	static <T> StageCreator<T, DatabaseRequestStage> databaseActionCreator(JDBCAction action, BiConsumer<DatabaseRequestStage, T> cons) {
 		return (s,e,o,t)->{
 			var stg = new DatabaseRequestStage();
 			stg.setName(action.name());
@@ -224,23 +235,10 @@ public class DatabaseStageTracker {
 			if(nonNull(t)) {
 				stg.setException(mainCauseException(t));
 			}
-			if(nonNull(cons)) {
-				cons.accept(stg, o); //o is nullable
-			}
 			return stg;
 		};
 	}
 	
-	static long[] appendLong(long[]arr, long v) {
-		var a = copyOf(arr, arr.length+1);
-		a[arr.length] = v;
-		return a;
-	}
-	
-	private static <T> T last(List<T> list) { //!empty
-		return list.get(list.size()-1);
-	}
-		
 	public static ConnectionWrapper connection(SafeCallable<Connection, SQLException> supplier, SQLFunction<Connection, ConnectionInfo> infoFn) throws SQLException {
 		var req = new DatabaseRequest();
 		var trk = new DatabaseStageTracker(req);
@@ -268,6 +266,12 @@ public class DatabaseStageTracker {
 			return req;
 		}, requestAppender());
 		return new ConnectionWrapper(cnx, trk);
+	}
+	
+	static long[] appendLong(long[]arr, long v) {
+		var a = copyOf(arr, arr.length+1);
+		a[arr.length] = v;
+		return a;
 	}
 	
 	public interface SQLFunction<T,R> {
