@@ -56,8 +56,9 @@ public class MainSessionAspect implements Ordered {
     
     @Around("@annotation(org.springframework.cache.annotation.Cacheable)")
     Object aroundCacheable(ProceedingJoinPoint joinPoint) throws Throwable {
+    	var sign = joinPoint.getSignature();
     	return call(joinPoint::proceed, 
-    			localRequestCreator(joinPoint.getSignature().getName(), formatLocation(joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName()), null), 
+    			localRequestCreator(sign.getName(), formatLocation(sign.getDeclaringTypeName(), sign.getName()), null), 
     			requestAppender());
     }
     
