@@ -1,10 +1,12 @@
 
-## Integration
+
+
+## Integration [![Maven Central Version](https://img.shields.io/maven-central/v/io.github.oneteme/inspect-core)](https://central.sonatype.com/artifact/io.github.oneteme/inspect-core)
 ```XML
 <dependency>
     <groupId>io.github.oneteme</groupId>
     <artifactId>inspect-core</artifactId>
-    <version>0.0.18</version>
+    <version>{{version}}</version>
 </dependency>
 ```
 
