@@ -17,12 +17,10 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 
 	@Delegate(excludes = Statement.class)
 	private final PreparedStatement ps;
-	private final String sql;
 
-	public PreparedStatementWrapper(PreparedStatement ps, DatabaseStageTracker tracer, String sql) {
+	public PreparedStatementWrapper(PreparedStatement ps, DatabaseStageTracker tracer) {
 		super(ps, tracer);
 		this.ps = ps;
-		this.sql = sql;
 	}
 
 	@Override
@@ -32,38 +30,26 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 	
 	@Override
 	public boolean execute() throws SQLException {
-		return tracer.execute(sql, ps::execute);
+		return tracer.execute(null, ps::execute);
 	}
 	
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		return tracer.executeQuery(sql, ps::executeQuery);
+		return tracer.executeQuery(null, ps::executeQuery);
 	}
 	
 	@Override
 	public int executeUpdate() throws SQLException {
-		return tracer.executeUpdate(sql, ps::executeUpdate);
+		return tracer.executeUpdate(null, ps::executeUpdate);
 	}
 	
 	@Override
 	public long executeLargeUpdate() throws SQLException {
-		return tracer.executeLargeUpdate(sql, ps::executeLargeUpdate);
+		return tracer.executeLargeUpdate(null, ps::executeLargeUpdate);
 	}
 	
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		return tracer.resultSetMetadata(ps::getMetaData);
-	}
-	
-	// Override StatementWrapper
-
-	@Override
-	public int[] executeBatch() throws SQLException {
-		return tracer.executeBatch(sql, st::executeBatch);
-	}
-	
-	@Override
-	public long[] executeLargeBatch() throws SQLException {
-		return tracer.executeLargeBatch(sql, st::executeLargeBatch);
 	}
 }
