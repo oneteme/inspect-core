@@ -1,11 +1,11 @@
 changelog:
   categories:
-    - title: 🌟New Features
+    - title: 🌟 New Features
       labels:
         - enhancement
-    - title: 🐛Bugs Fixes
+    - title: 🐛 Bugs Fixes
       labels:
         - bug
-    - title: 📜Documentation 
+    - title: 📜 Documentation 
       labels:
-        - "*"
+        - documentation
