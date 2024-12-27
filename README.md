@@ -4,7 +4,7 @@
 <dependency>
     <groupId>io.github.oneteme</groupId>
     <artifactId>inspect-core</artifactId>
-    <version>0.0.17</version>
+    <version>0.0.18</version>
 </dependency>
 ```
 
