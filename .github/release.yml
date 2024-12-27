@@ -3,7 +3,7 @@ changelog:
     - title: 🎉 New Features
       labels:
         - enhancement
-    - title: 🐛 Bugs Fixes
+    - title: 🐛 Bug Fixes
       labels:
         - bug
     - title: 📜 Documentation 
