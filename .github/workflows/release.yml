@@ -20,8 +20,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
+          ver: ${{ steps.projectVersion.outputs.version }}
         run: |
           gh release create "$tag" \
               --repo="$GITHUB_REPOSITORY" \
-              --title="v${{ steps.projectVersion.outputs.version }}" \
+              --title="v$ver" \
               --generate-notes
