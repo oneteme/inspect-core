@@ -13,6 +13,9 @@ jobs:
     name: Release pushed tag
     runs-on: ubuntu-22.04
     steps:
+      - name: Extract Maven version
+        id: projectVersion
+        run: echo "version=$(mvn org.apache.maven.plugins:maven-help-plugin:3.3.0:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -20,5 +23,5 @@ jobs:
         run: |
           gh release create "$tag" \
               --repo="$GITHUB_REPOSITORY" \
-              --title="${GITHUB_REPOSITORY#*/} ${tag#v}" \
+              --title="v${steps.projectVersion.outputs.version}" \
               --generate-notes
