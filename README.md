@@ -1,7 +1,7 @@
 
 
 
-## Integration [![Maven Central Version](https://img.shields.io/maven-central/v/io.github.oneteme/inspect-core)](https://central.sonatype.com/artifact/io.github.oneteme/inspect-core)
+## Integration [![Maven Central Version](https://img.shields.io/maven-central/v/io.github.oneteme/inspect-core?style=social)](https://central.sonatype.com/artifact/io.github.oneteme/inspect-core)
 ```XML
 <dependency>
     <groupId>io.github.oneteme</groupId>
