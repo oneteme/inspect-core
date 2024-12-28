@@ -26,3 +26,4 @@ jobs:
               --repo="$GITHUB_REPOSITORY" \
               --title="v$ver" \
               --generate-notes
+          echo "$(mvn org.apache.maven.plugins:maven-help-plugin:3.3.0:evaluate -DforceStdout -Dexpression=project.version -q)"
