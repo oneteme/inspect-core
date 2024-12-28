@@ -23,5 +23,5 @@ jobs:
         run: |
           gh release create "$tag" \
               --repo="$GITHUB_REPOSITORY" \
-              --title="v${steps.projectVersion.outputs.version}" \
+              --title="v$steps.projectVersion.outputs.version" \
               --generate-notes
