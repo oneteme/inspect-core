@@ -192,6 +192,9 @@
 								<goals>
 									<goal>sign</goal>
 								</goals>
+		            <configuration>
+		                <signer>bc</signer> <!-- Bouncy Castle based signer that does not depend on external gpg processes -->
+		            </configuration>
 							</execution>
 						</executions>
 					</plugin>
