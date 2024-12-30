@@ -23,7 +23,7 @@ jobs:
         if: ${{ github.ref_name }} != ${{ steps.verify.outputs.version }}
         run: echo "::error missmatch version  ${{ github.ref_name }} <> ${{ steps.verify.outputs.version }}"
     outputs:
-      version: ${{ steps.verify.outputs.version }}
+      version: ${{ steps.mvnVer.outputs.version }}
   deploy:
     needs: verify
     runs-on: ubuntu-latest
