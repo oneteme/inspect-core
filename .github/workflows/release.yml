@@ -31,7 +31,6 @@ jobs:
     - name: Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        tag: v${{ needs.deploy.outputs.version }}
         ver: ${{ needs.deploy.outputs.version }}
-      run: gh release create "$tag" --repo="$GITHUB_REPOSITORY" --title="v$ver" --generate-notes
+      run: gh release create "$ver" --repo="$GITHUB_REPOSITORY" --target="${{ github.ref_name }}" --title="v$ver" --generate-notes
 
