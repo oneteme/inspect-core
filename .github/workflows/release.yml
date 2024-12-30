@@ -16,6 +16,8 @@ jobs:
       - name: Extract Maven version
         id: mVer
         run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
+      - name: Extract Maven version
+        run: echo "$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)"
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
