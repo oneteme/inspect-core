@@ -32,5 +32,5 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         ver: ${{ needs.deploy.outputs.version }}
-      run: gh release create "$ver" --repo="$GITHUB_REPOSITORY" --target="${{ github.ref_name }}" --title="v$ver" --generate-notes
+      run: gh release create "v$ver" --repo="$GITHUB_REPOSITORY" --target="${{ github.ref_name }}" --title="v$ver" --generate-notes
 
