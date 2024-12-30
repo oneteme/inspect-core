@@ -17,7 +17,7 @@ jobs:
         id: mVer
         run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
       - name: Extract Maven version
-        run: echo "$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)"
+        run: mvn help:evaluate -DforceStdout -Dexpression=project.version -q
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -27,5 +27,3 @@ jobs:
           gh release create "$tag" \
               --title="v$ver" \
               --generate-notes
-          echo "$(mvn org.apache.maven.plugins:maven-help-plugin:3.3.0:evaluate -DforceStdout -Dexpression=project.version -q)"
-          echo "$(mvn org.apache.maven.plugins:maven-help-plugin:3.3.0:evaluate -DforceStdout -Dexpression=project.version -q)"
