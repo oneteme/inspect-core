@@ -38,7 +38,7 @@ jobs:
         server-id: ossrh
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
-    - name: deploy ${{ needs.deploy.outputs.version }}
+    - name: deploy ${{ needs.build.outputs.version }}
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
