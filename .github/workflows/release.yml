@@ -1,7 +1,5 @@
 name: tag release
-on:
-  push:
-    tags: v*
+on: workflow_dispatch
 jobs:
   deploy:
     runs-on: ubuntu-latest
