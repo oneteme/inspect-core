@@ -62,3 +62,4 @@ jobs:
               --repo="$GITHUB_REPOSITORY" \
               --title="v$ver" \
               --generate-notes
+
