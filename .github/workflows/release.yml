@@ -46,7 +46,9 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         run: mvn --no-transfer-progress --batch-mode -Dgpg.passphrase=${{ secrets.MAVEN_GPG_PASSPHRASE }} -Pdeploy clean deploy
   release:
-    needs: deploy, verify #output
+    needs: 
+      - deploy
+      - verify #output
     name: release
     runs-on: ubuntu-latest
     steps:
