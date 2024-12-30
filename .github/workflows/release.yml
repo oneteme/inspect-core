@@ -59,5 +59,6 @@ jobs:
           ver: ${{ needs.verify.outputs.version }}
         run: |
           gh release create "$tag" \
+              --repo="$GITHUB_REPOSITORY" \
               --title="v$ver" \
               --generate-notes
