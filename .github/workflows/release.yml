@@ -1,26 +1,10 @@
-name: Create release
+name: tag release
 on:
   push:
     tags: v[0-9](.[0-9]+)*
     branches: main
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4 
-        with:
-          java-version: '21'
-          distribution: 'temurin' #Eclipse Temurin 
-      - name: Extract Maven version
-        id: mvnVer
-        run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
-      - name: Check version
-        if: ${{ github.ref_name }} != ${{ steps.verify.outputs.version }}
-        run: echo "::error missmatch version  ${{ github.ref_name }} <> ${{ steps.verify.outputs.version }}"
-    outputs:
-      version: ${{ steps.mvnVer.outputs.version }}
   deploy:
     needs: verify
     runs-on: ubuntu-latest
@@ -33,17 +17,20 @@ jobs:
           server-id: ossrh
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
-      - name: Publish RELEASE
+      - name: Deploy artifact
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }} #signer=bc
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
         run: mvn --no-transfer-progress --batch-mode -Pdeploy clean deploy
+      - name: Extract Maven version
+        id: mvnVer
+        run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
+    outputs:
+      version: ${{ steps.mvnVer.outputs.version }}
   release:
-    needs: 
-      - deploy
-      - verify #output
+    needs: deploy
     name: release
     runs-on: ubuntu-latest
     steps:
@@ -51,6 +38,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
-          ver: ${{ needs.verify.outputs.version }}
+          ver: ${{ needs.deploy.outputs.version }}
         run: gh release create "$tag" --repo="$GITHUB_REPOSITORY" --title="v$ver" --generate-notes
 
