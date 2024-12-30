@@ -16,6 +16,7 @@ spring:
   application:
     name: <appName>
     version: <version>
+...
 inspect:
   enabled: true #activate INSPECT in the host server
   target: REMOTE #remote INSPECT server
