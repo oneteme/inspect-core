@@ -27,7 +27,7 @@ jobs:
   release:
     needs: deploy
     runs-on: ubuntu-latest
-    if: endsWith(needs.build.outputs.version, '-SNAPSHOT')==false
+    if: endsWith(needs.build.outputs.version, '-SNAPSHOT') != true
     steps:
     - name: Release
       env:
