@@ -1,9 +1,9 @@
 name: Create release
-
 on:
   push:
     tags:
       - v*
+    branches: main
 
 permissions:
   contents: write
@@ -14,16 +14,16 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Extract Maven version
-        id: projectVersion
-        run: echo "version=$(mvn org.apache.maven.plugins:maven-help-plugin:3.3.0:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
+        id: mVer
+        run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
-          ver: ${{ steps.projectVersion.outputs.version }}
+          ver: ${{ steps.mVer.outputs.version }}
         run: |
           gh release create "$tag" \
-              --repo="$GITHUB_REPOSITORY" \
               --title="v$ver" \
               --generate-notes
+          echo "$(mvn org.apache.maven.plugins:maven-help-plugin:3.3.0:evaluate -DforceStdout -Dexpression=project.version -q)"
           echo "$(mvn org.apache.maven.plugins:maven-help-plugin:3.3.0:evaluate -DforceStdout -Dexpression=project.version -q)"

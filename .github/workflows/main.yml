@@ -13,7 +13,7 @@ on:
     branches: [ "main" ]
     paths-ignore: [ "README.md", "doc/**" ]
   push:
-    branches: [ "main", "develop" ]
+    #branches: [ "main", "develop" ]
     paths-ignore: [ "README.md", "doc/**" ]
 jobs:
   build:
