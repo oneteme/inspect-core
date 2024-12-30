@@ -12,26 +12,26 @@ jobs:
         server-id: ossrh
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
-    - name: Extract version
-      id: mvnVer
-      run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
-    - name: Deploy ${{ steps.mvnVer.outputs.version }}
+    - name: Deploy
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }} #signer=bc
         MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
       run: mvn --no-transfer-progress --batch-mode -Pdeploy clean deploy
+    - name: Extract version
+      id: mvnVer
+      run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
     outputs:
       version: ${{ steps.mvnVer.outputs.version }}
   release:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-    - name: Release ${{ github.ref_name }}
+    - name: Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ github.ref_name }}
+        tag: v${{ needs.deploy.outputs.version }}
         ver: ${{ needs.deploy.outputs.version }}
       run: gh release create "$tag" --repo="$GITHUB_REPOSITORY" --title="v$ver" --generate-notes
 

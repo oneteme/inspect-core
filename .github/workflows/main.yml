@@ -15,7 +15,7 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
-    - name: verify ${{ github.ref }}
+    - name: Verify
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
