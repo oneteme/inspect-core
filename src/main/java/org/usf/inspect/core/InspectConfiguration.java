@@ -22,6 +22,7 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -59,11 +60,13 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 
 	private RestSessionFilter sessionFilter;
 	
-	InspectConfiguration(Environment env, InspectConfigurationProperties conf) {
+	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider) {
 		this.instance = localInstance(
-				env.getProperty("spring.application.name"),
-				env.getProperty("spring.application.version"),
-				env.getActiveProfiles());
+				provider.getName(),
+				provider.getVersion(),
+				provider.getBranch(),
+				provider.getCommitHash(),
+				provider.getEnvironment());
 		this.config = conf.validate();
 		initStatupSession();
 		if(log.isDebugEnabled()) {
@@ -180,5 +183,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     			? app.getMainApplicationClass()
     			: SpringApplication.class)
     			.getCanonicalName();
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public static ApplicationPropertiesProvider defaultPropertiesProvider(Environment env) {
+    	return new DefaultApplicationPropertiesProvider(env);
     }
 }
