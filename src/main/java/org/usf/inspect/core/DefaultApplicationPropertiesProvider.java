@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public class DefaultApplicationPropertiesProvider implements ApplicationPropertiesProvider {
+public final class DefaultApplicationPropertiesProvider implements ApplicationPropertiesProvider {
 
 	@NonNull
 	private final Environment env;

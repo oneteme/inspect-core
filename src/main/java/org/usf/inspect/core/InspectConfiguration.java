@@ -187,7 +187,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     @Bean
     @ConditionalOnMissingBean
-    public static ApplicationPropertiesProvider defaultPropertiesProvider(Environment env) {
+    public static ApplicationPropertiesProvider springProperties(Environment env) {
     	return new DefaultApplicationPropertiesProvider(env);
     }
 }
