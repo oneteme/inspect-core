@@ -49,4 +49,3 @@ jobs:
         branch: "${{ github.ref_name }}"
         version: "v${{ needs.deploy.outputs.version }}"
       run: gh release create "$version" --repo="$GITHUB_REPOSITORY" --target="$branch" --title="$version" --generate-notes
-
