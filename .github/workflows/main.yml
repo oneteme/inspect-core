@@ -7,7 +7,7 @@ on:
     branches: main
     paths-ignore: [ "README.md", "doc/**" ]
 jobs:
-  build:
+  scan:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -15,12 +15,12 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
-    - name: Verify
+    - name: verify
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn --batch-mode --no-transfer-progress verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=oneteme_${{ github.event.repository.name }}
-    - name: Extract version
+    - name: extract version
       id: mvnVer
       run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
     outputs:
@@ -28,7 +28,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref_name == 'main' && endsWith(needs.build.outputs.version, '-SNAPSHOT')
+    if: github.ref_name == 'main' && endsWith(needs.scan.outputs.version, '-SNAPSHOT')
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v4
@@ -36,10 +36,7 @@ jobs:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
         server-id: ossrh
-        server-username: MAVEN_USERNAME
-        server-password: MAVEN_PASSWORD
+        server-username: ${{ secrets.OSSRH_USERNAME }}
+        server-password: ${{ secrets.OSSRH_TOKEN }}
     - name: Deploy
-      env:
-        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
       run: mvn --no-transfer-progress --batch-mode clean deploy
