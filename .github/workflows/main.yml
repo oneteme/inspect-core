@@ -36,7 +36,10 @@ jobs:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
         server-id: ossrh
-        server-username: ${{ secrets.OSSRH_USERNAME }}
-        server-password: ${{ secrets.OSSRH_TOKEN }}
+        server-username: MAVEN_USERNAME
+        server-password: MAVEN_PASSWORD
     - name: Deploy
+      env:
+        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
       run: mvn --no-transfer-progress --batch-mode clean deploy
