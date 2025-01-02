@@ -26,7 +26,7 @@ jobs:
     outputs:
       version: ${{ steps.mvnVer.outputs.version }}
   deploy:
-    needs: build
+    needs: scan
     runs-on: ubuntu-latest
     if: github.ref_name == 'main' && endsWith(needs.scan.outputs.version, '-SNAPSHOT')
     steps:
