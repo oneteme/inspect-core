@@ -35,6 +35,8 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<sonar.organization>jarvis</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -92,15 +94,6 @@
 		</dependency>
 	</dependencies>
 	<build>
-	  <pluginManagement>
-	    <plugins>
-	      <plugin>
-	        <groupId>org.sonarsource.scanner.maven</groupId>
-	        <artifactId>sonar-maven-plugin</artifactId>
-	        <version>4.0.0.4121</version>
-	      </plugin>
-	    </plugins>
-	  </pluginManagement>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -117,7 +110,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-    		<version>3.4.2</version>
 				<configuration>
 					<archive>
 						<manifest>

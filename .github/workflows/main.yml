@@ -20,7 +20,7 @@ jobs:
     - name: Scan project
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn --batch-mode --quiet verify sonar:sonar
+      run: mvn --batch-mode --no-transfer-progress verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=oneteme_${{ github.event.repository.name }}
     - name: Extract project version
       id: mvnVer
       run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
