@@ -20,9 +20,9 @@ jobs:
     - uses: oneteme/automation-scripts/.github/actions/sonar-java-scan@main
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    - uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
+    - name: "mvn version"
+      uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
       id: mvnVer
-    - run: echo ${{ steps.mvnVer.outputs.version }}
     outputs:
       version: ${{ steps.mvnVer.outputs.version }}
   deploy:
