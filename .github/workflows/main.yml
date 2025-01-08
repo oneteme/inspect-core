@@ -17,7 +17,7 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
-    - uses: oneteme/common-action/mvn-sonar-action.yml@main
+    - uses: oneteme/common-action/.github/actions/mvn-sonar-action@main
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     - name: Extract project version
