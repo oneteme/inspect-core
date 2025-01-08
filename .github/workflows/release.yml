@@ -1,7 +1,23 @@
 name: tag release
 on: workflow_dispatch
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin' #Eclipse Temurin
+    - name: Build and scan source code 
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        PROJECT_KEY: "${{ github.repository_owner }}_${{ github.event.repository.name }}"
+      run: mvn --batch-mode --no-transfer-progress verify org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar -Dsonar.projectKey=$PROJECT_KEY
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -14,15 +30,15 @@ jobs:
         server-id: ossrh
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
-    - name: deploy
+    - name: Deploy to OSSRH
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }} #signer=bc
         MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
         PROJECT_KEY: "${{ github.repository_owner }}_${{ github.event.repository.name }}"
-      run: mvn --batch-mode --no-transfer-progress -Pdeploy deploy org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar -Dsonar.projectKey=$PROJECT_KEY
-    - name: extract version
+      run: mvn --batch-mode --no-transfer-progress -Pdeploy deploy
+    - name: Extract project version
       id: mvnVer
       run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
     outputs:
