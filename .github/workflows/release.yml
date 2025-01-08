@@ -45,6 +45,6 @@ jobs:
     steps:
     - uses: oneteme/automation-scripts/.github/actions/tag-release@main
       with:
-        version: {{ needs.deploy.outputs.version }}
+        version: ${{ needs.deploy.outputs.version }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
