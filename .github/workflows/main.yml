@@ -17,10 +17,10 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
-    - name: Scan project
+    - name: Build and scan source code 
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn --batch-mode --no-transfer-progress verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=oneteme_${{ github.event.repository.name }}
+      run: mvn --batch-mode --no-transfer-progress verify org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}
     - name: Extract project version
       id: mvnVer
       run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
@@ -45,4 +45,4 @@ jobs:
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-      run: mvn --batch-mode --quiet clean deploy
+      run: mvn --batch-mode --no-transfer-progress clean deploy
