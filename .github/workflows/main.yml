@@ -17,7 +17,7 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
-    - uses: oneteme/common-action/.github/actions/mvn-sonar-action@main
+    - uses: oneteme/automation-scripts/.github/actions/mvn-sonar-action@main
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     - name: Extract project version
@@ -31,8 +31,6 @@ jobs:
     if: github.ref_name == 'main' && endsWith(needs.build.outputs.version, '-SNAPSHOT')
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     - uses: actions/setup-java@v4
       with:
         java-version: '21'

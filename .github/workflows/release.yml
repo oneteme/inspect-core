@@ -11,7 +11,7 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
-    - uses: oneteme/common-action/.github/actions/mvn-sonar-action@main
+    - uses: oneteme/automation-scripts/.github/actions/mvn-sonar-action@main
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
   deploy:
@@ -19,8 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     - uses: actions/setup-java@v4
       with:
         java-version: '21'
@@ -34,7 +32,6 @@ jobs:
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }} #signer=bc
         MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-        PROJECT_KEY: "${{ github.repository_owner }}_${{ github.event.repository.name }}"
       run: mvn --batch-mode --no-transfer-progress -Pdeploy deploy
     - name: Extract project version
       id: mvnVer
@@ -46,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     if: "!endsWith(needs.deploy.outputs.version, '-SNAPSHOT')"
     steps:
-    - uses: oneteme/common-action/.github/actions/tag-release@main
+    - uses: oneteme/automation-scripts/.github/actions/tag-release@main
       with:
         version: {{ needs.deploy.outputs.version }}
       env:
