@@ -17,11 +17,10 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
-    - name: build project
-      run: mvn install --batch-mode --quiet
-    - uses: SonarSource/sonarqube-scan-action@v4.2.1
+    - name: Scan project
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: mvn --batch-mode --quiet verify sonar:sonar
     - name: Extract project version
       id: mvnVer
       run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
