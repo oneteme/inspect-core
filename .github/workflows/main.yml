@@ -20,9 +20,8 @@ jobs:
     - uses: oneteme/automation-scripts/.github/actions/sonar-java-scan@main
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    - name: Extract project version
+    - uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
       id: mvnVer
-      run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
     outputs:
       version: ${{ steps.mvnVer.outputs.version }}
   deploy:

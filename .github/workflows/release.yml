@@ -34,9 +34,8 @@ jobs:
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
         MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }} #signer=bc
         MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-    - name: Extract project version
+    - uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
       id: mvnVer
-      run: echo "version=$(mvn help:evaluate -DforceStdout -Dexpression=project.version -q)" >>$GITHUB_OUTPUT
     outputs:
       version: ${{ steps.mvnVer.outputs.version }}
   release:
