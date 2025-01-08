@@ -46,9 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     if: "!endsWith(needs.deploy.outputs.version, '-SNAPSHOT')"
     steps:
-    - name: release
+    - uses: oneteme/common-action/.github/actions/tag-release@main
+      with:
+        version: {{ needs.deploy.outputs.version }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        branch: "${{ github.ref_name }}"
-        version: "v${{ needs.deploy.outputs.version }}"
-      run: gh release create "$version" --repo="$GITHUB_REPOSITORY" --target="$branch" --title="$version" --generate-notes
