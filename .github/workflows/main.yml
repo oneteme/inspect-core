@@ -38,8 +38,7 @@ jobs:
         server-id: ossrh
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
-    - name: deploy
+    - uses: oneteme/automation-scripts/.github/actions/mvn-deploy@main
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-      run: mvn --batch-mode --no-transfer-progress deploy
