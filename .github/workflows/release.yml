@@ -11,11 +11,9 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin' #Eclipse Temurin
-    - name: Build and scan source code 
+    - uses: oneteme/common-action/mvn-sonar-action.yml@main
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        PROJECT_KEY: "${{ github.repository_owner }}_${{ github.event.repository.name }}"
-      run: mvn --batch-mode --no-transfer-progress verify org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar -Dsonar.projectKey=$PROJECT_KEY
   deploy:
     needs: build
     runs-on: ubuntu-latest
