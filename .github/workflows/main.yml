@@ -24,7 +24,7 @@ jobs:
       id: mvn_ver
       uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
     - name:
-      runs: echo "version ${{ steps.mvn_ver.outputs.version }}"
+      run: echo "version ${{ steps.mvn_ver.outputs.version }}"
     outputs:
       version: ${{ steps.mvn_ver.outputs.version }}
   deploy:
