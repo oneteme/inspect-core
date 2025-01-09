@@ -35,9 +35,9 @@ jobs:
         MAVEN_GPG_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }} #signer=bc
         MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
     - uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
-      id: mvnVer
+      id: prj_ver
     outputs:
-      version: ${{ steps.mvnVer.outputs.version }}
+      version: ${{ steps.prj_ver.outputs.version }}
   release:
     needs: deploy
     runs-on: ubuntu-latest
