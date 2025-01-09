@@ -21,10 +21,10 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     - name: extract version
-      id: mvnVer
+      id: mvn_ver
       uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
     outputs:
-      version: ${{ steps.mvnVer.outputs.version }}
+      version: ${{ steps.mvn_ver.outputs.version }}
   deploy:
     needs: build
     runs-on: ubuntu-latest
