@@ -9,6 +9,7 @@ import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.synchronizedArrayList;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.Helper.warnStackTrace;
+import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.Session.nextId;
@@ -130,22 +131,22 @@ public final class SessionManager {
 	}
 
 	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
-		exec(fn, localRequestCreator(name, stackLocation(), null), requestAppender());
+		exec(fn, localRequestCreator(name, stackLocation(), EXEC), requestAppender());
 	}
 	
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
-		return call(fn, localRequestCreator(name, stackLocation(), null), requestAppender());
+		return call(fn, localRequestCreator(name, stackLocation(), EXEC), requestAppender());
 	}
 
-	public static <T> StageCreator<T, LocalRequest> localRequestCreator(String name, String location, String user) {
+	public static <T> StageCreator<T, LocalRequest> localRequestCreator(String name, String location, LocalRequestType type) {
 		return (s,e,o,t)->{
 			var req = new LocalRequest();
 			req.setName(name);
 			req.setLocation(location);
-			req.setUser(user);
 			req.setStart(s);
 			req.setEnd(e);
 			req.setThreadName(threadName());
+			req.setType(isNull(type) ? null : type.name());
 			if(nonNull(t)) {
 				req.setException(mainCauseException(t));
 			}

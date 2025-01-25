@@ -7,8 +7,7 @@ package org.usf.inspect.core;
  */
 public enum MainSessionType {
 
-	VIEW, //replace webapp
+	VIEW,
 	BATCH,
-	//v22
 	STARTUP;
 }
