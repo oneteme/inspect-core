@@ -5,6 +5,8 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.newInstance;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.LocalRequestType.CACHE;
+import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.endSession;
 import static org.usf.inspect.core.SessionManager.localRequestCreator;
@@ -19,6 +21,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.Ordered;
 
 import lombok.RequiredArgsConstructor;
@@ -49,6 +52,7 @@ public class MainSessionAspect implements Ordered {
     	}
     	return call(joinPoint::proceed, (s,e,o,t)-> {
 	    	var req = new LocalRequest();
+	    	req.setType(EXEC.name());
 			fill(req, s, e, joinPoint, t);
 			return req;
 		}, requestAppender());
@@ -57,8 +61,10 @@ public class MainSessionAspect implements Ordered {
     @Around("@annotation(org.springframework.cache.annotation.Cacheable)")
     Object aroundCacheable(ProceedingJoinPoint joinPoint) throws Throwable {
     	var sign = joinPoint.getSignature();
+    	var annt = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(Cacheable.class);
+    	var name = isNull(annt) || annt.key().isEmpty() ? sign.getName() : annt.key();
     	return call(joinPoint::proceed, 
-    			localRequestCreator(sign.getName(), formatLocation(sign.getDeclaringTypeName(), sign.getName()), null), 
+    			localRequestCreator(name, formatLocation(sign.getDeclaringTypeName(), sign.getName()), CACHE), 
     			requestAppender());
     }
     
@@ -69,7 +75,6 @@ public class MainSessionAspect implements Ordered {
 		stg.setName(ant.value().isBlank() ? joinPoint.getSignature().getName() : ant.value());
 		stg.setLocation(joinPoint.getSignature().getDeclaringTypeName());
 		stg.setThreadName(threadName());
-		stg.setUser(null); // default user supplier
 		stg.setException(mainCauseException(e));
     	if(ant.sessionUpdater() != StageUpdater.class) { //specific.
     		newInstance(ant.sessionUpdater())

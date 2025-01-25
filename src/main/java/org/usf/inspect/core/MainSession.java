@@ -20,7 +20,7 @@ import lombok.Setter;
 public class MainSession extends LocalRequest implements Session {
 	
 	private String id;
-	private String type; //@see MainSessionType
+//	inherits String type //@see MainSessionType
 	private List<RestRequest> restRequests;
 	private List<DatabaseRequest> databaseRequests;
 	private List<LocalRequest> localRequests;
@@ -30,9 +30,4 @@ public class MainSession extends LocalRequest implements Session {
 	private List<NamingRequest> ldapRequests;
 
 	private final AtomicInteger lock = new AtomicInteger();
-	
-	@Override
-	public String toString() {
-		return '['+type+']'+ super.toString();
-	}
 }
