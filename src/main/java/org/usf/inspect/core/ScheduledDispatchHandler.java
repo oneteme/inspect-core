@@ -91,10 +91,11 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 
     private void dispatch(boolean complete) {
     	var cs = queue.pop(filter);
-        if(!cs.isEmpty()) {
+    	var pg = queue.size(); // ~pending + delta
+        if(!cs.isEmpty() || complete) {
 	        log.trace("scheduled dispatch of {} items...", cs.size());
 	        try {
-	        	if(dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs))) {
+	        	if(dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs), pg)) {
 	        		if(attempts > 1) { //more than one attempt
 	        			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);
 	        		}
@@ -142,7 +143,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
-		boolean dispatch(boolean complete, int attempts, List<T> list) throws Exception; //TD return List<T> dispatched sessions
+		boolean dispatch(boolean complete, int attempts, List<T> list, int pending) throws Exception; //TD return List<T> dispatched sessions
 	}
 	
 	private final class SafeQueue {
