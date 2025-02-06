@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.time.Duration.ofSeconds;
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
@@ -43,7 +44,7 @@ public final class InspectRestClient implements Dispatcher<Session> {
 	}
 	
 	@Override
-    public boolean dispatch(boolean complete, int attemps, List<Session> sessions) {
+    public boolean dispatch(boolean complete, int attemps, List<Session> sessions, int pending) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
 				instanceId = template.postForObject(properties.getInstanceApi(), application, String.class);
@@ -53,7 +54,7 @@ public final class InspectRestClient implements Dispatcher<Session> {
 			}
 		} 
     	if(nonNull(instanceId)) {
-    		template.put(properties.getSessionApi(), sessions.toArray(Session[]::new), instanceId);
+    		template.put(properties.getSessionApi(), sessions.toArray(Session[]::new), instanceId, pending, complete ? now() : null);
     		return true;
     	}
     	return false;
