@@ -41,10 +41,10 @@ jobs:
   release:
     needs: deploy
     runs-on: ubuntu-latest
-    if: "!endsWith(needs.deploy.outputs.version, '-SNAPSHOT')"
     steps:
     - uses: oneteme/automation-scripts/.github/actions/github-release-notes@main
       with:
         version: ${{ needs.deploy.outputs.version }}
+        draft: endsWith(needs.deploy.outputs.version, '-SNAPSHOT')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
