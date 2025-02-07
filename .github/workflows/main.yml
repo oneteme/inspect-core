@@ -42,3 +42,17 @@ jobs:
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+    - uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
+      id: prj_ver
+    outputs:
+      version: ${{ steps.prj_ver.outputs.version }}
+  release:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+    - uses: oneteme/automation-scripts/.github/actions/github-release-notes@main
+      with:
+        version: ${{ needs.deploy.outputs.version }}
+        draft: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
