@@ -23,7 +23,7 @@ public final class RestClientProperties {
 	
 	private String host = "http://localhost:9000";
 	private String instanceApi = "v3/trace/instance"; //[POST] async
-	private String sessionApi  = "v3/trace/instance/{id}/session?pending={}&end={}"; //[PUT] async
+	private String sessionApi  = "v3/trace/instance/{id}/session?pending={pending}&end={end}"; //[PUT] async
 	private int compressMinSize = 0; //in bytes, 0 no compress
 	
 	void validate() {
