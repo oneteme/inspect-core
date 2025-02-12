@@ -27,7 +27,9 @@ public final class DatabaseRequestStage extends RequestStage {
 	public String prettyFormat() {
 		var s = getName();
 		if(nonNull(commands)) {
-			s += " ~ " + Stream.of(commands).map(Enum::name).collect(joining(", "));
+			s += " ~ " + Stream.of(commands)
+			.map(c-> nonNull(c) ? c.name() : "?")
+			.collect(joining(", "));
 		}
 		if(nonNull(count)) {// !exception
 			s += " >> " + Arrays.toString(count);
