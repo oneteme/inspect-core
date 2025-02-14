@@ -42,7 +42,9 @@ jobs:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
   release:
-    needs: deploy
+    needs:
+    - build
+    - deploy
     runs-on: ubuntu-latest
     steps:
     - uses: oneteme/automation-scripts/.github/actions/github-release-notes@main
