@@ -20,15 +20,14 @@ jobs:
     - uses: oneteme/automation-scripts/.github/actions/mvn-scan-project@main
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    - name: extract version
+    - uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
       id: prj_ver
-      uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
     outputs:
       version: ${{ steps.prj_ver.outputs.version }}
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref_name == 'main' && endsWith(needs.build.outputs.version, '-SNAPSHOT')
+    if: github.ref_name == 'main' && endsWith(needs.build.outputs.version, '-SNAPSHOT') #staging
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v4
@@ -42,10 +41,6 @@ jobs:
       env:
         MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-    - uses: oneteme/automation-scripts/.github/actions/mvn-project-version@main
-      id: prj_ver
-    outputs:
-      version: ${{ steps.prj_ver.outputs.version }}
   release:
     needs: deploy
     runs-on: ubuntu-latest
