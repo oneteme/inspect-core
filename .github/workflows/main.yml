@@ -47,7 +47,7 @@ jobs:
     steps:
     - uses: oneteme/automation-scripts/.github/actions/github-release-notes@main
       with:
-        version: ${{ needs.deploy.outputs.version }}
+        version: ${{ needs.build.outputs.version }}
         draft: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
