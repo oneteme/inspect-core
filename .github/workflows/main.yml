@@ -25,9 +25,9 @@ jobs:
     outputs:
       version: ${{ steps.prj_ver.outputs.version }}
   deploy:
+    if: github.ref_name == 'main' && endsWith(needs.build.outputs.version, '-SNAPSHOT') #staging
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref_name == 'main' && endsWith(needs.build.outputs.version, '-SNAPSHOT') #staging
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v4
