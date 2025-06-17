@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.lang.Runtime.getRuntime;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -11,7 +12,6 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
 import static org.usf.inspect.core.SessionManager.endStatupSession;
 import static org.usf.inspect.core.SessionManager.startupSession;
-import static org.usf.inspect.core.SessionPublisher.complete;
 import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.SessionPublisher.register;
 
@@ -41,7 +41,6 @@ import org.usf.inspect.rest.ControllerAdviceTracker;
 import org.usf.inspect.rest.RestRequestInterceptor;
 import org.usf.inspect.rest.RestSessionFilter;
 
-import jakarta.annotation.PreDestroy;
 import jakarta.servlet.Filter;
 
 /**
@@ -56,7 +55,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	
 	private final InspectConfigurationProperties config;
 	private final InstanceEnvironment instance;
-	private volatile boolean ready = true;
 
 	private RestSessionFilter sessionFilter;
 	
@@ -69,6 +67,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 				provider.getEnvironment());
 		this.config = conf.validate();
 		initStatupSession();
+		getRuntime().addShutdownHook(new Thread(SessionPublisher::complete, "shutdown-hook"));
 		if(log.isDebugEnabled()) {
 			register(new SessionLogger()); //log first
 		}
@@ -128,13 +127,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	return new MainSessionAspect();
     }
     
-    @PreDestroy
-    void shutdown() {
-    	if(ready) { //important! PreDestroy called before ApplicationFailedEvent
-    		complete();
-    	}
-    }
-    
     private RestSessionFilter sessionFilter() {
     	if(isNull(sessionFilter)) {
     		sessionFilter = new RestSessionFilter(config.getTrack().getRestSession()); //conf !null
@@ -144,7 +136,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     void initStatupSession(){
 		if(config.getTrack().isStartupSession()) {
-			ready = false;
 	    	startupSession();
 		}
     }
@@ -152,7 +143,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
 		if(config.getTrack().isStartupSession() && (e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent)) {
-			ready = true;
 			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 		}
 	}
@@ -168,12 +158,9 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	    	ses.setStart(instance.getInstant());
     			ses.setEnd(end);
 				ses.setException(mainCauseException(e)); //nullable
-				emit(ses);
     		}
     		finally {
-				if(nonNull(e)) {
-					complete();
-				}
+				emit(ses);
 			}
     	}
 	}

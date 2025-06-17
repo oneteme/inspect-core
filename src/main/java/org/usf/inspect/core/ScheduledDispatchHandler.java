@@ -27,7 +27,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
-	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
+	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(r->{
+		var t = new Thread(r);
+		t.setName("inspect-scheduler");
+		t.setDaemon(true);
+		return t;
+	});
 	
     private final ScheduledDispatchProperties properties;
     private final Dispatcher<T> dispatcher;
