@@ -51,6 +51,7 @@ public final class InspectRestClient implements Dispatcher<Session> {
 			}
 			catch (Exception e) {
 				log.warn("cannot register instance, {}", e.getMessage());
+				throw e;
 			}
 		} 
     	if(nonNull(instanceId)) {

@@ -28,10 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
 	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(r->{
-		var t = new Thread(r);
-		t.setName("inspect-scheduler");
-		t.setDaemon(true);
-		return t;
+		var thr = new Thread(r, "inspect-schduler");
+ 		thr.setDaemon(true);
+ 		thr.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception", e));
+		return thr;
 	});
 	
     private final ScheduledDispatchProperties properties;
@@ -111,10 +111,10 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	    		log.warn("failed to dispatch {} items after {} attempts, cause: [{}] {}", 
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
 			}
-	    	catch (Throwable e) {
-	    		log.error("failed to dispatch {} items after {} attempts", cs.size(), attempts, e);
-    			throw e;
-			}
+	        catch (OutOfMemoryError e) {
+				log.error("out of memory error while dispatching {} items, those will be aborted", cs.size());
+				attempts = 0; //reset attempts, may release memory
+	        }
 	        finally {
 		        if(attempts > 0) { //exception | !dispatch
 		        	queue.addAll(0, cs); //back to queue
@@ -133,7 +133,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     	log.info("shutting down the scheduler service...");
     	try {
     		executor.shutdown(); //cancel schedule
-    		updateState(DISABLE); //stop add items  wait for last dispatch
+    		updateState(DISABLE); //stop add items after waiting for last dispatch
     		if(stt == DISPACH) {
 				dispatch(true); //complete signal
     		}

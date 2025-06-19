@@ -5,8 +5,6 @@ import static org.usf.inspect.core.Helper.prettyURLFormat;
 
 import java.util.List;
 
-import org.usf.inspect.jdbc.SqlCommand;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -28,8 +26,6 @@ public class DatabaseRequest extends SessionStage {
 	private String productName;
 	private String productVersion;
 	private List<DatabaseRequestStage> actions;
-	@Deprecated(forRemoval = true, since = "v19")
-	private List<SqlCommand> commands;
 	//java-collector
 	
 	public boolean isCompleted() {
