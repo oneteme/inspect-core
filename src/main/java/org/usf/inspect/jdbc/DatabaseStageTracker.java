@@ -261,7 +261,6 @@ public class DatabaseStageTracker {
 				req.setDriverVersion(info.driverVersion());
 			}
 			req.setActions(new ArrayList<>(4)); //cnx, stmt, exec, dec
-			req.setCommands(new ArrayList<>(1));
 			req.append(databaseActionCreator(CONNECTION).create(s, e, cn, t));
 			return req;
 		}, requestAppender());

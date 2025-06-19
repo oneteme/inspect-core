@@ -20,7 +20,7 @@ public @interface TraceableStage {
 	 * require default constructor
 	 * 
 	 */
-	Class<? extends StageUpdater> sessionUpdater() default StageUpdater.class;
+	Class<? extends StageUpdater> sessionUpdater() default StageUpdater.class; //use spring bean (primary + )
 	
 	//boolean enabled() default true
 }

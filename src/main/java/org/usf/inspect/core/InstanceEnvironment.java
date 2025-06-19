@@ -35,7 +35,6 @@ public class InstanceEnvironment {
 	private final InstanceType type; //server, client
 	private final Instant instant; //startup time
 	private final String collector; //spring-collector-xx, ng-collector-xx,..
-	//v19
 	private final String branch; //branch name
 	private final String hash; //commit hash
 	
@@ -45,7 +44,7 @@ public class InstanceEnvironment {
 				hostAddress(),
 				env,
 				getProperty("os.name"), //version ? window 10 / Linux
-				"java " + getProperty("java.version"),
+				"java/" + getProperty("java.version"),
 				getProperty("user.name"),
 				SERVER,
 				start,
@@ -64,7 +63,7 @@ public class InstanceEnvironment {
 	}
 	
 	private static String collectorID() {
-		return "spring-collector-v" //use getImplementationTitle
+		return "spring-collector/" //use getImplementationTitle
 				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
 	}
 }

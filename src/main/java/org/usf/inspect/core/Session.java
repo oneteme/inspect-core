@@ -3,9 +3,15 @@ package org.usf.inspect.core;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.Helper.log;
+import static org.usf.inspect.core.Trace.Level.ERROR;
+import static org.usf.inspect.core.Trace.Level.INFO;
+import static org.usf.inspect.core.Trace.Level.WARN;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.usf.inspect.core.Trace.Level;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
@@ -35,6 +41,8 @@ public interface Session extends Metric {
 	List<MailRequest> getMailRequests();
 
 	List<NamingRequest> getLdapRequests();
+	
+	List<Trace> getTraces();
 	
 	AtomicInteger getLock();
 	
@@ -76,6 +84,23 @@ public interface Session extends Metric {
 			return true;
 		}
 		return nonNull(getEnd()) && c == 0;
+	}
+	
+
+	default void info(Level lvl, String msg) {
+		trace(INFO, msg);
+	}
+
+	default void warn(Level lvl, String msg) {
+		trace(WARN, msg);
+	}
+	
+	default void error(Level lvl, String msg) {
+		trace(ERROR, msg);
+	}
+	
+	default void trace(Level lvl, String msg) {
+		getTraces().add(new Trace(Instant.now(), lvl, msg));
 	}
 	
 	static String nextId() {

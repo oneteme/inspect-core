@@ -24,12 +24,13 @@ public class RestSession extends RestRequest implements Session, MutableStage {
 	private List<RestRequest> restRequests;	
 	private List<DatabaseRequest> databaseRequests;
 	private List<LocalRequest> localRequests; //RunnableStage
-	//v22
 	private List<FtpRequest> ftpRequests;
 	private List<MailRequest> mailRequests;
 	private List<NamingRequest> ldapRequests;
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
+	//v1.0.2
+	private List<Trace> traces;
 
 	private final AtomicInteger lock = new AtomicInteger();
 }

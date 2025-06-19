@@ -9,7 +9,7 @@ import java.util.Collection;
  * @author u$f
  *
  */
-final class SessionLogger implements SessionHandler<Session> {
+final class SessionLogger implements SessionHandler<Session> { //inspect.client.log : SESSION | REQUEST | STAGE
 
 	@Override //sync. avoid session log collision
 	public synchronized void handle(Session s) {
