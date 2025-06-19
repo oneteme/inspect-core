@@ -24,10 +24,11 @@ public class MainSession extends LocalRequest implements Session {
 	private List<RestRequest> restRequests;
 	private List<DatabaseRequest> databaseRequests;
 	private List<LocalRequest> localRequests;
-	//v22
 	private List<FtpRequest> ftpRequests;
 	private List<MailRequest> mailRequests;
 	private List<NamingRequest> ldapRequests;
+	//v1.0.2
+	private List<Trace> traces;
 
 	private final AtomicInteger lock = new AtomicInteger();
 }
