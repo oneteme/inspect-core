@@ -52,6 +52,28 @@ public final class StageTracker {
 		}
 	}
 	
+	public static <T, E extends Throwable> T call2(SafeCallable<T,E> fn, StageCreator2<? super T> stg) throws E {
+		T o = null;
+		Throwable t = null;
+		var cb = stg.beforeRun(now());
+		try {
+			return (o = fn.call());
+		}
+		catch(Throwable e) { //also error
+			t  = e;
+			throw e;
+		}
+		finally {
+			var e = now();
+			try {
+				cb.afterRun(e, o, t);
+			}
+			catch (Throwable ex) {// do not throw exception
+				log.warn("cannot collect stage metrics, {}:{}", ex.getClass().getSimpleName(), ex.getMessage());
+			}
+		}
+	}
+	
 	@FunctionalInterface
 	public static interface StageConsumer<T> {
 		
@@ -66,6 +88,16 @@ public final class StageTracker {
 		default StageConsumer<T> then(SafeConsumer<? super R> cons){
 			return (s,e,o,t)-> cons.accept(create(s, e, o, t));
 		}
+	}
+
+	public static interface StageCreator2<T> {
+		
+		StageCreator3<T> beforeRun(Instant start);
+	}
+	
+	public static interface StageCreator3<T> {
+		
+		void afterRun(Instant end, T o, Throwable t) throws Exception;
 	}
 
 	@FunctionalInterface

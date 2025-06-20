@@ -160,8 +160,17 @@ public final class SessionManager {
 				.orElse(null);
 	}
 	
+	@Deprecated
 	public static SafeConsumer<SessionStage> requestAppender() {
 		var ses = requireCurrentSession();
 		return isNull(ses) ? req->{} : ses::append;
+	}
+	
+
+	public static void appendStage(SessionStage stage) {
+		var ses = requireCurrentSession();
+		if(nonNull(ses)) {
+			ses.append(stage);
+		}
 	}
 }
