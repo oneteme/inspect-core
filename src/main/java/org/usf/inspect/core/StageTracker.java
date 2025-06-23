@@ -105,4 +105,10 @@ public final class StageTracker {
 		
 		void accept(T o) throws Exception;
 	}
+	
+	@FunctionalInterface
+	public static interface SafeBiConsumer<T,U> {
+		
+		void accept(T o, U u) throws Exception;
+	}
 }

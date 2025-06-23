@@ -17,6 +17,7 @@ import static org.usf.inspect.core.StageTracker.call;
 import static org.usf.inspect.core.StageTracker.exec;
 
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
+import org.usf.inspect.core.Session.Task;
 import org.usf.inspect.core.StageTracker.SafeConsumer;
 import org.usf.inspect.core.StageTracker.StageCreator;
 
@@ -167,10 +168,18 @@ public final class SessionManager {
 	}
 	
 
-	public static void appendStage(SessionStage stage) {
+//	public static void appendStage(SessionStage stage) {
+//		var ses = requireCurrentSession();
+//		if(nonNull(ses)) {
+//			ses.append(stage);
+//		}
+//	}
+	
+
+	public static void submit(Task task) {
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
-			ses.append(stage);
+			ses.submit(task);
 		}
 	}
 }

@@ -17,7 +17,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonTypeName("rest")
-@JsonIgnoreProperties("lock")
+@JsonIgnoreProperties({"lock", "tasks"})
 public class RestSession extends RestRequest implements Session, MutableStage {
 
 	private String name;
@@ -31,6 +31,25 @@ public class RestSession extends RestRequest implements Session, MutableStage {
 	private String cacheControl; //max-age, no-cache
 	//v1.0.2
 	private List<Trace> traces;
+	private List<Runnable> tasks;
+	private volatile boolean lazy;
+	private final Object mutex = new Object();
 
 	private final AtomicInteger lock = new AtomicInteger();
+	
+	public void submit(Runnable run) {
+		synchronized (mutex) {
+			if(lazy) {
+				tasks.add(run);
+			} else {
+				run.run();
+			}
+		}
+	}
+	
+	public void setLazy(boolean lazy) {
+		synchronized (mutex) {
+			this.lazy = lazy;
+		}
+	}
 }

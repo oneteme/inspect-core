@@ -1,12 +1,11 @@
 package org.usf.inspect.naming;
 
-import static java.net.URI.create;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.appendStage;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.SessionManager.submit;
 import static org.usf.inspect.naming.NamingAction.ATTRIB;
 import static org.usf.inspect.naming.NamingAction.CONNECTION;
 import static org.usf.inspect.naming.NamingAction.DISCONNECTION;
@@ -14,7 +13,10 @@ import static org.usf.inspect.naming.NamingAction.LIST;
 import static org.usf.inspect.naming.NamingAction.LOOKUP;
 import static org.usf.inspect.naming.NamingAction.SEARCH;
 
+import java.net.URI;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.function.Function;
 
 import javax.naming.Name;
 import javax.naming.NameClassPair;
@@ -25,10 +27,10 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
+import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.NamingRequest;
 import org.usf.inspect.core.NamingRequestStage;
 import org.usf.inspect.core.SafeCallable;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorFactory;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
@@ -43,7 +45,11 @@ public class DirContextTracker implements DirContext {
 	
 	@Delegate
 	private final DirContext ctx;
-	private final NamingRequest req;
+	private NamingRequest req;
+	
+	public DirContextTracker(SafeCallable<DirContext, RuntimeException> fn) {
+		this.ctx = call(fn, toNamingRequest());
+	}
 
 	@Override
 	public Object lookup(Name name) throws NamingException {
@@ -126,52 +132,62 @@ public class DirContextTracker implements DirContext {
 	
 	@Override
 	public void close() throws NamingException {
-		exec(ctx::close, namingActionCreator(DISCONNECTION));
-	}
-
-
-	<T> ExecutionMonitorFactory<T> namingActionCreator(NamingAction action, String... args) {
-		return namingActionCreator(req, action, args);
+		exec(ctx::close, (s,e,o,t)-> submit(ses-> {
+			req.append(newStage(DISCONNECTION, s, e, t));
+			req.setEnd(e);
+		}));
 	}
 	
 	//dummy spring org.springframework.ldap.NamingException
-	public static DirContextTracker context(SafeCallable<DirContext, RuntimeException> fn) {
-		var req = new NamingRequest();
-		var ctx = call(fn, s-> {
-			req.setStart(s);
- 			req.setThreadName(threadName());
-			req.setActions(new ArrayList<>(3)); //cnx, act, dec
-			appendStage(req);
-			ExecutionMonitorFactory<DirContext> stg = namingActionCreator(req, CONNECTION);
-			return stg.get(s).then((e,o,t)->{
-	 			if(nonNull(o)) {
-	 	 			var url = create(o.getEnvironment().get(PROVIDER_URL).toString());
+	ExecutionMonitorListener<DirContext> toNamingRequest() {
+		req = new NamingRequest();
+		return (s,e,o,t)->{
+			req.setThreadName(threadName());
+			var url = getEnvironmentVariable(o, PROVIDER_URL, v-> URI.create(v.toString()));  //broke context dependency
+			var user = getEnvironmentVariable(o, SECURITY_PRINCIPAL, Object::toString); //broke context dependency
+			submit(ses-> {
+				req.setStart(s);
+				if(nonNull(t)) { //if connection error
+					req.setEnd(e);
+				}
+	 			if(nonNull(url)) {
 	 				req.setProtocol(url.getScheme());
 	 				req.setHost(url.getHost());
 	 				req.setPort(url.getPort());
-	 				req.setUser(o.getEnvironment().get(SECURITY_PRINCIPAL).toString());
+	 				req.setUser(user);
 	 			}
+				req.setActions(new ArrayList<>(nonNull(t) ? 1 : 3)); //cnx, act, dec
+				req.append(newStage(CONNECTION, s, e, t));
+				ses.append(req);
 			});
-		});
-		return new DirContextTracker(ctx, req);
+		};
+	}
+	
+	<T> ExecutionMonitorListener<T> namingActionCreator(NamingAction action, String... args) {
+		return (s,e,o,t)-> submit(ses-> req.append(newStage(action, s, e, t, args)));
+	}
+	
+	static NamingRequestStage newStage(NamingAction action, Instant start, Instant end, Throwable t, String... args) {
+		var stg = new NamingRequestStage();
+		stg.setName(action.name());
+		stg.setStart(start);
+		stg.setEnd(end);
+		stg.setArgs(args);
+		if(nonNull(t)) {
+			stg.setException(mainCauseException(t));
+		}
+		return stg;
+	}
+	
+	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {
+		var env = o.getEnvironment();
+		if(nonNull(env) && env.containsKey(key)) {
+			return fn.apply(env.get(key));
+		}
+		return null;
 	}
 
-	static <T> ExecutionMonitorFactory<T> namingActionCreator(NamingRequest req, NamingAction action, String... args) {
-		return s-> {
-			var stg = new NamingRequestStage();
-			stg.setName(action.name());
-			stg.setStart(s);
-			stg.setArgs(args);
-			req.append(stg); //at after setting
-			return (e, o, t) -> {
-				if(nonNull(t)) {
-					stg.setException(mainCauseException(t));
-				}
-				stg.setEnd(e);
-				if(action == DISCONNECTION || (action == CONNECTION && nonNull(t))) {
-					req.setEnd(e);
-				}
-			};
-		};
+	public static DirContextTracker context(SafeCallable<DirContext, RuntimeException> fn) {
+		return new DirContextTracker(fn);
 	}
 }

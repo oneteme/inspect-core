@@ -15,7 +15,8 @@ import lombok.Setter;
 @Setter
 @Getter
 public class MailRequest extends SessionStage {
-	
+
+	private String protocol;
 	private String host;
 	private int port;
 	private List<MailRequestStage> actions;

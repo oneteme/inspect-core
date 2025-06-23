@@ -69,6 +69,10 @@ public interface Session extends Metric {
 		return false;
 	}
 	
+	default void submit(Task stage) {
+		//TODO
+	}
+	
 	default void lock(){ //must be called before session end
 		getLock().incrementAndGet();
 	}
@@ -105,5 +109,10 @@ public interface Session extends Metric {
 	
 	static String nextId() {
 		return randomUUID().toString();
+	}
+	
+	public interface Task {
+		
+		void run(Session session) throws Exception;
 	}
 }
