@@ -4,6 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
 import java.net.URI;
+import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +16,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class RestRequest extends SessionStage { //APiRequest
+public class RestRequest extends SessionStage<HttpRequestStage> { //APiRequest
 
 	private String id; // <= Traceable server
 	private String method; //GET, POST, PUT,..
@@ -24,14 +25,19 @@ public class RestRequest extends SessionStage { //APiRequest
 	private int port; // positive number, -1 otherwise
 	private String path; //request path
 	private String query; //request parameters
-	private String contentType; //text/html, application/json, application/xml,..
+	private String contentType; //text/html, application/json, application/xml,.. in/out ?
 	private String authScheme; //Basic, Bearer, Digest, OAuth,..
 	private int status; //2xx, 4xx, 5xx, 0 otherwise
 	private long inDataSize; //in bytes, -1 unknown
 	private long outDataSize; //in bytes, -1 unknown
+	@Deprecated(since = "v1.1", forRemoval = true)
 	private ExceptionInfo exception;
 	private String inContentEncoding; //gzip, compress, identity,..
 	private String outContentEncoding; //gzip, compress, identity,..
+
+	//v1.1.0
+	private String bodyContent; //incoming content, //4xx, 5xx only
+	private List<HttpRequestStage> actions; //WRITE,READ,EXCHANGE
 	// => in/out Content [type, size, encoding]
 	//rest-collector
 	
@@ -41,6 +47,11 @@ public class RestRequest extends SessionStage { //APiRequest
 		setPort(uri.getPort());
 		setPath(uri.getPath());
 		setQuery(uri.getQuery());
+	}
+	
+	@Override
+	public boolean append(HttpRequestStage stage) {
+		return actions.add(stage);
 	}
 	
 	@Override

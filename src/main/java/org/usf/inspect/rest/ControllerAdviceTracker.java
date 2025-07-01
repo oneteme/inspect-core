@@ -28,7 +28,7 @@ public class ControllerAdviceTracker {
 					.findFirst() //trying to find the exception argument
 					.map(Throwable.class::cast)
 					.map(ExceptionInfo::mainCauseException)
-					.ifPresent(ses::setException);
+					.ifPresent(ses::appendException);
 		}
 		return joinPoint.proceed();
     }

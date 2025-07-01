@@ -13,12 +13,17 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class LocalRequest extends SessionStage implements MutableStage {
+public class LocalRequest extends SessionStage<Void> { //TODO extends RequestStage
 
 	private String name; //method, title
 	private String location; //class, URL
 	private String type;
 	private ExceptionInfo exception; 
+	
+	@Override
+	boolean append(Void stage) {
+		throw new UnsupportedOperationException("LocalRequest does not support append stage");
+	}
 	
 	@Override
 	String prettyFormat() {

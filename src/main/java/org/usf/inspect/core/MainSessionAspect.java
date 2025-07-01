@@ -1,21 +1,18 @@
 package org.usf.inspect.core;
 
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.Helper.formatLocation;
-import static org.usf.inspect.core.Helper.newInstance;
+import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
+import static org.usf.inspect.core.SessionManager.asynclocalRequestListener;
 import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.endSession;
-import static org.usf.inspect.core.SessionManager.localRequestCreator;
-import static org.usf.inspect.core.SessionManager.requestAppender;
 import static org.usf.inspect.core.SessionManager.startBatchSession;
 import static org.usf.inspect.core.SessionPublisher.emit;
-import static org.usf.inspect.core.StageTracker.call;
-
-import java.time.Instant;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -35,53 +32,58 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MainSessionAspect implements Ordered {
 	
+	private final AspectUserProvider userProvider;
+	 
     @Around("@annotation(TraceableStage)")
-    Object aroundBatch(ProceedingJoinPoint joinPoint) throws Throwable {
-		var ses = currentSession();
-    	if(isNull(ses)) { //STARTUP session
-        	var ms = startBatchSession();
-        	try {
-            	return call(joinPoint::proceed, (s,e,o,t)-> {
-        			fill(ms, s, e, joinPoint, t);
-        			emit(ms);
-            	});
-        	}
-        	finally {
-    			endSession();
-        	}
-    	}
-    	return call(joinPoint::proceed, (s,e,o,t)-> {
-	    	var req = new LocalRequest();
-	    	req.setType(EXEC.name());
-			fill(req, s, e, joinPoint, t);
-			return req;
-		}, requestAppender());
+    Object aroundTraceable(ProceedingJoinPoint point) throws Throwable {
+		var session = currentSession();
+    	return isNull(session) 
+    			? aroundBatch(point) 
+    			: aroundStage(point);
     }
+    
+    Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
+    	var main = startBatchSession();
+    	try {
+    		main.setStart(now());
+        	main.setThreadName(threadName());
+        	main.setUser(userProvider.getUser(point, main.getName()));         
+        	var sgn = point.getSignature();
+        	var ant = ((MethodSignature)sgn).getMethod().getAnnotation(TraceableStage.class);
+    		main.setName(ant.value().isEmpty() ? sgn.getName() : ant.value());
+    		main.setLocation(sgn.getDeclaringTypeName());   
+    	}
+    	finally {
+			emit(main);
+		}
+    	return call(point::proceed, (s,e,o,t)-> {
+    		main.submit(ses-> {
+    			if(nonNull(t)) {
+    				main.appendException(mainCauseException(t));
+    			}
+    			main.setEnd(e);
+    		});
+			endSession();
+    	});
+	}
+    
+    Object aroundStage(ProceedingJoinPoint point) throws Throwable {
+    	var sgn = (MethodSignature)point.getSignature();
+    	var ant = sgn.getMethod().getAnnotation(TraceableStage.class);
+    	return call(point::proceed, asynclocalRequestListener(EXEC, 
+    			sgn::getDeclaringTypeName,
+    			()-> ant.value().isEmpty() ? sgn.getName() : ant.value()));
+	}
     
     @Around("@annotation(org.springframework.cache.annotation.Cacheable)")
-    Object aroundCacheable(ProceedingJoinPoint joinPoint) throws Throwable {
-    	var sign = joinPoint.getSignature();
-    	var annt = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(Cacheable.class);
-    	var name = isNull(annt) || annt.key().isEmpty() ? sign.getName() : annt.key();
-    	return call(joinPoint::proceed, 
-    			localRequestCreator(name, formatLocation(sign.getDeclaringTypeName(), sign.getName()), CACHE), 
-    			requestAppender());
+    Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
+    	var sgn = (MethodSignature)point.getSignature();
+    	var ant = sgn.getMethod().getAnnotation(Cacheable.class);
+    	return call(point::proceed, asynclocalRequestListener(CACHE, 
+    			sgn::getDeclaringTypeName,
+    			()-> ant.key().isEmpty() ? sgn.getName() : ant.key()));
     }
     
-    static void fill(LocalRequest stg, Instant start, Instant end, ProceedingJoinPoint joinPoint, Throwable e) {
-    	var ant = ((MethodSignature)joinPoint.getSignature()).getMethod().getAnnotation(TraceableStage.class);
-		stg.setStart(start);
-		stg.setEnd(end);
-		stg.setName(ant.value().isBlank() ? joinPoint.getSignature().getName() : ant.value());
-		stg.setLocation(joinPoint.getSignature().getDeclaringTypeName());
-		stg.setThreadName(threadName());
-		stg.setException(mainCauseException(e));
-    	if(ant.sessionUpdater() != StageUpdater.class) { //specific.
-    		newInstance(ant.sessionUpdater())
-    		.ifPresent(u-> u.update(stg, joinPoint));
-    	}
-    }
-
 	@Override
 	public int getOrder() { //before @Transactional
 		return HIGHEST_PRECEDENCE;

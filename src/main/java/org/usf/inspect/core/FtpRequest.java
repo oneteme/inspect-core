@@ -13,7 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class FtpRequest extends SessionStage {
+public class FtpRequest extends SessionStage<FtpRequestStage> {
 
 	private String protocol; //FTP, FTPS
 	private String host;
@@ -28,6 +28,7 @@ public class FtpRequest extends SessionStage {
 		return prettyURLFormat(getUser(), protocol, host, port, null);
 	}
 
+	@Override
 	public boolean append(FtpRequestStage action) {
 		return actions.add(action);
 	}

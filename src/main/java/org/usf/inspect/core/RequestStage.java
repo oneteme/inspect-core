@@ -17,10 +17,11 @@ import lombok.Setter;
 @Setter
 public abstract class RequestStage implements Metric {
 
-	private String name;
+	private String name; //rename to type
 	private Instant start;
 	private Instant end;
-	private ExceptionInfo exception; 
+	private ExceptionInfo exception;
+//	private String threadName
 	
 	@Override
 	public String toString() {

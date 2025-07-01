@@ -14,7 +14,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class NamingRequest extends SessionStage {
+public class NamingRequest extends SessionStage<NamingRequestStage> {
 	
 	private String protocol; // ldap, ldaps
 	private String host;  //IP, domain
@@ -22,11 +22,12 @@ public class NamingRequest extends SessionStage {
 	private List<NamingRequestStage> actions;
 
 	@Override
-	String prettyFormat() {
-		return prettyURLFormat(getUser(), protocol, host, port, null);
-	}
-	
 	public boolean append(NamingRequestStage action) {
 		return actions.add(action);
+	}
+	
+	@Override
+	String prettyFormat() {
+		return prettyURLFormat(getUser(), protocol, host, port, null);
 	}
 }

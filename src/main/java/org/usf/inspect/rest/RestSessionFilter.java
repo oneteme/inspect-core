@@ -1,8 +1,8 @@
 package org.usf.inspect.rest;
 
-import static jakarta.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import static java.lang.String.join;
 import static java.net.URI.create;
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
@@ -14,16 +14,16 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
+import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
-import static org.usf.inspect.core.Helper.newInstance;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.endSession;
+import static org.usf.inspect.core.HttpAction.ASYNC;
+import static org.usf.inspect.core.HttpAction.EXEC;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.core.SessionManager.startRestSession;
 import static org.usf.inspect.core.SessionManager.updateCurrentSession;
 import static org.usf.inspect.core.SessionPublisher.emit;
-import static org.usf.inspect.core.StageTracker.exec;
-import static org.usf.inspect.core.StageUpdater.getUser;
+import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 
 import java.io.IOException;
 import java.net.URI;
@@ -37,9 +37,10 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.RestSession;
 import org.usf.inspect.core.RestSessionTrackConfiguration;
-import org.usf.inspect.core.StageUpdater;
 import org.usf.inspect.core.TraceableStage;
 
 import jakarta.servlet.FilterChain;
@@ -55,13 +56,15 @@ import jakarta.servlet.http.HttpServletResponse;
 public final class RestSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 
 	static final String ASYNC_SESSION = RestSessionFilter.class.getName() + ".asyncSession";
+	
+	private final HttpUserProvider userProvider;
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	static final String TRACE_HEADER = "x-tracert";
 
 	private final Predicate<HttpServletRequest> excludeFilter;
 
-	public RestSessionFilter(RestSessionTrackConfiguration config) {
+	public RestSessionFilter(RestSessionTrackConfiguration config, HttpUserProvider userProvider) {
 		Predicate<HttpServletRequest> pre = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
@@ -75,6 +78,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 			}
 		}
 		this.excludeFilter = pre;
+		this.userProvider = userProvider;
 	}
 	
 	@Override
@@ -84,58 +88,72 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-		var att = (RestSession) req.getAttribute(ASYNC_SESSION);
-		if(nonNull(att)) {
-			updateCurrentSession(att); //different thread
-		}
-		else {
-			att = startRestSession();
-			res.addHeader(TRACE_HEADER, att.getId());  //add headers before doFilter
-			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
-		}
-		var in = att;
+		var ses = traceRestSession(req, res);
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
-			exec(()-> filterChain.doFilter(req, res), (s,e,o,t)-> {
-				if(!isAsyncDispatch(req)) { // asyncStarted || sync
-					in.setStart(s);
-					in.setThreadName(threadName());
-					in.setMethod(req.getMethod());
-					in.setURI(fromRequest(req));
-					in.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
-					in.setInDataSize(req.getContentLength());
-					in.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
-					in.setUserAgent(req.getHeader(USER_AGENT));
-				}
-				if(!isAsyncStarted(req)) { // asyncDispatch || sync
-					in.setEnd(e);
-					in.setStatus(res.getStatus());
-					in.setOutDataSize(res.getBufferSize()); //!exact size
-					in.setOutContentEncoding(res.getHeader(CONTENT_ENCODING)); 
-					in.setCacheControl(res.getHeader(CACHE_CONTROL));
-					in.setContentType(res.getContentType());
-				}
-				else { //asyncStarted
-					req.setAttribute(ASYNC_SESSION, in);
-				}
-				if(nonNull(t)) { //IO | CancellationException | ServletException => no ErrorHandler
-					in.setStatus(SC_INTERNAL_SERVER_ERROR); // overwrite default response status
-					in.setException(mainCauseException(t));
-				}
-			});	
+			exec(()-> filterChain.doFilter(req, res), restSessionListener(ses, req, res));	
 		}
 		catch (IOException | ServletException | RuntimeException e) {
 			throw e;
 		}
-		catch (Exception e) { //should never happen
+		catch (Exception e) {//should never happen
 			throw new IllegalStateException(e); 
 		}
-		finally {
-			if(!isAsyncStarted(req)) {
-				endSession();
-				emit(in);
+	}
+	
+	private RestSession traceRestSession(HttpServletRequest req, HttpServletResponse res) {
+		var ses = (RestSession) req.getAttribute(ASYNC_SESSION);
+		if(isNull(ses)) {
+			ses = startRestSession();
+			try {
+				res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
+				res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
+				ses.setStart(now());
+				ses.setThreadName(threadName());
+				ses.setMethod(req.getMethod());
+				ses.setURI(fromRequest(req));
+				ses.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
+				ses.setInDataSize(req.getContentLength());
+				ses.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
+				ses.setUserAgent(req.getHeader(USER_AGENT));
+			} finally {
+				emit(ses);
 			}
 		}
+		else { // async
+			updateCurrentSession(ses); //different thread
+		}
+		return ses;
+	}
+	
+	private ExecutionMonitorListener<Void> restSessionListener(RestSession in, HttpServletRequest req, HttpServletResponse res) {
+		if(!isAsyncStarted(req)) { //!Async || isAsyncDispatch
+			return (s,e,o,t)-> {
+				var sttt = nonNull(res) ? res.getStatus() : 0;
+				var size = nonNull(res) ? res.getBufferSize() : null; //!exact size
+				var encd = nonNull(res) ? res.getHeader(CONTENT_ENCODING) : null; 
+				var cach = nonNull(res) ? res.getHeader(CACHE_CONTROL) : null;
+				var cntt = nonNull(res) ? res.getContentType() : null;
+				in.submit(ses->{
+					in.setStatus(sttt);
+					in.setOutDataSize(size); //!exact size
+					in.setOutContentEncoding(encd); 
+					in.setCacheControl(cach);
+					in.setContentType(cntt);
+					in.append(httpRequestStage(EXEC, s, e, t));
+					in.setEnd(e);
+				});
+			};
+		}
+		return (s,e,o,t)-> { // Async && isAsyncStarted
+			if(nonNull(t)) { //IO | CancellationException | ServletException => no ErrorHandler
+				req.setAttribute(ASYNC_SESSION, in);
+				in.submit(ses->{
+					in.append(httpRequestStage(ASYNC, s, e, t));
+					in.setEnd(e);
+				});
+			}
+		};
 	}
 
 	@Override
@@ -143,31 +161,31 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		return excludeFilter.test(request);
 	}
 	
-	@Override //Session stage !?
+	@Override //append stage !?
 	public void afterCompletion(HttpServletRequest req, HttpServletResponse res, Object handler, Exception ex) throws Exception {
-		var hm = (handler instanceof HandlerMethod o) ? o : null;
- 		if(!shouldNotFilter(req) && (isNull(hm) || BasicErrorController.class != hm.getBean().getClass())) { //exclude spring controller, called twice : after throwing exception
+		var mth = (handler instanceof HandlerMethod o) ? o : null;
+ 		if(!shouldNotFilter(req) && (isNull(mth) || BasicErrorController.class != mth.getBean().getClass())) { //exclude spring controller, called twice : after throwing exception
 			var ses = requireCurrentSession(RestSession.class); 
 			if(nonNull(ses)) {
-				ses.setName(defaultEndpointName(req));
-				ses.setUser(getUser(req));
-				if(nonNull(ex) && isNull(ses.getException())) {//may be already set in Controller Advise
-					ses.setException(mainCauseException(ex));
+				String name = nonNull(mth) ? getNameFromAnnotation(mth) : null;
+				if(isNull(name)) {
+					name = defaultEndpointName(req);
 				}
-				if(nonNull(hm)) {//important! !static resource 
-					TraceableStage a = hm.getMethodAnnotation(TraceableStage.class);
-					if(nonNull(a)) {
-						if(!a.value().isBlank()) {
-							ses.setName(a.value());
-						}
-						if(a.sessionUpdater() != StageUpdater.class) {
-							newInstance(a.sessionUpdater())
-							.ifPresent(u-> u.update(ses, req));
-						}
-					}
+				ses.setName(name);
+				ses.setUser(userProvider.getUser(req, name));
+				if(nonNull(ex)) {//may be already set in Controller Advise
+					ses.appendException(mainCauseException(ex));
 				}
 			}
 		}
+	}
+	
+	private String getNameFromAnnotation(HandlerMethod mth) {
+		var ant = mth.getMethodAnnotation(TraceableStage.class);
+		if(nonNull(ant)) {
+			return ant.value().isEmpty() ? null : ant.value(); 
+		}
+		return null;
 	}
 
 	@SuppressWarnings("unchecked")

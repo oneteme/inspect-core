@@ -15,7 +15,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DatabaseRequest extends SessionStage {
+public class DatabaseRequest extends SessionStage<DatabaseRequestStage> {
 
 	private String scheme;
 	private String host; //IP, domaine
@@ -38,6 +38,7 @@ public class DatabaseRequest extends SessionStage {
 				+ prettyURLFormat(getUser(), "jdbc", host, port, name);
 	}
 
+	@Override
 	public boolean append(DatabaseRequestStage action) {
 		return actions.add(action);
 	}

@@ -52,12 +52,12 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	@Override
 	public void connect() throws JSchException {
-		exec(channel::connect, toFtpRequest());
+		exec(channel::connect, sftpRequestListener());
 	}
 	
 	@Override
 	public void connect(int connectTimeout) throws JSchException {
-		exec(()-> channel.connect(connectTimeout), toFtpRequest());
+		exec(()-> channel.connect(connectTimeout), sftpRequestListener());
 	}
 	
 	@Override
@@ -77,42 +77,42 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	
 	@Override
 	public void get(String src, String dst) throws SftpException {
-		exec(()-> channel.get(src, dst), ftpActionCreator(GET, src, dst));
+		exec(()-> channel.get(src, dst), sftpStageListener(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		exec(()-> channel.get(src, dst, monitor), ftpActionCreator(GET, src, dst));
+		exec(()-> channel.get(src, dst, monitor), sftpStageListener(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		exec(()-> channel.get(src, dst, monitor, mode), ftpActionCreator(GET, src, dst));
+		exec(()-> channel.get(src, dst, monitor, mode), sftpStageListener(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst) throws SftpException {
-		exec(()-> channel.get(src, dst), ftpActionCreator(GET, src));
+		exec(()-> channel.get(src, dst), sftpStageListener(GET, src));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst, SftpProgressMonitor monitor) throws SftpException {
-		exec(()-> channel.get(src, dst, monitor), ftpActionCreator(GET, src));
+		exec(()-> channel.get(src, dst, monitor), sftpStageListener(GET, src));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst, SftpProgressMonitor monitor, int mode, long skip) throws SftpException {
-		exec(()-> channel.get(src, dst, monitor, mode, skip), ftpActionCreator(GET, src));
+		exec(()-> channel.get(src, dst, monitor, mode, skip), sftpStageListener(GET, src));
 	}
 
 	@Override
 	public InputStream get(String src) throws SftpException {
-		return call(()-> channel.get(src), ftpActionCreator(GET, src));
+		return call(()-> channel.get(src), sftpStageListener(GET, src));
 	}
 
 	@Override
 	public InputStream get(String src, SftpProgressMonitor monitor) throws SftpException {
-		return call(()-> channel.get(src, monitor), ftpActionCreator(GET, src));
+		return call(()-> channel.get(src, monitor), sftpStageListener(GET, src));
 	}
 
 	/**
@@ -120,7 +120,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	 */
 	@Override
 	public InputStream get(String src, int mode) throws SftpException {
-		return call(()-> channel.get(src, mode), ftpActionCreator(GET, src));
+		return call(()-> channel.get(src, mode), sftpStageListener(GET, src));
 	}
 
 	/**
@@ -128,166 +128,167 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	 */
 	@Override
 	public InputStream get(String src, SftpProgressMonitor monitor, int mode) throws SftpException {
-		return call(()-> channel.get(src, monitor, mode), ftpActionCreator(GET, src));
+		return call(()-> channel.get(src, monitor, mode), sftpStageListener(GET, src));
 	}
 
 	@Override
 	public InputStream get(String src, SftpProgressMonitor monitor, long skip) throws SftpException {
-		return call(()-> channel.get(src, monitor, skip), ftpActionCreator(GET, src));
+		return call(()-> channel.get(src, monitor, skip), sftpStageListener(GET, src));
 	}
 	
 	@Override
 	public Vector ls(String path) throws SftpException {
-		return call(()-> channel.ls(path), ftpActionCreator(LS, path));
+		return call(()-> channel.ls(path), sftpStageListener(LS, path));
 	}
 	
 	@Override
 	public void ls(String path, LsEntrySelector selector) throws SftpException {
-		exec(()-> channel.ls(path, selector), ftpActionCreator(LS, path));
+		exec(()-> channel.ls(path, selector), sftpStageListener(LS, path));
 	}
 	
 	/* write */
 
 	@Override
 	public void put(String src, String dst) throws SftpException {
-		exec(()-> channel.put(src, dst), ftpActionCreator(PUT, src, dst));
+		exec(()-> channel.put(src, dst), sftpStageListener(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, int mode) throws SftpException {
-		exec(()-> channel.put(src, dst, mode), ftpActionCreator(PUT, src, dst));
+		exec(()-> channel.put(src, dst, mode), sftpStageListener(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		exec(()-> channel.put(src, dst, monitor), ftpActionCreator(PUT, src, dst));
+		exec(()-> channel.put(src, dst, monitor), sftpStageListener(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		exec(()-> channel.put(src, dst, monitor, mode), ftpActionCreator(PUT, src, dst));
+		exec(()-> channel.put(src, dst, monitor, mode), sftpStageListener(PUT, src, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst) throws SftpException {
-		exec(()-> channel.put(src, dst), ftpActionCreator(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst), sftpStageListener(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, int mode) throws SftpException {
-		exec(()-> channel.put(src, dst, mode), ftpActionCreator(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, mode), sftpStageListener(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		exec(()-> channel.put(src, dst, monitor), ftpActionCreator(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, monitor), sftpStageListener(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		exec(()-> channel.put(src, dst, monitor, mode), ftpActionCreator(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, monitor, mode), sftpStageListener(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void _put(InputStream src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		exec(()-> channel._put(src, dst, monitor, mode), ftpActionCreator(PUT, BYTES, dst));
+		exec(()-> channel._put(src, dst, monitor, mode), sftpStageListener(PUT, BYTES, dst));
 	}
 
 	@Override
 	public OutputStream put(String dst) throws SftpException {
-		return call(()-> channel.put(dst), ftpActionCreator(PUT, dst));
+		return call(()-> channel.put(dst), sftpStageListener(PUT, dst));
 	}
 
 	@Override
 	public OutputStream put(String dst, int mode) throws SftpException {
-		return call(()-> channel.put(dst, mode), ftpActionCreator(PUT, dst));
+		return call(()-> channel.put(dst, mode), sftpStageListener(PUT, dst));
 	}
 
 	@Override
 	public OutputStream put(String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		return call(()-> channel.put(dst, monitor, mode), ftpActionCreator(PUT, dst));
+		return call(()-> channel.put(dst, monitor, mode), sftpStageListener(PUT, dst));
 	}
 
 	@Override
 	public OutputStream put(String dst, SftpProgressMonitor monitor, int mode, long offset) throws SftpException {
-		return call(()-> channel.put(dst, monitor, mode, offset), ftpActionCreator(PUT, dst));
+		return call(()-> channel.put(dst, monitor, mode, offset), sftpStageListener(PUT, dst));
 	}
 
 	@Override
 	public void mkdir(String path) throws SftpException {
-		exec(()-> channel.mkdir(path), ftpActionCreator(MKDIR, path));
+		exec(()-> channel.mkdir(path), sftpStageListener(MKDIR, path));
 	}
 	
 	@Override
 	public void rename(String oldpath, String newpath) throws SftpException {
-		exec(()-> channel.rename(oldpath, newpath), ftpActionCreator(RENAME, oldpath, newpath));
+		exec(()-> channel.rename(oldpath, newpath), sftpStageListener(RENAME, oldpath, newpath));
 	}
 	
 	@Override
 	public void cd(String path) throws SftpException {
-		exec(()-> channel.cd(path), ftpActionCreator(CD, path));
+		exec(()-> channel.cd(path), sftpStageListener(CD, path));
 	}
 	
 	@Override
 	public void chmod(int permissions, String path) throws SftpException {
-		exec(()-> channel.chmod(permissions, path), ftpActionCreator(CHMOD, ""+permissions, path));
+		exec(()-> channel.chmod(permissions, path), sftpStageListener(CHMOD, ""+permissions, path));
 	}
 	
 	@Override
 	public void chown(int uid, String path) throws SftpException {
-		exec(()-> channel.chown(uid, path), ftpActionCreator(CHOWN, ""+uid, path));
+		exec(()-> channel.chown(uid, path), sftpStageListener(CHOWN, ""+uid, path));
 	}
 
 	@Override
 	public void chgrp(int gid, String path) throws SftpException {
-		exec(()-> channel.chgrp(gid, path), ftpActionCreator(CHGRP, ""+gid, path));
+		exec(()-> channel.chgrp(gid, path), sftpStageListener(CHGRP, ""+gid, path));
 	}
 	
 	@Override
 	public void rm(String path) throws SftpException {
-		exec(()-> channel.rm(path), ftpActionCreator(RM, path));
+		exec(()-> channel.rm(path), sftpStageListener(RM, path));
 	}
 	
 	@Override
 	public void rmdir(String path) throws SftpException {
-		exec(()-> channel.rmdir(path), ftpActionCreator(RM, path));
+		exec(()-> channel.rmdir(path), sftpStageListener(RM, path));
 	}
 
-	ExecutionMonitorListener<Void> toFtpRequest() {
+	ExecutionMonitorListener<Void> disconnection() {
+		return (s,e,o,t)->{
+			var stg = sftpStage(DISCONNECTION, s, e, t);
+			submit(ses-> {
+				req.append(stg);
+				req.setEnd(e);
+			});
+		};
+	}
+
+	ExecutionMonitorListener<Void> sftpRequestListener() {
 		req = new FtpRequest();
 		return (s,e,o,t)->{ //safe block
 			req.setThreadName(threadName());
+			req.setStart(s);
+			if(nonNull(t)) { //if connection error
+				req.setEnd(e);
+			}
+			req.setProtocol("sftp");
 			var cs = channel.getSession(); //broke session dependency
 			req.setHost(cs.getHost());
 			req.setPort(cs.getPort());
 			req.setUser(cs.getUserName());
 			req.setServerVersion(cs.getServerVersion());
 			req.setClientVersion(cs.getClientVersion());
-			submit(ses-> {
-				req.setProtocol("sftp");
-				req.setStart(s);
-				if(nonNull(t)) { //if connection error
-					req.setEnd(e);
-				}
-				req.setActions(new ArrayList<>(nonNull(t) ? 1 : 3));  //cnx, act, dec
-				req.append(newStage(CONNECTION, s, e, t));
-				ses.append(req);
-			});
+			req.setActions(new ArrayList<>(nonNull(t) ? 1 : 3));  //cnx, act, dec
+			req.append(sftpStage(CONNECTION, s, e, t));
+			submit(req);
 		};
 	}
 
-	ExecutionMonitorListener<Void> disconnection() {
-		return (s,e,o,t)-> submit(ses-> {
-			req.append(newStage(DISCONNECTION, s, e, t));
-			req.setEnd(e);
-		});
-	}
-
-	<T> ExecutionMonitorListener<T> ftpActionCreator(FtpAction action, String... args) {
-		return (s,e,o,t)-> submit(ses-> req.append(newStage(action, s, e, t, args)));
+	<T> ExecutionMonitorListener<T> sftpStageListener(FtpAction action, String... args) {
+		return (s,e,o,t)-> submit(req, sftpStage(action, s, e, t, args));
 	}
 	
-	static FtpRequestStage newStage(FtpAction action, Instant start, Instant end, Throwable t, String... args) {
+	static FtpRequestStage sftpStage(FtpAction action, Instant start, Instant end, Throwable t, String... args) {
 		var stg = new FtpRequestStage();
 		stg.setName(action.name());
 		stg.setStart(start);

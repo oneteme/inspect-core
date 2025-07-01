@@ -1,13 +1,12 @@
 package org.usf.inspect.core;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Delegate;
+
 /**
  * 
  * @author u$f
@@ -16,19 +15,16 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonTypeName("main")
-@JsonIgnoreProperties("lock")
-public class MainSession extends LocalRequest implements Session {
+public class MainSession extends AbstractSession {
 	
+	@Delegate
+	@JsonIgnore
+	private final LocalRequest local = new LocalRequest(); //!exception
 	private String id;
 //	inherits String type //@see MainSessionType
-	private List<RestRequest> restRequests;
-	private List<DatabaseRequest> databaseRequests;
-	private List<LocalRequest> localRequests;
-	private List<FtpRequest> ftpRequests;
-	private List<MailRequest> mailRequests;
-	private List<NamingRequest> ldapRequests;
-	//v1.0.2
-	private List<Trace> traces;
-
-	private final AtomicInteger lock = new AtomicInteger();
+	
+	public void setException(ExceptionInfo exceptions) {
+		throw new UnsupportedOperationException();
+	}
+	
 }

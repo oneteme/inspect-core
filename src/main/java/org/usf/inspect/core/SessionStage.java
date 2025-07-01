@@ -14,7 +14,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public abstract class SessionStage implements Metric {
+public abstract class SessionStage<T> implements Metric {
 	
 	private String user;
 	private Instant start;
@@ -25,6 +25,8 @@ public abstract class SessionStage implements Metric {
 	public String toString() {
 		return prettyFormat() + " " + prettyDurationFormat(this);
 	}
+	
+	abstract boolean append(T stage);
 	
 	abstract String prettyFormat();
 }

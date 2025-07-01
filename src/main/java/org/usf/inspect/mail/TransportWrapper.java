@@ -12,6 +12,7 @@ import static org.usf.inspect.mail.MailAction.SEND;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
@@ -33,38 +34,30 @@ import lombok.experimental.Delegate;
  *
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public final class TransportWrapper { //cannot extends jakarta.mail.Transport
+public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @see constructor
 	
 	@Delegate
 	private final Transport trsp;
 	private MailRequest req;
 	
 	public void connect() throws MessagingException {
-		exec(trsp::connect, toMailRequest(null, null, null));
+		exec(trsp::connect, smtpRequestListener(null, null, null));
 	}
 
 	public void connect(String user, String password) throws MessagingException {
-		exec(()-> trsp.connect(user, password), toMailRequest(null, null, user));
+		exec(()-> trsp.connect(user, password), smtpRequestListener(null, null, user));
 	}
 
 	public void connect(String host, String user, String password) throws MessagingException {
-		exec(()-> trsp.connect(host, user, password), toMailRequest(host, null, user));
+		exec(()-> trsp.connect(host, user, password), smtpRequestListener(host, null, user));
 	}
 	
 	public void connect(String arg0, int arg1, String arg2, String arg3) throws MessagingException {
-		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), toMailRequest(arg0, arg1, arg2));
-	}
-
-	public void close() throws MessagingException {
-		exec(trsp::close, (s,e,o,t)-> submit(ses-> {
-			req.append(newStage(DISCONNECTION, s, e, t));
-			req.setEnd(e);
-		}));
+		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), smtpRequestListener(arg0, arg1, arg2));
 	}
 	
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
-		exec(()-> trsp.sendMessage(arg0, arg1), (s,e,o,t)-> submit(ses->{
-			req.append(newStage(SEND, s, e, t));
+		exec(()-> trsp.sendMessage(arg0, arg1), (s,e,o,t)->{
 			var mail = new Mail(); // broke Mail dependency !?
 			mail.setSubject(arg0.getSubject());
 			mail.setFrom(toStringArray(arg0.getFrom()));
@@ -72,42 +65,52 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 			mail.setReplyTo(toStringArray(arg0.getReplyTo()));
 			mail.setContentType(arg0.getContentType());
 			mail.setSize(arg0.getSize());
-			req.getMails().add(mail);
-		}));
+			var stg = smtpStage(SEND, s, e, t);
+			submit(ses->{
+				req.append(stg);
+				req.getMails().add(mail);
+			});
+		});
+	}
+
+	public void close() throws MessagingException {
+		exec(trsp::close, (s,e,o,t)-> {
+			var stg = smtpStage(DISCONNECTION, s, e, t);
+			submit(ses-> {
+				req.append(stg);
+				req.setEnd(e);
+			});
+		});
 	}
 	
-	ExecutionMonitorListener<Void> toMailRequest(String host, Integer port, String user) {
-		req = new MailRequest();
+	ExecutionMonitorListener<Void> smtpRequestListener(String host, Integer port, String user) {
+		req = new MailRequest(); 
 		return (s,e,o,t)->{
-			req.setThreadName(threadName()); 
+			req.setThreadName(threadName());
+			req.setStart(s);
+			if(nonNull(t)) { // if connection error
+				req.setEnd(e);
+			}
+			else {
+				req.setMails(new ArrayList<>(1));
+			}
 			var url = trsp.getURLName(); //broke trsp dependency
-			submit(ses-> {
-				req.setStart(s);
-				if(nonNull(t)) { // if connection error
-					req.setEnd(e);
-				}
-				else {
-					req.setMails(new ArrayList<>(1));
-				}
-				if(nonNull(url)) {
-					req.setProtocol(url.getProtocol());
-					req.setHost(url.getHost());
-					req.setPort(url.getPort());
-					req.setUser(url.getUsername());
-				}
-				else {
-					req.setHost(host);
-					req.setPort(port);
-					req.setUser(user);
-				}
-				req.setActions(new ArrayList<>(nonNull(t) ? 1 : 3)); //cnx, send, dec
-				req.append(newStage(CONNECTION, s, e, t));
-				ses.append(req);
-			});
+			if(nonNull(url)) {
+				req.setProtocol(url.getProtocol());
+				req.setHost(url.getHost());
+				req.setPort(url.getPort());
+				req.setUser(url.getUsername());
+			}
+			acceptIfNonNull(host, req::setHost);
+			acceptIfNonNull(port, req::setPort);
+			acceptIfNonNull(user, req::setUser);
+			req.setActions(new ArrayList<>(nonNull(t) ? 1 : 3)); //cnx, send, dec
+			req.append(smtpStage(CONNECTION, s, e, t));
+			submit(req);
 		};
 	}
 
-	static MailRequestStage newStage(MailAction action, Instant start, Instant end, Throwable t) {
+	static MailRequestStage smtpStage(MailAction action, Instant start, Instant end, Throwable t) {
 		var stg = new MailRequestStage();
 		stg.setName(action.name());
 		stg.setStart(start);
@@ -126,5 +129,11 @@ public final class TransportWrapper { //cannot extends jakarta.mail.Transport
 	
 	public static TransportWrapper wrap(Transport trsp) {
 		return new TransportWrapper(trsp);
+	}
+	
+	static <T> void acceptIfNonNull(T o, Consumer<T> cons) {
+		if(nonNull(o)) {
+			cons.accept(o);
+		}
 	}
 }

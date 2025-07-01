@@ -1,7 +1,6 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
-import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.log;
 
 import java.time.Instant;
@@ -36,13 +35,11 @@ public final class ExecutionMonitor {
 		}
 		finally {
 			var e = now();
-			if(nonNull(listener)) {
-				try {
-					listener.handle(s, e, o, t);
-				}
-				catch (Throwable ex) {// do not throw exception
-					log.warn("cannot collect stage metrics, {}:{}", ex.getClass().getSimpleName(), ex.getMessage());
-				}
+			try {
+				listener.handle(s, e, o, t);
+			}
+			catch (Throwable ex) {// do not throw exception
+				log.warn("cannot collect stage metrics, {}:{}", ex.getClass().getSimpleName(), ex.getMessage());
 			}
 		}
 	}

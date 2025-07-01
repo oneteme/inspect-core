@@ -14,9 +14,9 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-public class MailRequest extends SessionStage {
+public class MailRequest extends SessionStage<MailRequestStage> {
 
-	private String protocol;
+	private String protocol; //smtp(s), imap, pop3
 	private String host;
 	private int port;
 	private List<MailRequestStage> actions;
@@ -24,11 +24,12 @@ public class MailRequest extends SessionStage {
 	//mail-collector
 	
 	@Override
-	public String prettyFormat() {
-		return prettyURLFormat(getUser(), "smtp", host, port, null);
-	}
-	
 	public boolean append(MailRequestStage action) {
 		return actions.add(action);
+	}
+	
+	@Override
+	public String prettyFormat() {
+		return prettyURLFormat(getUser(), protocol, host, port, null);
 	}
 }

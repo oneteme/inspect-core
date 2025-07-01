@@ -55,10 +55,12 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	
 	private final InspectConfigurationProperties config;
 	private final InstanceEnvironment instance;
-
+	private final HttpUserProvider httpUser;
+	private final AspectUserProvider aspectUser;
+	
 	private RestSessionFilter sessionFilter;
 	
-	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider) {
+	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider, HttpUserProvider httpUser, AspectUserProvider aspectUser) {
 		this.instance = localInstance(
 				provider.getName(),
 				provider.getVersion(),
@@ -66,6 +68,8 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 				provider.getCommitHash(),
 				provider.getEnvironment());
 		this.config = conf.validate();
+		this.httpUser = httpUser;
+		this.aspectUser = aspectUser;
 		initStatupSession();
 		getRuntime().addShutdownHook(new Thread(SessionPublisher::complete, "shutdown-hook"));
 		if(log.isDebugEnabled()) {
@@ -73,7 +77,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		}
 		if(conf.getTarget() == REMOTE) {
 			var disp = new InspectRestClient(conf.getServer(), instance);
-			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp, Session::completed));
+			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp, Session::isCompleted));
 		}
 		log.info("inspect.properties={}", conf);
 		log.info("inspect enabled on instance={}", instance);
@@ -124,12 +128,12 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean
     @ConditionalOnExpression("${inspect.track.main-session:true}!=false")
     MainSessionAspect traceableAspect() {
-    	return new MainSessionAspect();
+    	return new MainSessionAspect(aspectUser);
     }
     
     private RestSessionFilter sessionFilter() {
     	if(isNull(sessionFilter)) {
-    		sessionFilter = new RestSessionFilter(config.getTrack().getRestSession()); //conf !null
+    		sessionFilter = new RestSessionFilter(config.getTrack().getRestSession(), httpUser); //conf !null
     	}
     	return sessionFilter;
     }
@@ -157,7 +161,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	    	ses.setThreadName(threadName());
     	    	ses.setStart(instance.getInstant());
     			ses.setEnd(end);
-				ses.setException(mainCauseException(e)); //nullable
+				ses.appendException(mainCauseException(e)); //nullable
     		}
     		finally {
 				emit(ses);
@@ -176,5 +180,17 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @ConditionalOnMissingBean
     public static ApplicationPropertiesProvider springProperties(Environment env) {
     	return new DefaultApplicationPropertiesProvider(env);
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public static HttpUserProvider httpUserProvider() {
+    	return HttpUserProvider::getUserPrincipal;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public static AspectUserProvider aspectUserProvider() {
+    	return AspectUserProvider::getAspectUser;
     }
 }
