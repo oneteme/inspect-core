@@ -5,7 +5,7 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.startFtpRequest;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.ftp.FtpAction.CD;
 import static org.usf.inspect.ftp.FtpAction.CHGRP;
 import static org.usf.inspect.ftp.FtpAction.CHMOD;
@@ -255,7 +255,13 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	ExecutionMonitorListener<Void> closeListener() {
 		return (s,e,o,t)->{
 			emit(sftpStage(DISCONNECTION, s, e, t));
-			req.lazy(()-> req.setEnd(e));
+			req.lazy(()-> {
+				if(nonNull(t)) {
+					req.setFailed(true);
+				}
+				req.setEnd(e);
+				emit(req);
+			});
 		};
 	}
 
@@ -265,6 +271,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			req.setThreadName(threadName());
 			req.setStart(s);
 			if(nonNull(t)) { //if connection error
+				req.setFailed(true);
 				req.setEnd(e);
 			}
 			req.setProtocol("sftp");
@@ -280,7 +287,12 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	}
 
 	<T> ExecutionMonitorListener<T> sftpStageListener(FtpAction action, String... args) {
-		return (s,e,o,t)-> emit(sftpStage(action, s, e, t, args));
+		return (s,e,o,t)->{ 
+			if(nonNull(t)) {
+				req.lazy(()-> req.setFailed(true));
+			}
+			emit(sftpStage(action, s, e, t, args));
+		};
 	}
 	
 	FtpRequestStage sftpStage(FtpAction action, Instant start, Instant end, Throwable t, String... args) {

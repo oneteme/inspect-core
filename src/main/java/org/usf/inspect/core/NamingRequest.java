@@ -17,6 +17,8 @@ public class NamingRequest extends AbstractRequest<NamingRequestStage> {
 	private String protocol; // ldap, ldaps
 	private String host;  //IP, domain
 	private int port; // positive number, -1 otherwise
+	//1.1
+	private boolean failed;
 
 	@Override
 	public Metric copy() {
@@ -30,6 +32,7 @@ public class NamingRequest extends AbstractRequest<NamingRequestStage> {
 		req.setProtocol(protocol);
 		req.setHost(host);
 		req.setPort(port);
+		req.setFailed(failed);
 		return req;
 	}
 	

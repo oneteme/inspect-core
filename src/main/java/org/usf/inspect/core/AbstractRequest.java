@@ -18,12 +18,13 @@ import lombok.Setter;
 @Setter
 public abstract class AbstractRequest<T extends AbstractStage> implements Metric {
 	
-	private String id;
 	private String user;
 	private Instant start;
 	private Instant end;
 	private String threadName;
 	private String sessionId;
+	//v1.1
+	private String id;
 	
 	public T createStage(String name, Instant start, Instant end, Throwable t) {
 		var stg = createStage();

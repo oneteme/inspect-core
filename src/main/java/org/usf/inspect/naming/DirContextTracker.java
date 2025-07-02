@@ -6,7 +6,7 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.startNamingRequest;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.naming.NamingAction.ATTRIB;
 import static org.usf.inspect.naming.NamingAction.CONNECTION;
 import static org.usf.inspect.naming.NamingAction.DISCONNECTION;
@@ -134,7 +134,13 @@ public class DirContextTracker implements DirContext {
 	public void close() throws NamingException {
 		exec(ctx::close, (s,e,o,t)-> {
 			emit(ldapStage(DISCONNECTION, s, e, t));
-			req.lazy(()-> req.setEnd(e));
+			req.lazy(()-> {
+				if(nonNull(t)) {
+					req.setFailed(true);
+				}
+				req.setEnd(e);
+				emit(req);
+			});
 		});
 	}
 	
@@ -145,6 +151,7 @@ public class DirContextTracker implements DirContext {
 			req.setThreadName(threadName());
 			req.setStart(s);
 			if(nonNull(t)) { //if connection error
+				req.setFailed(true);
 				req.setEnd(e);
 			}
 			var url = getEnvironmentVariable(o, PROVIDER_URL, v-> create(v.toString()));  //broke context dependency
@@ -163,7 +170,12 @@ public class DirContextTracker implements DirContext {
 	}
 	
 	<T> ExecutionMonitorListener<T> ldapStageListener(NamingAction action, String... args) {
-		return (s,e,o,t)-> emit(ldapStage(action, s, e, t, args));
+		return (s,e,o,t)-> {
+			emit(ldapStage(action, s, e, t, args));
+			if(nonNull(t)) {
+				req.lazy(()-> req.setFailed(true));
+			}
+		};
 	}
 	
 	NamingRequestStage ldapStage(NamingAction action, Instant start, Instant end, Throwable t, String... args) {

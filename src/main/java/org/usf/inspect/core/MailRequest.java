@@ -20,6 +20,8 @@ public class MailRequest extends AbstractRequest<MailRequestStage> {
 	private String host;
 	private int port;
 	private List<Mail> mails;
+	//v1.1
+	private boolean failed;
 	//mail-collector
 
 	@Override
@@ -35,6 +37,7 @@ public class MailRequest extends AbstractRequest<MailRequestStage> {
 		req.setHost(host);
 		req.setPort(port);
 		req.setMails(mails);
+		req.setFailed(failed);
 		return req;
 	}
 	

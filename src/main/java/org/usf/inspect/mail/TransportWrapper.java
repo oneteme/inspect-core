@@ -5,7 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.startMailRequest;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
 import static org.usf.inspect.mail.MailAction.SEND;
@@ -66,14 +66,25 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			mail.setContentType(arg0.getContentType());
 			mail.setSize(arg0.getSize());
 			emit(smtpStage(SEND, s, e, t));
-			req.lazy(()-> req.getMails().add(mail));
+			req.lazy(()-> {
+				if(nonNull(t)) {
+					req.setFailed(true);
+				}
+				req.getMails().add(mail);
+			}); //do not emit here, because it is not finish yet
 		});
 	}
 
 	public void close() throws MessagingException {
 		exec(trsp::close, (s,e,o,t)-> {
 			emit(smtpStage(DISCONNECTION, s, e, t));
-			req.lazy(()-> req.setEnd(e));
+			req.lazy(()-> {
+				if(nonNull(t)) {
+					req.setFailed(true);
+				}
+				req.setEnd(e);
+				emit(req);
+			});
 		});
 	}
 	
@@ -83,6 +94,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			req.setThreadName(threadName());
 			req.setStart(s);
 			if(nonNull(t)) { // if connection error
+				req.setFailed(true);
 				req.setEnd(e);
 			}
 			else {

@@ -22,7 +22,7 @@ import static org.usf.inspect.core.HttpAction.EXEC;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.core.SessionManager.startRestSession;
 import static org.usf.inspect.core.SessionManager.updateCurrentSession;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 
 import java.io.IOException;
@@ -142,6 +142,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 					in.setCacheControl(cach);
 					in.setContentType(cntt);
 					in.setEnd(e);
+					emit(in);
 				});
 			};
 		}
@@ -149,7 +150,10 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 			if(nonNull(t)) { //IO | CancellationException | ServletException => no ErrorHandler
 				req.setAttribute(ASYNC_SESSION, in);
 				emit(httpRequestStage(in.getRest(), ASYNC, s, e, t));
-				in.lazy(()-> in.setEnd(e));
+				in.lazy(()-> {
+					in.setEnd(e);
+					emit(in);
+				});
 			}
 		};
 	}

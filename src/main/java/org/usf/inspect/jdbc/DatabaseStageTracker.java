@@ -9,7 +9,7 @@ import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.startDatabaseRequest;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -226,7 +226,10 @@ public class DatabaseStageTracker {
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,o,t)-> {
 			emit(jdbcStage(DISCONNECTION, s, e, t, null));
-			req.lazy(()-> req.setEnd(e));
+			req.lazy(()-> {
+				req.setEnd(e);
+				emit(req);
+			});
 		});
 	}
 	
@@ -236,6 +239,7 @@ public class DatabaseStageTracker {
 			req.setThreadName(threadName());
 			req.setStart(s);
 			if(nonNull(t)) {
+				req.setFailed(true);
 				req.setEnd(e);
 			}
 			var info = infoFn.apply(o);  //broke connection dependency
@@ -260,6 +264,9 @@ public class DatabaseStageTracker {
 	}
 	
 	private void submitStage(DatabaseRequestStage stg) {
+		if(nonNull(stg.getException())) {
+			req.lazy(()-> req.setFailed(true));
+		}
 		emit(stg);
 		this.lastStage = stg; //hold last stage
 	}

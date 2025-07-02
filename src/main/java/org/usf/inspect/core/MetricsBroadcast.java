@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.lang.Runtime.getRuntime;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.synchronizedArrayList;
 
@@ -17,31 +18,35 @@ import lombok.NonNull;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class SessionPublisher {
+public final class MetricsBroadcast {
 	
     static final List<SessionHandler<Metric>> handlers = synchronizedArrayList();
+    
+    static {
+		getRuntime().addShutdownHook(new Thread(MetricsBroadcast::complete, "shutdown-hook"));
+    }
     
 	public static void register(@NonNull SessionHandler<Metric> sender) {
 		handlers.add(sender);
 	}
 	
-	public static void emit(Metric session) {
-		for(var h : handlers) {
+	public static void emit(Metric metric) {
+		handlers.forEach(h->{
 			try {
-				h.handle(session);
+				h.handle(metric);
 			} catch (Exception e) {
-				log.warn("handel error {}", h, e);
+				log.warn("" + metric + " emit error {}", h, e);
 			}
-		}
+		});
 	}
 	
 	public static void complete() {
-		for(var h : handlers) {
+		handlers.forEach(h->{
 			try {
 				h.complete();
 			} catch (Exception e) {
 				log.warn("complete error {}", h, e);
 			}
-		}
+		});
 	}
 }

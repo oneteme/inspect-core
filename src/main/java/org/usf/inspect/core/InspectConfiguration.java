@@ -12,8 +12,8 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
 import static org.usf.inspect.core.SessionManager.endStatupSession;
 import static org.usf.inspect.core.SessionManager.startupSession;
-import static org.usf.inspect.core.SessionPublisher.emit;
-import static org.usf.inspect.core.SessionPublisher.register;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
+import static org.usf.inspect.core.MetricsBroadcast.register;
 
 import javax.sql.DataSource;
 
@@ -71,7 +71,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		this.httpUser = httpUser;
 		this.aspectUser = aspectUser;
 		initStatupSession();
-		getRuntime().addShutdownHook(new Thread(SessionPublisher::complete, "shutdown-hook"));
 		if(log.isDebugEnabled()) {
 			register(new SessionLogger()); //log first
 		}

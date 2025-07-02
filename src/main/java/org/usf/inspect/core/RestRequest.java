@@ -17,7 +17,6 @@ import lombok.Setter;
 @Setter
 public class RestRequest extends AbstractRequest<HttpRequestStage> { //APiRequest
 
-	private String id; // <= Traceable server
 	private String method; //GET, POST, PUT,..
 	private String protocol; //HTTP, HTTPS
 	private String host; //IP, domain
@@ -34,7 +33,7 @@ public class RestRequest extends AbstractRequest<HttpRequestStage> { //APiReques
 	private String inContentEncoding; //gzip, compress, identity,..
 	private String outContentEncoding; //gzip, compress, identity,..
 
-	//v1.1.0
+	//v1.1
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	// => in/out Content [type, size, encoding]
 	//rest-collector

@@ -12,7 +12,7 @@ import static org.usf.inspect.core.SessionManager.asynclocalRequestListener;
 import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.endSession;
 import static org.usf.inspect.core.SessionManager.startBatchSession;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -61,6 +61,7 @@ public class MainSessionAspect implements Ordered {
     				main.appendException(mainCauseException(t));
     			}
     			main.setEnd(e);
+    			emit(main);
     		});
 			endSession();
     	});

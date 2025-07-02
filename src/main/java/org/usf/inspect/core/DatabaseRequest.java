@@ -22,6 +22,8 @@ public class DatabaseRequest extends AbstractRequest<DatabaseRequestStage> {
 	private String driverVersion;
 	private String productName;
 	private String productVersion;
+	//v1.1
+	private boolean failed;
 	//java-collector
 
 	@Override
@@ -41,6 +43,7 @@ public class DatabaseRequest extends AbstractRequest<DatabaseRequestStage> {
 		req.setDriverVersion(driverVersion);
 		req.setProductName(productName);
 		req.setProductVersion(productVersion);
+		req.setFailed(failed);
 		return req;
 	}
 	

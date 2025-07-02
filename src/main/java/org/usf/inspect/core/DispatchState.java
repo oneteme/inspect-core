@@ -7,5 +7,5 @@ package org.usf.inspect.core;
  */
 public enum DispatchState {
 	
-	DISABLE, CACHE, DISPACH;
+	DISABLE, CACHE, DISPTACH;
 }

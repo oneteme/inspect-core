@@ -12,7 +12,7 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.READ;
 import static org.usf.inspect.core.SessionManager.startHttpRequest;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.io.IOException;
@@ -79,6 +79,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				req.setInContentEncoding(cten); 
 				if(nonNull(t)) { // IOException
 					req.setEnd(e);
+					emit(req);
 				}
 			});
 		};
@@ -93,6 +94,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				}
 				req.setInDataSize(n);
 				req.setEnd(e);
+				emit(req);
 			});
 		};
 	}

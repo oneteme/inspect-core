@@ -21,6 +21,7 @@ public abstract class AbstractStage implements Metric {
 	private Instant start;
 	private Instant end;
 	private ExceptionInfo exception;
+	//v1.1
 	private String requestId;
 //	private String threadName
 	

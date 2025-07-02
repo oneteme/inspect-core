@@ -13,7 +13,7 @@ import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.Session.nextId;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.core.Trace.Level.ERROR;
 import static org.usf.inspect.core.Trace.Level.INFO;
 import static org.usf.inspect.core.Trace.Level.WARN;
@@ -169,6 +169,7 @@ public final class SessionManager {
 				req.setException(mainCauseException(t));
 			}
 			req.setEnd(e);
+			emit(req);
 		});
 	}
 	

@@ -18,6 +18,8 @@ public class FtpRequest extends AbstractRequest<FtpRequestStage> {
 	private int port;  // -1 otherwise
 	private String serverVersion;
 	private String clientVersion;
+	//v1.1
+	private boolean failed;
 	//ftp-collector
 	
 	@Override
@@ -39,6 +41,7 @@ public class FtpRequest extends AbstractRequest<FtpRequestStage> {
 		req.setProtocol(protocol);
 		req.setServerVersion(serverVersion);
 		req.setClientVersion(clientVersion);
+		req.setFailed(failed);
 		return req;
 	}
 

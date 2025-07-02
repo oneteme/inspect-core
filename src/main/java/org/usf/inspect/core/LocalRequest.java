@@ -16,8 +16,8 @@ import lombok.Setter;
 public class LocalRequest extends AbstractRequest<AbstractStage> { //TODO extends RequestStage
 
 	private String name; //method, title
-	private String location; //class, URL
 	private String type;
+	private String location; //class, URL
 	private ExceptionInfo exception; 
 	
 	@Override
@@ -40,8 +40,8 @@ public class LocalRequest extends AbstractRequest<AbstractStage> { //TODO extend
 		req.setThreadName(getThreadName());
 		req.setSessionId(getSessionId());
 		req.setName(name);
-		req.setLocation(location);
 		req.setType(type);
+		req.setLocation(location);
 		req.setException(exception);
 	}
 	

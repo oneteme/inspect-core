@@ -19,6 +19,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.usf.inspect.core.ScheduledDispatchHandler.Dispatcher;
 
@@ -49,17 +50,21 @@ public final class InspectRestClient implements Dispatcher<Metric> {
     public List<Metric> dispatch(boolean complete, int attemps, List<Metric> metrics) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
+				log.info("registering instance: {}", application);
 				instanceId = template.postForObject(properties.getInstanceApi(), application, String.class);
 			}
-			catch (Exception e) {
-				log.warn("cannot register instance, {}", e.getMessage());
+			catch(RestClientException e) {
+				log.warn("cannot register instance, cause: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
 				throw e;
 			}
 		}
     	if(nonNull(instanceId)) {
     		List<Metric> pdn = null;
     		try {
-    			pdn = excludePending(metrics);
+    			pdn = extractPendingMetrics(metrics);
+    			if(!pdn.isEmpty()) {
+					log.info("{} pending metrics, will be not send", pdn.size());
+				}
     			template.put(properties.getSessionApi(), metrics.toArray(Metric[]::new), instanceId, attemps, pdn.size(), complete ? now() : null);
     			metrics = new ArrayList<>(); //release memory
     		}
@@ -72,20 +77,21 @@ public final class InspectRestClient implements Dispatcher<Metric> {
     	return metrics;
     }
 	
-	private List<Metric> excludePending(List<Metric> sessions) {
+	private List<Metric> extractPendingMetrics(List<Metric> metrics) {
 		var pending = new ArrayList<Metric>();
 		var now = now();
-		for(var it=sessions.listIterator(); it.hasNext();) {
+		var lazyAfter = properties.getLazyAfter();
+		for(var it=metrics.listIterator(); it.hasNext();) {
 			var o = it.next();
 			o.lazy(()->{
 				if(isNull(o.getEnd())) {
-					if(o.getStart().until(now, SECONDS) > 30) { //TODO config
-						it.set(o.copy());
+					if(o.getStart().until(now, SECONDS) > lazyAfter) {
+						it.set(o.copy()); //do not put it in pending, will be sent later
 					}
 					else {
+						pending.add(o);
 						it.remove();
 					}
-					pending.add(o);
 				}
 			});
 		}
@@ -127,7 +133,7 @@ public final class InspectRestClient implements Dispatcher<Metric> {
 	private static ObjectMapper createObjectMapper() {
 	     var mapper = new ObjectMapper();
 	     mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required
-	     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY); //v22
+	     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 //	     mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
 	     return mapper;
 	}

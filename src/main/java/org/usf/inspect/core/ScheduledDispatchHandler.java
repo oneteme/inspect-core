@@ -2,11 +2,10 @@ package org.usf.inspect.core;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.unmodifiableList;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.stream.Stream.empty;
 import static org.usf.inspect.core.DispatchState.DISABLE;
-import static org.usf.inspect.core.DispatchState.DISPACH;
+import static org.usf.inspect.core.DispatchState.DISPTACH;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,8 +25,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
+	private static final byte UNLIMITED = 1;
+	
 	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(r->{
-		var thr = new Thread(r, "inspect-schduler");
+		var thr = new Thread(r, "inspect-dispatcher");
  		thr.setDaemon(true);
  		thr.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception", e));
 		return thr;
@@ -35,7 +36,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
     private final ScheduledDispatchProperties properties;
     private final Dispatcher<T> dispatcher;
-    private final SafeQueue queue;
+    private final ThreadSafeQueue queue;
     @Getter
     private volatile DispatchState state;
     private int attempts;
@@ -44,7 +45,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.state = properties.getState();
-		this.queue = new SafeQueue(properties.getBufferSize());
+		this.queue = new ThreadSafeQueue(properties.getBufferSize());
     	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 	
@@ -75,13 +76,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	
     private void tryDispatch() {
 		synchronized (executor) {
-	    	if(state == DISPACH) {
+	    	if(state == DISPTACH) {
     			dispatch(false);
     		}
 	    	else {
 	    		log.warn("cannot dispatch items as the dispatcher state is {}, current queue size: {}", state, queue.size());
 	    	}
-	    	if(properties.getBufferMaxSize() > -1 && (state != DISPACH || attempts > 0)) { // !DISPACH | dispatch=fail
+	    	if(properties.getBufferMaxSize() > UNLIMITED && (state != DISPTACH || attempts > 0)) { // !DISPACH | dispatch=fail
 	    		queue.removeRange(properties.getBufferMaxSize()); //remove exceeding cache sessions (LIFO)
 	    	}
     	}
@@ -92,7 +93,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
         if(!cs.isEmpty() || complete) {
 	        log.trace("scheduled dispatch of {} items...", cs.size());
 	        try {
-	        	 cs = dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs));
+	        	 cs = dispatcher.dispatch(complete, ++attempts, cs);
         		if(attempts > 1) { //more than one attempt
         			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);
         		}
@@ -101,12 +102,16 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	    	catch (Exception e) {// do not throw exception : retry later
 	    		log.warn("failed to dispatch {} items after {} attempts, cause: [{}] {}", 
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
-	        	queue.addAll(0, cs); //go back to the queue
 			}
 	        catch (OutOfMemoryError e) {
 				log.error("out of memory error while dispatching {} items, those will be aborted", cs.size());
+				cs = emptyList(); //do not add items back to the queue, may release memory
 				attempts = 0;
-	        	//queue.addAll(0, cs) may release memory
+	        }
+	        finally {
+	        	if(!cs.isEmpty()) {
+		        	queue.addAll(0, cs); //go back to the queue
+	        	}
 	        }
         }
     }
@@ -122,7 +127,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     	try {
     		executor.shutdown(); //cancel schedule
     		updateState(DISABLE); //stop add items after waiting for last dispatch
-    		if(stt == DISPACH) {
+    		if(stt == DISPTACH) {
 				dispatch(true); //complete signal
     		}
     	}
@@ -139,13 +144,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 		List<T> dispatch(boolean complete, int attemps, List<T> metrics);
 	}
 	
-	private final class SafeQueue {
+	private final class ThreadSafeQueue {
 	
 		private Object mutex = new Object();
 	    private final int initialSize;
 	    private List<T> queue;
 	
-		public SafeQueue(int initialSize) {
+		public ThreadSafeQueue(int initialSize) {
 			this.queue = new ArrayList<>(initialSize);
 			this.initialSize = initialSize;
 		}
@@ -184,13 +189,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	    			return emptyList();
 	    		}
 	    		var res = queue;
-    			queue = new ArrayList<>(initialSize); //reset queue, may release memory
+    			queue = new ArrayList<>(initialSize); //reset queue, may release memory (!clear)
     			return res;
 	    	}
 	    }
 		
 		public int size() {
-			synchronized (queue) {
+			synchronized (mutex) {
 				return queue.size();
 			}
 		}

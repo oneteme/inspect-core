@@ -13,7 +13,7 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.READ;
 import static org.usf.inspect.core.SessionManager.startHttpRequest;
-import static org.usf.inspect.core.SessionPublisher.emit;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
@@ -86,6 +86,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			req.setInContentEncoding(cten); 
     		if(nonNull(thrw)) {
     			req.setEnd(end);
+    			emit(req);
     		}
     	});
     }
@@ -99,6 +100,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 				}
 				req.setInDataSize(n);
 				req.setEnd(e);
+				emit(req);
 			});
 		};
 	}
