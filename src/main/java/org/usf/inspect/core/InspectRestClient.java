@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
@@ -10,6 +11,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.usf.inspect.core.Helper.log;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
@@ -44,7 +46,7 @@ public final class InspectRestClient implements Dispatcher<Session> {
 	}
 	
 	@Override
-    public boolean dispatch(boolean complete, int attemps, List<Session> sessions, int pending) {
+    public List<Metric> dispatch(boolean complete, int attemps, List<Metric> metrics) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
 				instanceId = template.postForObject(properties.getInstanceApi(), application, String.class);
@@ -53,14 +55,43 @@ public final class InspectRestClient implements Dispatcher<Session> {
 				log.warn("cannot register instance, {}", e.getMessage());
 				throw e;
 			}
-		} 
+		}
     	if(nonNull(instanceId)) {
-    		template.put(properties.getSessionApi(), sessions.toArray(Session[]::new), instanceId, pending, complete ? now() : null);
-    		return true;
+    		List<Metric> pdn = null;
+    		try {
+    			pdn = excludePending(metrics);
+    			template.put(properties.getSessionApi(), metrics.toArray(Metric[]::new), instanceId, attemps, pdn.size(), complete ? now() : null);
+    			metrics = new ArrayList<>(); //release memory
+    		}
+    		finally {
+				if(nonNull(pdn)) {
+					metrics.addAll(pdn);
+				}
+			}
     	}
-    	return false;
+    	return metrics;
     }
-
+	
+	private List<Metric> excludePending(List<Metric> sessions) {
+		var pending = new ArrayList<Metric>();
+		var now = now();
+		for(var it=sessions.listIterator(); it.hasNext();) {
+			var o = it.next();
+			o.lazy(()->{
+				if(isNull(o.getEnd())) {
+					if(o.getStart().until(now, SECONDS) < 30) { //TODO config
+						it.set(o.copy());
+					}
+					else {
+						it.remove();
+						pending.add(o);
+					}
+				}
+			});
+		}
+		return pending;
+	}
+	
 	static RestTemplate defaultRestTemplate(RestClientProperties properties) {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //for instanceID

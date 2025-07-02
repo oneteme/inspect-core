@@ -2,8 +2,6 @@ package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
-import java.util.List;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,16 +12,15 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class NamingRequest extends SessionStage<NamingRequestStage> {
+public class NamingRequest extends AbstractRequest<NamingRequestStage> {
 	
 	private String protocol; // ldap, ldaps
 	private String host;  //IP, domain
 	private int port; // positive number, -1 otherwise
-	private List<NamingRequestStage> actions;
-
+	
 	@Override
-	public boolean append(NamingRequestStage action) {
-		return actions.add(action);
+	protected NamingRequestStage createStage() {
+		return new NamingRequestStage();
 	}
 	
 	@Override

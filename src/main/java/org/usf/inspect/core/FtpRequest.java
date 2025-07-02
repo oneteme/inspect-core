@@ -2,8 +2,6 @@ package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
-import java.util.List;
-
 import lombok.Getter;
 import lombok.Setter;
 /**
@@ -13,14 +11,13 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class FtpRequest extends SessionStage<FtpRequestStage> {
+public class FtpRequest extends AbstractRequest<FtpRequestStage> {
 
 	private String protocol; //FTP, FTPS
 	private String host;
 	private int port;  // -1 otherwise
 	private String serverVersion;
 	private String clientVersion;
-	private List<FtpRequestStage> actions;
 	//ftp-collector
 	
 	@Override
@@ -29,7 +26,7 @@ public class FtpRequest extends SessionStage<FtpRequestStage> {
 	}
 
 	@Override
-	public boolean append(FtpRequestStage action) {
-		return actions.add(action);
+	protected FtpRequestStage createStage() {
+		return new FtpRequestStage();
 	}
 }

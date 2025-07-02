@@ -10,14 +10,14 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.HttpAction.READ;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
-import static org.usf.inspect.core.SessionManager.submit;
+import static org.usf.inspect.core.HttpAction.READ;
+import static org.usf.inspect.core.SessionManager.startHttpRequest;
+import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 
@@ -25,8 +25,8 @@ import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
-import org.usf.inspect.core.RestRequest;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.RestRequest;
 import org.usf.inspect.rest.RestRequestInterceptor.RestExecutionMonitorListener;
 
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 	
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {
-		var req = new RestRequest(); //see RestRequestInterceptor
+		var req = startHttpRequest(); //see RestRequestInterceptor
 		return call(()-> exc.exchange(request), restRequestListener(req, request))
 		.map(res->{
 			var trck = new DataBufferMetricsTracker(contentReadListener(req));
@@ -62,12 +62,11 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			req.setOutDataSize(request.headers().getContentLength()); //-1 unknown !
 			req.setOutContentEncoding(getFirstOrNull(request.headers().get(CONTENT_ENCODING))); 
 			//req.setUser(decode AUTHORIZATION)
-			req.setActions(new ArrayList<>(nonNull(t) ? 1 : 2));
 			if(nonNull(t)) { //no response
 				traceHttpResponse(req, now(), null, t);
 			}
 			else {
-				submit(req); //no action
+				emit(req); //no action
 			}
 		};
     }
@@ -78,13 +77,13 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var ctty = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_TYPE) : null;
 		var cten = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_ENCODING) : null;
 		var id   = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(TRACE_HEADER) : null;
-    	submit(ses->{
+		emit(httpRequestStage(req, EXCHANGE, req.getStart(), end, thrw)); //same thread
+    	req.lazy(()->{
     		req.setThreadName(tn);
 			req.setId(id); //+ send api_name !?
 			req.setStatus(stts);
 			req.setContentType(ctty);
 			req.setInContentEncoding(cten); 
-			req.append(httpRequestStage(EXCHANGE, req.getStart(), end, thrw)); //same thread
     		if(nonNull(thrw)) {
     			req.setEnd(end);
     		}
@@ -92,14 +91,16 @@ public final class WebClientFilter implements ExchangeFilterFunction {
     }
     
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
-		return (s,e,n,b,t)-> submit(ses-> {
-			if(nonNull(b)) {
-				req.setBodyContent(new String(b, UTF_8));
-			}
-			req.setInDataSize(n);
-			req.append(httpRequestStage(READ, s, e, t));
-			req.setEnd(e);
-		});
+		return (s,e,n,b,t)-> {
+			emit(httpRequestStage(req, READ, s, e, t));
+			req.lazy(()->{
+				if(nonNull(b)) {
+					req.setBodyContent(new String(b, UTF_8));
+				}
+				req.setInDataSize(n);
+				req.setEnd(e);
+			});
+		};
 	}
     
     static <T> T getFirstOrNull(List<T> list) {

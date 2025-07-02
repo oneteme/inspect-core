@@ -19,13 +19,13 @@ import lombok.NonNull;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionPublisher {
 	
-    static final List<SessionHandler<Session>> handlers = synchronizedArrayList();
+    static final List<SessionHandler<Metric>> handlers = synchronizedArrayList();
     
-	public static void register(@NonNull SessionHandler<Session> sender) {
+	public static void register(@NonNull SessionHandler<Metric> sender) {
 		handlers.add(sender);
 	}
 	
-	public static void emit(Session session) {
+	public static void emit(Metric session) {
 		for(var h : handlers) {
 			try {
 				h.handle(session);

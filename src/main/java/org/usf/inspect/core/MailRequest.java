@@ -14,18 +14,19 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-public class MailRequest extends SessionStage<MailRequestStage> {
+public class MailRequest extends AbstractRequest<MailRequestStage> {
 
 	private String protocol; //smtp(s), imap, pop3
 	private String host;
 	private int port;
-	private List<MailRequestStage> actions;
+//	private List<MailRequestStage> actions;
 	private List<Mail> mails;
 	//mail-collector
-	
+
+
 	@Override
-	public boolean append(MailRequestStage action) {
-		return actions.add(action);
+	protected MailRequestStage createStage() {
+		return null;
 	}
 	
 	@Override

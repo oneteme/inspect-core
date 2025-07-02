@@ -48,9 +48,8 @@ public class MainSessionAspect implements Ordered {
     		main.setStart(now());
         	main.setThreadName(threadName());
         	main.setUser(userProvider.getUser(point, main.getName()));         
-        	var sgn = point.getSignature();
-        	var ant = ((MethodSignature)sgn).getMethod().getAnnotation(TraceableStage.class);
-    		main.setName(ant.value().isEmpty() ? sgn.getName() : ant.value());
+        	var sgn = (MethodSignature)point.getSignature();
+    		main.setName(getTraceableName(sgn));
     		main.setLocation(sgn.getDeclaringTypeName());   
     	}
     	finally {
@@ -69,23 +68,31 @@ public class MainSessionAspect implements Ordered {
     
     Object aroundStage(ProceedingJoinPoint point) throws Throwable {
     	var sgn = (MethodSignature)point.getSignature();
-    	var ant = sgn.getMethod().getAnnotation(TraceableStage.class);
     	return call(point::proceed, asynclocalRequestListener(EXEC, 
     			sgn::getDeclaringTypeName,
-    			()-> ant.value().isEmpty() ? sgn.getName() : ant.value()));
+    			()-> getTraceableName(sgn)));
 	}
     
     @Around("@annotation(org.springframework.cache.annotation.Cacheable)")
     Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
     	var sgn = (MethodSignature)point.getSignature();
-    	var ant = sgn.getMethod().getAnnotation(Cacheable.class);
     	return call(point::proceed, asynclocalRequestListener(CACHE, 
     			sgn::getDeclaringTypeName,
-    			()-> ant.key().isEmpty() ? sgn.getName() : ant.key()));
+    			()-> getCacheableName(sgn)));
     }
     
 	@Override
 	public int getOrder() { //before @Transactional
 		return HIGHEST_PRECEDENCE;
+	}
+	
+	static String getTraceableName(MethodSignature sgn) {
+    	var ant = sgn.getMethod().getAnnotation(TraceableStage.class);
+		return ant.value().isEmpty() ? sgn.getName() : ant.value();
+	}
+
+	static String getCacheableName(MethodSignature sgn) {
+    	var ant = sgn.getMethod().getAnnotation(Cacheable.class);
+		return ant.key().isEmpty() ? sgn.getName() : ant.key();
 	}
 }

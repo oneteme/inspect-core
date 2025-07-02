@@ -6,18 +6,17 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.HttpAction.READ;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
-import static org.usf.inspect.core.SessionManager.submit;
+import static org.usf.inspect.core.HttpAction.READ;
+import static org.usf.inspect.core.SessionManager.startHttpRequest;
+import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
 
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
@@ -48,7 +47,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	}
 	
 	RestRequest traceHttpRequest(HttpRequest request, byte[] body) {
-		var req = new RestRequest();
+		var req = startHttpRequest();
 		try {
 			req.setStart(now());
 			req.setMethod(request.getMethod().name());
@@ -57,8 +56,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			req.setOutDataSize(nonNull(body) ? body.length : 0);
 			req.setOutContentEncoding(request.getHeaders().getFirst(CONTENT_ENCODING)); 
 			//req.setUser(decode AUTHORIZATION)
-			req.setActions(new ArrayList<>(2));
-			submit(req);
+			emit(req);
 		} catch (Throwable e) {
 			log.warn("cannot collect request metrics, {}:{}", e.getClass().getSimpleName(), e.getMessage());
 		}
@@ -72,13 +70,13 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			var ctty = nonNull(r) ? r.getHeaders().getFirst(CONTENT_TYPE) : null;
 			var cten = nonNull(r) ? r.getHeaders().getFirst(CONTENT_ENCODING) : null;
 			var id   = nonNull(r) ? r.getHeaders().getFirst(TRACE_HEADER) : null;
-			submit(ses-> {
+			emit(httpRequestStage(req, EXCHANGE, s, e, t));
+			req.lazy(()-> {
 				req.setThreadName(tn);
 				req.setId(id);
 				req.setStatus(stts);
 				req.setContentType(ctty);
 				req.setInContentEncoding(cten); 
-				req.append(httpRequestStage(EXCHANGE, s, e, t));
 				if(nonNull(t)) { // IOException
 					req.setEnd(e);
 				}
@@ -87,25 +85,20 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	}
 	
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
-		return (s,e,n,b,t)-> submit(ses-> {
-			if(nonNull(b)) {
-				req.setBodyContent(new String(b, UTF_8));
-			}
-			req.setInDataSize(n);
-			req.append(httpRequestStage(READ, s, e, t));
-			req.setEnd(e);
-		});
+		return (s,e,n,b,t)-> {
+			emit(httpRequestStage(req, READ, s, e, t));
+			req.lazy(()-> {
+				if(nonNull(b)) {
+					req.setBodyContent(new String(b, UTF_8));
+				}
+				req.setInDataSize(n);
+				req.setEnd(e);
+			});
+		};
 	}
 	
-	static HttpRequestStage httpRequestStage(HttpAction action, Instant start, Instant end, Throwable t) {
-		var stg = new HttpRequestStage();
-		stg.setName(action.name());
-		stg.setStart(start);
-		stg.setEnd(end);
-		if(nonNull(t)) {
-			stg.setException(mainCauseException(t));
-		}
-		return stg;
+	static HttpRequestStage httpRequestStage(RestRequest req, HttpAction action, Instant start, Instant end, Throwable t) {
+		return req.createStage(action.name(), start, end, t);
 	}
 	
 	static interface RestExecutionMonitorListener {

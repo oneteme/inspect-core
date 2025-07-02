@@ -2,11 +2,11 @@ package org.usf.inspect.naming;
 
 import static java.net.URI.create;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.submit;
+import static org.usf.inspect.core.SessionManager.startNamingRequest;
+import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.naming.NamingAction.ATTRIB;
 import static org.usf.inspect.naming.NamingAction.CONNECTION;
 import static org.usf.inspect.naming.NamingAction.DISCONNECTION;
@@ -15,7 +15,6 @@ import static org.usf.inspect.naming.NamingAction.LOOKUP;
 import static org.usf.inspect.naming.NamingAction.SEARCH;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.function.Function;
 
 import javax.naming.Name;
@@ -134,17 +133,14 @@ public class DirContextTracker implements DirContext {
 	@Override
 	public void close() throws NamingException {
 		exec(ctx::close, (s,e,o,t)-> {
-			var stg = ldapStage(DISCONNECTION, s, e, t);
-			submit(ses-> {
-				req.append(stg);
-				req.setEnd(e);
-			});
+			emit(ldapStage(DISCONNECTION, s, e, t));
+			req.lazy(()-> req.setEnd(e));
 		});
 	}
 	
 	//dummy spring org.springframework.ldap.NamingException
 	ExecutionMonitorListener<DirContext> ldapRequestListener() {
-		req = new NamingRequest();
+		req = startNamingRequest();
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -161,25 +157,18 @@ public class DirContextTracker implements DirContext {
  			if(nonNull(user)) {
  				req.setUser(user);
  			}
-			req.setActions(new ArrayList<>(nonNull(t) ? 1 : 3)); //cnx, act, dec
-			req.append(ldapStage(CONNECTION, s, e, t));
-			submit(req);
+ 			emit(req);
+			emit(ldapStage(CONNECTION, s, e, t));
 		};
 	}
 	
 	<T> ExecutionMonitorListener<T> ldapStageListener(NamingAction action, String... args) {
-		return (s,e,o,t)-> submit(req, ldapStage(action, s, e, t, args));
+		return (s,e,o,t)-> emit(ldapStage(action, s, e, t, args));
 	}
 	
-	static NamingRequestStage ldapStage(NamingAction action, Instant start, Instant end, Throwable t, String... args) {
-		var stg = new NamingRequestStage();
-		stg.setName(action.name());
-		stg.setStart(start);
-		stg.setEnd(end);
+	NamingRequestStage ldapStage(NamingAction action, Instant start, Instant end, Throwable t, String... args) {
+		var stg = req.createStage(action.name(), start, end, t);
 		stg.setArgs(args);
-		if(nonNull(t)) {
-			stg.setException(mainCauseException(t));
-		}
 		return stg;
 	}
 	

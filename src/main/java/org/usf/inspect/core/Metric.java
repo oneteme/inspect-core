@@ -15,6 +15,14 @@ public interface Metric {
 	Instant getStart();
 
 	Instant getEnd();
+
+	Metric copy();
+	
+	default void lazy(Runnable r) {
+		synchronized (this) {
+			r.run();
+		}
+	}
 	
 	default long duration(){
 		return nonNull(getStart()) && nonNull(getEnd()) 

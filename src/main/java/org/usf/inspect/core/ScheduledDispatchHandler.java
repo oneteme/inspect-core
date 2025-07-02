@@ -148,7 +148,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
-		boolean dispatch(boolean complete, int attempts, List<T> list, int pending) throws Exception; //TD return List<T> dispatched sessions
+		List<Metric> dispatch(boolean complete, int attemps, List<Metric> metrics);
 	}
 	
 	private final class SafeQueue {

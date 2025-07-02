@@ -15,14 +15,18 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 	    include = JsonTypeInfo.As.PROPERTY,
 	    property = "@type")
 public interface Session extends Metric {
-
-	boolean submit(SessionStage<?> req);
 	
-	<T> boolean submit(SessionStage<T> request, T stage);
+	String getId();
+
+	boolean submit(AbstractRequest<?> req);
+	
+	boolean submit(AbstractRequest<? extends AbstractStage> request);
 
 	boolean submit(Trace trace);
 	
 	boolean submit(Task stage);
+	
+	void setLazy(boolean value);
 
 	void lock(); //must be called before session end
 	

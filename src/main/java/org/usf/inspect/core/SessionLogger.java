@@ -40,11 +40,11 @@ public final class SessionLogger implements SessionHandler<Session> { //inspect.
 //		}
     }
 	
-	private static void printSessionStage(SessionStage<?> stg) {
+	private static void printSessionStage(AbstractRequest<?> stg) {
 		log.debug("\t- {}", stg);
 	}
 	
-	private static void printRequestStages(Collection<? extends RequestStage> stages) {
+	private static void printRequestStages(Collection<? extends AbstractStage> stages) {
 		if(log.isTraceEnabled()) {
 			for(var stg : stages) {
 				log.trace("\t\t- {}", stg);

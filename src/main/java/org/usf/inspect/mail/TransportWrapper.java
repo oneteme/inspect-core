@@ -2,10 +2,10 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.submit;
+import static org.usf.inspect.core.SessionManager.startMailRequest;
+import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
 import static org.usf.inspect.mail.MailAction.SEND;
@@ -65,26 +65,20 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			mail.setReplyTo(toStringArray(arg0.getReplyTo()));
 			mail.setContentType(arg0.getContentType());
 			mail.setSize(arg0.getSize());
-			var stg = smtpStage(SEND, s, e, t);
-			submit(ses->{
-				req.append(stg);
-				req.getMails().add(mail);
-			});
+			emit(smtpStage(SEND, s, e, t));
+			req.lazy(()-> req.getMails().add(mail));
 		});
 	}
 
 	public void close() throws MessagingException {
 		exec(trsp::close, (s,e,o,t)-> {
-			var stg = smtpStage(DISCONNECTION, s, e, t);
-			submit(ses-> {
-				req.append(stg);
-				req.setEnd(e);
-			});
+			emit(smtpStage(DISCONNECTION, s, e, t));
+			req.lazy(()-> req.setEnd(e));
 		});
 	}
 	
 	ExecutionMonitorListener<Void> smtpRequestListener(String host, Integer port, String user) {
-		req = new MailRequest(); 
+		req = startMailRequest(); 
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -104,21 +98,13 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			acceptIfNonNull(host, req::setHost);
 			acceptIfNonNull(port, req::setPort);
 			acceptIfNonNull(user, req::setUser);
-			req.setActions(new ArrayList<>(nonNull(t) ? 1 : 3)); //cnx, send, dec
-			req.append(smtpStage(CONNECTION, s, e, t));
-			submit(req);
+			emit(req);
+			emit(smtpStage(CONNECTION, s, e, t));
 		};
 	}
-
-	static MailRequestStage smtpStage(MailAction action, Instant start, Instant end, Throwable t) {
-		var stg = new MailRequestStage();
-		stg.setName(action.name());
-		stg.setStart(start);
-		stg.setEnd(end);
-		if(nonNull(t)) {
-			stg.setException(mainCauseException(t));
-		}
-		return stg;
+	
+	MailRequestStage smtpStage(MailAction action, Instant start, Instant end, Throwable t) {
+		return req.createStage(action.name(), start, end, t);
 	}
 	
 	private static String[] toStringArray(Address... address) {

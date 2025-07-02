@@ -15,13 +15,19 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public abstract class RequestStage implements Metric {
+public abstract class AbstractStage implements Metric {
 
 	private String name; //rename to type
 	private Instant start;
 	private Instant end;
 	private ExceptionInfo exception;
+	private String requestId;
 //	private String threadName
+	
+	@Override
+	public Metric copy() {
+		return this; //no copy
+	}
 	
 	@Override
 	public String toString() {

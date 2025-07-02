@@ -4,7 +4,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
 import java.net.URI;
-import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +15,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class RestRequest extends SessionStage<HttpRequestStage> { //APiRequest
+public class RestRequest extends AbstractRequest<HttpRequestStage> { //APiRequest
 
 	private String id; // <= Traceable server
 	private String method; //GET, POST, PUT,..
@@ -37,7 +36,6 @@ public class RestRequest extends SessionStage<HttpRequestStage> { //APiRequest
 
 	//v1.1.0
 	private String bodyContent; //incoming content, //4xx, 5xx only
-	private List<HttpRequestStage> actions; //WRITE,READ,EXCHANGE
 	// => in/out Content [type, size, encoding]
 	//rest-collector
 	
@@ -50,8 +48,8 @@ public class RestRequest extends SessionStage<HttpRequestStage> { //APiRequest
 	}
 	
 	@Override
-	public boolean append(HttpRequestStage stage) {
-		return actions.add(stage);
+	protected HttpRequestStage createStage() {
+		return new HttpRequestStage();
 	}
 	
 	@Override

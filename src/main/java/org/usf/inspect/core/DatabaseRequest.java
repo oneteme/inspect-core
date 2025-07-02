@@ -15,7 +15,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DatabaseRequest extends SessionStage<DatabaseRequestStage> {
+public class DatabaseRequest extends AbstractRequest<DatabaseRequestStage> {
 
 	private String scheme;
 	private String host; //IP, domaine
@@ -25,7 +25,6 @@ public class DatabaseRequest extends SessionStage<DatabaseRequestStage> {
 	private String driverVersion;
 	private String productName;
 	private String productVersion;
-	private List<DatabaseRequestStage> actions;
 	//java-collector
 	
 	public boolean isCompleted() {
@@ -33,13 +32,13 @@ public class DatabaseRequest extends SessionStage<DatabaseRequestStage> {
 	}
 	
 	@Override
+	protected DatabaseRequestStage createStage() {
+		return new DatabaseRequestStage();
+	}
+	
+	@Override
 	public String prettyFormat() {
 		return '['+productName+']' 
 				+ prettyURLFormat(getUser(), "jdbc", host, port, name);
-	}
-
-	@Override
-	public boolean append(DatabaseRequestStage action) {
-		return actions.add(action);
 	}
 }

@@ -18,7 +18,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class DatabaseRequestStage extends RequestStage {
+public final class DatabaseRequestStage extends AbstractStage {
 
 	private long[] count; // only for BATCH|EXECUTE|FETCH
 	private SqlCommand[] commands;

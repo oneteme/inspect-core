@@ -13,7 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class FtpRequestStage extends RequestStage {
+public final class FtpRequestStage extends AbstractStage {
 
 	private String[] args;
 	

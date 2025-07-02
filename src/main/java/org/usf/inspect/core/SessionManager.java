@@ -13,6 +13,7 @@ import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.Session.nextId;
+import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.core.Trace.Level.ERROR;
 import static org.usf.inspect.core.Trace.Level.INFO;
 import static org.usf.inspect.core.Trace.Level.WARN;
@@ -23,7 +24,6 @@ import java.util.function.Supplier;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
-import org.usf.inspect.core.Session.Task;
 import org.usf.inspect.core.Trace.Level;
 
 import lombok.AccessLevel;
@@ -131,7 +131,7 @@ public final class SessionManager {
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
 		var loc = stackLocation();
 		return call(fn, localRequestListener(o->{
-			var req = new LocalRequest();
+			var req = startLocalRequest();
 			req.setName(name);
 			req.setLocation(loc); //outside task
 			req.setType(EXEC.name());
@@ -148,7 +148,7 @@ public final class SessionManager {
 			if(nonNull(t)) {
 				req.setException(mainCauseException(t));
 			}
-			submit(req);
+			emit(req);
 		};
 	}
 	
@@ -162,9 +162,9 @@ public final class SessionManager {
         	req.setLocation(locationSupp.get());
     	}
     	finally {
-			submit(req);
+			emit(req);
 		}
-		return (s,e,o,t)-> submit(ses-> {
+		return (s,e,o,t)-> req.lazy(()-> {
     		if(nonNull(t)) {
 				req.setException(mainCauseException(t));
 			}
@@ -178,24 +178,47 @@ public final class SessionManager {
 				.orElse(null);
 	}
 	
-	public static void submit(SessionStage<?> request) {
-		var ses = requireCurrentSession();
-		if(nonNull(ses)) {
-			ses.submit(request);
-		}
+	public static RestRequest startHttpRequest() {
+		var req = new RestRequest();
+		setSessionId(req);
+		return req;
 	}
 	
-	public static <T> void submit(SessionStage<T> request, T stage) {
-		var ses = requireCurrentSession();
-		if(nonNull(ses)) {
-			ses.submit(request, stage);
-		}
+	public static DatabaseRequest startDatabaseRequest() {
+		var req = new DatabaseRequest();
+		setSessionId(req);
+		return req;
 	}
 	
-	public static void submit(Task task) {
-		var ses = requireCurrentSession();
+	public static FtpRequest startFtpRequest() {
+		var req = new FtpRequest();
+		setSessionId(req);
+		return req;
+	}
+	
+	public static MailRequest startMailRequest() {
+		var req = new MailRequest();
+		setSessionId(req);
+		return req;
+	}
+
+	public static NamingRequest startNamingRequest() {
+		var req = new NamingRequest();
+		setSessionId(req);
+		return req;
+	}
+	
+	public static LocalRequest startLocalRequest() {
+		var req = new LocalRequest();
+		setSessionId(req);
+		return req;
+	}
+	
+	private static void setSessionId(AbstractRequest<? extends AbstractStage> req) {
+		var ses = currentSession();
+		req.setId(nextId());
 		if(nonNull(ses)) {
-			ses.submit(task);
+			req.setSessionId(ses.getId());
 		}
 	}
 	

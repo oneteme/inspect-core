@@ -4,11 +4,12 @@ import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.Helper.log;
-import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.submit;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.Helper.log;
+import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.SessionManager.startDatabaseRequest;
+import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -39,8 +40,8 @@ import java.util.stream.IntStream;
 
 import org.usf.inspect.core.DatabaseRequest;
 import org.usf.inspect.core.DatabaseRequestStage;
-import org.usf.inspect.core.SafeCallable;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.SafeCallable;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
 /**
@@ -224,16 +225,13 @@ public class DatabaseStageTracker {
 	
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,o,t)-> {
-			var stg = jdbcStage(DISCONNECTION, s, e, t, null);
-			submit(ses-> {
-				req.append(stg);
-				req.setEnd(e);
-			});
+			emit(jdbcStage(DISCONNECTION, s, e, t, null));
+			req.lazy(()-> req.setEnd(e));
 		});
 	}
 	
 	ExecutionMonitorListener<Connection> jdbcRequestListener(SQLFunction<Connection, ConnectionInfo> infoFn) {
-		req = new DatabaseRequest();
+		req = startDatabaseRequest();
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -252,9 +250,8 @@ public class DatabaseStageTracker {
 				req.setProductVersion(info.productVersion());
 				req.setDriverVersion(info.driverVersion());
 			}
-			req.setActions(new ArrayList<>(nonNull(t) ? 1 : 4)); //cnx, stmt, exec, dec
-			req.append(jdbcStage(CONNECTION, s, e, t, null));
-			submit(req);
+			emit(jdbcStage(CONNECTION, s, e, t, null));
+			emit(req);
 		};
 	}
 
@@ -263,19 +260,13 @@ public class DatabaseStageTracker {
 	}
 	
 	private void submitStage(DatabaseRequestStage stg) {
-		submit(req, stg);
+		emit(stg);
 		this.lastStage = stg; //hold last stage
 	}
 
-	static DatabaseRequestStage jdbcStage(JDBCAction action, Instant start, Instant end, Throwable t, long[] count) {
-		var stg = new DatabaseRequestStage();
-		stg.setName(action.name());
-		stg.setStart(start);
-		stg.setEnd(end);
+	DatabaseRequestStage jdbcStage(JDBCAction action, Instant start, Instant end, Throwable t, long[] count) {
+		var stg = req.createStage(action.name(), start, end, t);
 		stg.setCount(count);
-		if(nonNull(t)) {
-			stg.setException(mainCauseException(t));
-		}
 		return stg;
 	}
 	

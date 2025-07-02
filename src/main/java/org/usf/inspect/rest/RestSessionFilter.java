@@ -134,13 +134,13 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 				var encd = nonNull(res) ? res.getHeader(CONTENT_ENCODING) : null; 
 				var cach = nonNull(res) ? res.getHeader(CACHE_CONTROL) : null;
 				var cntt = nonNull(res) ? res.getContentType() : null;
-				in.submit(ses->{
+				emit(httpRequestStage(in.getRest(), EXEC, s, e, t));
+				in.lazy(()->{
 					in.setStatus(sttt);
 					in.setOutDataSize(size); //!exact size
 					in.setOutContentEncoding(encd); 
 					in.setCacheControl(cach);
 					in.setContentType(cntt);
-					in.append(httpRequestStage(EXEC, s, e, t));
 					in.setEnd(e);
 				});
 			};
@@ -148,10 +148,8 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		return (s,e,o,t)-> { // Async && isAsyncStarted
 			if(nonNull(t)) { //IO | CancellationException | ServletException => no ErrorHandler
 				req.setAttribute(ASYNC_SESSION, in);
-				in.submit(ses->{
-					in.append(httpRequestStage(ASYNC, s, e, t));
-					in.setEnd(e);
-				});
+				emit(httpRequestStage(in.getRest(), ASYNC, s, e, t));
+				in.lazy(()-> in.setEnd(e));
 			}
 		};
 	}

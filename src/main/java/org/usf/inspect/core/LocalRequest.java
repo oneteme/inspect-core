@@ -13,7 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class LocalRequest extends SessionStage<Void> { //TODO extends RequestStage
+public class LocalRequest extends AbstractRequest<AbstractStage> { //TODO extends RequestStage
 
 	private String name; //method, title
 	private String location; //class, URL
@@ -21,7 +21,7 @@ public class LocalRequest extends SessionStage<Void> { //TODO extends RequestSta
 	private ExceptionInfo exception; 
 	
 	@Override
-	boolean append(Void stage) {
+	protected AbstractStage createStage() {
 		throw new UnsupportedOperationException("LocalRequest does not support append stage");
 	}
 	

@@ -1,11 +1,11 @@
 package org.usf.inspect.ftp;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.submit;
+import static org.usf.inspect.core.SessionManager.startFtpRequest;
+import static org.usf.inspect.core.SessionPublisher.emit;
 import static org.usf.inspect.ftp.FtpAction.CD;
 import static org.usf.inspect.ftp.FtpAction.CHGRP;
 import static org.usf.inspect.ftp.FtpAction.CHMOD;
@@ -22,7 +22,6 @@ import static org.usf.inspect.ftp.FtpAction.RM;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Vector;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
@@ -62,17 +61,17 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	
 	@Override
 	public void disconnect() {
-		exec(channel::disconnect, disconnection());
+		exec(channel::disconnect, closeListener());
 	}
 	
 	@Override
 	public void quit() {
-		exec(channel::quit, disconnection());
+		exec(channel::quit, closeListener());
 	}
 	
 	@Override
 	public void exit() {
-		exec(channel::exit, disconnection());
+		exec(channel::exit, closeListener());
 	}
 	
 	@Override
@@ -253,19 +252,16 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		exec(()-> channel.rmdir(path), sftpStageListener(RM, path));
 	}
 
-	ExecutionMonitorListener<Void> disconnection() {
+	ExecutionMonitorListener<Void> closeListener() {
 		return (s,e,o,t)->{
-			var stg = sftpStage(DISCONNECTION, s, e, t);
-			submit(ses-> {
-				req.append(stg);
-				req.setEnd(e);
-			});
+			emit(sftpStage(DISCONNECTION, s, e, t));
+			req.lazy(()-> req.setEnd(e));
 		};
 	}
 
 	ExecutionMonitorListener<Void> sftpRequestListener() {
-		req = new FtpRequest();
-		return (s,e,o,t)->{ //safe block
+		req = startFtpRequest();
+		return (s,e,o,t)-> { //safe block
 			req.setThreadName(threadName());
 			req.setStart(s);
 			if(nonNull(t)) { //if connection error
@@ -278,25 +274,18 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			req.setUser(cs.getUserName());
 			req.setServerVersion(cs.getServerVersion());
 			req.setClientVersion(cs.getClientVersion());
-			req.setActions(new ArrayList<>(nonNull(t) ? 1 : 3));  //cnx, act, dec
-			req.append(sftpStage(CONNECTION, s, e, t));
-			submit(req);
+			emit(req);
+			emit(sftpStage(CONNECTION, s, e, t));
 		};
 	}
 
 	<T> ExecutionMonitorListener<T> sftpStageListener(FtpAction action, String... args) {
-		return (s,e,o,t)-> submit(req, sftpStage(action, s, e, t, args));
+		return (s,e,o,t)-> emit(sftpStage(action, s, e, t, args));
 	}
 	
-	static FtpRequestStage sftpStage(FtpAction action, Instant start, Instant end, Throwable t, String... args) {
-		var stg = new FtpRequestStage();
-		stg.setName(action.name());
-		stg.setStart(start);
-		stg.setEnd(end);
+	FtpRequestStage sftpStage(FtpAction action, Instant start, Instant end, Throwable t, String... args) {
+		var stg = req.createStage(action.name(), start, end, t);
 		stg.setArgs(args);
-		if(nonNull(t)) {
-			stg.setException(mainCauseException(t));
-		}
 		return stg;
 	}
 	
