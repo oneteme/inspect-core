@@ -46,6 +46,37 @@ public class RestRequest extends AbstractRequest<HttpRequestStage> { //APiReques
 		setPath(uri.getPath());
 		setQuery(uri.getQuery());
 	}
+
+	@Override
+	public Metric copy() {
+		var req = new RestRequest();
+		fill(req);
+		return req;
+	}
+	
+	void fill(RestRequest req) {
+		req.setId(getId());
+		req.setStart(getStart());
+		req.setEnd(getEnd());
+		req.setUser(getUser());
+		req.setThreadName(getThreadName());
+		req.setSessionId(getSessionId());
+		req.setProtocol(protocol);
+		req.setHost(host);
+		req.setPort(port);
+		req.setMethod(method);
+		req.setPath(path);
+		req.setQuery(query);
+		req.setContentType(contentType);
+		req.setAuthScheme(authScheme);
+		req.setStatus(status);
+		req.setInDataSize(inDataSize);
+		req.setOutDataSize(outDataSize);
+		req.setInContentEncoding(inContentEncoding);
+		req.setOutContentEncoding(outContentEncoding);
+		req.setBodyContent(bodyContent);
+		req.setException(exception);
+	}
 	
 	@Override
 	protected HttpRequestStage createStage() {

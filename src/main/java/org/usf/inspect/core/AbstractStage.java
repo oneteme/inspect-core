@@ -26,7 +26,7 @@ public abstract class AbstractStage implements Metric {
 	
 	@Override
 	public Metric copy() {
-		return this; //no copy
+		return this; //!lazy
 	}
 	
 	@Override

@@ -79,13 +79,13 @@ public final class InspectRestClient implements Dispatcher<Session> {
 			var o = it.next();
 			o.lazy(()->{
 				if(isNull(o.getEnd())) {
-					if(o.getStart().until(now, SECONDS) < 30) { //TODO config
+					if(o.getStart().until(now, SECONDS) > 30) { //TODO config
 						it.set(o.copy());
 					}
 					else {
 						it.remove();
-						pending.add(o);
 					}
+					pending.add(o);
 				}
 			});
 		}

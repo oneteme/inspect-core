@@ -32,6 +32,26 @@ public class DatabaseRequest extends AbstractRequest<DatabaseRequestStage> {
 	}
 	
 	@Override
+	public Metric copy() {
+		var req = new DatabaseRequest();
+		req.setId(getId());
+		req.setStart(getStart());
+		req.setEnd(getEnd());
+		req.setUser(getUser());
+		req.setThreadName(getThreadName());
+		req.setSessionId(getSessionId());
+		req.setScheme(scheme);
+		req.setHost(host);
+		req.setPort(port);
+		req.setName(name);
+		req.setSchema(schema);
+		req.setDriverVersion(driverVersion);
+		req.setProductName(productName);
+		req.setProductVersion(productVersion);
+		return req;
+	}
+	
+	@Override
 	protected DatabaseRequestStage createStage() {
 		return new DatabaseRequestStage();
 	}

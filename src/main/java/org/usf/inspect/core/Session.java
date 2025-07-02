@@ -18,16 +18,6 @@ public interface Session extends Metric {
 	
 	String getId();
 
-	boolean submit(AbstractRequest<?> req);
-	
-	boolean submit(AbstractRequest<? extends AbstractStage> request);
-
-	boolean submit(Trace trace);
-	
-	boolean submit(Task stage);
-	
-	void setLazy(boolean value);
-
 	void lock(); //must be called before session end
 	
 	void unlock();

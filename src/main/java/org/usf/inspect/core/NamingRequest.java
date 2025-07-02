@@ -17,6 +17,21 @@ public class NamingRequest extends AbstractRequest<NamingRequestStage> {
 	private String protocol; // ldap, ldaps
 	private String host;  //IP, domain
 	private int port; // positive number, -1 otherwise
+
+	@Override
+	public Metric copy() {
+		var req = new NamingRequest();
+		req.setId(getId());
+		req.setStart(getStart());
+		req.setEnd(getEnd());
+		req.setUser(getUser());
+		req.setThreadName(getThreadName());
+		req.setSessionId(getSessionId());
+		req.setProtocol(protocol);
+		req.setHost(host);
+		req.setPort(port);
+		return req;
+	}
 	
 	@Override
 	protected NamingRequestStage createStage() {

@@ -26,6 +26,26 @@ public class LocalRequest extends AbstractRequest<AbstractStage> { //TODO extend
 	}
 	
 	@Override
+	public Metric copy() {
+		var req = new LocalRequest();
+		fill(req);
+		return req;
+	}
+	
+	void fill(LocalRequest req) {
+		req.setId(getId());
+		req.setStart(getStart());
+		req.setEnd(getEnd());
+		req.setUser(getUser());
+		req.setThreadName(getThreadName());
+		req.setSessionId(getSessionId());
+		req.setName(name);
+		req.setLocation(location);
+		req.setType(type);
+		req.setException(exception);
+	}
+	
+	@Override
 	String prettyFormat() {
 		var s = isNull(type) ? "" : '['+type+']';
 		if(nonNull(getUser())) {

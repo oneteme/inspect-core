@@ -19,14 +19,28 @@ public class MailRequest extends AbstractRequest<MailRequestStage> {
 	private String protocol; //smtp(s), imap, pop3
 	private String host;
 	private int port;
-//	private List<MailRequestStage> actions;
 	private List<Mail> mails;
 	//mail-collector
 
-
+	@Override
+	public Metric copy() {
+		var req = new MailRequest();
+		req.setId(getId());
+		req.setStart(getStart());
+		req.setEnd(getEnd());
+		req.setUser(getUser());
+		req.setThreadName(getThreadName());
+		req.setSessionId(getSessionId());
+		req.setProtocol(protocol);
+		req.setHost(host);
+		req.setPort(port);
+		req.setMails(mails);
+		return req;
+	}
+	
 	@Override
 	protected MailRequestStage createStage() {
-		return null;
+		return new MailRequestStage();
 	}
 	
 	@Override

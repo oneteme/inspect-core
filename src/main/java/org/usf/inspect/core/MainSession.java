@@ -20,11 +20,16 @@ public class MainSession extends AbstractSession {
 	@Delegate
 	@JsonIgnore
 	private final LocalRequest local = new LocalRequest(); //!exception
-	private String id;
 //	inherits String type //@see MainSessionType
+	
+	@Override
+	public Metric copy() {
+		var ses = new MainSession();
+		local.fill(ses.local);
+		return ses;
+	}
 	
 	public void setException(ExceptionInfo exceptions) {
 		throw new UnsupportedOperationException();
 	}
-	
 }

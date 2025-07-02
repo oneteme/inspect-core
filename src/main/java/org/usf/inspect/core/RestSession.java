@@ -23,4 +23,15 @@ public class RestSession extends AbstractSession {
 	private String name; //api name
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
+
+	@Override
+	public Metric copy() {
+		var ses = new RestSession();
+		rest.fill(ses.rest);
+		return ses;
+	}
+	
+	public void setException(ExceptionInfo exceptions) {
+		throw new UnsupportedOperationException();
+	}
 }
