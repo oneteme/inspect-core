@@ -9,10 +9,10 @@ import java.util.Collection;
  * @author u$f
  *
  */
-public final class SessionLogger implements SessionHandler<Session> { //inspect.client.log : SESSION | REQUEST | STAGE
+public final class SessionLogger implements SessionHandler<Metric> { //inspect.client.log : SESSION | REQUEST | STAGE
 
 	@Override //sync. avoid session log collision
-	public synchronized void handle(Session s) {
+	public synchronized void handle(Metric s) {
 //		if(log.isDebugEnabled()) {
 //			log.debug("+ {}", s);
 //			for(var req : s.getRestRequests()) {

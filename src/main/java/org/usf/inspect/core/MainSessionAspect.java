@@ -56,7 +56,7 @@ public class MainSessionAspect implements Ordered {
 			emit(main);
 		}
     	return call(point::proceed, (s,e,o,t)-> {
-    		main.submit(ses-> {
+    		main.lazy(()-> {
     			if(nonNull(t)) {
     				main.appendException(mainCauseException(t));
     			}

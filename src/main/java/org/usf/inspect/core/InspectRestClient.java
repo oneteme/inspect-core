@@ -34,7 +34,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class InspectRestClient implements Dispatcher<Session> {
+public final class InspectRestClient implements Dispatcher<Metric> {
 	
 	private final RestClientProperties properties;
 	private final InstanceEnvironment application;

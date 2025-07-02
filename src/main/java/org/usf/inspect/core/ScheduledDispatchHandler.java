@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
-import static java.util.Objects.isNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.stream.Stream.empty;
 import static org.usf.inspect.core.DispatchState.DISABLE;
@@ -11,9 +10,9 @@ import static org.usf.inspect.core.DispatchState.DISPACH;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import lombok.Getter;
@@ -37,19 +36,13 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     private final ScheduledDispatchProperties properties;
     private final Dispatcher<T> dispatcher;
     private final SafeQueue queue;
-    private final Predicate<? super T> filter;
     @Getter
     private volatile DispatchState state;
     private int attempts;
 
     public ScheduledDispatchHandler(ScheduledDispatchProperties properties, Dispatcher<T> dispatcher) {
-    	this(properties, dispatcher, null);
-    }
-    
-	public ScheduledDispatchHandler(ScheduledDispatchProperties properties, Dispatcher<T> dispatcher, Predicate<? super T> filter) {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
-		this.filter = filter;
 		this.state = properties.getState();
 		this.queue = new SafeQueue(properties.getBufferSize());
     	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
@@ -95,36 +88,31 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
     }
 
     private void dispatch(boolean complete) {
-    	var cs = queue.pop(filter);
-    	var pg = queue.size(); // ~pending + delta
+    	var cs = queue.pop();
         if(!cs.isEmpty() || complete) {
 	        log.trace("scheduled dispatch of {} items...", cs.size());
 	        try {
-	        	if(dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs), pg)) {
-	        		if(attempts > 1) { //more than one attempt
-	        			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);
-	        		}
-	        		attempts=0;
-	        	}
+	        	 cs = dispatcher.dispatch(complete, ++attempts, unmodifiableList(cs));
+        		if(attempts > 1) { //more than one attempt
+        			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);
+        		}
+        		attempts=0;
 	    	}
 	    	catch (Exception e) {// do not throw exception : retry later
 	    		log.warn("failed to dispatch {} items after {} attempts, cause: [{}] {}", 
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
+	        	queue.addAll(0, cs); //go back to the queue
 			}
 	        catch (OutOfMemoryError e) {
 				log.error("out of memory error while dispatching {} items, those will be aborted", cs.size());
-				attempts = 0; //reset attempts, may release memory
+				attempts = 0;
+	        	//queue.addAll(0, cs) may release memory
 	        }
-	        finally {
-		        if(attempts > 0) { //exception | !dispatch
-		        	queue.addAll(0, cs); //back to queue
-		        }
-			}
         }
     }
     
     public Stream<T> peek() {
-    	return queue.peek(filter);
+    	return queue.peek();
     }
     
     @Override
@@ -148,64 +136,56 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
-		List<Metric> dispatch(boolean complete, int attemps, List<Metric> metrics);
+		List<T> dispatch(boolean complete, int attemps, List<T> metrics);
 	}
 	
 	private final class SafeQueue {
 	
-	    private final List<T> queue;
+		private Object mutex = new Object();
+	    private final int initialSize;
+	    private List<T> queue;
 	
 		public SafeQueue(int initialSize) {
 			this.queue = new ArrayList<>(initialSize);
+			this.initialSize = initialSize;
 		}
 		
-		public void addAll(T[] arr){
+		public void addAll(T[] arr){// see Arrays$ArrayList
 	    	addAll(asList(arr)); // see Arrays$ArrayList
+	    	synchronized(mutex){
+				Collections.addAll(queue, arr); 
+				logAddedItems(arr.length, queue.size());
+			}
 		}
 		
 		public void addAll(Collection<T> arr){
-	    	synchronized(queue){
+	    	synchronized(mutex){
 				queue.addAll(arr);
 				logAddedItems(arr.size(), queue.size());
 			}
 		}
 		
 		public void addAll(int index, Collection<T> arr){
-	    	synchronized(queue){
+	    	synchronized(mutex){
 				queue.addAll(index, arr);
 				logAddedItems(arr.size(), queue.size());
 			}
 		}
 	
-	    public Stream<T> peek(Predicate<? super T> filter) {
-	    	synchronized(queue){
-	    		if(queue.isEmpty()) {
-	    			return empty();
-	    		}
-	    		var s = queue.stream();
-	    		return isNull(filter) ? s : s.filter(filter);
+	    public Stream<T> peek() {
+	    	synchronized(mutex){
+	    		return queue.isEmpty() ? empty() : queue.stream();
 	    	}
 	    }
 	    
-	    public List<T> pop(Predicate<? super T> filter) {
-	    	synchronized(queue){
+	    public List<T> pop() {
+	    	synchronized(mutex){
 	    		if(queue.isEmpty()) {
 	    			return emptyList();
 	    		}
-	    		if(isNull(filter)) {
-	    			var c = new ArrayList<>(queue);
-	    			queue.clear(); //remove items, but preserve capacity
-	    			return c;
-	    		}
-	    		var c = new ArrayList<T>(queue.size());
-	    		for(var it=queue.iterator(); it.hasNext();) {
-	    			var o = it.next();
-	    			if(filter.test(o)) {
-	    				c.add(o);
-	    				it.remove();
-	    			}
-	    		}
-	    		return c;
+	    		var res = queue;
+    			queue = new ArrayList<>(initialSize); //reset queue, may release memory
+    			return res;
 	    	}
 	    }
 		
@@ -216,7 +196,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 		}
 		
 		public void removeRange(int fromIndex) {
-			synchronized (queue) {
+			synchronized (mutex) {
 				if(fromIndex < queue.size()) {
 					var n = queue.size() - fromIndex;
 					queue.subList(fromIndex, queue.size()).clear();

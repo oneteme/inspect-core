@@ -1,9 +1,6 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.isNull;
 import static org.usf.inspect.core.Helper.prettyURLFormat;
-
-import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -26,11 +23,7 @@ public class DatabaseRequest extends AbstractRequest<DatabaseRequestStage> {
 	private String productName;
 	private String productVersion;
 	//java-collector
-	
-	public boolean isCompleted() {
-		return actions.stream().allMatch(a-> isNull(a.getException()));
-	}
-	
+
 	@Override
 	public Metric copy() {
 		var req = new DatabaseRequest();

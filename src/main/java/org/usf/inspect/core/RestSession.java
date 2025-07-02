@@ -27,7 +27,7 @@ public class RestSession extends AbstractSession {
 	@Override
 	public Metric copy() {
 		var ses = new RestSession();
-		rest.fill(ses.rest);
+		rest.copyIn(ses.rest);
 		return ses;
 	}
 	

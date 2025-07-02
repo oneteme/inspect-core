@@ -50,11 +50,11 @@ public class RestRequest extends AbstractRequest<HttpRequestStage> { //APiReques
 	@Override
 	public Metric copy() {
 		var req = new RestRequest();
-		fill(req);
+		copyIn(req);
 		return req;
 	}
 	
-	void fill(RestRequest req) {
+	void copyIn(RestRequest req) {
 		req.setId(getId());
 		req.setStart(getStart());
 		req.setEnd(getEnd());

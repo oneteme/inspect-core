@@ -28,11 +28,11 @@ public class LocalRequest extends AbstractRequest<AbstractStage> { //TODO extend
 	@Override
 	public Metric copy() {
 		var req = new LocalRequest();
-		fill(req);
+		copyIn(req);
 		return req;
 	}
 	
-	void fill(LocalRequest req) {
+	void copyIn(LocalRequest req) {
 		req.setId(getId());
 		req.setStart(getStart());
 		req.setEnd(getEnd());

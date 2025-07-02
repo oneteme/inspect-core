@@ -25,7 +25,7 @@ public class MainSession extends AbstractSession {
 	@Override
 	public Metric copy() {
 		var ses = new MainSession();
-		local.fill(ses.local);
+		local.copyIn(ses.local);
 		return ses;
 	}
 	

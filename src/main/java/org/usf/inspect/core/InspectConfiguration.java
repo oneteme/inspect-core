@@ -77,7 +77,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		}
 		if(conf.getTarget() == REMOTE) {
 			var disp = new InspectRestClient(conf.getServer(), instance);
-			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp, Session::isCompleted));
+			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp));
 		}
 		log.info("inspect.properties={}", conf);
 		log.info("inspect enabled on instance={}", instance);
