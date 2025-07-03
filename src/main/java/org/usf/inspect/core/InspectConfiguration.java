@@ -9,8 +9,8 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
-import static org.usf.inspect.core.MetricsBroadcast.emit;
-import static org.usf.inspect.core.MetricsBroadcast.register;
+import static org.usf.inspect.core.TraceBroadcast.emit;
+import static org.usf.inspect.core.TraceBroadcast.register;
 import static org.usf.inspect.core.SessionManager.endStatupSession;
 import static org.usf.inspect.core.SessionManager.startupSession;
 
@@ -71,7 +71,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		this.aspectUser = aspectUser;
 		initStatupSession();
 		if(log.isDebugEnabled()) {
-			register(new SessionLogger()); //log first
+			register(new SessionDebugger()); //log first
 		}
 		if(conf.getTarget() == REMOTE) {
 			var disp = new InspectRestClient(conf.getServer(), instance);
@@ -164,7 +164,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     		try {
     	    	ses.setLocation(mainApplicationClass(appName));
     	    	if(nonNull(e)) {
-		    		ses.appendException(mainCauseException(e)); //nullable
+		    		ses.setException(mainCauseException(e)); //nullable
 		    	}
 				ses.setEnd(end);
     		}

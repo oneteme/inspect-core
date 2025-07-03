@@ -8,11 +8,11 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.core.SessionManager.asynclocalRequestListener;
 import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.endSession;
 import static org.usf.inspect.core.SessionManager.startBatchSession;
+import static org.usf.inspect.core.TraceBroadcast.emit;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -46,11 +46,11 @@ public class MainSessionAspect implements Ordered {
     	var main = startBatchSession();
     	try {
     		main.setStart(now());
-        	main.setThreadName(threadName());
-        	main.setUser(userProvider.getUser(point, main.getName()));         
+        	main.setThreadName(threadName());        
         	var sgn = (MethodSignature)point.getSignature();
     		main.setName(getTraceableName(sgn));
     		main.setLocation(sgn.getDeclaringTypeName());   
+        	main.setUser(userProvider.getUser(point, main.getName()));
     	}
     	finally {
 			emit(main);
@@ -58,7 +58,7 @@ public class MainSessionAspect implements Ordered {
     	return call(point::proceed, (s,e,o,t)-> {
     		main.lazy(()-> {
     			if(nonNull(t)) {
-    				main.appendException(mainCauseException(t));
+    				main.setException(mainCauseException(t));
     			}
     			main.setEnd(e);
     			emit(main);

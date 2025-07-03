@@ -26,17 +26,12 @@ public abstract class AbstractStage implements Metric {
 //	private String threadName
 	
 	@Override
-	public Metric copy() {
-		return this; //!lazy
-	}
-	
-	@Override
 	public String toString() {
 		var s = prettyFormat();
 		if(nonNull(exception)) {
 			s += " >> " + exception;
 		}
-		return requestId + ": " + s + " " + prettyDurationFormat(this);
+		return s + " " + prettyDurationFormat(this);
 	}
 	
 	abstract String prettyFormat();

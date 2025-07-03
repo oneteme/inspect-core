@@ -16,7 +16,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public abstract class AbstractRequest<T extends AbstractStage> implements Metric {
+public abstract class AbstractRequest<T extends AbstractStage> implements LazyMetric {
 	
 	private String user;
 	private Instant start;
@@ -42,7 +42,7 @@ public abstract class AbstractRequest<T extends AbstractStage> implements Metric
 	
 	@Override
 	public String toString() {
-		return sessionId + ": " + prettyFormat() + " " + prettyDurationFormat(this);
+		return prettyFormat() + " " + prettyDurationFormat(this);
 	}
 	
 	abstract String prettyFormat();

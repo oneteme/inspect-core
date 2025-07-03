@@ -7,6 +7,6 @@ package org.usf.inspect.core;
  */
 public enum HttpAction {
 
-	ASYNC, EXEC, EXCHANGE, READ, WRITE; //CHAIN : filters & interceptors
+	PRE_PROCESS, PROCESS, POST_PROCESS, ASYNC, EXCHANGE, READ, WRITE;
 	
 }

@@ -35,7 +35,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class InspectRestClient implements Dispatcher<Metric> {
+public final class InspectRestClient implements Dispatcher<Traceable> {
 	
 	private final RestClientProperties properties;
 	private final InstanceEnvironment application;
@@ -47,7 +47,7 @@ public final class InspectRestClient implements Dispatcher<Metric> {
 	}
 	
 	@Override
-    public List<Metric> dispatch(boolean complete, int attemps, List<Metric> metrics) {
+    public List<Traceable> dispatch(boolean complete, int attemps, List<Traceable> metrics) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
 				log.info("registering instance: {}", application);
@@ -77,23 +77,24 @@ public final class InspectRestClient implements Dispatcher<Metric> {
     	return metrics;
     }
 	
-	private List<Metric> extractPendingMetrics(List<Metric> metrics) {
+	private List<Metric> extractPendingMetrics(List<Traceable> metrics) {
 		var pending = new ArrayList<Metric>();
 		var now = now();
 		var lazyAfter = properties.getLazyAfter();
 		for(var it=metrics.listIterator(); it.hasNext();) {
-			var o = it.next();
-			o.lazy(()->{
-				if(isNull(o.getEnd())) {
-					if(o.getStart().until(now, SECONDS) > lazyAfter) {
-						it.set(o.copy()); //do not put it in pending, will be sent later
+			if(it.next() instanceof LazyMetric o) {
+				o.lazy(()->{
+					if(!o.wasCompleted()) {
+						if(o.getStart().until(now, SECONDS) > lazyAfter) {
+							it.set(o.copy()); //do not put it in pending, will be sent later
+						}
+						else {
+							pending.add(o);
+							it.remove();
+						}
 					}
-					else {
-						pending.add(o);
-						it.remove();
-					}
-				}
-			});
+				});
+			}
 		}
 		return pending;
 	}

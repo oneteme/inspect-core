@@ -33,8 +33,4 @@ public class MainSession extends AbstractSession {
 	public String toString() {
 		return local.toString();
 	}
-	
-	public void setException(ExceptionInfo exceptions) {
-		throw new UnsupportedOperationException();
-	}
 }

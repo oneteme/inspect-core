@@ -12,13 +12,15 @@ import static org.usf.inspect.core.Helper.warnStackTrace;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.MetricsBroadcast.emit;
+import static org.usf.inspect.core.LogEntry.Level.*;
+import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.core.Session.nextId;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.LogEntry.Level;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
 import lombok.AccessLevel;
@@ -49,7 +51,7 @@ public final class SessionManager {
 		if(isNull(ses)) {
 			warnStackTrace("no active session");
 		}
-		else if(ses.isCompleted()) {
+		else if(ses.wasCompleted()) {
 			warnStackTrace("current session already completed: " + ses);
 			ses = null;
 		}
@@ -61,10 +63,16 @@ public final class SessionManager {
 		return nonNull(ses) ? ses : startupSession;
 	}
 	
+	@Deprecated
 	public static void updateCurrentSession(Session s) {
 		if(localTrace.get() != s) { // null || local previous session
 			localTrace.set(s);
 		}
+	}
+	
+	public static SessionContextUpdater sessionContextUpdater() {
+		var ses = requireCurrentSession();
+		return nonNull(ses) ? ()-> updateCurrentSession(ses) : null;
 	}
 	
 	public static MainSession startBatchSession() {
@@ -211,29 +219,37 @@ public final class SessionManager {
 	}
 	
 	private static void setSessionId(AbstractRequest<? extends AbstractStage> req) {
-		var ses = currentSession();
+		var ses = requireCurrentSession();
 		req.setId(nextId());
 		if(nonNull(ses)) {
 			req.setSessionId(ses.getId());
 		}
 	}
-//	
-//	public void info(String msg) {
-//		trace(INFO, msg);
-//	}
-//
-//	public void warn(String msg) {
-//		trace(WARN, msg);
-//	}
-//	
-//	public void error(String msg) {
-//		trace(ERROR, msg);
-//	}
-//	
-////	public void trace(Level lvl, String msg) {
-////		var ses = requireCurrentSession();
-////		if(nonNull(ses)) {
-////			ses.submit(new Trace(Instant.now(), lvl, msg));
-////		}
-////	}
+	
+	public void info(String msg) {
+		trace(INFO, msg);
+	}
+
+	public void warn(String msg) {
+		trace(WARN, msg);
+	}
+	
+	public void error(String msg) {
+		trace(ERROR, msg);
+	}
+	
+	public void trace(Level lvl, String msg) {
+		var log = new LogEntry(now(), lvl, msg);
+		var ses = requireCurrentSession();
+		if(nonNull(ses)) {
+			log.setSessionId(ses.getId());
+		}
+		emit(log);
+	}
+	
+	@FunctionalInterface
+	public interface SessionContextUpdater {
+
+		void updateContext();
+	}
 }

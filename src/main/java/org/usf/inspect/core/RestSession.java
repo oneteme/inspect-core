@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.nonNull;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
@@ -24,6 +26,8 @@ public class RestSession extends AbstractSession {
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
 
+	private ExceptionInfo exception;
+
 	@Override
 	public Metric copy() {
 		var ses = new RestSession();
@@ -31,12 +35,12 @@ public class RestSession extends AbstractSession {
 		return ses;
 	}
 	
-	public void setException(ExceptionInfo exceptions) {
-		throw new UnsupportedOperationException();
-	}
-	
 	@Override
 	public String toString() {
-		return rest.toString();
+		var s = rest.toString();
+		if(nonNull(exception)) {
+			s += " >> " + exception;
+		}
+		return s;
 	}
 }

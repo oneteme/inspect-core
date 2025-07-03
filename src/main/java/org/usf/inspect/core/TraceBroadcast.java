@@ -18,19 +18,19 @@ import lombok.NonNull;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class MetricsBroadcast {
+public final class TraceBroadcast {
 	
-    static final List<SessionHandler<Metric>> handlers = synchronizedArrayList();
+    static final List<SessionHandler<Traceable>> handlers = synchronizedArrayList();
     
     static {
-		getRuntime().addShutdownHook(new Thread(MetricsBroadcast::complete, "shutdown-hook"));
+		getRuntime().addShutdownHook(new Thread(TraceBroadcast::complete, "shutdown-hook"));
     }
     
-	public static void register(@NonNull SessionHandler<Metric> sender) {
+	public static void register(@NonNull SessionHandler<Traceable> sender) {
 		handlers.add(sender);
 	}
 	
-	public static void emit(Metric metric) {
+	public static void emit(Traceable metric) {
 		handlers.forEach(h->{
 			try {
 				h.handle(metric);

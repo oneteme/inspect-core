@@ -11,7 +11,8 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.READ;
-import static org.usf.inspect.core.MetricsBroadcast.emit;
+import static org.usf.inspect.core.TraceBroadcast.emit;
+import static org.usf.inspect.core.SessionManager.sessionContextUpdater;
 import static org.usf.inspect.core.SessionManager.startHttpRequest;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
@@ -64,12 +65,16 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	}
 
 	ExecutionMonitorListener<ClientHttpResponse> httpResponseListener(RestRequest req) {
+		var upd = sessionContextUpdater();
 		return (s,e,r,t)->{
-			var tn = threadName(); //exec outside
-			var stts = nonNull(r) ? r.getStatusCode().value() : 0; //break ClientHttpRes. dependency
+			if(nonNull(upd)) {
+				upd.updateContext(); // if parallel execution
+			}
+			var tn   = threadName(); //exec outside
+			var id   = nonNull(r) ? r.getHeaders().getFirst(TRACE_HEADER) : null;
 			var ctty = nonNull(r) ? r.getHeaders().getFirst(CONTENT_TYPE) : null;
 			var cten = nonNull(r) ? r.getHeaders().getFirst(CONTENT_ENCODING) : null;
-			var id   = nonNull(r) ? r.getHeaders().getFirst(TRACE_HEADER) : null;
+			var stts = nonNull(r) ? r.getStatusCode().value() : 0; //break ClientHttpRes. dependency
 			emit(httpRequestStage(req, EXCHANGE, s, e, t));
 			req.lazy(()-> {
 				req.setThreadName(tn);
@@ -86,7 +91,11 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	}
 	
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
+		var upd = sessionContextUpdater();
 		return (s,e,n,b,t)-> {
+			if(nonNull(upd)) {
+				upd.updateContext(); // if parallel execution
+			}
 			emit(httpRequestStage(req, READ, s, e, t));
 			req.lazy(()-> {
 				if(nonNull(b)) {
@@ -100,6 +109,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	}
 	
 	static HttpRequestStage httpRequestStage(RestRequest req, HttpAction action, Instant start, Instant end, Throwable t) {
+		
 		return req.createStage(action.name(), start, end, t);
 	}
 	
