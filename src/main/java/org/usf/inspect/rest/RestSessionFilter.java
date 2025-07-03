@@ -107,10 +107,10 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 		}
 		finally {
 			if(!isAsyncStarted(req)) { //!Async || isAsyncDispatch
-				req.removeAttribute(CURRENT_SESSION); //avoid copying session in BasicErrorController.class 
+				req.removeAttribute(CURRENT_SESSION); //avoid intercepting BasicErrorController 
 				req.removeAttribute(STAGE_START);
-				endSession();
 			}
+			endSession(); //remove session from both (sync/async) thread local
 		}
 	}
 	
