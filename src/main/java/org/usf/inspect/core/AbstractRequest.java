@@ -42,7 +42,7 @@ public abstract class AbstractRequest<T extends AbstractStage> implements Metric
 	
 	@Override
 	public String toString() {
-		return prettyFormat() + " " + prettyDurationFormat(this);
+		return sessionId + ": " + prettyFormat() + " " + prettyDurationFormat(this);
 	}
 	
 	abstract String prettyFormat();

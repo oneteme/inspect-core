@@ -29,6 +29,11 @@ public class MainSession extends AbstractSession {
 		return ses;
 	}
 	
+	@Override
+	public String toString() {
+		return local.toString();
+	}
+	
 	public void setException(ExceptionInfo exceptions) {
 		throw new UnsupportedOperationException();
 	}

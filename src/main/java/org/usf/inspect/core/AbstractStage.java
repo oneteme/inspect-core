@@ -36,7 +36,7 @@ public abstract class AbstractStage implements Metric {
 		if(nonNull(exception)) {
 			s += " >> " + exception;
 		}
-		return s + " " + prettyDurationFormat(this);
+		return requestId + ": " + s + " " + prettyDurationFormat(this);
 	}
 	
 	abstract String prettyFormat();

@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.lang.Runtime.getRuntime;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -10,10 +9,10 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
-import static org.usf.inspect.core.SessionManager.endStatupSession;
-import static org.usf.inspect.core.SessionManager.startupSession;
 import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.core.MetricsBroadcast.register;
+import static org.usf.inspect.core.SessionManager.endStatupSession;
+import static org.usf.inspect.core.SessionManager.startupSession;
 
 import javax.sql.DataSource;
 
@@ -139,7 +138,15 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     void initStatupSession(){
 		if(config.getTrack().isStartupSession()) {
-	    	startupSession();
+	    	var ses = startupSession();
+	    	try {
+		    	ses.setName("main");
+		    	ses.setThreadName(threadName());
+		    	ses.setStart(instance.getInstant());
+	    	}
+	    	finally {
+				emit(ses);
+			}
 		}
     }
 
@@ -155,12 +162,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
         var ses = endStatupSession();
     	if(nonNull(ses)) {
     		try {
-    	    	ses.setName("main");
     	    	ses.setLocation(mainApplicationClass(appName));
-    	    	ses.setThreadName(threadName());
-    	    	ses.setStart(instance.getInstant());
-    			ses.setEnd(end);
-				ses.appendException(mainCauseException(e)); //nullable
+    	    	if(nonNull(e)) {
+		    		ses.appendException(mainCauseException(e)); //nullable
+		    	}
+				ses.setEnd(end);
     		}
     		finally {
 				emit(ses);

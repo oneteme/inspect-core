@@ -4,8 +4,8 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.startMailRequest;
 import static org.usf.inspect.core.MetricsBroadcast.emit;
+import static org.usf.inspect.core.SessionManager.startMailRequest;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
 import static org.usf.inspect.mail.MailAction.SEND;
@@ -65,13 +65,13 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			mail.setReplyTo(toStringArray(arg0.getReplyTo()));
 			mail.setContentType(arg0.getContentType());
 			mail.setSize(arg0.getSize());
-			emit(smtpStage(SEND, s, e, t));
 			req.lazy(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.getMails().add(mail);
 			}); //do not emit here, because it is not finish yet
+			emit(smtpStage(SEND, s, e, t));
 		});
 	}
 

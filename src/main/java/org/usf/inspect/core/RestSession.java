@@ -34,4 +34,9 @@ public class RestSession extends AbstractSession {
 	public void setException(ExceptionInfo exceptions) {
 		throw new UnsupportedOperationException();
 	}
+	
+	@Override
+	public String toString() {
+		return rest.toString();
+	}
 }

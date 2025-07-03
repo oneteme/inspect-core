@@ -8,8 +8,8 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.startDatabaseRequest;
 import static org.usf.inspect.core.MetricsBroadcast.emit;
+import static org.usf.inspect.core.SessionManager.startDatabaseRequest;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -254,8 +254,8 @@ public class DatabaseStageTracker {
 				req.setProductVersion(info.productVersion());
 				req.setDriverVersion(info.driverVersion());
 			}
-			emit(jdbcStage(CONNECTION, s, e, t, null));
 			emit(req);
+			emit(jdbcStage(CONNECTION, s, e, t, null));
 		};
 	}
 
@@ -264,10 +264,10 @@ public class DatabaseStageTracker {
 	}
 	
 	private void submitStage(DatabaseRequestStage stg) {
+		emit(stg);
 		if(nonNull(stg.getException())) {
 			req.lazy(()-> req.setFailed(true));
 		}
-		emit(stg);
 		this.lastStage = stg; //hold last stage
 	}
 

@@ -11,8 +11,8 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.READ;
-import static org.usf.inspect.core.SessionManager.startHttpRequest;
 import static org.usf.inspect.core.MetricsBroadcast.emit;
+import static org.usf.inspect.core.SessionManager.startHttpRequest;
 import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.io.IOException;

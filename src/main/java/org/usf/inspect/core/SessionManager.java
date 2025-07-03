@@ -12,19 +12,14 @@ import static org.usf.inspect.core.Helper.warnStackTrace;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.Session.nextId;
 import static org.usf.inspect.core.MetricsBroadcast.emit;
-import static org.usf.inspect.core.Trace.Level.ERROR;
-import static org.usf.inspect.core.Trace.Level.INFO;
-import static org.usf.inspect.core.Trace.Level.WARN;
+import static org.usf.inspect.core.Session.nextId;
 
-import java.time.Instant;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
-import org.usf.inspect.core.Trace.Level;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -222,23 +217,23 @@ public final class SessionManager {
 			req.setSessionId(ses.getId());
 		}
 	}
-	
-	public void info(String msg) {
-		trace(INFO, msg);
-	}
-
-	public void warn(String msg) {
-		trace(WARN, msg);
-	}
-	
-	public void error(String msg) {
-		trace(ERROR, msg);
-	}
-	
-	public void trace(Level lvl, String msg) {
-		var ses = requireCurrentSession();
-		if(nonNull(ses)) {
-			ses.submit(new Trace(Instant.now(), lvl, msg));
-		}
-	}
+//	
+//	public void info(String msg) {
+//		trace(INFO, msg);
+//	}
+//
+//	public void warn(String msg) {
+//		trace(WARN, msg);
+//	}
+//	
+//	public void error(String msg) {
+//		trace(ERROR, msg);
+//	}
+//	
+////	public void trace(Level lvl, String msg) {
+////		var ses = requireCurrentSession();
+////		if(nonNull(ses)) {
+////			ses.submit(new Trace(Instant.now(), lvl, msg));
+////		}
+////	}
 }

@@ -19,10 +19,10 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.ASYNC;
 import static org.usf.inspect.core.HttpAction.EXEC;
+import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.core.SessionManager.startRestSession;
 import static org.usf.inspect.core.SessionManager.updateCurrentSession;
-import static org.usf.inspect.core.MetricsBroadcast.emit;
 import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 
 import java.io.IOException;

@@ -4,8 +4,8 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.startFtpRequest;
 import static org.usf.inspect.core.MetricsBroadcast.emit;
+import static org.usf.inspect.core.SessionManager.startFtpRequest;
 import static org.usf.inspect.ftp.FtpAction.CD;
 import static org.usf.inspect.ftp.FtpAction.CHGRP;
 import static org.usf.inspect.ftp.FtpAction.CHMOD;
@@ -288,10 +288,10 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	<T> ExecutionMonitorListener<T> sftpStageListener(FtpAction action, String... args) {
 		return (s,e,o,t)->{ 
+			emit(sftpStage(action, s, e, t, args));
 			if(nonNull(t)) {
 				req.lazy(()-> req.setFailed(true));
 			}
-			emit(sftpStage(action, s, e, t, args));
 		};
 	}
 	
