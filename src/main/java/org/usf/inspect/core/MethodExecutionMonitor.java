@@ -30,7 +30,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Aspect
 @RequiredArgsConstructor
-public class MainSessionAspect implements Ordered {
+public class MethodExecutionMonitor implements Ordered {
 	
 	private final AspectUserProvider userProvider;
 	 

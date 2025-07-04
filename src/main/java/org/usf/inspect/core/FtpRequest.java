@@ -11,7 +11,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class FtpRequest extends AbstractRequest<FtpRequestStage> {
+public class FtpRequest extends AbstractRequest {
 
 	private String protocol; //FTP, FTPS
 	private String host;
@@ -28,7 +28,7 @@ public class FtpRequest extends AbstractRequest<FtpRequestStage> {
 	}
 	
 	@Override
-	public Metric copy() {
+	public FtpRequest copy() {
 		var req = new FtpRequest();
 		req.setId(getId());
 		req.setStart(getStart());
@@ -43,10 +43,5 @@ public class FtpRequest extends AbstractRequest<FtpRequestStage> {
 		req.setClientVersion(clientVersion);
 		req.setFailed(failed);
 		return req;
-	}
-
-	@Override
-	protected FtpRequestStage createStage() {
-		return new FtpRequestStage();
 	}
 }

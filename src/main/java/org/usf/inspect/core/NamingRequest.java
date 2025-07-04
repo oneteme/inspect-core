@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class NamingRequest extends AbstractRequest<NamingRequestStage> {
+public class NamingRequest extends AbstractRequest {
 	
 	private String protocol; // ldap, ldaps
 	private String host;  //IP, domain
@@ -21,7 +21,7 @@ public class NamingRequest extends AbstractRequest<NamingRequestStage> {
 	private boolean failed;
 
 	@Override
-	public Metric copy() {
+	public NamingRequest copy() {
 		var req = new NamingRequest();
 		req.setId(getId());
 		req.setStart(getStart());
@@ -34,11 +34,6 @@ public class NamingRequest extends AbstractRequest<NamingRequestStage> {
 		req.setPort(port);
 		req.setFailed(failed);
 		return req;
-	}
-	
-	@Override
-	protected NamingRequestStage createStage() {
-		return new NamingRequestStage();
 	}
 	
 	@Override

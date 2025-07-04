@@ -18,7 +18,7 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 	@Delegate(excludes = Statement.class)
 	private final PreparedStatement ps;
 
-	public PreparedStatementWrapper(PreparedStatement ps, DatabaseStageTracker tracer) {
+	public PreparedStatementWrapper(PreparedStatement ps, DatabaseRequestMonitor tracer) {
 		super(ps, tracer);
 		this.ps = ps;
 	}

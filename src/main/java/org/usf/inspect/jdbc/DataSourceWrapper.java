@@ -26,12 +26,12 @@ public final class DataSourceWrapper implements DataSource {
 
 	@Override
 	public Connection getConnection() throws SQLException {
-		return new DatabaseStageTracker().getConnection(ds::getConnection, this::connectionInfo);
+		return new DatabaseRequestMonitor().getConnection(ds::getConnection, this::connectionInfo);
 	}
 
 	@Override
 	public Connection getConnection(String username, String password) throws SQLException {
-		return new DatabaseStageTracker().getConnection(()-> ds.getConnection(username, password), this::connectionInfo);
+		return new DatabaseRequestMonitor().getConnection(()-> ds.getConnection(username, password), this::connectionInfo);
 	}
 	
 	ConnectionInfo connectionInfo(Connection cnx) throws SQLException { //nullable cnx

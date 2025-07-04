@@ -4,8 +4,8 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.SessionManager.startRequest;
 import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.SessionManager.startMailRequest;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
 import static org.usf.inspect.mail.MailAction.SEND;
@@ -89,7 +89,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	}
 	
 	ExecutionMonitorListener<Void> smtpRequestListener(String host, Integer port, String user) {
-		req = startMailRequest(); 
+		req = startRequest(MailRequest::new); 
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -116,7 +116,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	}
 	
 	MailRequestStage smtpStage(MailAction action, Instant start, Instant end, Throwable t) {
-		return req.createStage(action.name(), start, end, t);
+		return req.createStage(action.name(), start, end, t, MailRequestStage::new);
 	}
 	
 	private static String[] toStringArray(Address... address) {

@@ -23,7 +23,7 @@ public class MainSession extends AbstractSession {
 //	inherits String type //@see MainSessionType
 	
 	@Override
-	public Metric copy() {
+	public MainSession copy() {
 		var ses = new MainSession();
 		local.copyIn(ses.local);
 		return ses;

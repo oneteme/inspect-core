@@ -8,8 +8,8 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.SessionManager.startRequest;
 import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.SessionManager.startDatabaseRequest;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -49,7 +49,7 @@ import org.usf.inspect.core.SafeCallable.SafeRunnable;
  * @author u$f
  *
  */
-public class DatabaseStageTracker {
+public class DatabaseRequestMonitor {
 	
 	private DatabaseRequest req;
 	private List<SqlCommand> commands;
@@ -234,7 +234,7 @@ public class DatabaseStageTracker {
 	}
 	
 	ExecutionMonitorListener<Connection> jdbcRequestListener(SQLFunction<Connection, ConnectionInfo> infoFn) {
-		req = startDatabaseRequest();
+		req = startRequest(DatabaseRequest::new);
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -272,7 +272,7 @@ public class DatabaseStageTracker {
 	}
 
 	DatabaseRequestStage jdbcStage(JDBCAction action, Instant start, Instant end, Throwable t, long[] count) {
-		var stg = req.createStage(action.name(), start, end, t);
+		var stg = req.createStage(action.name(), start, end, t, DatabaseRequestStage::new);
 		stg.setCount(count);
 		return stg;
 	}

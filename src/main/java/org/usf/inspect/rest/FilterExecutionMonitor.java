@@ -56,10 +56,10 @@ import jakarta.servlet.http.HttpServletResponse;
  * @author u$f 
  *
  */
-public final class RestSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
+public final class FilterExecutionMonitor extends OncePerRequestFilter implements HandlerInterceptor {
 
-	static final String CURRENT_SESSION = RestSessionFilter.class.getName() + ".session";
-	static final String STAGE_START = RestSessionFilter.class.getName() + ".stageStart";
+	static final String CURRENT_SESSION = FilterExecutionMonitor.class.getName() + ".session";
+	static final String STAGE_START = FilterExecutionMonitor.class.getName() + ".stageStart";
 	
 	private final HttpUserProvider userProvider;
 
@@ -68,7 +68,7 @@ public final class RestSessionFilter extends OncePerRequestFilter implements Han
 
 	private final Predicate<HttpServletRequest> excludeFilter;
 
-	public RestSessionFilter(RestSessionTrackConfiguration config, HttpUserProvider userProvider) {
+	public FilterExecutionMonitor(RestSessionTrackConfiguration config, HttpUserProvider userProvider) {
 		Predicate<HttpServletRequest> pre = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();

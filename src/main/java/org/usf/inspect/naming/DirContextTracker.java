@@ -5,8 +5,8 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.SessionManager.startRequest;
 import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.SessionManager.startNamingRequest;
 import static org.usf.inspect.naming.NamingAction.ATTRIB;
 import static org.usf.inspect.naming.NamingAction.CONNECTION;
 import static org.usf.inspect.naming.NamingAction.DISCONNECTION;
@@ -146,7 +146,7 @@ public class DirContextTracker implements DirContext {
 	
 	//dummy spring org.springframework.ldap.NamingException
 	ExecutionMonitorListener<DirContext> ldapRequestListener() {
-		req = startNamingRequest();
+		req = startRequest(NamingRequest::new);
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -179,7 +179,7 @@ public class DirContextTracker implements DirContext {
 	}
 	
 	NamingRequestStage ldapStage(NamingAction action, Instant start, Instant end, Throwable t, String... args) {
-		var stg = req.createStage(action.name(), start, end, t);
+		var stg = req.createStage(action.name(), start, end, t, NamingRequestStage::new);
 		stg.setArgs(args);
 		return stg;
 	}

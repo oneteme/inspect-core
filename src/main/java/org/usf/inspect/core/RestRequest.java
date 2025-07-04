@@ -15,7 +15,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class RestRequest extends AbstractRequest<HttpRequestStage> { //APiRequest
+public class RestRequest extends AbstractRequest { //APiRequest
 
 	private String method; //GET, POST, PUT,..
 	private String protocol; //HTTP, HTTPS
@@ -47,7 +47,7 @@ public class RestRequest extends AbstractRequest<HttpRequestStage> { //APiReques
 	}
 
 	@Override
-	public Metric copy() {
+	public RestRequest copy() {
 		var req = new RestRequest();
 		copyIn(req);
 		return req;
@@ -75,11 +75,6 @@ public class RestRequest extends AbstractRequest<HttpRequestStage> { //APiReques
 		req.setOutContentEncoding(outContentEncoding);
 		req.setBodyContent(bodyContent);
 		req.setException(exception);
-	}
-	
-	@Override
-	protected HttpRequestStage createStage() {
-		return new HttpRequestStage();
 	}
 	
 	@Override

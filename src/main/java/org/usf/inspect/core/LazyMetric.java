@@ -11,7 +11,7 @@ public interface LazyMetric extends Metric {
 	
 	String getId();
 
-	Metric copy();
+	LazyMetric copy();
 
 	default boolean wasCompleted(){
 		return nonNull(getEnd());
@@ -22,5 +22,4 @@ public interface LazyMetric extends Metric {
 			r.run();
 		}
 	}
-	
 }

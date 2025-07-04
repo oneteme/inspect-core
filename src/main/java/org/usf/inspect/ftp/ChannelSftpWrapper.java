@@ -4,8 +4,8 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.SessionManager.startRequest;
 import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.SessionManager.startFtpRequest;
 import static org.usf.inspect.ftp.FtpAction.CD;
 import static org.usf.inspect.ftp.FtpAction.CHGRP;
 import static org.usf.inspect.ftp.FtpAction.CHMOD;
@@ -266,7 +266,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	}
 
 	ExecutionMonitorListener<Void> sftpRequestListener() {
-		req = startFtpRequest();
+		req = startRequest(FtpRequest::new);
 		return (s,e,o,t)-> { //safe block
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -296,7 +296,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	}
 	
 	FtpRequestStage sftpStage(FtpAction action, Instant start, Instant end, Throwable t, String... args) {
-		var stg = req.createStage(action.name(), start, end, t);
+		var stg = req.createStage(action.name(), start, end, t, FtpRequestStage::new);
 		stg.setArgs(args);
 		return stg;
 	}

@@ -11,10 +11,10 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.READ;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.core.SessionManager.sessionContextUpdater;
-import static org.usf.inspect.core.SessionManager.startHttpRequest;
-import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
+import static org.usf.inspect.core.SessionManager.startRequest;
+import static org.usf.inspect.core.TraceBroadcast.emit;
+import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -48,7 +48,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	}
 	
 	RestRequest traceHttpRequest(HttpRequest request, byte[] body) {
-		var req = startHttpRequest();
+		var req = startRequest(RestRequest::new);
 		try {
 			req.setStart(now());
 			req.setMethod(request.getMethod().name());
@@ -110,7 +110,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	
 	static HttpRequestStage httpRequestStage(RestRequest req, HttpAction action, Instant start, Instant end, Throwable t) {
 		
-		return req.createStage(action.name(), start, end, t);
+		return req.createStage(action.name(), start, end, t, HttpRequestStage::new);
 	}
 	
 	static interface RestExecutionMonitorListener {

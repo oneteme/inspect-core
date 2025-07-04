@@ -14,7 +14,7 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-public class MailRequest extends AbstractRequest<MailRequestStage> {
+public class MailRequest extends AbstractRequest {
 
 	private String protocol; //smtp(s), imap, pop3
 	private String host;
@@ -25,7 +25,7 @@ public class MailRequest extends AbstractRequest<MailRequestStage> {
 	//mail-collector
 
 	@Override
-	public Metric copy() {
+	public MailRequest copy() {
 		var req = new MailRequest();
 		req.setId(getId());
 		req.setStart(getStart());
@@ -39,11 +39,6 @@ public class MailRequest extends AbstractRequest<MailRequestStage> {
 		req.setMails(mails);
 		req.setFailed(failed);
 		return req;
-	}
-	
-	@Override
-	protected MailRequestStage createStage() {
-		return new MailRequestStage();
 	}
 	
 	@Override

@@ -19,7 +19,7 @@ public final class ResultSetWrapper implements ResultSet {
 
 	@Delegate
 	private final ResultSet rs;
-	private final DatabaseStageTracker tracer;
+	private final DatabaseRequestMonitor tracer;
 	private final Instant start = now();
 	private int rows;
 

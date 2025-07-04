@@ -10,11 +10,13 @@ import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.Helper.warnStackTrace;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
+import static org.usf.inspect.core.LogEntry.Level.ERROR;
+import static org.usf.inspect.core.LogEntry.Level.INFO;
+import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.LogEntry.Level.*;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.core.Session.nextId;
+import static org.usf.inspect.core.TraceBroadcast.emit;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -134,7 +136,7 @@ public final class SessionManager {
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
 		var loc = stackLocation();
 		return call(fn, localRequestListener(o->{
-			var req = startLocalRequest();
+			var req = startRequest(LocalRequest::new);
 			req.setName(name);
 			req.setLocation(loc); //outside task
 			req.setType(EXEC.name());
@@ -156,7 +158,7 @@ public final class SessionManager {
 	}
 	
 	public static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
-		var req = new LocalRequest();
+		var req = startRequest(LocalRequest::new);
     	try {
         	req.setStart(now());
         	req.setThreadName(threadName());
@@ -182,48 +184,14 @@ public final class SessionManager {
 				.orElse(null);
 	}
 	
-	public static RestRequest startHttpRequest() {
-		var req = new RestRequest();
-		setSessionId(req);
-		return req;
-	}
-	
-	public static DatabaseRequest startDatabaseRequest() {
-		var req = new DatabaseRequest();
-		setSessionId(req);
-		return req;
-	}
-	
-	public static FtpRequest startFtpRequest() {
-		var req = new FtpRequest();
-		setSessionId(req);
-		return req;
-	}
-	
-	public static MailRequest startMailRequest() {
-		var req = new MailRequest();
-		setSessionId(req);
-		return req;
-	}
-
-	public static NamingRequest startNamingRequest() {
-		var req = new NamingRequest();
-		setSessionId(req);
-		return req;
-	}
-	
-	public static LocalRequest startLocalRequest() {
-		var req = new LocalRequest();
-		setSessionId(req);
-		return req;
-	}
-	
-	private static void setSessionId(AbstractRequest<? extends AbstractStage> req) {
+	public static <T extends AbstractRequest> T startRequest(Supplier<T> supp) {
+		var req = supp.get();
 		var ses = requireCurrentSession();
 		req.setId(nextId());
 		if(nonNull(ses)) {
 			req.setSessionId(ses.getId());
 		}
+		return req;
 	}
 	
 	public void info(String msg) {

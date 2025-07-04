@@ -5,6 +5,7 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Metric.prettyDurationFormat;
 
 import java.time.Instant;
+import java.util.function.Supplier;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +17,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public abstract class AbstractRequest<T extends AbstractStage> implements LazyMetric {
+public abstract class AbstractRequest implements LazyMetric {
 	
 	private String user;
 	private Instant start;
@@ -26,8 +27,8 @@ public abstract class AbstractRequest<T extends AbstractStage> implements LazyMe
 	//v1.1
 	private String id;
 	
-	public T createStage(String name, Instant start, Instant end, Throwable t) {
-		var stg = createStage();
+	public <T extends AbstractStage> T createStage(String name, Instant start, Instant end, Throwable t, Supplier<T> supp) {
+		var stg = supp.get();
 		stg.setName(name);
 		stg.setStart(start);
 		stg.setEnd(end);
@@ -37,8 +38,6 @@ public abstract class AbstractRequest<T extends AbstractStage> implements LazyMe
 		stg.setRequestId(id);
 		return stg;
 	}
-	
-	protected abstract T createStage();
 	
 	@Override
 	public String toString() {

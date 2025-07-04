@@ -29,7 +29,7 @@ public class RestSession extends AbstractSession {
 	private ExceptionInfo exception;
 
 	@Override
-	public Metric copy() {
+	public RestSession copy() {
 		var ses = new RestSession();
 		rest.copyIn(ses.rest);
 		return ses;

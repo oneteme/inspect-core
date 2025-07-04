@@ -13,7 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class LocalRequest extends AbstractRequest<AbstractStage> { //TODO extends RequestStage
+public class LocalRequest extends AbstractRequest { //TODO extends RequestStage
 
 	private String name; //method, title
 	private String type;
@@ -21,12 +21,7 @@ public class LocalRequest extends AbstractRequest<AbstractStage> { //TODO extend
 	private ExceptionInfo exception; 
 	
 	@Override
-	protected AbstractStage createStage() {
-		throw new UnsupportedOperationException("LocalRequest does not support append stage");
-	}
-	
-	@Override
-	public Metric copy() {
+	public LocalRequest copy() {
 		var req = new LocalRequest();
 		copyIn(req);
 		return req;

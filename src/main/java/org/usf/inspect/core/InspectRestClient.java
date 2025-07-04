@@ -19,7 +19,6 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.usf.inspect.core.ScheduledDispatchHandler.Dispatcher;
 
@@ -53,7 +52,7 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 				log.info("registering instance: {}", application);
 				instanceId = template.postForObject(properties.getInstanceApi(), application, String.class);
 			}
-			catch(RestClientException e) {
+			catch(Exception e) {
 				log.warn("cannot register instance, cause: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
 				throw e;
 			}

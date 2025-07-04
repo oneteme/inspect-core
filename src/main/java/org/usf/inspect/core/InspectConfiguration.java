@@ -6,20 +6,18 @@ import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.usf.inspect.core.DispatchTarget.REMOTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
-import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.TraceBroadcast.register;
 import static org.usf.inspect.core.SessionManager.endStatupSession;
 import static org.usf.inspect.core.SessionManager.startupSession;
+import static org.usf.inspect.core.TraceBroadcast.emit;
+import static org.usf.inspect.core.TraceBroadcast.register;
 
 import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,22 +29,24 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.usf.inspect.jdbc.DataSourceWrapper;
-import org.usf.inspect.rest.ControllerAdviceTracker;
+import org.usf.inspect.rest.ControllerAdviceMonitor;
+import org.usf.inspect.rest.FilterExecutionMonitor;
 import org.usf.inspect.rest.RestRequestInterceptor;
-import org.usf.inspect.rest.RestSessionFilter;
 
 import jakarta.servlet.Filter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
+@Slf4j
 @Configuration
 @EnableConfigurationProperties(InspectConfigurationProperties.class)
 @ConditionalOnProperty(prefix = "inspect", name = "enabled", havingValue = "true")
@@ -57,7 +57,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	private final HttpUserProvider httpUser;
 	private final AspectUserProvider aspectUser;
 	
-	private RestSessionFilter sessionFilter;
+	private FilterExecutionMonitor sessionFilter;
 	
 	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider, HttpUserProvider httpUser, AspectUserProvider aspectUser) {
 		this.instance = localInstance(
@@ -100,15 +100,16 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
     
     @Bean
-    @ConditionalOnBean(ResponseEntityExceptionHandler.class)
     @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
-    ControllerAdviceTracker controllerAdviceAspect() {
-    	return new ControllerAdviceTracker();
+    ControllerAdviceMonitor controllerAdviceAspect() {
+    	log.debug("loading 'ControllerAdviceTracker' bean ..");
+    	return new ControllerAdviceMonitor();
     }
     
     @Bean //do not rename this method see @Qualifier
     @ConditionalOnExpression("${inspect.track.rest-request:true}!=false")
     RestRequestInterceptor restRequestInterceptor() {
+    	log.debug("loading 'RestRequestInterceptor' bean ..");
         return new RestRequestInterceptor();
     }
     
@@ -124,14 +125,16 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
     
     @Bean
+    @Primary
     @ConditionalOnExpression("${inspect.track.main-session:true}!=false")
-    MainSessionAspect traceableAspect() {
-    	return new MainSessionAspect(aspectUser);
+    MethodExecutionMonitor monitorAspect() {
+    	log.debug("loading 'MethodExecutionMonitorAspect' bean ..");
+    	return new MethodExecutionMonitor(aspectUser);
     }
     
-    private RestSessionFilter sessionFilter() {
+    private FilterExecutionMonitor sessionFilter() {
     	if(isNull(sessionFilter)) {
-    		sessionFilter = new RestSessionFilter(config.getTrack().getRestSession(), httpUser); //conf !null
+    		sessionFilter = new FilterExecutionMonitor(config.getTrack().getRestSession(), httpUser); //conf !null
     	}
     	return sessionFilter;
     }
@@ -184,18 +187,21 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean
     @ConditionalOnMissingBean
     public static ApplicationPropertiesProvider springProperties(Environment env) {
+    	log.debug("loading 'ApplicationPropertiesProvider' bean ..");
     	return new DefaultApplicationPropertiesProvider(env);
     }
     
     @Bean
     @ConditionalOnMissingBean
     public static HttpUserProvider httpUserProvider() {
-    	return HttpUserProvider::getUserPrincipal;
+    	log.debug("loading 'HttpUserProvider' bean ..");
+    	return new HttpUserProvider() {};
     }
 
     @Bean
     @ConditionalOnMissingBean
     public static AspectUserProvider aspectUserProvider() {
-    	return AspectUserProvider::getAspectUser;
+    	log.debug("loading 'AspectUserProvider' bean ..");
+    	return new AspectUserProvider() {};
     }
 }

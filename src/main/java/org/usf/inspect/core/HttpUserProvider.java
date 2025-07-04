@@ -11,14 +11,11 @@ import jakarta.servlet.http.HttpServletRequest;
  * @author u$f
  *
  */
-@FunctionalInterface
 public interface HttpUserProvider {
 	
-	String getUser(HttpServletRequest req, String apiName);
-    
-    static String getUserPrincipal(HttpServletRequest req, String apiName){
+	default String getUser(HttpServletRequest req, String apiName) {
     	return ofNullable(req.getUserPrincipal())
     			.map(Principal::getName)
     			.orElse(null);
-    }
+	}
 }

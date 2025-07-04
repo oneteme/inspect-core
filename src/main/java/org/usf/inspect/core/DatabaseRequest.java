@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DatabaseRequest extends AbstractRequest<DatabaseRequestStage> {
+public class DatabaseRequest extends AbstractRequest {
 
 	private String scheme;
 	private String host; //IP, domaine
@@ -27,7 +27,7 @@ public class DatabaseRequest extends AbstractRequest<DatabaseRequestStage> {
 	//java-collector
 
 	@Override
-	public Metric copy() {
+	public DatabaseRequest copy() {
 		var req = new DatabaseRequest();
 		req.setId(getId());
 		req.setStart(getStart());
@@ -45,11 +45,6 @@ public class DatabaseRequest extends AbstractRequest<DatabaseRequestStage> {
 		req.setProductVersion(productVersion);
 		req.setFailed(failed);
 		return req;
-	}
-	
-	@Override
-	protected DatabaseRequestStage createStage() {
-		return new DatabaseRequestStage();
 	}
 	
 	@Override

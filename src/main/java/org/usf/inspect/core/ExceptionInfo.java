@@ -14,7 +14,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @RequiredArgsConstructor
-public final class ExceptionInfo implements Traceable {
+public final class ExceptionInfo {
 	
 	private final String type;
 	private final String message;

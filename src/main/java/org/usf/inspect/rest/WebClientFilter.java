@@ -12,10 +12,10 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.READ;
+import static org.usf.inspect.core.SessionManager.startRequest;
 import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.SessionManager.startHttpRequest;
+import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
 import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
-import static org.usf.inspect.rest.RestSessionFilter.TRACE_HEADER;
 
 import java.time.Instant;
 import java.util.List;
@@ -42,7 +42,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 	
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {
-		var req = startHttpRequest(); //see RestRequestInterceptor
+		var req = startRequest(RestRequest::new); //see RestRequestInterceptor
 		return call(()-> exc.exchange(request), restRequestListener(req, request))
 		.map(res->{
 			var trck = new DataBufferMetricsTracker(contentReadListener(req));

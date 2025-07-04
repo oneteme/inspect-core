@@ -15,7 +15,7 @@ import org.usf.inspect.core.RestSession;
  *
  */
 @Aspect 
-public class ControllerAdviceTracker {
+public class ControllerAdviceMonitor {
 
 	/**
 	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
