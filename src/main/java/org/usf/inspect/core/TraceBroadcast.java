@@ -20,22 +20,22 @@ import lombok.NonNull;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TraceBroadcast {
 	
-    static final List<SessionHandler<Traceable>> handlers = synchronizedArrayList();
+    static final List<TraceHandler<Traceable>> handlers = synchronizedArrayList();
     
     static {
 		getRuntime().addShutdownHook(new Thread(TraceBroadcast::complete, "shutdown-hook"));
     }
     
-	public static void register(@NonNull SessionHandler<Traceable> sender) {
-		handlers.add(sender);
+	public static void register(@NonNull TraceHandler<Traceable> handler) {
+		handlers.add(handler);
 	}
 	
-	public static void emit(Traceable metric) {
+	public static void emit(Traceable trace) {
 		handlers.forEach(h->{
 			try {
-				h.handle(metric);
+				h.handle(trace);
 			} catch (Exception e) {
-				log.warn("" + metric + " emit error {}", h, e);
+				log.warn("" + trace + " emit error {}", h, e);
 			}
 		});
 	}

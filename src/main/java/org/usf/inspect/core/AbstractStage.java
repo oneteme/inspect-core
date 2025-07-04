@@ -23,6 +23,7 @@ public abstract class AbstractStage implements Metric {
 	private ExceptionInfo exception;
 	//v1.1
 	private String requestId;
+	private int order; //stages has same start (duration=0) 
 //	private String threadName
 	
 	@Override

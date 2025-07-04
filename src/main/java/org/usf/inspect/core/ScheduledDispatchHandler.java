@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
+public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 	
 	private static final byte UNLIMITED = 1;
 	
@@ -108,7 +108,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 				cs = emptyList(); //do not add items back to the queue, may release memory
 				attempts = 0;
 	        }
-	        finally {
+	        finally { //TODO file after 100 attempts or 90% max memory
 	        	if(!cs.isEmpty()) {
 		        	queue.addAll(0, cs); //go back to the queue
 	        	}
@@ -141,7 +141,7 @@ public final class ScheduledDispatchHandler<T> implements SessionHandler<T> {
 	@FunctionalInterface
 	public interface Dispatcher<T> {
 		
-		List<T> dispatch(boolean complete, int attemps, List<T> metrics);
+		List<T> dispatch(boolean complete, int attemps, List<T> metrics); //return undispatched items
 	}
 	
 	private final class ThreadSafeQueue {

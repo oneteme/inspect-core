@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class SessionDebugger implements SessionHandler<Traceable> { //inspect.client.log : SESSION | REQUEST | STAGE
+public final class SessionTraceDebugger implements TraceHandler<Traceable> { //inspect.client.log : SESSION | REQUEST | STAGE
 	
 	private static final Comparator<? super Metric> METRIC_COMPARATOR = comparing(Metric::getStart);
 	

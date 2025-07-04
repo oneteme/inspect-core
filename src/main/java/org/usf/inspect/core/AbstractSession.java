@@ -4,6 +4,12 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.log;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 
+ * @author u$f
+ *
+ */
 abstract class AbstractSession implements Session {
 
 	private final AtomicInteger pending = new AtomicInteger();

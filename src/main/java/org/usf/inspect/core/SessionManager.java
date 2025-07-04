@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.log;
@@ -15,10 +16,8 @@ import static org.usf.inspect.core.LogEntry.Level.INFO;
 import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.Session.nextId;
 import static org.usf.inspect.core.TraceBroadcast.emit;
 
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
@@ -135,29 +134,10 @@ public final class SessionManager {
 	
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
 		var loc = stackLocation();
-		return call(fn, localRequestListener(o->{
-			var req = startRequest(LocalRequest::new);
-			req.setName(name);
-			req.setLocation(loc); //outside task
-			req.setType(EXEC.name());
-			return req;
-		}));
+		return call(fn, asynclocalRequestListener(EXEC, ()-> loc, ()-> name));
 	}
 	
-	public static <T> ExecutionMonitorListener<T> localRequestListener(Function<T, LocalRequest> fn) {
-		return (s,e,o,t)-> {
-			var req = fn.apply(o);
-			req.setThreadName(threadName()); 
-			req.setStart(s);
-			req.setEnd(e);
-			if(nonNull(t)) {
-				req.setException(mainCauseException(t));
-			}
-			emit(req);
-		};
-	}
-	
-	public static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
+	static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
 		var req = startRequest(LocalRequest::new);
     	try {
         	req.setStart(now());
@@ -215,6 +195,10 @@ public final class SessionManager {
 		emit(log);
 	}
 	
+	public static String nextId() {
+		return randomUUID().toString();
+	}
+
 	@FunctionalInterface
 	public interface SessionContextUpdater {
 

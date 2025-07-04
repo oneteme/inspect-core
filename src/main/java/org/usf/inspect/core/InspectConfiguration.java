@@ -71,7 +71,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		this.aspectUser = aspectUser;
 		initStatupSession();
 		if(log.isDebugEnabled()) {
-			register(new SessionDebugger()); //log first
+			register(new SessionTraceDebugger()); //log first
 		}
 		if(conf.getTarget() == REMOTE) {
 			var disp = new InspectRestClient(conf.getServer(), instance);
