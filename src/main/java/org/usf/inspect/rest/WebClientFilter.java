@@ -10,8 +10,8 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.HttpAction.EXCHANGE;
-import static org.usf.inspect.core.HttpAction.READ;
+import static org.usf.inspect.core.HttpAction.POST_PROCESS;
+import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.SessionManager.startRequest;
 import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
@@ -77,7 +77,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var ctty = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_TYPE) : null;
 		var cten = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_ENCODING) : null;
 		var id   = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(TRACE_HEADER) : null;
-		emit(httpRequestStage(req, EXCHANGE, req.getStart(), end, thrw)); //same thread
+		emit(httpRequestStage(req, PROCESS, req.getStart(), end, thrw)); //same thread
     	req.lazy(()->{
     		req.setThreadName(tn);
 			req.setId(id); //+ send api_name !?
@@ -93,7 +93,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
     
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
 		return (s,e,n,b,t)-> {
-			emit(httpRequestStage(req, READ, s, e, t));
+			emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //READ content
 			req.lazy(()->{
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));

@@ -138,12 +138,6 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 		}
     }
     
-	@FunctionalInterface
-	public interface Dispatcher<T> {
-		
-		List<T> dispatch(boolean complete, int attemps, List<T> metrics); //return undispatched items
-	}
-	
 	private final class ThreadSafeQueue {
 	
 		private Object mutex = new Object();

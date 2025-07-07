@@ -3,6 +3,7 @@ package org.usf.inspect.rest;
 import static java.lang.String.join;
 import static java.net.URI.create;
 import static java.time.Instant.now;
+import static java.util.Arrays.stream;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
@@ -12,12 +13,13 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
+import static org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.HttpAction.ASYNC;
+import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
@@ -61,28 +63,27 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	static final String CURRENT_SESSION = FilterExecutionMonitor.class.getName() + ".session";
 	static final String STAGE_START = FilterExecutionMonitor.class.getName() + ".stageStart";
 	
-	private final HttpUserProvider userProvider;
+	private HttpUserProvider userProvider;
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	static final String TRACE_HEADER = "x-tracert";
 
 	private final Predicate<HttpServletRequest> excludeFilter;
 
-	public FilterExecutionMonitor(RestSessionTrackConfiguration config, HttpUserProvider userProvider) {
+	public FilterExecutionMonitor(RestSessionTrackConfiguration config) {
 		Predicate<HttpServletRequest> pre = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
 			if(nonNull(pArr) && pArr.length > 0) {
 				var matcher = new AntPathMatcher();
-				pre = req-> Stream.of(pArr).anyMatch(p-> matcher.match(p, req.getServletPath()));
+				pre = req-> stream(pArr).anyMatch(p-> matcher.match(p, req.getServletPath()));
 			}
 			var mArr = config.excludedMethods();
 			if(nonNull(mArr) && mArr.length > 0) {
-				pre = pre.or(req-> Stream.of(mArr).anyMatch(m-> m.equals(req.getMethod())));
+				pre = pre.or(req-> stream(mArr).anyMatch(m-> m.equals(req.getMethod())));
 			}
 		}
 		this.excludeFilter = pre;
-		this.userProvider = userProvider;
 	}
 	
 	@Override
@@ -93,8 +94,6 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
 		var ses = traceRestSession(req, res);
-		req.setAttribute(CURRENT_SESSION, ses);
-		req.setAttribute(STAGE_START, now());
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
 			exec(()-> filterChain.doFilter(req, res), restSessionListener(ses, req, res));	
@@ -116,10 +115,12 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	
 	private RestSession traceRestSession(HttpServletRequest req, HttpServletResponse res) {
 		var ses = (RestSession) req.getAttribute(CURRENT_SESSION);
+		var start = now();
+		req.setAttribute(STAGE_START, start); //SYNC | ASYNC stage start
 		if(isNull(ses)) {
-			var start = now();
 			ses = startRestSession();
 			try {
+				req.setAttribute(CURRENT_SESSION, ses);
 				res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 				res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 				ses.setStart(start);
@@ -143,7 +144,6 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	private ExecutionMonitorListener<Void> restSessionListener(RestSession in, HttpServletRequest req, HttpServletResponse res) {
 		return (s,e,o,t)-> {
 			if(!isAsyncStarted(req)) { //!Async || isAsyncDispatch
-				postProcess(req, e);
 				var sttt = nonNull(res) ? res.getStatus() : 0;
 				var size = nonNull(res) ? res.getBufferSize() : null; //!exact size
 				var encd = nonNull(res) ? res.getHeader(CONTENT_ENCODING) : null; 
@@ -160,7 +160,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				});
 			}
 			else { //IO | CancellationException | ServletException => no ErrorHandler
-				emit(httpRequestStage(in.getRest(), ASYNC, s, e, t));
+				emit(httpRequestStage(in.getRest(), DEFERRED, s, e, t));
 				if(nonNull(t)) {
 					in.lazy(()-> {
 						in.setEnd(e);
@@ -202,25 +202,30 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		}
 	}
 
-	public void postProcess(HttpServletRequest request, Instant end) {
+	@Override
+	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+		var now = now();
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 		if(nonNull(ses)) {
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), POST_PROCESS, beg, end, null));
+			emit(httpRequestStage(ses.getRest(), POST_PROCESS, beg, now, null));
+			if(handler instanceof HandlerMethod mth) { //!static resource
+				String name = resolveEndpointName(mth, request); 
+				ses.setName(name);
+				ses.setUser(getUser(request, name));
+				if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
+					ses.setException(mainCauseException(ex));
+				}
+			}
 		}
 	}
 	
-	@Override
-	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
-		if(nonNull(ses) && handler instanceof HandlerMethod mth) {
-			String name = resolveEndpointName(mth, request); 
-			ses.setName(name);
-			ses.setUser(userProvider.getUser(request, name));
-			if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
-				ses.setException(mainCauseException(ex));
-			}
+	public String getUser(HttpServletRequest request, String name) {
+		if(isNull(userProvider)) {
+			var ctx =  getRequiredWebApplicationContext(getServletContext());
+			userProvider = ctx.getBean(HttpUserProvider.class);
 		}
+		return userProvider.getUser(request, name);
 	}
 
 	private String resolveEndpointName(HandlerMethod mth, HttpServletRequest req) {

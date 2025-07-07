@@ -9,8 +9,8 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.HttpAction.EXCHANGE;
-import static org.usf.inspect.core.HttpAction.READ;
+import static org.usf.inspect.core.HttpAction.POST_PROCESS;
+import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.SessionManager.sessionContextUpdater;
 import static org.usf.inspect.core.SessionManager.startRequest;
 import static org.usf.inspect.core.TraceBroadcast.emit;
@@ -75,7 +75,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			var ctty = nonNull(r) ? r.getHeaders().getFirst(CONTENT_TYPE) : null;
 			var cten = nonNull(r) ? r.getHeaders().getFirst(CONTENT_ENCODING) : null;
 			var stts = nonNull(r) ? r.getStatusCode().value() : 0; //break ClientHttpRes. dependency
-			emit(httpRequestStage(req, EXCHANGE, s, e, t));
+			emit(httpRequestStage(req, PROCESS, s, e, t));
 			req.lazy(()-> {
 				req.setThreadName(tn);
 				req.setId(id);
@@ -96,7 +96,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			if(nonNull(upd)) {
 				upd.updateContext(); // if parallel execution
 			}
-			emit(httpRequestStage(req, READ, s, e, t));
+			emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //red content
 			req.lazy(()-> {
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));

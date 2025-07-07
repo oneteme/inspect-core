@@ -20,7 +20,6 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
-import org.usf.inspect.core.ScheduledDispatchHandler.Dispatcher;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,7 +57,7 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 			}
 		}
     	if(nonNull(instanceId)) {
-    		List<Metric> pdn = null;
+    		List<Traceable> pdn = null;
     		try {
     			pdn = extractPendingMetrics(metrics);
     			if(!pdn.isEmpty()) {
@@ -76,8 +75,8 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
     	return metrics;
     }
 	
-	private List<Metric> extractPendingMetrics(List<Traceable> metrics) {
-		var pending = new ArrayList<Metric>();
+	private List<Traceable> extractPendingMetrics(List<Traceable> metrics) {
+		var pending = new ArrayList<Traceable>();
 		var now = now();
 		var lazyAfter = properties.getLazyAfter();
 		for(var it=metrics.listIterator(); it.hasNext();) {

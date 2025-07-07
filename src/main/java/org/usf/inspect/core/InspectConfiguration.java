@@ -54,12 +54,10 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	
 	private final InspectConfigurationProperties config;
 	private final InstanceEnvironment instance;
-	private final HttpUserProvider httpUser;
-	private final AspectUserProvider aspectUser;
 	
 	private FilterExecutionMonitor sessionFilter;
 	
-	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider, HttpUserProvider httpUser, AspectUserProvider aspectUser) {
+	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider) {
 		this.instance = localInstance(
 				provider.getName(),
 				provider.getVersion(),
@@ -67,8 +65,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 				provider.getCommitHash(),
 				provider.getEnvironment());
 		this.config = conf.validate();
-		this.httpUser = httpUser;
-		this.aspectUser = aspectUser;
 		initStatupSession();
 		if(log.isDebugEnabled()) {
 			register(new SessionTraceDebugger()); //log first
@@ -127,14 +123,14 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean
     @Primary
     @ConditionalOnExpression("${inspect.track.main-session:true}!=false")
-    MethodExecutionMonitor monitorAspect() {
+    MethodExecutionMonitor monitorAspect(AspectUserProvider aspectUser) {
     	log.debug("loading 'MethodExecutionMonitorAspect' bean ..");
     	return new MethodExecutionMonitor(aspectUser);
     }
     
     private FilterExecutionMonitor sessionFilter() {
     	if(isNull(sessionFilter)) {
-    		sessionFilter = new FilterExecutionMonitor(config.getTrack().getRestSession(), httpUser); //conf !null
+    		sessionFilter = new FilterExecutionMonitor(config.getTrack().getRestSession()); //conf !null
     	}
     	return sessionFilter;
     }
@@ -193,14 +189,14 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     @Bean
     @ConditionalOnMissingBean
-    public static HttpUserProvider httpUserProvider() {
+    HttpUserProvider httpUserProvider() {
     	log.debug("loading 'HttpUserProvider' bean ..");
     	return new HttpUserProvider() {};
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public static AspectUserProvider aspectUserProvider() {
+    AspectUserProvider aspectUserProvider() {
     	log.debug("loading 'AspectUserProvider' bean ..");
     	return new AspectUserProvider() {};
     }

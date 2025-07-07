@@ -23,11 +23,6 @@ public class FtpRequest extends AbstractRequest {
 	//ftp-collector
 	
 	@Override
-	public String prettyFormat() {
-		return prettyURLFormat(getUser(), protocol, host, port, null);
-	}
-	
-	@Override
 	public FtpRequest copy() {
 		var req = new FtpRequest();
 		req.setId(getId());
@@ -43,5 +38,10 @@ public class FtpRequest extends AbstractRequest {
 		req.setClientVersion(clientVersion);
 		req.setFailed(failed);
 		return req;
+	}
+	
+	@Override
+	String prettyFormat() {
+		return prettyURLFormat(getUser(), protocol, host, port, null);
 	}
 }

@@ -138,9 +138,10 @@ public final class SessionManager {
 	}
 	
 	static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
+		var now = now();
 		var req = startRequest(LocalRequest::new);
     	try {
-        	req.setStart(now());
+        	req.setStart(now);
         	req.setThreadName(threadName());
 			req.setType(type.name());
         	req.setName(nameSupp.get());

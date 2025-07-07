@@ -26,8 +26,8 @@ public abstract class AbstractRequest implements LazyMetric {
 	private Instant start;
 	private Instant end;
 	private String threadName;
-	private String sessionId;
 	//v1.1
+	private String sessionId;
 	private String id;
 	@JsonIgnore
 	private final AtomicInteger counter = new AtomicInteger();

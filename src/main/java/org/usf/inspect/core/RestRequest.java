@@ -28,8 +28,6 @@ public class RestRequest extends AbstractRequest { //APiRequest
 	private int status; //2xx, 4xx, 5xx, 0 otherwise
 	private long inDataSize; //in bytes, -1 unknown
 	private long outDataSize; //in bytes, -1 unknown
-	@Deprecated(since = "v1.1", forRemoval = true)
-	private ExceptionInfo exception;
 	private String inContentEncoding; //gzip, compress, identity,..
 	private String outContentEncoding; //gzip, compress, identity,..
 
@@ -74,18 +72,17 @@ public class RestRequest extends AbstractRequest { //APiRequest
 		req.setInContentEncoding(inContentEncoding);
 		req.setOutContentEncoding(outContentEncoding);
 		req.setBodyContent(bodyContent);
-		req.setException(exception);
 	}
 	
 	@Override
-	public String prettyFormat() {
+	String prettyFormat() {
 		var s = '['+method+']'+ prettyURLFormat(getUser(), protocol, host, port, path);
 		if(nonNull(query)) {
 			s += '?' + query;
 		}
 		s += " >> " + status;
-		if(nonNull(exception)) {
-			s += exception;
+		if(nonNull(bodyContent)) {
+			s += bodyContent;
 		}
 		return s;
 	}

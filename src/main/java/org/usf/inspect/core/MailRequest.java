@@ -42,7 +42,7 @@ public class MailRequest extends AbstractRequest {
 	}
 	
 	@Override
-	public String prettyFormat() {
+	String prettyFormat() {
 		return prettyURLFormat(getUser(), protocol, host, port, null);
 	}
 }

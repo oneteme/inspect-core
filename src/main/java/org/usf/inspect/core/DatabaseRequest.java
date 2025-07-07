@@ -48,7 +48,7 @@ public class DatabaseRequest extends AbstractRequest {
 	}
 	
 	@Override
-	public String prettyFormat() {
+	String prettyFormat() {
 		return '['+productName+']' 
 				+ prettyURLFormat(getUser(), "jdbc", host, port, name);
 	}

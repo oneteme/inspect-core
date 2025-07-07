@@ -19,7 +19,7 @@ public class NamingRequestStage extends AbstractStage {
 	//int count !?
 	
 	@Override
-	protected String prettyFormat() {
+	String prettyFormat() {
 		var s = getName();
 		if(nonNull(args)) {
 			s += '(' + join(",", args) + ')';

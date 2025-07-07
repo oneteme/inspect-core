@@ -7,6 +7,5 @@ package org.usf.inspect.core;
  */
 public enum HttpAction {
 
-	PRE_PROCESS, PROCESS, POST_PROCESS, ASYNC, EXCHANGE, READ, WRITE;
-	
+	PRE_PROCESS, DEFERRED, PROCESS, POST_PROCESS, 
 }
