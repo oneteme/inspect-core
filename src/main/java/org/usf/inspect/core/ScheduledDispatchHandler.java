@@ -36,14 +36,14 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
 		return thr;
 	});
 	
-    private final ScheduledDispatchProperties properties;
+    private final SchedulingProperties properties;
     private final Dispatcher<Traceable> dispatcher;
     private final ThreadSafeQueue<Traceable> queue;
     @Getter
     private volatile DispatchState state;
     private int attempts;
 
-    public ScheduledDispatchHandler(ScheduledDispatchProperties properties, Dispatcher<Traceable> dispatcher) {
+    public ScheduledDispatchHandler(SchedulingProperties properties, Dispatcher<Traceable> dispatcher) {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.state = DISPATCH; //default state
@@ -87,8 +87,8 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
 	    	else {
 	    		log.warn("cannot dispatch items as the dispatcher state is {}, current queue size: {}", state, queue.size());
 	    	}
-	    	if(properties.getBufferMaxSize() > UNLIMITED && (state != DISPATCH || attempts > 0)) { // !DISPACH | dispatch=fail
-	    		queue.removeRange(properties.getBufferMaxSize()); //remove exceeding cache sessions (LIFO)
+	    	if(properties.getQueueCapacity() > UNLIMITED && (state != DISPATCH || attempts > 0)) { // !DISPACH | dispatch=fail
+	    		queue.removeRange(properties.getQueueCapacity()); //remove exceeding cache sessions (LIFO)
 	    	}
     	}
     }
@@ -98,7 +98,7 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
         log.trace("scheduled dispatch of {} items...", cs.size());
         try {
         	var modifiable = new ArrayList<>(cs);
-        	var pending = extractPendingMetrics(properties.getLazyAfter(), modifiable);
+        	var pending = extractPendingMetrics(properties.getDispatchDelayIfPending(), modifiable);
         	if(dispatcher.dispatch(complete, ++attempts, pending.size(), modifiable)) { 
         		if(attempts > 1) { //more than one attempt
         			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);

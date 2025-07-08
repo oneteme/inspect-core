@@ -1,10 +1,10 @@
 package org.usf.inspect.core;
 
+import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
-import static org.usf.inspect.core.DispatchTarget.REMOTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
@@ -14,13 +14,14 @@ import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.core.TraceBroadcast.register;
 
 import java.time.Instant;
+import java.util.Optional;
 
 import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationFailedEvent;
@@ -50,14 +51,13 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Configuration
-@ConfigurationProperties("inspect")
-@ConditionalOnProperty(prefix = "inspect", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "inspect.collector", name = "enabled", havingValue = "true")
 class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
-	private final InspectConfigurationProperties config;
 	private final ApplicationContext ctx;
+	private final InspectCollectorConfiguration config;
 	
-	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider, ApplicationContext ctx) {
+	InspectConfiguration(ApplicationContext ctx, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		this.ctx = ctx;
 		this.config = conf.validate();
 		log.info("inspect.properties={}", conf);
@@ -69,20 +69,19 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 				provider.getCommitHash(),
 				provider.getEnvironment());
 		log.info("inspect enabled on instance={}", instance);
-		if(log.isDebugEnabled()) {
-			register(new SessionTraceDebugger()); //log first
+		if(conf.isDebugMode()) {
+			register(new SessionTraceDebugger());
 		}
-		if(conf.getTarget() == REMOTE) {
-			var disp = new InspectRestClient(conf.getServer(), instance);
-			register(new ScheduledDispatchHandler(conf.getDispatch(), disp));
-		}
+		if(conf.getDispatching() instanceof RestDispatchingProperties rest) {
+			var disp = new InspectRestClient(rest, instance);
+			register(new ScheduledDispatchHandler(conf.getScheduling(), disp));
+		}//else unsupported dispatching mode
 		initStatupSession(instance.getInstant());
 	}
 	
     @Bean //important! name == apiSessionFilter
-    @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
     FilterRegistrationBean<Filter> apiSessionFilter(HttpUserProvider userProvider) {
-    	var filter = new FilterExecutionMonitor(config.getTrack().getRestSession(), userProvider);
+    	var filter = new FilterExecutionMonitor(config.getTracking().getHttpRoute(), userProvider);
     	var rb = new FilterRegistrationBean<Filter>(filter);
     	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*"); //check that
@@ -90,14 +89,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
 
 	@Override
-//  @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
     public void addInterceptors(InterceptorRegistry registry) {
 		if(ctx.containsBean("apiSessionFilter")) {
-			var c = (FilterExecutionMonitor) ctx.getBean("apiSessionFilter", FilterRegistrationBean.class).getFilter(); //see 
-			if(nonNull(config.getTrack().getRestSession())) {
-				registry.addInterceptor(c).order(HIGHEST_PRECEDENCE); //before other interceptors
+			var filter = (FilterExecutionMonitor) ctx.getBean("apiSessionFilter", FilterRegistrationBean.class).getFilter(); //see 
+			registry.addInterceptor(filter).order(HIGHEST_PRECEDENCE); //before other interceptors
 //				.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
-			}
 		}
 		else {
 			log.warn("cannot find 'apiSessionFilter' bean, check your configuration, rest session tracking will not work correctly");
@@ -105,22 +101,18 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
     
     @Bean //important! name == restRequestInterceptor
-    @ConditionalOnExpression("${inspect.track.rest-request:true}!=false")
     RestRequestInterceptor restRequestInterceptor() {
     	log.debug("loading 'RestRequestInterceptor' bean ..");
         return new RestRequestInterceptor();
     }
     
     @Bean
-    @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
     ControllerAdviceMonitor controllerAdviceAspect() {
     	log.debug("loading 'ControllerAdviceTracker' bean ..");
     	return new ControllerAdviceMonitor();
     }
-    
-    
+     
     @Bean
-    @ConditionalOnExpression("${inspect.track.jdbc-request:true}!=false")
     BeanPostProcessor dataSourceWrapper() {
     	return new BeanPostProcessor() {
     		@Override
@@ -131,29 +123,26 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
     
     @Bean
-    @ConditionalOnExpression("${inspect.track.main-session:true}!=false")
     MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
     	log.debug("loading 'MethodExecutionMonitorAspect' bean ..");
     	return new MethodExecutionMonitor(aspectUser);
     }
     
     void initStatupSession(Instant start) {
-		if(config.getTrack().isStartupSession()) {
-	    	var ses = startupSession();
-	    	try {
-		    	ses.setName("main");
-		    	ses.setThreadName(threadName());
-		    	ses.setStart(start);
-	    	}
-	    	finally {
-				emit(ses);
-			}
+    	var ses = startupSession();
+    	try {
+	    	ses.setName("main");
+	    	ses.setThreadName(threadName());
+	    	ses.setStart(start);
+    	}
+    	finally {
+			emit(ses);
 		}
     }
 
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
-		if(config.getTrack().isStartupSession() && (e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent)) {
+		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 		}
 	}
@@ -198,8 +187,33 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 
     @Bean
     @ConditionalOnMissingBean
-    public static ApplicationPropertiesProvider springProperties(Environment env) {
+    static ApplicationPropertiesProvider applicationPropertiesProvider(Environment env) {
     	log.debug("loading 'ApplicationPropertiesProvider' bean ..");
     	return new DefaultApplicationPropertiesProvider(env);
+    }
+    
+    @Bean
+    @ConfigurationProperties(prefix = "inspect.collector")
+    static InspectCollectorConfiguration inspectConfigurationProperties(Optional<DispatchingProperties> dispatching) {
+    	log.debug("loading 'InspectConfigurationProperties' bean ..");
+    	var conf = new InspectCollectorConfiguration();
+    	if(dispatching.isPresent()) {
+    		conf.setDispatching(dispatching.get()); //spring will not call this setter
+    	}
+		else {
+			log.warn("no dispatching type found, dispatching will not be configured");
+		}
+    	return conf;
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "inspect.collector.dispatching")
+    @ConditionalOnProperty(prefix = "inspect.collector.dispatching", name = "mode")
+    static DispatchingProperties dispatcherType(@Value("${inspect.collector.dispatching.mode}") DispatchTarget type) {
+    	log.debug("loading 'DispatchingProperties' bean ..");
+    	return switch (type) {
+		case REST -> new RestDispatchingProperties();
+		default -> throw new UnsupportedOperationException(format("dispatching type '%s' is not supported, ", type));
+		};
     }
 }

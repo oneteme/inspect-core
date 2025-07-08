@@ -1,7 +1,6 @@
 package org.usf.inspect.rest;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +16,6 @@ import org.springframework.context.annotation.Configuration;
 public class ReactorModuleConfiguration {
 
     @Bean
-    @ConditionalOnExpression("${inspect.track.rest-request:true}!=false")
     public WebClientFilter webClientFilter() { 
         return new WebClientFilter();
     }

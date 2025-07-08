@@ -33,12 +33,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class InspectRestClient implements Dispatcher<Traceable> {
 	
-	private final RestClientProperties properties;
+	private final RestDispatchingProperties properties;
 	private final InstanceEnvironment application;
 	private final RestTemplate template;
 	private String instanceId;
 
-	public InspectRestClient(RestClientProperties properties, InstanceEnvironment application) {
+	public InspectRestClient(RestDispatchingProperties properties, InstanceEnvironment application) {
 		this(properties, application, defaultRestTemplate(properties));
 	}
 	
@@ -47,7 +47,7 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 		if(isNull(instanceId)) {//if not registered before
 			try {
 				log.info("registering instance: {}", application);
-				instanceId = template.postForObject(properties.getInstanceApi(), application, String.class);
+				instanceId = template.postForObject(properties.getInstanceEndpoint(), application, String.class);
 			}
 			catch(Exception e) {
 				log.warn("cannot register instance, cause: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
@@ -55,13 +55,13 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 			}
 		}
     	if(nonNull(instanceId)) {
-			template.put(properties.getSessionApi(), metrics.toArray(Metric[]::new), instanceId, attemps, pending, complete ? now() : null);
+			template.put(properties.getSessionEndpoint(), metrics.toArray(Metric[]::new), instanceId, attemps, pending, complete ? now() : null);
 			return true; //return true to remove items from the queue
     	}
     	return false; //add back items back to the queue
     }
 	
-	static RestTemplate defaultRestTemplate(RestClientProperties properties) {
+	static RestTemplate defaultRestTemplate(RestDispatchingProperties properties) {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //for instanceID
 	    var timeout = ofSeconds(600); //wait for server startup 
@@ -76,7 +76,7 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 	    return rt.build();
 	}
 	
-	static ClientHttpRequestInterceptor compressRequest(final RestClientProperties properties) {
+	static ClientHttpRequestInterceptor compressRequest(final RestDispatchingProperties properties) {
 		return (req, body, exec)->{
 			if(body.length >= properties.getCompressMinSize()) {
 			    var baos = new ByteArrayOutputStream();

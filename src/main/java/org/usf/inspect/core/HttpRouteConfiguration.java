@@ -21,7 +21,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public final class RestSessionTrackConfiguration {
+public final class HttpRouteConfiguration {
 	
 	private static final String[] EMPTY  = new String[0];
 	private static final String METH_KEY = "method";
