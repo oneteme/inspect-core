@@ -2,8 +2,6 @@ package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
-import java.util.List;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,19 +12,32 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class NamingRequest extends SessionStage {
+public class NamingRequest extends AbstractRequest {
 	
 	private String protocol; // ldap, ldaps
 	private String host;  //IP, domain
 	private int port; // positive number, -1 otherwise
-	private List<NamingRequestStage> actions;
+	//v1.1
+	private boolean failed;
 
+	@Override
+	public NamingRequest copy() {
+		var req = new NamingRequest();
+		req.setId(getId());
+		req.setStart(getStart());
+		req.setEnd(getEnd());
+		req.setUser(getUser());
+		req.setThreadName(getThreadName());
+		req.setSessionId(getSessionId());
+		req.setProtocol(protocol);
+		req.setHost(host);
+		req.setPort(port);
+		req.setFailed(failed);
+		return req;
+	}
+	
 	@Override
 	String prettyFormat() {
 		return prettyURLFormat(getUser(), protocol, host, port, null);
-	}
-	
-	public boolean append(NamingRequestStage action) {
-		return actions.add(action);
 	}
 }

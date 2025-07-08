@@ -4,12 +4,14 @@ import static java.util.Objects.nonNull;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 /**
  * 
  * @author u$f
  *
  */
+@Setter
 @Getter
 @RequiredArgsConstructor
 public final class ExceptionInfo {

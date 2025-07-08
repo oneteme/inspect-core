@@ -36,10 +36,11 @@ public class InstanceEnvironment {
 	private final Instant instant; //startup time
 	private final String collector; //spring-collector-xx, ng-collector-xx,..
 	private final String branch; //branch name
-	private final String hash; //commit hash
+	private final String hash; //commit hash$
 	
-    public static InstanceEnvironment localInstance(String name, String version, String branch, String hash, String env) {
-    	var start = now();
+	//map<String, String> properties = new HashMap<>(); //additional properties
+	
+    public static InstanceEnvironment localInstance(Instant start, String name, String version, String branch, String hash, String env) {
     	return new InstanceEnvironment(name, version,
 				hostAddress(),
 				env,

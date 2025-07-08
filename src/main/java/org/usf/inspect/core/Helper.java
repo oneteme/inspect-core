@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
+import static java.lang.reflect.Array.getLength;
 import static java.util.Collections.synchronizedList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -9,7 +10,9 @@ import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -32,7 +35,7 @@ public final class Helper {
 
 	static {
 		var p = Helper.class.getPackageName();
-		ROOT_PACKAGE = p.substring(0, p.lastIndexOf(".")); //root
+		ROOT_PACKAGE = p; //root
 		log = getLogger(ROOT_PACKAGE + ".collector");
 	}
 	
@@ -100,11 +103,22 @@ public final class Helper {
 		return s;
 	}
 
-	public static String formatLocation(String className, String methodName) {
-		return className + "::" + methodName;
-	}
-
 	static <T> List<T> synchronizedArrayList() {
 		return synchronizedList(new ArrayList<>());
+	}
+	
+	public static int count(Object o) {
+		if(nonNull(o)) {
+			if(o instanceof Collection<?> c) {
+				return c.size();
+			}
+			if(o instanceof Map<?,?> m) {
+				return m.size();
+			}
+			if(o.getClass().isArray()) {
+				return getLength(o);
+			}
+		}
+		return -1;
 	}
 }

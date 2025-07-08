@@ -2,11 +2,11 @@ package org.usf.inspect.naming;
 
 import static java.net.URI.create;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
+import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.requestAppender;
-import static org.usf.inspect.core.StageTracker.call;
-import static org.usf.inspect.core.StageTracker.exec;
+import static org.usf.inspect.core.SessionManager.startRequest;
+import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.naming.NamingAction.ATTRIB;
 import static org.usf.inspect.naming.NamingAction.CONNECTION;
 import static org.usf.inspect.naming.NamingAction.DISCONNECTION;
@@ -14,7 +14,8 @@ import static org.usf.inspect.naming.NamingAction.LIST;
 import static org.usf.inspect.naming.NamingAction.LOOKUP;
 import static org.usf.inspect.naming.NamingAction.SEARCH;
 
-import java.util.ArrayList;
+import java.time.Instant;
+import java.util.function.Function;
 
 import javax.naming.Name;
 import javax.naming.NameClassPair;
@@ -25,10 +26,10 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
+import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.NamingRequest;
 import org.usf.inspect.core.NamingRequestStage;
 import org.usf.inspect.core.SafeCallable;
-import org.usf.inspect.core.StageTracker.StageCreator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
@@ -43,129 +44,151 @@ public class DirContextTracker implements DirContext {
 	
 	@Delegate
 	private final DirContext ctx;
-	private final NamingRequest req;
+	private NamingRequest req;
+	
+	public DirContextTracker(SafeCallable<DirContext, RuntimeException> fn) {
+		this.ctx = call(fn, ldapRequestListener());
+	}
 
 	@Override
 	public Object lookup(Name name) throws NamingException {
-		return call(()-> ctx.lookup(name), namingActionCreator(LOOKUP, name.toString()), req::append);
+		return call(()-> ctx.lookup(name), ldapStageListener(LOOKUP, name.toString()));
 	}
 
 	@Override
 	public Object lookup(String name) throws NamingException {
-		return call(()-> ctx.lookup(name), namingActionCreator(LOOKUP, name), req::append);
+		return call(()-> ctx.lookup(name), ldapStageListener(LOOKUP, name));
 	}
+	
 	@Override
 	public NamingEnumeration<NameClassPair> list(Name name) throws NamingException {
-		return call(()-> ctx.list(name), namingActionCreator(LIST, name.toString()), req::append);
+		return call(()-> ctx.list(name), ldapStageListener(LIST, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<NameClassPair> list(String name) throws NamingException {
-		return call(()-> ctx.list(name), namingActionCreator(LIST, name), req::append);
+		return call(()-> ctx.list(name), ldapStageListener(LIST, name));
 	}
 
 	@Override
 	public Attributes getAttributes(Name name) throws NamingException {
-		return call(()-> ctx.getAttributes(name), namingActionCreator(ATTRIB, name.toString()), req::append);
+		return call(()-> ctx.getAttributes(name), ldapStageListener(ATTRIB, name.toString()));
 	}
 
 	@Override
 	public Attributes getAttributes(String name) throws NamingException {
-		return call(()-> ctx.getAttributes(name), namingActionCreator(ATTRIB, name), req::append);
+		return call(()-> ctx.getAttributes(name), ldapStageListener(ATTRIB, name));
 	}
 
 	@Override
 	public Attributes getAttributes(Name name, String[] attrIds) throws NamingException {
-		return call(()-> ctx.getAttributes(name, attrIds), namingActionCreator(ATTRIB, name.toString()), req::append);
+		return call(()-> ctx.getAttributes(name, attrIds), ldapStageListener(ATTRIB, name.toString()));
 	}
 
 	@Override
 	public Attributes getAttributes(String name, String[] attrIds) throws NamingException {
-		return call(()-> ctx.getAttributes(name, attrIds), namingActionCreator(ATTRIB, name), req::append);
+		return call(()-> ctx.getAttributes(name, attrIds), ldapStageListener(ATTRIB, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, Attributes matchingAttributes, String[] attributesToReturn) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), namingActionCreator(SEARCH, name.toString()), req::append);
+		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), ldapStageListener(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, Attributes matchingAttributes, String[] attributesToReturn) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), namingActionCreator(SEARCH, name), req::append);
+		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), ldapStageListener(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, Attributes matchingAttributes) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes), namingActionCreator(SEARCH, name.toString()), req::append);
+		return call(()-> ctx.search(name, matchingAttributes), ldapStageListener(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, Attributes matchingAttributes) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes), namingActionCreator(SEARCH, name), req::append);
+		return call(()-> ctx.search(name, matchingAttributes), ldapStageListener(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, String filter, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filter, cons), namingActionCreator(SEARCH, name.toString()), req::append);
+		return call(()-> ctx.search(name, filter, cons), ldapStageListener(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, String filter, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filter, cons), namingActionCreator(SEARCH, name), req::append);
+		return call(()-> ctx.search(name, filter, cons), ldapStageListener(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, String filterExpr, Object[] filterArgs, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filterExpr, cons), namingActionCreator(SEARCH, name.toString()), req::append);
+		return call(()-> ctx.search(name, filterExpr, cons), ldapStageListener(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, String filterExpr, Object[] filterArgs, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filterExpr, cons), namingActionCreator(SEARCH, name), req::append);
+		return call(()-> ctx.search(name, filterExpr, cons), ldapStageListener(SEARCH, name));
 	}
 	
 	@Override
 	public void close() throws NamingException {
-		exec(ctx::close, namingActionCreator(DISCONNECTION), stg->{
-			req.append(stg);
-			req.setEnd(stg.getEnd());
+		exec(ctx::close, (s,e,o,t)-> {
+			emit(ldapStage(DISCONNECTION, s, e, t));
+			req.run(()-> {
+				if(nonNull(t)) {
+					req.setFailed(true);
+				}
+				req.setEnd(e);
+				emit(req);
+			});
 		});
-	}
-
-	static StageCreator<Object, NamingRequestStage> namingActionCreator(NamingAction action, String... args) {
-		return (s,e,o,t)-> {
-			var stg = new NamingRequestStage();
-			stg.setName(action.name());
-			stg.setStart(s);
-			stg.setEnd(e);
-			stg.setArgs(args);
-			if(nonNull(t)) {
-				stg.setException(mainCauseException(t));
-			}
-			return stg;
-		};
 	}
 	
 	//dummy spring org.springframework.ldap.NamingException
-	public static DirContextTracker context(SafeCallable<DirContext, RuntimeException> fn) {
-		var req = new NamingRequest();
-		var ctx = call(fn, (s,e,c,t)-> {
+	ExecutionMonitorListener<DirContext> ldapRequestListener() {
+		req = startRequest(NamingRequest::new);
+		return (s,e,o,t)->{
+			req.setThreadName(threadName());
 			req.setStart(s);
- 			req.setThreadName(threadName());
- 			if(nonNull(c)) {
- 	 			var url = create(c.getEnvironment().get(PROVIDER_URL).toString());
+			if(nonNull(t)) { //if connection error
+				req.setFailed(true);
+				req.setEnd(e);
+			}
+			var url = getEnvironmentVariable(o, PROVIDER_URL, v-> create(v.toString()));  //broke context dependency
+ 			if(nonNull(url)) {
  				req.setProtocol(url.getScheme());
  				req.setHost(url.getHost());
  				req.setPort(url.getPort());
- 				req.setUser(c.getEnvironment().get(SECURITY_PRINCIPAL).toString());
  			}
- 			else if(nonNull(t)) {
-				req.setEnd(e);
+ 			var user = getEnvironmentVariable(o, SECURITY_PRINCIPAL, Object::toString); //broke context dependency
+ 			if(nonNull(user)) {
+ 				req.setUser(user);
+ 			}
+ 			emit(req);
+			emit(ldapStage(CONNECTION, s, e, t));
+		};
+	}
+	
+	<T> ExecutionMonitorListener<T> ldapStageListener(NamingAction action, String... args) {
+		return (s,e,o,t)-> {
+			emit(ldapStage(action, s, e, t, args));
+			if(nonNull(t)) {
+				req.run(()-> req.setFailed(true));
 			}
-			req.setActions(new ArrayList<>(3)); //cnx, act, dec
-			req.append(namingActionCreator(CONNECTION).create(s, e, c, t));
-			return req;
-		}, requestAppender());
-		return new DirContextTracker(ctx, req);
+		};
+	}
+	
+	NamingRequestStage ldapStage(NamingAction action, Instant start, Instant end, Throwable t, String... args) {
+		var stg = req.createStage(action.name(), start, end, t, NamingRequestStage::new);
+		stg.setArgs(args);
+		return stg;
+	}
+	
+	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {
+		var env = o.getEnvironment();
+		if(nonNull(env) && env.containsKey(key)) {
+			return fn.apply(env.get(key));
+		}
+		return null;
 	}
 }

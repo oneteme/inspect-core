@@ -14,20 +14,35 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-public class MailRequest extends SessionStage {
-	
+public class MailRequest extends AbstractRequest {
+
+	private String protocol; //smtp(s), imap, pop3
 	private String host;
 	private int port;
-	private List<MailRequestStage> actions;
 	private List<Mail> mails;
+	//v1.1
+	private boolean failed;
 	//mail-collector
-	
+
 	@Override
-	public String prettyFormat() {
-		return prettyURLFormat(getUser(), "smtp", host, port, null);
+	public MailRequest copy() {
+		var req = new MailRequest();
+		req.setId(getId());
+		req.setStart(getStart());
+		req.setEnd(getEnd());
+		req.setUser(getUser());
+		req.setThreadName(getThreadName());
+		req.setSessionId(getSessionId());
+		req.setProtocol(protocol);
+		req.setHost(host);
+		req.setPort(port);
+		req.setMails(mails);
+		req.setFailed(failed);
+		return req;
 	}
 	
-	public boolean append(MailRequestStage action) {
-		return actions.add(action);
+	@Override
+	String prettyFormat() {
+		return prettyURLFormat(getUser(), protocol, host, port, null);
 	}
 }

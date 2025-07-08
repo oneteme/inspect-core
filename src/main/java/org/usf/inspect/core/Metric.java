@@ -10,7 +10,7 @@ import java.time.Instant;
  * @author u$f
  *
  */
-public interface Metric {
+public interface Metric extends Traceable {
 	
 	Instant getStart();
 

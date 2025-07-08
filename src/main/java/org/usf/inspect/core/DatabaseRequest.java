@@ -1,9 +1,6 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.isNull;
 import static org.usf.inspect.core.Helper.prettyURLFormat;
-
-import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DatabaseRequest extends SessionStage {
+public class DatabaseRequest extends AbstractRequest {
 
 	private String scheme;
 	private String host; //IP, domaine
@@ -25,20 +22,34 @@ public class DatabaseRequest extends SessionStage {
 	private String driverVersion;
 	private String productName;
 	private String productVersion;
-	private List<DatabaseRequestStage> actions;
+	//v1.1
+	private boolean failed;
 	//java-collector
-	
-	public boolean isCompleted() {
-		return actions.stream().allMatch(a-> isNull(a.getException()));
+
+	@Override
+	public DatabaseRequest copy() {
+		var req = new DatabaseRequest();
+		req.setId(getId());
+		req.setStart(getStart());
+		req.setEnd(getEnd());
+		req.setUser(getUser());
+		req.setThreadName(getThreadName());
+		req.setSessionId(getSessionId());
+		req.setScheme(scheme);
+		req.setHost(host);
+		req.setPort(port);
+		req.setName(name);
+		req.setSchema(schema);
+		req.setDriverVersion(driverVersion);
+		req.setProductName(productName);
+		req.setProductVersion(productVersion);
+		req.setFailed(failed);
+		return req;
 	}
 	
 	@Override
-	public String prettyFormat() {
+	String prettyFormat() {
 		return '['+productName+']' 
 				+ prettyURLFormat(getUser(), "jdbc", host, port, name);
-	}
-
-	public boolean append(DatabaseRequestStage action) {
-		return actions.add(action);
 	}
 }

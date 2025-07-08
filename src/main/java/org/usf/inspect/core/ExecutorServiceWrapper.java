@@ -49,14 +49,14 @@ public final class ExecutorServiceWrapper implements ExecutorService {
     private static <T> T aroundRunnable(Runnable command, Function<Runnable, T> fn) {
     	var session = requireCurrentSession();
 		if(nonNull(session)) {
-			session.lock(); //important! sync lock
+			session.lock(); //important! sync lock !timeout 
 			try {
 				return fn.apply(()->{
 					updateCurrentSession(session);
 			    	try {
 				    	command.run();
 			    	}
-			    	finally { // InterruptedException
+			    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
 						session.unlock();
 						endSession(); 
 			    	}
@@ -80,7 +80,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			    	try {
 			    		return command.call();
 			    	}
-			    	finally { // InterruptedException
+			    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
 						session.unlock();
 						endSession(); 
 			    	}

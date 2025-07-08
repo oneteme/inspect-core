@@ -15,12 +15,6 @@ import java.lang.annotation.Target;
 public @interface TraceableStage { 
 
 	String value() default ""; // stage name
-	
-	/**
-	 * require default constructor
-	 * 
-	 */
-	Class<? extends StageUpdater> sessionUpdater() default StageUpdater.class; //use spring bean (primary + )
-	
+
 	//boolean enabled() default true
 }

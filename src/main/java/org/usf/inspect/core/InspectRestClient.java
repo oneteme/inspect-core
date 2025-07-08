@@ -18,7 +18,6 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
-import org.usf.inspect.core.ScheduledDispatchHandler.Dispatcher;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,7 +31,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class InspectRestClient implements Dispatcher<Session> {
+public final class InspectRestClient implements Dispatcher<Traceable> {
 	
 	private final RestClientProperties properties;
 	private final InstanceEnvironment application;
@@ -44,23 +43,24 @@ public final class InspectRestClient implements Dispatcher<Session> {
 	}
 	
 	@Override
-    public boolean dispatch(boolean complete, int attemps, List<Session> sessions, int pending) {
+    public boolean dispatch(boolean complete, int attemps, int pending, List<Traceable> metrics) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
+				log.info("registering instance: {}", application);
 				instanceId = template.postForObject(properties.getInstanceApi(), application, String.class);
 			}
-			catch (Exception e) {
-				log.warn("cannot register instance, {}", e.getMessage());
+			catch(Exception e) {
+				log.warn("cannot register instance, cause: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
 				throw e;
 			}
-		} 
+		}
     	if(nonNull(instanceId)) {
-    		template.put(properties.getSessionApi(), sessions.toArray(Session[]::new), instanceId, pending, complete ? now() : null);
-    		return true;
+			template.put(properties.getSessionApi(), metrics.toArray(Metric[]::new), instanceId, attemps, pending, complete ? now() : null);
+			return true; //return true to remove items from the queue
     	}
-    	return false;
+    	return false; //add back items back to the queue
     }
-
+	
 	static RestTemplate defaultRestTemplate(RestClientProperties properties) {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //for instanceID
@@ -96,7 +96,7 @@ public final class InspectRestClient implements Dispatcher<Session> {
 	private static ObjectMapper createObjectMapper() {
 	     var mapper = new ObjectMapper();
 	     mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required
-	     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY); //v22
+	     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 //	     mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
 	     return mapper;
 	}

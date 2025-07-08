@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConditionalOnClass(name="org.springframework.web.reactive.function.client.ExchangeFilterFunction")
 @ConditionalOnProperty(prefix = "inspect", name = "enabled", havingValue = "true")
-public class WebFluxConfiguration {
+public class ReactorModuleConfiguration {
 
     @Bean
     @ConditionalOnExpression("${inspect.track.rest-request:true}!=false")

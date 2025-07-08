@@ -3,7 +3,6 @@ package org.usf.inspect.jdbc;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.jdbc.ConnectionInfo.fromMetadata;
-import static org.usf.inspect.jdbc.DatabaseStageTracker.connection;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -27,12 +26,12 @@ public final class DataSourceWrapper implements DataSource {
 
 	@Override
 	public Connection getConnection() throws SQLException {
-		return connection(ds::getConnection, this::connectionInfo);
+		return new DatabaseRequestMonitor().getConnection(ds::getConnection, this::connectionInfo);
 	}
 
 	@Override
 	public Connection getConnection(String username, String password) throws SQLException {
-		return connection(()-> ds.getConnection(username, password), this::connectionInfo);
+		return new DatabaseRequestMonitor().getConnection(()-> ds.getConnection(username, password), this::connectionInfo);
 	}
 	
 	ConnectionInfo connectionInfo(Connection cnx) throws SQLException { //nullable cnx

@@ -1,24 +1,28 @@
 package org.usf.inspect.core;
 
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
-import static org.usf.inspect.core.Helper.synchronizedArrayList;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.Helper.warnStackTrace;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
+import static org.usf.inspect.core.LogEntry.Level.ERROR;
+import static org.usf.inspect.core.LogEntry.Level.INFO;
+import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.Session.nextId;
-import static org.usf.inspect.core.StageTracker.call;
-import static org.usf.inspect.core.StageTracker.exec;
+import static org.usf.inspect.core.TraceBroadcast.emit;
 
+import java.util.function.Supplier;
+
+import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.LogEntry.Level;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
-import org.usf.inspect.core.StageTracker.SafeConsumer;
-import org.usf.inspect.core.StageTracker.StageCreator;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -48,7 +52,7 @@ public final class SessionManager {
 		if(isNull(ses)) {
 			warnStackTrace("no active session");
 		}
-		else if(ses.completed()) {
+		else if(ses.wasCompleted()) {
 			warnStackTrace("current session already completed: " + ses);
 			ses = null;
 		}
@@ -60,10 +64,16 @@ public final class SessionManager {
 		return nonNull(ses) ? ses : startupSession;
 	}
 	
+	@Deprecated
 	public static void updateCurrentSession(Session s) {
 		if(localTrace.get() != s) { // null || local previous session
 			localTrace.set(s);
 		}
+	}
+	
+	public static SessionContextUpdater sessionContextUpdater() {
+		var ses = requireCurrentSession();
+		return nonNull(ses) ? ()-> updateCurrentSession(ses) : null;
 	}
 	
 	public static MainSession startBatchSession() {
@@ -86,24 +96,12 @@ public final class SessionManager {
 		var ses = new MainSession();
 		ses.setId(nextId());
 		ses.setType(type.name());
-		ses.setRestRequests(synchronizedArrayList());
-		ses.setDatabaseRequests(synchronizedArrayList());
-		ses.setFtpRequests(synchronizedArrayList());
-		ses.setMailRequests(synchronizedArrayList());
-		ses.setLdapRequests(synchronizedArrayList());
-		ses.setLocalRequests(synchronizedArrayList());
 		return ses;
 	}
 	
 	public static RestSession startRestSession() {
 		var ses = new RestSession();
 		ses.setId(nextId());
-		ses.setRestRequests(synchronizedArrayList());
-		ses.setDatabaseRequests(synchronizedArrayList());
-		ses.setFtpRequests(synchronizedArrayList());
-		ses.setMailRequests(synchronizedArrayList());
-		ses.setLdapRequests(synchronizedArrayList());
-		ses.setLocalRequests(synchronizedArrayList());
 		localTrace.set(ses);
 		return ses;
 	}	
@@ -131,37 +129,80 @@ public final class SessionManager {
 	}
 
 	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
-		exec(fn, localRequestCreator(name, stackLocation(), EXEC), requestAppender());
+		trackCallble(name, fn);
 	}
 	
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
-		return call(fn, localRequestCreator(name, stackLocation(), EXEC), requestAppender());
+		var loc = stackLocation();
+		return call(fn, asynclocalRequestListener(EXEC, ()-> loc, ()-> name));
 	}
-
-	public static <T> StageCreator<T, LocalRequest> localRequestCreator(String name, String location, LocalRequestType type) {
-		return (s,e,o,t)->{
-			var req = new LocalRequest();
-			req.setName(name);
-			req.setLocation(location);
-			req.setStart(s);
-			req.setEnd(e);
-			req.setThreadName(threadName());
-			req.setType(isNull(type) ? null : type.name());
-			if(nonNull(t)) {
+	
+	static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
+		var now = now();
+		var req = startRequest(LocalRequest::new);
+    	try {
+        	req.setStart(now);
+        	req.setThreadName(threadName());
+			req.setType(type.name());
+        	req.setName(nameSupp.get());
+        	req.setLocation(locationSupp.get());
+    	}
+    	finally {
+			emit(req);
+		}
+		return (s,e,o,t)-> req.run(()-> {
+    		if(nonNull(t)) {
 				req.setException(mainCauseException(t));
 			}
-			return req;
-		};
+			req.setEnd(e);
+			emit(req);
+		});
 	}
 	
 	private static String stackLocation() {
 		return outerStackTraceElement()
-				.map(st-> formatLocation(st.getClassName(), st.getMethodName()))
+				.map(StackTraceElement::getClassName)
 				.orElse(null);
 	}
 	
-	public static SafeConsumer<SessionStage> requestAppender() {
+	public static <T extends AbstractRequest> T startRequest(Supplier<T> supp) {
+		var req = supp.get();
 		var ses = requireCurrentSession();
-		return isNull(ses) ? req->{} : ses::append;
+		req.setId(nextId());
+		if(nonNull(ses)) {
+			req.setSessionId(ses.getId());
+		}
+		return req;
+	}
+	
+	public void info(String msg) {
+		trace(INFO, msg);
+	}
+
+	public void warn(String msg) {
+		trace(WARN, msg);
+	}
+	
+	public void error(String msg) {
+		trace(ERROR, msg);
+	}
+	
+	public void trace(Level lvl, String msg) {
+		var log = new LogEntry(now(), lvl, msg);
+		var ses = requireCurrentSession();
+		if(nonNull(ses)) {
+			log.setSessionId(ses.getId());
+		}
+		emit(log);
+	}
+	
+	public static String nextId() {
+		return randomUUID().toString();
+	}
+
+	@FunctionalInterface
+	public interface SessionContextUpdater {
+
+		void updateContext();
 	}
 }

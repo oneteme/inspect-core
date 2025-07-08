@@ -4,22 +4,24 @@ import java.time.Instant;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 /**
  * 
  * @author u$f
  *
  */
+@Setter
 @Getter
 @RequiredArgsConstructor
-public final class Trace {
+final class LogEntry implements Traceable {
 	
 	private final Instant instant;
 	private final Level level;
 	private final String message;
-//	private final String[] stack; //class + Line	
-	
+	private String sessionId; //nullable
+
 	enum Level {
-		CORE, INFO, WARN, ERROR;
+		INFO, WARN, ERROR;
 	}
 }

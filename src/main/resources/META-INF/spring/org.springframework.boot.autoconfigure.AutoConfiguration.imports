@@ -1,2 +1,2 @@
 org.usf.inspect.core.InspectConfiguration
-org.usf.inspect.rest.WebFluxConfiguration
+org.usf.inspect.rest.ReactorModuleConfiguration

@@ -5,9 +5,9 @@ import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Stream.generate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.SessionPublisher.emit;
-import static org.usf.inspect.core.SessionPublisher.handlers;
-import static org.usf.inspect.core.SessionPublisher.register;
+import static org.usf.inspect.core.TraceBroadcast.emit;
+import static org.usf.inspect.core.TraceBroadcast.handlers;
+import static org.usf.inspect.core.TraceBroadcast.register;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;

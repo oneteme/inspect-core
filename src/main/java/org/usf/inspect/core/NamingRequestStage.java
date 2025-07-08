@@ -13,13 +13,13 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class NamingRequestStage extends RequestStage {
+public class NamingRequestStage extends AbstractStage {
 	
 	private String[] args;
 	//int count !?
 	
 	@Override
-	protected String prettyFormat() {
+	String prettyFormat() {
 		var s = getName();
 		if(nonNull(args)) {
 			s += '(' + join(",", args) + ')';

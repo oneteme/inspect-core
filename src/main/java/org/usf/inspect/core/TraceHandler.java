@@ -5,8 +5,8 @@ package org.usf.inspect.core;
  * @author u$f
  *
  */
-@FunctionalInterface
-public interface SessionHandler<T> {
+//@FunctionalInterface
+public interface TraceHandler<T> {
 
 	void handle(T obj);
 	

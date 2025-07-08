@@ -13,12 +13,12 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class FtpRequestStage extends RequestStage {
+public final class FtpRequestStage extends AbstractStage {
 
 	private String[] args;
 	
 	@Override
-	public String prettyFormat() {
+	String prettyFormat() {
 		var s = getName();
 		if(nonNull(args)) {
 			s += '(' + join(",", args) + ')';
