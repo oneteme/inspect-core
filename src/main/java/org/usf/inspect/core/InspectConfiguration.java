@@ -67,7 +67,8 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 				provider.getVersion(),
 				provider.getBranch(),
 				provider.getCommitHash(),
-				provider.getEnvironment());
+				provider.getEnvironment(),
+				provider.additionalProperties());
 		log.info("inspect enabled on instance={}", instance);
 		if(conf.isDebugMode()) {
 			register(new SessionTraceDebugger());

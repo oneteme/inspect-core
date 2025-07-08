@@ -2,13 +2,13 @@ package org.usf.inspect.core;
 
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
-import static java.time.Instant.now;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.InstanceType.SERVER;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
+import java.util.Map;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -37,10 +37,10 @@ public class InstanceEnvironment {
 	private final String collector; //spring-collector-xx, ng-collector-xx,..
 	private final String branch; //branch name
 	private final String hash; //commit hash$
+	//v1.1
+	private final Map<String, String> additionalProperties; //docker labels, java system properties, etc.
 	
-	//map<String, String> properties = new HashMap<>(); //additional properties
-	
-    public static InstanceEnvironment localInstance(Instant start, String name, String version, String branch, String hash, String env) {
+    public static InstanceEnvironment localInstance(Instant start, String name, String version, String branch, String hash, String env, Map<String, String> additionalProperties) {
     	return new InstanceEnvironment(name, version,
 				hostAddress(),
 				env,
@@ -51,7 +51,8 @@ public class InstanceEnvironment {
 				start,
 				collectorID(),
 				branch,
-				hash);
+				hash,
+				additionalProperties);
 	}
 
 	private static String hostAddress() {

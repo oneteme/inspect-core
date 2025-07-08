@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.Map;
+
 /**
  * 
  * @author u$f
@@ -16,4 +18,6 @@ public interface ApplicationPropertiesProvider {
 	String getCommitHash();
 	
 	String getEnvironment();
+	
+	Map<String, String> additionalProperties();
 }
