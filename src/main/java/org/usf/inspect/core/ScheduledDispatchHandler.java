@@ -1,10 +1,13 @@
 package org.usf.inspect.core;
 
+import static java.time.Instant.now;
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.isNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.stream.Stream.empty;
 import static org.usf.inspect.core.DispatchState.DISABLE;
-import static org.usf.inspect.core.DispatchState.DISPTACH;
+import static org.usf.inspect.core.DispatchState.DISPATCH;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
+public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
 	
 	private static final byte UNLIMITED = 0;
 	
@@ -34,22 +37,22 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 	});
 	
     private final ScheduledDispatchProperties properties;
-    private final Dispatcher<T> dispatcher;
-    private final ThreadSafeQueue queue;
+    private final Dispatcher<Traceable> dispatcher;
+    private final ThreadSafeQueue<Traceable> queue;
     @Getter
     private volatile DispatchState state;
     private int attempts;
 
-    public ScheduledDispatchHandler(ScheduledDispatchProperties properties, Dispatcher<T> dispatcher) {
+    public ScheduledDispatchHandler(ScheduledDispatchProperties properties, Dispatcher<Traceable> dispatcher) {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
-		this.state = properties.getState();
-		this.queue = new ThreadSafeQueue();
+		this.state = DISPATCH; //default state
+		this.queue = new ThreadSafeQueue<>();
     	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 	
 	@Override
-	public void handle(T o) {
+	public void handle(Traceable o) {
 		if(state != DISABLE) {
 			queue.add(o);
 		}
@@ -58,7 +61,7 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 		}
 	}
 	
-	public boolean submit(List<T> arr) {
+	public boolean submit(List<Traceable> arr) {
 		if(state != DISABLE) {
 			queue.addAll(arr);
 			return true;
@@ -78,13 +81,13 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 	
     private void tryDispatch() {
 		synchronized (executor) {
-	    	if(state == DISPTACH) {
+	    	if(state == DISPATCH) {
     			dispatch(false);
     		}
 	    	else {
 	    		log.warn("cannot dispatch items as the dispatcher state is {}, current queue size: {}", state, queue.size());
 	    	}
-	    	if(properties.getBufferMaxSize() > UNLIMITED && (state != DISPTACH || attempts > 0)) { // !DISPACH | dispatch=fail
+	    	if(properties.getBufferMaxSize() > UNLIMITED && (state != DISPATCH || attempts > 0)) { // !DISPACH | dispatch=fail
 	    		queue.removeRange(properties.getBufferMaxSize()); //remove exceeding cache sessions (LIFO)
 	    	}
     	}
@@ -92,33 +95,61 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 
     private void dispatch(boolean complete) {
     	var cs = queue.pop();
-        if(!cs.isEmpty() || complete) {
-	        log.trace("scheduled dispatch of {} items...", cs.size());
-	        try {
-	        	 cs = dispatcher.dispatch(complete, ++attempts, new ArrayList<>(cs)); //avoid list modification
+        log.trace("scheduled dispatch of {} items...", cs.size());
+        try {
+        	var modifiable = new ArrayList<>(cs);
+        	var pending = extractPendingMetrics(properties.getLazyAfter(), modifiable);
+        	if(dispatcher.dispatch(complete, ++attempts, pending.size(), modifiable)) { 
         		if(attempts > 1) { //more than one attempt
         			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);
         		}
         		attempts=0;
-	    	}
-	    	catch (Exception e) {// do not throw exception : retry later
-	    		log.warn("failed to dispatch {} items after {} attempts, cause: [{}] {}", 
-	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
-			}
-	        catch (OutOfMemoryError e) {
-				cs = emptyList(); //do not add items back to the queue, may release memory
-				attempts = 0;
-				log.error("out of memory error while dispatching {} items, those will be aborted", cs.size());
-	        }
-	        finally { //TODO file after 100 attempts or 90% max memory
-	        	if(!cs.isEmpty()) {
-		        	queue.addAllFirst(cs); //go back to the queue (preserve order)
-	        	}
-	        }
+        		cs = pending; //keep pending traces for next dispatch
+        	}
+    	}
+    	catch (Exception e) {// do not throw exception : retry later
+    		log.warn("failed to dispatch {} items after {} attempts, cause: [{}] {}", 
+    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
+		}
+        catch (OutOfMemoryError e) {
+			cs = emptyList(); //do not add items back to the queue, may release memory
+			attempts = 0;
+			log.error("out of memory error while dispatching {} items, those will be aborted", cs.size());
+        }
+        finally { //TODO dump file after 100 attempts or 90% max buffer size
+        	if(!cs.isEmpty()) {
+	        	queue.requeueAll(cs); //go back to the queue (preserve order)
+        	}
         }
     }
+
+	static List<Traceable> extractPendingMetrics(int seconds, List<Traceable> traces) {
+		if(seconds > 0 && !isEmpty(traces)) {
+			var pending = new ArrayList<Traceable>();
+			var now = now();
+			for(var it=traces.listIterator(); it.hasNext();) {
+				if(it.next() instanceof CompletableMetric o) {
+					o.runIfPending(()-> {
+						if(o.getStart().until(now, SECONDS) > seconds) {
+							it.set(o.copy()); //do not put it in pending, will be sent later
+							log.trace("pending trace will be sent now : {}", o);
+						}
+						else {
+							pending.add(o);
+							it.remove();
+							log.trace("pending trace will be sent later : {} ", o);
+						}
+					});
+				}
+			}
+			return pending;
+		}
+		else {  //no pending trace or sent immediately (server side)
+			return emptyList();
+		}
+	}
     
-    public Stream<T> peek() {
+    public Stream<Traceable> peek() {
     	return queue.peek();
     }
     
@@ -129,7 +160,7 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
     	try {
     		executor.shutdown(); //cancel schedule
     		updateState(DISABLE); //stop add items after waiting for last dispatch
-    		if(stt == DISPTACH) {
+    		if(stt == DISPATCH) {
 				dispatch(true); //complete signal
     		}
     	}
@@ -140,15 +171,19 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 		}
     }
     
-	private final class ThreadSafeQueue {
+    
+	private final class ThreadSafeQueue<T> {
 	
 		private final Object mutex = new Object();
-	    private LinkedHashSet<T> queue;
+	    private LinkedHashSet<T> queue; //guarantees order and uniqueness of items, no duplicates (force updates)
 	
 		public ThreadSafeQueue() {
 			this.queue = new LinkedHashSet<>();
 		}
 		
+		/**
+		 * Adds an item to the queue, overwriting existing items (more recent).
+		 */
 		public void add(T o) {
 	    	synchronized(mutex){
 				queue.add(o);
@@ -156,35 +191,45 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 	    	}
 		}
 		
+		/**
+		 * Adds all items to the queue, overwriting existing items (more recent).
+		 */
 		public void addAll(Collection<T> arr){
 	    	synchronized(mutex){
-    			queue.addAll(arr);
+    			queue.addAll(arr); //add or overwrite items (update)
 				logAddedItems(arr.size(), queue.size());
 			}
 		}
 		
-		public void addAllFirst(Collection<T> arr){
+		/**
+		 * Prepends items to the queue, preserving their order.
+		 * If an item already exists in the queue, the existing (more recent) version is kept and the one from {@code arr} is ignored.
+		 */
+		public void requeueAll(Collection<T> arr){
 	    	synchronized(mutex){
 	    		var set = new LinkedHashSet<>(arr);
-	    		set.addAll(queue); //add all existing items to the front
+	    		set.addAll(queue); //add or overwrite items (update)
 	    		queue = set;
 				logAddedItems(arr.size(), queue.size());
 			}
 		}
-	
+		
 	    public Stream<T> peek() {
 	    	synchronized(mutex){
 	    		return queue.isEmpty() ? empty() : queue.stream();
 	    	}
 	    }
 	    
+	    /**
+	     * Pops all items from the queue, clearing it.
+	     */
 	    public Collection<T> pop() {
 	    	synchronized(mutex){
 	    		if(queue.isEmpty()) {
 	    			return emptyList();
 	    		}
 	    		var res = queue;
-    			queue = new LinkedHashSet<>(); //reset queue, may release memory (!clear)
+    			queue = new LinkedHashSet<>(); //reset queue, may release memory (do not use clear())
     			return res;
 	    	}
 	    }
@@ -195,12 +240,13 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 			}
 		}
 		
+		@Deprecated
 		public void removeRange(int fromIndex) { //TODO (java21) change this => dump file
 			synchronized (mutex) {
 				if(fromIndex < queue.size()) {
 					var n = queue.size() - fromIndex;
 					while(queue.size() > fromIndex) {
-						queue.removeLast(); //remove first item
+						queue.removeLast();
 					}
 					log.warn("removed {} most recent items from the queue, current queue size: {}", n, queue.size());
 				}
@@ -208,7 +254,11 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 		}
 	    
 	    static void logAddedItems(int nItems, int queueSize) {
-			log.trace("added/updated {} new items to the queue, current queue size: {}", nItems, queueSize);
+			log.trace("{} items added or requeued to the queue (may overwrite existing), current queue size: {}", nItems, queueSize);
 	    }
 	}	
+	
+	static boolean isEmpty(List<?> arr) {
+		return isNull(arr) || arr.isEmpty();
+	}
 }

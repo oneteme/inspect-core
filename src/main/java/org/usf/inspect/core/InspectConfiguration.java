@@ -1,11 +1,10 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
-import static java.util.Objects.isNull;
+import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.usf.inspect.core.DispatchTarget.REMOTE;
-import static org.usf.inspect.core.Dispatchers.lazy;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
@@ -13,6 +12,8 @@ import static org.usf.inspect.core.SessionManager.endStatupSession;
 import static org.usf.inspect.core.SessionManager.startupSession;
 import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.core.TraceBroadcast.register;
+
+import java.time.Instant;
 
 import javax.sql.DataSource;
 
@@ -25,12 +26,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.event.SpringApplicationEvent;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -49,51 +50,65 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Configuration
-@EnableConfigurationProperties(InspectConfigurationProperties.class)
+@ConfigurationProperties("inspect")
 @ConditionalOnProperty(prefix = "inspect", name = "enabled", havingValue = "true")
 class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
 	private final InspectConfigurationProperties config;
-	private final InstanceEnvironment instance;
+	private final ApplicationContext ctx;
 	
-	private FilterExecutionMonitor sessionFilter;
-	
-	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider) {
-		this.instance = localInstance(
+	InspectConfiguration(InspectConfigurationProperties conf, ApplicationPropertiesProvider provider, ApplicationContext ctx) {
+		this.ctx = ctx;
+		this.config = conf.validate();
+		log.info("inspect.properties={}", conf);
+		var instance = localInstance(
+				ofEpochMilli(ctx.getStartupDate()),
 				provider.getName(),
 				provider.getVersion(),
 				provider.getBranch(),
 				provider.getCommitHash(),
 				provider.getEnvironment());
-		this.config = conf.validate();
-		initStatupSession();
+		log.info("inspect enabled on instance={}", instance);
 		if(log.isDebugEnabled()) {
 			register(new SessionTraceDebugger()); //log first
 		}
 		if(conf.getTarget() == REMOTE) {
-			var disp = lazy(conf.getDispatch().getLazyAfter(), new InspectRestClient(conf.getServer(), instance));
-			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp));
+			var disp = new InspectRestClient(conf.getServer(), instance);
+			register(new ScheduledDispatchHandler(conf.getDispatch(), disp));
 		}
-		log.info("inspect.properties={}", conf);
-		log.info("inspect enabled on instance={}", instance);
+		initStatupSession(instance.getInstant());
 	}
+	
+    @Bean //important! name == apiSessionFilter
+    @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
+    FilterRegistrationBean<Filter> apiSessionFilter(HttpUserProvider userProvider) {
+    	var filter = new FilterExecutionMonitor(config.getTrack().getRestSession(), userProvider);
+    	var rb = new FilterRegistrationBean<Filter>(filter);
+    	rb.setOrder(HIGHEST_PRECEDENCE);
+    	rb.addUrlPatterns("/*"); //check that
+    	return rb;
+    }
 
 	@Override
 //  @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
     public void addInterceptors(InterceptorRegistry registry) {
-		if(nonNull(config.getTrack().getRestSession())) {
-			registry.addInterceptor(sessionFilter()).order(HIGHEST_PRECEDENCE); //before auth.,.. interceptors 
-//			.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
+		if(ctx.containsBean("apiSessionFilter")) {
+			var c = (FilterExecutionMonitor) ctx.getBean("apiSessionFilter", FilterRegistrationBean.class).getFilter(); //see 
+			if(nonNull(config.getTrack().getRestSession())) {
+				registry.addInterceptor(c).order(HIGHEST_PRECEDENCE); //before other interceptors
+//				.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
+			}
+		}
+		else {
+			log.warn("cannot find 'apiSessionFilter' bean, check your configuration, rest session tracking will not work correctly");
 		}
     }
-	
-    @Bean
-    @ConditionalOnExpression("${inspect.track.rest-session:true}!=false")
-    FilterRegistrationBean<Filter> apiSessionFilter() {
-    	var rb = new FilterRegistrationBean<Filter>(sessionFilter());
-    	rb.setOrder(HIGHEST_PRECEDENCE);
-    	rb.addUrlPatterns("/*"); //check that
-    	return rb;
+    
+    @Bean //important! name == restRequestInterceptor
+    @ConditionalOnExpression("${inspect.track.rest-request:true}!=false")
+    RestRequestInterceptor restRequestInterceptor() {
+    	log.debug("loading 'RestRequestInterceptor' bean ..");
+        return new RestRequestInterceptor();
     }
     
     @Bean
@@ -103,12 +118,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	return new ControllerAdviceMonitor();
     }
     
-    @Bean //do not rename this method see @Qualifier
-    @ConditionalOnExpression("${inspect.track.rest-request:true}!=false")
-    RestRequestInterceptor restRequestInterceptor() {
-    	log.debug("loading 'RestRequestInterceptor' bean ..");
-        return new RestRequestInterceptor();
-    }
     
     @Bean
     @ConditionalOnExpression("${inspect.track.jdbc-request:true}!=false")
@@ -116,33 +125,25 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	return new BeanPostProcessor() {
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-	            return bean instanceof DataSource ds ? new DataSourceWrapper(ds) : bean;
+	            return bean instanceof DataSource ds ? new DataSourceWrapper(ds) : bean; //instance of RestTemplate => addInterceptor !!??
     		}
 		};
     }
     
     @Bean
-    @Primary
     @ConditionalOnExpression("${inspect.track.main-session:true}!=false")
-    MethodExecutionMonitor monitorAspect(AspectUserProvider aspectUser) {
+    MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
     	log.debug("loading 'MethodExecutionMonitorAspect' bean ..");
     	return new MethodExecutionMonitor(aspectUser);
     }
     
-    private FilterExecutionMonitor sessionFilter() {
-    	if(isNull(sessionFilter)) {
-    		sessionFilter = new FilterExecutionMonitor(config.getTrack().getRestSession()); //conf !null
-    	}
-    	return sessionFilter;
-    }
-    
-    void initStatupSession(){
+    void initStatupSession(Instant start) {
 		if(config.getTrack().isStartupSession()) {
 	    	var ses = startupSession();
 	    	try {
 		    	ses.setName("main");
 		    	ses.setThreadName(threadName());
-		    	ses.setStart(instance.getInstant());
+		    	ses.setStart(start);
 	    	}
 	    	finally {
 				emit(ses);
@@ -183,13 +184,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     @Bean
     @ConditionalOnMissingBean
-    public static ApplicationPropertiesProvider springProperties(Environment env) {
-    	log.debug("loading 'ApplicationPropertiesProvider' bean ..");
-    	return new DefaultApplicationPropertiesProvider(env);
-    }
-    
-    @Bean
-    @ConditionalOnMissingBean
     HttpUserProvider httpUserProvider() {
     	log.debug("loading 'HttpUserProvider' bean ..");
     	return new HttpUserProvider() {};
@@ -200,5 +194,12 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     AspectUserProvider aspectUserProvider() {
     	log.debug("loading 'AspectUserProvider' bean ..");
     	return new AspectUserProvider() {};
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public static ApplicationPropertiesProvider springProperties(Environment env) {
+    	log.debug("loading 'ApplicationPropertiesProvider' bean ..");
+    	return new DefaultApplicationPropertiesProvider(env);
     }
 }

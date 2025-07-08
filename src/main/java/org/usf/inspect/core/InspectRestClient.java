@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
-import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
@@ -11,7 +10,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.usf.inspect.core.Helper.log;
 
 import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
@@ -20,7 +18,6 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
-import org.usf.inspect.core.Dispatchers.LazyDispatcher;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +31,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class InspectRestClient implements LazyDispatcher<Traceable> {
+public final class InspectRestClient implements Dispatcher<Traceable> {
 	
 	private final RestClientProperties properties;
 	private final InstanceEnvironment application;

@@ -13,7 +13,6 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
-import static org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
@@ -63,14 +62,14 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	static final String CURRENT_SESSION = FilterExecutionMonitor.class.getName() + ".session";
 	static final String STAGE_START = FilterExecutionMonitor.class.getName() + ".stageStart";
 	
-	private HttpUserProvider userProvider;
+	private final HttpUserProvider userProvider;
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	static final String TRACE_HEADER = "x-tracert";
 
 	private final Predicate<HttpServletRequest> excludeFilter;
 
-	public FilterExecutionMonitor(RestSessionTrackConfiguration config) {
+	public FilterExecutionMonitor(RestSessionTrackConfiguration config, HttpUserProvider userProvider) {
 		Predicate<HttpServletRequest> pre = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
@@ -84,6 +83,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 			}
 		}
 		this.excludeFilter = pre;
+		this.userProvider = userProvider;
 	}
 	
 	@Override
@@ -212,7 +212,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 			if(handler instanceof HandlerMethod mth) { //!static resource
 				String name = resolveEndpointName(mth, request); 
 				ses.setName(name);
-				ses.setUser(getUser(request, name));
+				ses.setUser(userProvider.getUser(request, name));
 				if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
 					ses.setException(mainCauseException(ex));
 				}
@@ -220,14 +220,6 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		}
 	}
 	
-	public String getUser(HttpServletRequest request, String name) {
-		if(isNull(userProvider)) {
-			var ctx =  getRequiredWebApplicationContext(getServletContext());
-			userProvider = ctx.getBean(HttpUserProvider.class);
-		}
-		return userProvider.getUser(request, name);
-	}
-
 	private String resolveEndpointName(HandlerMethod mth, HttpServletRequest req) {
 		if(nonNull(mth)) {
 			var ant = mth.getMethodAnnotation(TraceableStage.class);

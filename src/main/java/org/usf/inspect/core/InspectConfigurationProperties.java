@@ -17,7 +17,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-@ConfigurationProperties(prefix = "inspect")
+@ConfigurationProperties(prefix = "inspect") //.collector
 public final class InspectConfigurationProperties {
 	
 	private boolean enabled = false;

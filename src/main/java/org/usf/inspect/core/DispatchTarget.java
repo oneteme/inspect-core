@@ -7,5 +7,9 @@ package org.usf.inspect.core;
  */
 public enum DispatchTarget {
 	
-	REMOTE;	//LOCAL
+	REMOTE,	//=> REST
+	//MESSAGE,
+	//DUMP
+	;
+	
 }
