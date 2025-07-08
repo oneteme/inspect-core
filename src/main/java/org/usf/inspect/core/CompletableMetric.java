@@ -7,19 +7,27 @@ import static java.util.Objects.nonNull;
  * @author u$f
  *
  */
-public interface LazyMetric extends Metric {
+public interface CompletableMetric extends Metric {
 	
 	String getId();
 
-	LazyMetric copy();
+	CompletableMetric copy();
 
 	default boolean wasCompleted(){
 		return nonNull(getEnd());
 	}
 	
-	default void lazy(Runnable r) {
+	default void run(Runnable r) {
 		synchronized (this) {
 			r.run();
+		}
+	}
+	
+	default void runIfPending(Runnable r) {
+		synchronized (this) {
+			if(!wasCompleted()) {
+				r.run();
+			}
 		}
 	}
 }

@@ -5,6 +5,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.usf.inspect.core.DispatchTarget.REMOTE;
+import static org.usf.inspect.core.Dispatchers.lazy;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceEnvironment.localInstance;
@@ -70,7 +71,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 			register(new SessionTraceDebugger()); //log first
 		}
 		if(conf.getTarget() == REMOTE) {
-			var disp = new InspectRestClient(conf.getServer(), instance);
+			var disp = lazy(conf.getDispatch().getLazyAfter(), new InspectRestClient(conf.getServer(), instance));
 			register(new ScheduledDispatchHandler<>(conf.getDispatch(), disp));
 		}
 		log.info("inspect.properties={}", conf);

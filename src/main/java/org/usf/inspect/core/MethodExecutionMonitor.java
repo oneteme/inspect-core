@@ -56,7 +56,7 @@ public class MethodExecutionMonitor implements Ordered {
 			emit(main);
 		}
     	return call(point::proceed, (s,e,o,t)-> {
-    		main.lazy(()-> {
+    		main.run(()-> {
     			if(nonNull(t)) {
     				main.setException(mainCauseException(t));
     			}

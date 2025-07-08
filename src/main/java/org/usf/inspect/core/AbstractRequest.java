@@ -20,7 +20,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public abstract class AbstractRequest implements LazyMetric {
+public abstract class AbstractRequest implements CompletableMetric {
 	
 	private String user;
 	private Instant start;

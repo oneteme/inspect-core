@@ -76,7 +76,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			var cten = nonNull(r) ? r.getHeaders().getFirst(CONTENT_ENCODING) : null;
 			var stts = nonNull(r) ? r.getStatusCode().value() : 0; //break ClientHttpRes. dependency
 			emit(httpRequestStage(req, PROCESS, s, e, t));
-			req.lazy(()-> {
+			req.run(()-> {
 				req.setThreadName(tn);
 				req.setId(id);
 				req.setStatus(stts);
@@ -97,7 +97,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				upd.updateContext(); // if parallel execution
 			}
 			emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //red content
-			req.lazy(()-> {
+			req.run(()-> {
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));
 				}

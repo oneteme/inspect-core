@@ -20,6 +20,7 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
+import org.usf.inspect.core.Dispatchers.LazyDispatcher;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +34,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class InspectRestClient implements Dispatcher<Traceable> {
+public final class InspectRestClient implements LazyDispatcher<Traceable> {
 	
 	private final RestClientProperties properties;
 	private final InstanceEnvironment application;
@@ -45,7 +46,7 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 	}
 	
 	@Override
-    public List<Traceable> dispatch(boolean complete, int attemps, List<Traceable> metrics) {
+    public boolean dispatch(boolean complete, int attemps, int pending, List<Traceable> metrics) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
 				log.info("registering instance: {}", application);
@@ -57,45 +58,11 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 			}
 		}
     	if(nonNull(instanceId)) {
-    		List<Traceable> pdn = null;
-    		try {
-    			pdn = extractPendingMetrics(metrics);
-    			if(!pdn.isEmpty()) {
-					log.info("{} pending metrics, will be not send", pdn.size());
-				}
-    			template.put(properties.getSessionApi(), metrics.toArray(Metric[]::new), instanceId, attemps, pdn.size(), complete ? now() : null);
-    			metrics = new ArrayList<>(); //release memory
-    		}
-    		finally {
-				if(nonNull(pdn)) {
-					metrics.addAll(pdn);
-				}
-			}
+			template.put(properties.getSessionApi(), metrics.toArray(Metric[]::new), instanceId, attemps, pending, complete ? now() : null);
+			return true; //return true to remove items from the queue
     	}
-    	return metrics;
+    	return false; //add back items back to the queue
     }
-	
-	private List<Traceable> extractPendingMetrics(List<Traceable> metrics) {
-		var pending = new ArrayList<Traceable>();
-		var now = now();
-		var lazyAfter = properties.getLazyAfter();
-		for(var it=metrics.listIterator(); it.hasNext();) {
-			if(it.next() instanceof LazyMetric o) {
-				o.lazy(()->{
-					if(!o.wasCompleted()) {
-						if(o.getStart().until(now, SECONDS) > lazyAfter) {
-							it.set(o.copy()); //do not put it in pending, will be sent later
-						}
-						else {
-							pending.add(o);
-							it.remove();
-						}
-					}
-				});
-			}
-		}
-		return pending;
-	}
 	
 	static RestTemplate defaultRestTemplate(RestClientProperties properties) {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());

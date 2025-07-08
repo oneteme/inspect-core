@@ -226,7 +226,7 @@ public class DatabaseRequestMonitor {
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,o,t)-> {
 			emit(jdbcStage(DISCONNECTION, s, e, t, null));
-			req.lazy(()-> {
+			req.run(()-> {
 				req.setEnd(e);
 				emit(req);
 			});
@@ -266,7 +266,7 @@ public class DatabaseRequestMonitor {
 	private void submitStage(DatabaseRequestStage stg) {
 		emit(stg);
 		if(nonNull(stg.getException())) {
-			req.lazy(()-> req.setFailed(true));
+			req.run(()-> req.setFailed(true));
 		}
 		this.lastStage = stg; //hold last stage
 	}

@@ -65,7 +65,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			mail.setReplyTo(toStringArray(arg0.getReplyTo()));
 			mail.setContentType(arg0.getContentType());
 			mail.setSize(arg0.getSize());
-			req.lazy(()-> {
+			req.run(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
@@ -78,7 +78,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	public void close() throws MessagingException {
 		exec(trsp::close, (s,e,o,t)-> {
 			emit(smtpStage(DISCONNECTION, s, e, t));
-			req.lazy(()-> {
+			req.run(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}

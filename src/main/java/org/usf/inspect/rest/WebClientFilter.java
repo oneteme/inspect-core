@@ -78,7 +78,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var cten = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_ENCODING) : null;
 		var id   = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(TRACE_HEADER) : null;
 		emit(httpRequestStage(req, PROCESS, req.getStart(), end, thrw)); //same thread
-    	req.lazy(()->{
+    	req.run(()->{
     		req.setThreadName(tn);
 			req.setId(id); //+ send api_name !?
 			req.setStatus(stts);
@@ -94,7 +94,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
 		return (s,e,n,b,t)-> {
 			emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //READ content
-			req.lazy(()->{
+			req.run(()->{
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));
 				}

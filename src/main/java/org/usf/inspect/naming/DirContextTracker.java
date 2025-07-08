@@ -134,7 +134,7 @@ public class DirContextTracker implements DirContext {
 	public void close() throws NamingException {
 		exec(ctx::close, (s,e,o,t)-> {
 			emit(ldapStage(DISCONNECTION, s, e, t));
-			req.lazy(()-> {
+			req.run(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
@@ -173,7 +173,7 @@ public class DirContextTracker implements DirContext {
 		return (s,e,o,t)-> {
 			emit(ldapStage(action, s, e, t, args));
 			if(nonNull(t)) {
-				req.lazy(()-> req.setFailed(true));
+				req.run(()-> req.setFailed(true));
 			}
 		};
 	}

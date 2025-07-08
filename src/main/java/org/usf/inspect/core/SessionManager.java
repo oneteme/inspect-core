@@ -150,7 +150,7 @@ public final class SessionManager {
     	finally {
 			emit(req);
 		}
-		return (s,e,o,t)-> req.lazy(()-> {
+		return (s,e,o,t)-> req.run(()-> {
     		if(nonNull(t)) {
 				req.setException(mainCauseException(t));
 			}

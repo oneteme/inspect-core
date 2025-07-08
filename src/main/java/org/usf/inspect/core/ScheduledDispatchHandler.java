@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.stream.Stream.empty;
@@ -9,7 +8,7 @@ import static org.usf.inspect.core.DispatchState.DISPTACH;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Stream;
@@ -25,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 	
-	private static final byte UNLIMITED = 1;
+	private static final byte UNLIMITED = 0;
 	
 	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(r->{
 		var thr = new Thread(r, "inspect-dispatcher");
@@ -45,23 +44,26 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.state = properties.getState();
-		this.queue = new ThreadSafeQueue(properties.getBufferSize());
+		this.queue = new ThreadSafeQueue();
     	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
 	}
 	
 	@Override
-	@SuppressWarnings("unchecked")
 	public void handle(T o) {
-		submit(o);
+		if(state != DISABLE) {
+			queue.add(o);
+		}
+		else {
+			log.warn("rejected 1 new items, current dispatcher state: {}", 1, state);
+		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	public boolean submit(T... arr) {
+	public boolean submit(List<T> arr) {
 		if(state != DISABLE) {
 			queue.addAll(arr);
 			return true;
 		}
-		log.warn("rejected {} new items, current dispatcher state: {}", arr.length, state);
+		log.warn("rejected {} new items, current dispatcher state: {}", arr.size(), state);
 		return false;
 	}
 	
@@ -93,7 +95,7 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
         if(!cs.isEmpty() || complete) {
 	        log.trace("scheduled dispatch of {} items...", cs.size());
 	        try {
-	        	 cs = dispatcher.dispatch(complete, ++attempts, cs);
+	        	 cs = dispatcher.dispatch(complete, ++attempts, new ArrayList<>(cs)); //avoid list modification
         		if(attempts > 1) { //more than one attempt
         			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);
         		}
@@ -104,13 +106,13 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 	    				cs.size(), attempts, e.getClass().getSimpleName(), e.getMessage()); //do not log exception stack trace
 			}
 	        catch (OutOfMemoryError e) {
-				log.error("out of memory error while dispatching {} items, those will be aborted", cs.size());
 				cs = emptyList(); //do not add items back to the queue, may release memory
 				attempts = 0;
+				log.error("out of memory error while dispatching {} items, those will be aborted", cs.size());
 	        }
 	        finally { //TODO file after 100 attempts or 90% max memory
 	        	if(!cs.isEmpty()) {
-		        	queue.addAll(0, cs); //go back to the queue
+		        	queue.addAllFirst(cs); //go back to the queue (preserve order)
 	        	}
 	        }
         }
@@ -140,33 +142,32 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
     
 	private final class ThreadSafeQueue {
 	
-		private Object mutex = new Object();
-	    private final int initialSize;
-	    private List<T> queue;
+		private final Object mutex = new Object();
+	    private LinkedHashSet<T> queue;
 	
-		public ThreadSafeQueue(int initialSize) {
-			this.queue = new ArrayList<>(initialSize);
-			this.initialSize = initialSize;
+		public ThreadSafeQueue() {
+			this.queue = new LinkedHashSet<>();
 		}
 		
-		public void addAll(T[] arr){// see Arrays$ArrayList
-	    	addAll(asList(arr)); // see Arrays$ArrayList
+		public void add(T o) {
 	    	synchronized(mutex){
-				Collections.addAll(queue, arr); 
-				logAddedItems(arr.length, queue.size());
-			}
+				queue.add(o);
+				logAddedItems(1, queue.size());
+	    	}
 		}
 		
 		public void addAll(Collection<T> arr){
 	    	synchronized(mutex){
-				queue.addAll(arr);
+    			queue.addAll(arr);
 				logAddedItems(arr.size(), queue.size());
 			}
 		}
 		
-		public void addAll(int index, Collection<T> arr){
+		public void addAllFirst(Collection<T> arr){
 	    	synchronized(mutex){
-				queue.addAll(index, arr);
+	    		var set = new LinkedHashSet<>(arr);
+	    		set.addAll(queue); //add all existing items to the front
+	    		queue = set;
 				logAddedItems(arr.size(), queue.size());
 			}
 		}
@@ -177,13 +178,13 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 	    	}
 	    }
 	    
-	    public List<T> pop() {
+	    public Collection<T> pop() {
 	    	synchronized(mutex){
 	    		if(queue.isEmpty()) {
 	    			return emptyList();
 	    		}
 	    		var res = queue;
-    			queue = new ArrayList<>(initialSize); //reset queue, may release memory (!clear)
+    			queue = new LinkedHashSet<>(); //reset queue, may release memory (!clear)
     			return res;
 	    	}
 	    }
@@ -194,18 +195,20 @@ public final class ScheduledDispatchHandler<T> implements TraceHandler<T> {
 			}
 		}
 		
-		public void removeRange(int fromIndex) {
+		public void removeRange(int fromIndex) { //TODO (java21) change this => dump file
 			synchronized (mutex) {
 				if(fromIndex < queue.size()) {
 					var n = queue.size() - fromIndex;
-					queue.subList(fromIndex, queue.size()).clear();
+					while(queue.size() > fromIndex) {
+						queue.removeLast(); //remove first item
+					}
 					log.warn("removed {} most recent items from the queue, current queue size: {}", n, queue.size());
 				}
 			}
 		}
 	    
 	    static void logAddedItems(int nItems, int queueSize) {
-			log.trace("added {} new items to the queue, current queue size: {}", nItems, queueSize);
+			log.trace("added/updated {} new items to the queue, current queue size: {}", nItems, queueSize);
 	    }
 	}	
 }

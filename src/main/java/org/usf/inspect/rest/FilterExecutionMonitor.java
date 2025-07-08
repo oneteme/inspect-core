@@ -149,7 +149,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				var encd = nonNull(res) ? res.getHeader(CONTENT_ENCODING) : null; 
 				var cach = nonNull(res) ? res.getHeader(CACHE_CONTROL) : null;
 				var cntt = nonNull(res) ? res.getContentType() : null;
-				in.lazy(()->{
+				in.run(()->{
 					in.setStatus(sttt);
 					in.setOutDataSize(size); //!exact size
 					in.setOutContentEncoding(encd); 
@@ -162,7 +162,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 			else { //IO | CancellationException | ServletException => no ErrorHandler
 				emit(httpRequestStage(in.getRest(), DEFERRED, s, e, t));
 				if(nonNull(t)) {
-					in.lazy(()-> {
+					in.run(()-> {
 						in.setEnd(e);
 						emit(in);
 					});

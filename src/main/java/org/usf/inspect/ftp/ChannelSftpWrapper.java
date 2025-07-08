@@ -255,7 +255,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	ExecutionMonitorListener<Void> closeListener() {
 		return (s,e,o,t)->{
 			emit(sftpStage(DISCONNECTION, s, e, t));
-			req.lazy(()-> {
+			req.run(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
@@ -290,7 +290,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		return (s,e,o,t)->{ 
 			emit(sftpStage(action, s, e, t, args));
 			if(nonNull(t)) {
-				req.lazy(()-> req.setFailed(true));
+				req.run(()-> req.setFailed(true));
 			}
 		};
 	}
