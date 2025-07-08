@@ -42,9 +42,9 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.HttpRouteConfiguration;
 import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.RestSession;
-import org.usf.inspect.core.RestSessionTrackConfiguration;
 import org.usf.inspect.core.TraceableStage;
 
 import jakarta.servlet.FilterChain;
@@ -69,7 +69,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 
 	private final Predicate<HttpServletRequest> excludeFilter;
 
-	public FilterExecutionMonitor(RestSessionTrackConfiguration config, HttpUserProvider userProvider) {
+	public FilterExecutionMonitor(HttpRouteConfiguration config, HttpUserProvider userProvider) {
 		Predicate<HttpServletRequest> pre = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
