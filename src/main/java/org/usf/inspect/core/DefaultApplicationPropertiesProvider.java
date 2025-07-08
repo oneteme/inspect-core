@@ -1,7 +1,11 @@
 package org.usf.inspect.core;
 
 import static java.lang.String.join;
+import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;
+
+import java.util.Collections;
+import java.util.Map;
 
 import org.springframework.core.env.Environment;
 
@@ -47,5 +51,10 @@ public final class DefaultApplicationPropertiesProvider implements ApplicationPr
 	public String getEnvironment() {
 		var envs = env.getActiveProfiles();
 		return isNull(envs) ? null : join(",", envs);
+	}
+	
+	@Override
+	public Map<String, String> additionalProperties() {
+		return emptyMap();
 	}
 }
