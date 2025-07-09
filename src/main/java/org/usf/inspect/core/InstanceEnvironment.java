@@ -13,6 +13,7 @@ import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 
 /**
@@ -21,6 +22,7 @@ import lombok.ToString;
  *
  */
 @Getter
+@Setter
 @ToString
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public class InstanceEnvironment {
@@ -39,6 +41,7 @@ public class InstanceEnvironment {
 	private final String hash; //commit hash$
 	//v1.1
 	private final Map<String, String> additionalProperties; //docker labels, java system properties, etc.
+	private InspectCollectorConfiguration configuration;
 	
     public static InstanceEnvironment localInstance(Instant start, String name, String version, String branch, String hash, String env, Map<String, String> additionalProperties) {
     	return new InstanceEnvironment(name, version,

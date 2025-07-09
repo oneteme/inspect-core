@@ -70,6 +70,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 				provider.getEnvironment(),
 				provider.additionalProperties());
 		log.info("inspect enabled on instance={}", instance);
+		instance.setConfiguration(conf);
 		if(conf.isDebugMode()) {
 			register(new SessionTraceDebugger());
 		}
@@ -210,11 +211,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean
     @ConfigurationProperties(prefix = "inspect.collector.dispatching")
     @ConditionalOnProperty(prefix = "inspect.collector.dispatching", name = "mode")
-    static DispatchingProperties dispatcherType(@Value("${inspect.collector.dispatching.mode}") DispatchTarget type) {
+    static DispatchingProperties dispatcherType(@Value("${inspect.collector.dispatching.mode}") DispatchTarget mode) {
     	log.debug("loading 'DispatchingProperties' bean ..");
-    	return switch (type) {
+    	return switch (mode) {
 		case REST -> new RestDispatchingProperties();
-		default -> throw new UnsupportedOperationException(format("dispatching type '%s' is not supported, ", type));
+		default -> throw new UnsupportedOperationException(format("dispatching type '%s' is not supported, ", mode));
 		};
     }
 }
