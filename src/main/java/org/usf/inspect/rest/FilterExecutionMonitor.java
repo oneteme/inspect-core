@@ -61,28 +61,28 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 
 	static final String CURRENT_SESSION = FilterExecutionMonitor.class.getName() + ".session";
 	static final String STAGE_START = FilterExecutionMonitor.class.getName() + ".stageStart";
-	
-	private final HttpUserProvider userProvider;
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 	static final String TRACE_HEADER = "x-tracert";
 
 	private final Predicate<HttpServletRequest> excludeFilter;
+	//v1.1
+	private final HttpUserProvider userProvider;
 
 	public FilterExecutionMonitor(HttpRouteConfiguration config, HttpUserProvider userProvider) {
-		Predicate<HttpServletRequest> pre = req-> false;
+		Predicate<HttpServletRequest> filter = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
 			if(nonNull(pArr) && pArr.length > 0) {
 				var matcher = new AntPathMatcher();
-				pre = req-> stream(pArr).anyMatch(p-> matcher.match(p, req.getServletPath()));
+				filter = req-> stream(pArr).anyMatch(p-> matcher.match(p, req.getServletPath()));
 			}
 			var mArr = config.excludedMethods();
 			if(nonNull(mArr) && mArr.length > 0) {
-				pre = pre.or(req-> stream(mArr).anyMatch(m-> m.equals(req.getMethod())));
+				filter = filter.or(req-> stream(mArr).anyMatch(m-> m.equals(req.getMethod())));
 			}
 		}
-		this.excludeFilter = pre;
+		this.excludeFilter = filter;
 		this.userProvider = userProvider;
 	}
 	
@@ -224,7 +224,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		if(nonNull(mth)) {
 			var ant = mth.getMethodAnnotation(TraceableStage.class);
 			if(nonNull(ant)) {
-				return ant.value().isEmpty() ? null : ant.value(); 
+				return ant.value().isEmpty() ? null : ant.value();
 			}
 		}
 		return defaultEndpointName(req);

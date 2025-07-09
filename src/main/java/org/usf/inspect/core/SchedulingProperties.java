@@ -30,13 +30,13 @@ public class SchedulingProperties {
 	private int queueCapacity = 10_000; // {n} max buffering traces, 0: unlimited
 	//v1.1
 	private int dispatchDelayIfPending = 30; // send pending traces after {n} seconds, 0: send immediately
-	private String dumpdirectory = "/tmp"; // dump folder
+	private String dumpDirectory = "/tmp"; // dump folder
 
 	void validate() {
 		assertStrictPositive(delay, "delay");
 		assertOneOf(unit, EnumSet.of(SECONDS, MINUTES, HOURS), "unit");
-		assertPositive(queueCapacity, "trace-buffering-size");
-		assertPositive(dispatchDelayIfPending, "trace-pending-after");
-		assertMatches(dumpdirectory, "(\\/[\\w-]+)+", "dumpDir");
+		assertPositive(queueCapacity, "queue-capacity");
+		assertPositive(dispatchDelayIfPending, "dispatch-delay-if-pending");
+		assertMatches(dumpDirectory, "(\\/[\\w-]+)+", "dumpDir");
 	}
 }
