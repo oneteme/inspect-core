@@ -211,7 +211,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean
     @ConfigurationProperties(prefix = "inspect.collector.dispatching")
     @ConditionalOnProperty(prefix = "inspect.collector.dispatching", name = "mode")
-    static DispatchingProperties dispatcherType(@Value("${inspect.collector.dispatching.mode}") DispatchTarget mode) {
+    static DispatchingProperties dispatchingProperties(@Value("${inspect.collector.dispatching.mode}") DispatchTarget mode) {
     	log.debug("loading 'DispatchingProperties' bean ..");
     	return switch (mode) {
 		case REST -> new RestDispatchingProperties();
