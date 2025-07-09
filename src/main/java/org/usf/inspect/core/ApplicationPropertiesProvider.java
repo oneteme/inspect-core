@@ -19,5 +19,6 @@ public interface ApplicationPropertiesProvider {
 	
 	String getEnvironment();
 	
-	Map<String, String> additionalProperties();
+	//v1.1
+	Map<String, String> additionalProperties(); //JSON
 }

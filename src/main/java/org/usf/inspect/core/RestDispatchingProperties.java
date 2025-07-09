@@ -2,6 +2,8 @@ package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Assertions.assertMatches;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -14,6 +16,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
+@JsonIgnoreProperties({"ins", "ses"})
 public final class RestDispatchingProperties implements DispatchingProperties {
 	
 	private static final String INSTANCE_ENDPOINT = "v3/trace/instance"; //[POST] async

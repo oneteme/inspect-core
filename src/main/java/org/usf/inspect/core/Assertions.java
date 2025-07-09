@@ -26,10 +26,14 @@ public final class Assertions {
 	}
 	
 	public static int assertPositive(int v, String name) {
-		if(v >= 0) {
+		return assertGreaterOrEquals(v, 0, name);
+	}
+	
+	public static int assertGreaterOrEquals(int v, int min, String name) {
+		if(v >= min) {
 			return v;
 		}
-		throw new IllegalArgumentException(format("%s='%d' must be >= 0", name, v));
+		throw new IllegalArgumentException(format("%s='%d' must be >= %d", name, v, min));
 	}
 
 	public static String assertMatches(String s, String regex, String name) {

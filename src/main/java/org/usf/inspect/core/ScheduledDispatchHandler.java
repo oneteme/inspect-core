@@ -124,17 +124,17 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
     }
 
 	static List<Traceable> extractPendingMetrics(int seconds, List<Traceable> traces) {
-		if(seconds > 0 && !isEmpty(traces)) {
+		if(seconds != 0 && !isEmpty(traces)) {
 			var pending = new ArrayList<Traceable>();
 			var now = now();
 			for(var it=traces.listIterator(); it.hasNext();) {
 				if(it.next() instanceof CompletableMetric o) {
 					o.runIfPending(()-> {
-						if(o.getStart().until(now, SECONDS) > seconds) {
+						if(seconds > -1 && o.getStart().until(now, SECONDS) > seconds) {
 							it.set(o.copy()); //do not put it in pending, will be sent later
 							log.trace("pending trace will be sent now : {}", o);
 						}
-						else {
+						else { //-1 => do not trace pending
 							pending.add(o);
 							it.remove();
 							log.trace("pending trace will be sent later : {} ", o);
@@ -144,9 +144,7 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
 			}
 			return pending;
 		}
-		else {  //no pending trace or sent immediately (server side)
-			return emptyList();
-		}
+		return emptyList();
 	}
     
     public Stream<Traceable> peek() {
@@ -170,7 +168,6 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
     		}
 		}
     }
-    
     
 	private final class ThreadSafeQueue<T> {
 	
