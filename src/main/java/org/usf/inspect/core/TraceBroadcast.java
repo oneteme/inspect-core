@@ -5,7 +5,6 @@ import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.synchronizedArrayList;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -23,8 +22,6 @@ public final class TraceBroadcast {
 	
     static final List<TraceHandler<Traceable>> handlers = synchronizedArrayList();
     
-    private static final AtomicInteger counter = new AtomicInteger();
-    
     static {
 		getRuntime().addShutdownHook(new Thread(TraceBroadcast::complete, "shutdown-hook"));
     }
@@ -34,7 +31,6 @@ public final class TraceBroadcast {
 	}
 	
 	public static void emit(Traceable trace) {
-		System.err.println(counter.incrementAndGet());
 		handlers.forEach(h->{
 			try {
 				h.handle(trace);

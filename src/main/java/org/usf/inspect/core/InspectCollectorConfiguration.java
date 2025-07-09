@@ -2,8 +2,6 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 
-import org.usf.inspect.rest.TracingProperties;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;

@@ -1,4 +1,4 @@
-package org.usf.inspect.rest;
+package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Assertions.assertStrictPositive;
 
