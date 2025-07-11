@@ -62,13 +62,13 @@ public final class InspectContext {
 		if(conf.getMonitoring().getResources().isEnabled()) { //important! register before other handlers
 			var res = new ResourceUsageMonitor();
 			dspt.registerListener(res);
-			inst.setResource(res.getConfig()); //1st trace 
+			inst.setResource(res.startupResource()); //1st trace 
 		}
 		if(conf.isDebugMode()) {
 			dspt.register(new SessionTraceDebugger());
 		}
-		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties rest) {
-			var client = new InspectRestClient(rest, inst);
+		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
+			var client = new InspectRestClient(prop, inst);
 			dspt.register(new EventTraceQueueHandler(conf.getTracing(), client));
 		}
 		else if(nonNull(conf.getTracing().getRemote())) {

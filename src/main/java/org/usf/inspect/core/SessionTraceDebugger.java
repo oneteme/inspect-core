@@ -67,7 +67,7 @@ public final class SessionTraceDebugger implements EventTraceHandler<EventTrace>
 	@Override
 	public void onDispatchEvent(DispatchState state, boolean complete) throws Exception {
 		if(complete) {
-			log.warn("unfinished tasks");
+			log.warn("unfinished tasks {}", sessions.size());
 			sessions.values().forEach(this::printSession);
 		}
 	}

@@ -2,9 +2,10 @@ package org.usf.inspect.core;
 
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.time.Instant.now;
+import static org.usf.inspect.core.InspectContext.emit;
 
-import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.util.function.ToLongFunction;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,48 +15,32 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public class ResourceUsageMonitor implements DispatchListener {
+public final class ResourceUsageMonitor implements DispatchListener {
 
-//	private static ThreadMXBean threadMXBean = getThreadMXBean()
-    
 	private static final int MB = 1024 * 1024;
 	
 	@Override
 	public void onDispatchEvent(DispatchState state, boolean complete) throws Exception {
-		var memoryBean = getMemoryMXBean();
-		var heapUsage = memoryBean.getHeapMemoryUsage();
-		var metaUsage = memoryBean.getNonHeapMemoryUsage();
-		var usedHeap = usedMemory(heapUsage);
-    	var cmttHeap = committedMemory(heapUsage);
-    	var usedMeta = usedMemory(metaUsage);
-    	var cmttMeta = committedMemory(metaUsage);
-    	InspectContext.emit(new ResourceUsage(now(), usedHeap, cmttHeap, usedMeta, cmttMeta));
+    	emit(getMemory(MemoryUsage::getUsed, MemoryUsage::getCommitted));
 	}
 	
-	public ResourceUsage getConfig() {
+	public ResourceUsage startupResource() {
+    	return getMemory(MemoryUsage::getInit, MemoryUsage::getMax);
+	}
+	
+	static ResourceUsage getMemory(ToLongFunction<MemoryUsage> lowFn, ToLongFunction<MemoryUsage> hghFn) {
 		var memoryBean = getMemoryMXBean();
+// 		var threadMXBean = getThreadMXBean()
 		var heapUsage = memoryBean.getHeapMemoryUsage();
 		var metaUsage = memoryBean.getNonHeapMemoryUsage();
-		var intHeap = initHeapMemory(heapUsage);
-    	var maxHeap = maxHeapMemory(heapUsage);
-    	var intMeta = initHeapMemory(metaUsage);
-    	var maxMeta = maxHeapMemory(metaUsage);
-    	return new ResourceUsage(now(), intHeap, maxHeap, intMeta, maxMeta);
+    	return new ResourceUsage(now(), 
+    			toMb(lowFn.applyAsLong(heapUsage)), 
+    			toMb(hghFn.applyAsLong(heapUsage)), 
+    			toMb(lowFn.applyAsLong(metaUsage)), 
+    			toMb(hghFn.applyAsLong(metaUsage)));
 	}
     
-    static int initHeapMemory(MemoryUsage mem) {
-    	return (int) (mem.getInit() / MB);
-    }
-
-    static int maxHeapMemory(MemoryUsage mem) {
-    	return (int) (mem.getMax() / MB);
-    }
-    
-    static int usedMemory(MemoryUsage mem) {
-    	return (int) (mem.getUsed() / MB);
-    }
-    
-    static int committedMemory(MemoryUsage mem) {
-    	return (int) (mem.getCommitted() / MB);
+    static int toMb(long value) {
+    	return (int) (value / MB);
     }
 }

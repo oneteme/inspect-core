@@ -43,7 +43,7 @@ public final class InspectRestClient implements RemoteTraceSender<EventTrace> {
 	}
 	
 	@Override
-    public boolean dispatch(boolean complete, int attemps, int pending, List<EventTrace> metrics) {
+    public boolean dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
 				log.info("registering instance: {}", application);
@@ -55,7 +55,7 @@ public final class InspectRestClient implements RemoteTraceSender<EventTrace> {
 			}
 		}
     	if(nonNull(instanceId)) {
-			template.put(properties.getSessionEndpoint(), metrics.toArray(Metric[]::new), instanceId, attemps, pending, complete ? now() : null);
+			template.put(properties.getSessionEndpoint(), traces.toArray(EventTrace[]::new), instanceId, attemps, pending, complete ? now() : null);
 			return true; //return true to remove items from the queue
     	}
     	return false; //add back items back to the queue
