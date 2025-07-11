@@ -4,102 +4,52 @@ import static java.time.Instant.now;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.stream.Stream.empty;
-import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.core.DispatchState.DISPATCH;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Stream;
 
-import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * 
- * @author u$f
- *
- */
 @Slf4j
-public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
+@RequiredArgsConstructor
+public class EventTraceQueueHandler implements EventTraceHandler<EventTrace>, DispatchListener {
 	
-	private static final byte UNLIMITED = 0;
-	
-	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(r->{
-		var thr = new Thread(r, "inspect-dispatcher");
- 		thr.setDaemon(true);
- 		thr.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception", e));
-		return thr;
-	});
-	
-    private final SchedulingProperties properties;
-    private final Dispatcher<Traceable> dispatcher;
-    private final ThreadSafeQueue<Traceable> queue;
-    @Getter
-    private volatile DispatchState state;
+	private final TracingProperties prop;
+    private final RemoteTraceSender<EventTrace> sender;
+    private final ThreadSafeQueue<EventTrace> queue = new ThreadSafeQueue<>();
     private int attempts;
-
-    public ScheduledDispatchHandler(SchedulingProperties properties, Dispatcher<Traceable> dispatcher) {
-		this.properties = properties;
-		this.dispatcher = dispatcher;
-		this.state = DISPATCH; //default state
-		this.queue = new ThreadSafeQueue<>();
-    	this.executor.scheduleWithFixedDelay(this::tryDispatch, properties.getDelay(), properties.getDelay(), properties.getUnit());
+	
+	@Override
+	public void handle(EventTrace trace) throws Exception {
+		queue.add(trace);
 	}
 	
 	@Override
-	public void handle(Traceable o) {
-		if(state != DISABLE) {
-			queue.add(o);
+	public void onDispatchEvent(DispatchState state, boolean complete) throws Exception {
+    	if(state == DISPATCH) {
+			dispatch(complete);
 		}
-		else {
-			log.warn("rejected 1 new items, current dispatcher state: {}", 1, state);
-		}
-	}
-	
-	public boolean submit(List<Traceable> arr) {
-		if(state != DISABLE) {
-			queue.addAll(arr);
-			return true;
-		}
-		log.warn("rejected {} new items, current dispatcher state: {}", arr.size(), state);
-		return false;
-	}
-	
-	public void updateState(DispatchState state) {
-		if(this.state != state) {
-			synchronized (executor) { //wait for dispatch end
-				this.state = state;
-			}
-			log.info("dispatcher state was changed to {}", state);
-		}
-	}
-	
-    private void tryDispatch() {
-		synchronized (executor) {
-	    	if(state == DISPATCH) {
-    			dispatch(false);
-    		}
-	    	else {
-	    		log.warn("cannot dispatch items as the dispatcher state is {}, current queue size: {}", state, queue.size());
-	    	}
-	    	if(properties.getQueueCapacity() > UNLIMITED && (state != DISPATCH || attempts > 0)) { // !DISPACH | dispatch=fail
-	    		queue.removeRange(properties.getQueueCapacity()); //remove exceeding cache sessions (LIFO)
-	    	}
+    	else {
+    		log.warn("cannot dispatch items as the dispatcher state is {}, current queue size: {}", state, queue.size());
+    	}
+    	if(prop.getQueueCapacity() > 0 && (state != DISPATCH || attempts > 0)) { // !DISPACH | dispatch=fail
+    		queue.removeRange(prop.getQueueCapacity()); //remove exceeding cache sessions (LIFO)
     	}
     }
-
-    private void dispatch(boolean complete) {
+	
+   void dispatch(boolean complete) {
     	var cs = queue.pop();
         log.trace("scheduled dispatch of {} items...", cs.size());
         try {
         	var modifiable = new ArrayList<>(cs);
-        	var pending = extractPendingMetrics(properties.getDispatchDelayIfPending(), modifiable);
-        	if(dispatcher.dispatch(complete, ++attempts, pending.size(), modifiable)) { 
+        	var pending = extractPendingMetrics(prop.getDelayIfPending(), modifiable);
+        	if(sender.dispatch(complete, ++attempts, pending.size(), modifiable)) { 
         		if(attempts > 1) { //more than one attempt
         			log.info("successfully dispatched {} items after {} attempts", cs.size(), attempts);
         		}
@@ -122,10 +72,10 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
         	}
         }
     }
-
-	static List<Traceable> extractPendingMetrics(int seconds, List<Traceable> traces) {
+   
+	static List<EventTrace> extractPendingMetrics(int seconds, List<EventTrace> traces) {
 		if(seconds != 0 && !isEmpty(traces)) {
-			var pending = new ArrayList<Traceable>();
+			var pending = new ArrayList<EventTrace>();
 			var now = now();
 			for(var it=traces.listIterator(); it.hasNext();) {
 				if(it.next() instanceof CompletableMetric o) {
@@ -146,30 +96,12 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
 		}
 		return emptyList();
 	}
-    
-    public Stream<Traceable> peek() {
+	
+    public Stream<EventTrace> peek() {
     	return queue.peek();
     }
     
-    @Override
-    public void complete() {
-    	var stt = state;
-    	log.info("shutting down the scheduler service...");
-    	try {
-    		executor.shutdown(); //cancel schedule
-    		updateState(DISABLE); //stop add items after waiting for last dispatch
-    		if(stt == DISPATCH) {
-				dispatch(true); //complete signal
-    		}
-    	}
-    	finally {
-    		if(queue.size() > 0) { //!dispatch || dispatch=fail + incomplete session
-    			log.warn("{} items were aborted, dispatcher state: {}", queue.size(), stt);
-    		}
-		}
-    }
-    
-	private final class ThreadSafeQueue<T> {
+	final class ThreadSafeQueue<T> {
 	
 		private final Object mutex = new Object();
 	    private LinkedHashSet<T> queue; //guarantees order and uniqueness of items, no duplicates (force updates)
@@ -253,8 +185,8 @@ public final class ScheduledDispatchHandler implements TraceHandler<Traceable> {
 	    static void logAddedItems(int nItems, int queueSize) {
 			log.trace("{} items added or requeued to the queue (may overwrite existing), current queue size: {}", nItems, queueSize);
 	    }
-	}	
-	
+	}
+
 	static boolean isEmpty(List<?> arr) {
 		return isNull(arr) || arr.isEmpty();
 	}

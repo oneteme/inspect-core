@@ -9,7 +9,6 @@ import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.startRequest;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -41,6 +40,7 @@ import java.util.stream.IntStream;
 import org.usf.inspect.core.DatabaseRequest;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.InspectContext;
 import org.usf.inspect.core.SafeCallable;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
@@ -225,10 +225,10 @@ public class DatabaseRequestMonitor {
 	
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,o,t)-> {
-			emit(jdbcStage(DISCONNECTION, s, e, t, null));
+			InspectContext.emit(jdbcStage(DISCONNECTION, s, e, t, null));
 			req.run(()-> {
 				req.setEnd(e);
-				emit(req);
+				InspectContext.emit(req);
 			});
 		});
 	}
@@ -254,8 +254,8 @@ public class DatabaseRequestMonitor {
 				req.setProductVersion(info.productVersion());
 				req.setDriverVersion(info.driverVersion());
 			}
-			emit(req);
-			emit(jdbcStage(CONNECTION, s, e, t, null));
+			InspectContext.emit(req);
+			InspectContext.emit(jdbcStage(CONNECTION, s, e, t, null));
 		};
 	}
 
@@ -264,7 +264,7 @@ public class DatabaseRequestMonitor {
 	}
 	
 	private void submitStage(DatabaseRequestStage stg) {
-		emit(stg);
+		InspectContext.emit(stg);
 		if(nonNull(stg.getException())) {
 			req.run(()-> req.setFailed(true));
 		}

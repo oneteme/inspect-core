@@ -6,7 +6,6 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.startRequest;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.naming.NamingAction.ATTRIB;
 import static org.usf.inspect.naming.NamingAction.CONNECTION;
 import static org.usf.inspect.naming.NamingAction.DISCONNECTION;
@@ -27,6 +26,7 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.InspectContext;
 import org.usf.inspect.core.NamingRequest;
 import org.usf.inspect.core.NamingRequestStage;
 import org.usf.inspect.core.SafeCallable;
@@ -133,13 +133,13 @@ public class DirContextTracker implements DirContext {
 	@Override
 	public void close() throws NamingException {
 		exec(ctx::close, (s,e,o,t)-> {
-			emit(ldapStage(DISCONNECTION, s, e, t));
+			InspectContext.emit(ldapStage(DISCONNECTION, s, e, t));
 			req.run(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
-				emit(req);
+				InspectContext.emit(req);
 			});
 		});
 	}
@@ -164,14 +164,14 @@ public class DirContextTracker implements DirContext {
  			if(nonNull(user)) {
  				req.setUser(user);
  			}
- 			emit(req);
-			emit(ldapStage(CONNECTION, s, e, t));
+ 			InspectContext.emit(req);
+ 			InspectContext.emit(ldapStage(CONNECTION, s, e, t));
 		};
 	}
 	
 	<T> ExecutionMonitorListener<T> ldapStageListener(NamingAction action, String... args) {
 		return (s,e,o,t)-> {
-			emit(ldapStage(action, s, e, t, args));
+			InspectContext.emit(ldapStage(action, s, e, t, args));
 			if(nonNull(t)) {
 				req.run(()-> req.setFailed(true));
 			}

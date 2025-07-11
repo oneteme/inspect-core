@@ -1,7 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -17,20 +15,16 @@ import lombok.ToString;
 public final class InspectCollectorConfiguration {
 	
 	private boolean enabled = false;
-	private TrackingProperties tracking = new TrackingProperties();
-	private SchedulingProperties scheduling = new SchedulingProperties();//replace dispatch
-	private DispatchingProperties dispatching; //replace server
+	private SchedulingProperties scheduling = new SchedulingProperties(); //replace dispatch
+	private MonitoringConfiguration monitoring = new MonitoringConfiguration();
 	//v1.1
 	private TracingProperties tracing = new TracingProperties();
 	private boolean debugMode = false; // enable debug mode, e.g. for testing
 	
 	public InspectCollectorConfiguration validate() {
 		if(enabled) {
-			tracking.validate();
 			scheduling.validate();
-			if(nonNull(dispatching)) {
-				dispatching.validate();
-			}
+			monitoring.validate();
 			tracing.validate();
 		}
 		return this;

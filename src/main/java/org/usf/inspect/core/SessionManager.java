@@ -16,7 +16,6 @@ import static org.usf.inspect.core.LogEntry.Level.INFO;
 import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 
 import java.util.function.Supplier;
 
@@ -148,14 +147,14 @@ public final class SessionManager {
         	req.setLocation(locationSupp.get());
     	}
     	finally {
-			emit(req);
+    		InspectContext.emit(req);
 		}
 		return (s,e,o,t)-> req.run(()-> {
     		if(nonNull(t)) {
 				req.setException(mainCauseException(t));
 			}
 			req.setEnd(e);
-			emit(req);
+			InspectContext.emit(req);
 		});
 	}
 	
@@ -193,7 +192,7 @@ public final class SessionManager {
 		if(nonNull(ses)) {
 			log.setSessionId(ses.getId());
 		}
-		emit(log);
+		InspectContext.emit(log);
 	}
 	
 	public static String nextId() {

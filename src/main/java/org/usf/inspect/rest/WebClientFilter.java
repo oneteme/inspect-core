@@ -13,7 +13,6 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.SessionManager.startRequest;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
 import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 
@@ -26,6 +25,7 @@ import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.InspectContext;
 import org.usf.inspect.core.RestRequest;
 import org.usf.inspect.rest.RestRequestInterceptor.RestExecutionMonitorListener;
 
@@ -66,7 +66,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 				traceHttpResponse(req, now(), null, t);
 			}
 			else {
-				emit(req); //no action
+				InspectContext.emit(req); //no action
 			}
 		};
     }
@@ -77,7 +77,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var ctty = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_TYPE) : null;
 		var cten = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_ENCODING) : null;
 		var id   = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(TRACE_HEADER) : null;
-		emit(httpRequestStage(req, PROCESS, req.getStart(), end, thrw)); //same thread
+		InspectContext.emit(httpRequestStage(req, PROCESS, req.getStart(), end, thrw)); //same thread
     	req.run(()->{
     		req.setThreadName(tn);
 			req.setId(id); //+ send api_name !?
@@ -86,21 +86,21 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			req.setInContentEncoding(cten); 
     		if(nonNull(thrw)) {
     			req.setEnd(end);
-    			emit(req);
+    			InspectContext.emit(req);
     		}
     	});
     }
     
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
 		return (s,e,n,b,t)-> {
-			emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //READ content
+			InspectContext.emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //READ content
 			req.run(()->{
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));
 				}
 				req.setInDataSize(n);
 				req.setEnd(e);
-				emit(req);
+				InspectContext.emit(req);
 			});
 		};
 	}

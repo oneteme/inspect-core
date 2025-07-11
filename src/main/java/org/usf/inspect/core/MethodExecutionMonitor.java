@@ -12,7 +12,6 @@ import static org.usf.inspect.core.SessionManager.asynclocalRequestListener;
 import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.endSession;
 import static org.usf.inspect.core.SessionManager.startBatchSession;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -53,7 +52,7 @@ public class MethodExecutionMonitor implements Ordered {
         	main.setUser(userProvider.getUser(point, main.getName()));
     	}
     	finally {
-			emit(main);
+    		InspectContext.emit(main);
 		}
     	return call(point::proceed, (s,e,o,t)-> {
     		main.run(()-> {
@@ -61,7 +60,7 @@ public class MethodExecutionMonitor implements Ordered {
     				main.setException(mainCauseException(t));
     			}
     			main.setEnd(e);
-    			emit(main);
+    			InspectContext.emit(main);
     		});
 			endSession();
     	});

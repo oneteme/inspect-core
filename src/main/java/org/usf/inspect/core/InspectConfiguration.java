@@ -7,11 +7,10 @@ import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InstanceEnvironment.localInstance;
+import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.InspectContext.startInspectContext;
 import static org.usf.inspect.core.SessionManager.endStatupSession;
 import static org.usf.inspect.core.SessionManager.startupSession;
-import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.TraceBroadcast.register;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -55,35 +54,17 @@ import lombok.extern.slf4j.Slf4j;
 class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
 	private final ApplicationContext ctx;
-	private final InspectCollectorConfiguration config;
 	
 	InspectConfiguration(ApplicationContext ctx, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		this.ctx = ctx;
-		this.config = conf.validate();
-		log.info("inspect.properties={}", conf);
-		var instance = localInstance(
-				ofEpochMilli(ctx.getStartupDate()),
-				provider.getName(),
-				provider.getVersion(),
-				provider.getBranch(),
-				provider.getCommitHash(),
-				provider.getEnvironment(),
-				provider.additionalProperties());
-		log.info("inspect enabled on instance={}", instance);
-		instance.setConfiguration(conf);
-		if(conf.isDebugMode()) {
-			register(new SessionTraceDebugger());
-		}
-		if(conf.getDispatching() instanceof RestDispatchingProperties rest) {
-			var disp = new InspectRestClient(rest, instance);
-			register(new ScheduledDispatchHandler(conf.getScheduling(), disp));
-		}//else unsupported dispatching mode
-		initStatupSession(instance.getInstant());
+		startInspectContext(ofEpochMilli(ctx.getStartupDate()), conf.validate(), provider);
+		initStatupSession(context().getCurrentInstance().getInstant());
 	}
 	
     @Bean //important! name == apiSessionFilter
     FilterRegistrationBean<Filter> apiSessionFilter(HttpUserProvider userProvider) {
-    	var filter = new FilterExecutionMonitor(config.getTracking().getHttpRoute(), userProvider);
+    	var conf = context().getConfiguration().getMonitoring().getHttpRoute();
+    	var filter = new FilterExecutionMonitor(conf, userProvider);
     	var rb = new FilterRegistrationBean<Filter>(filter);
     	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*"); //check that
@@ -138,7 +119,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	    	ses.setStart(start);
     	}
     	finally {
-			emit(ses);
+    		InspectContext.emit(ses);
 		}
     }
 
@@ -161,7 +142,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 				ses.setEnd(end);
     		}
     		finally {
-				emit(ses);
+    			InspectContext.emit(ses);
 			}
     	}
 	}
@@ -196,11 +177,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     @Bean
     @ConfigurationProperties(prefix = "inspect.collector")
-    static InspectCollectorConfiguration inspectConfigurationProperties(Optional<DispatchingProperties> dispatching) {
+    static InspectCollectorConfiguration inspectConfigurationProperties(Optional<RemoteServerProperties> dispatching) {
     	log.debug("loading 'InspectConfigurationProperties' bean ..");
     	var conf = new InspectCollectorConfiguration();
     	if(dispatching.isPresent()) {
-    		conf.setDispatching(dispatching.get()); //spring will not call this setter
+    		conf.getTracing().setRemote(dispatching.get()); //spring will never call this setter
     	}
 		else {
 			log.warn("no dispatching type found, dispatching will not be configured");
@@ -209,12 +190,12 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
 
     @Bean
-    @ConfigurationProperties(prefix = "inspect.collector.dispatching")
-    @ConditionalOnProperty(prefix = "inspect.collector.dispatching", name = "mode")
-    static DispatchingProperties dispatchingProperties(@Value("${inspect.collector.dispatching.mode}") DispatchTarget mode) {
+    @ConfigurationProperties(prefix = "inspect.collector.tracing.remote")
+    @ConditionalOnProperty(prefix = "inspect.collector.tracing.remote", name = "mode")
+    static RemoteServerProperties dispatchingProperties(@Value("${inspect.collector.tracing.remote.mode}") DispatchTarget mode) {
     	log.debug("loading 'DispatchingProperties' bean ..");
     	return switch (mode) {
-		case REST -> new RestDispatchingProperties();
+		case REST -> new RestRemoteServerProperties();
 		default -> throw new UnsupportedOperationException(format("dispatching type '%s' is not supported, ", mode));
 		};
     }

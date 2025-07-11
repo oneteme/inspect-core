@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class SessionTraceDebugger implements TraceHandler<Traceable> { //inspect.client.log : SESSION | REQUEST | STAGE
+public final class SessionTraceDebugger implements EventTraceHandler<EventTrace>, DispatchListener { //inspect.client.log : SESSION | REQUEST | STAGE
 	
 	private static final Comparator<? super Metric> METRIC_COMPARATOR = comparing(Metric::getStart);
 	
@@ -28,7 +28,7 @@ public final class SessionTraceDebugger implements TraceHandler<Traceable> { //i
 	private Map<String, Set<AbstractStage>> stages = synchronizedMap(new HashMap<>());
 
 	@Override
-	public void handle(Traceable t) {
+	public void handle(EventTrace t) {
 		if(t instanceof AbstractSession s) {
 			if(s.wasCompleted()) {
 				printSession(s);
@@ -41,6 +41,9 @@ public final class SessionTraceDebugger implements TraceHandler<Traceable> { //i
 		}
 		else if(t instanceof AbstractStage s) {
 			appendTrace(stages, s.getRequestId(), s);
+		}
+		else {
+			log.debug(">{}", t);
 		}
     }
 	
@@ -62,9 +65,11 @@ public final class SessionTraceDebugger implements TraceHandler<Traceable> { //i
 	}
 	
 	@Override
-	public void complete() throws Exception {
-		log.warn("unfinished tasks");
-		sessions.values().forEach(this::printSession);
+	public void onDispatchEvent(DispatchState state, boolean complete) throws Exception {
+		if(complete) {
+			log.warn("unfinished tasks");
+			sessions.values().forEach(this::printSession);
+		}
 	}
 	
 	static <T> void appendTrace(Map<String, Set<T>> map, String key, T element) {

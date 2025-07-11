@@ -25,7 +25,6 @@ import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.SessionManager.endSession;
 import static org.usf.inspect.core.SessionManager.startRestSession;
 import static org.usf.inspect.core.SessionManager.updateCurrentSession;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 
 import java.io.IOException;
@@ -42,8 +41,9 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
-import org.usf.inspect.core.HttpRouteConfiguration;
+import org.usf.inspect.core.HttpRouteMonitoringProperties;
 import org.usf.inspect.core.HttpUserProvider;
+import org.usf.inspect.core.InspectContext;
 import org.usf.inspect.core.RestSession;
 import org.usf.inspect.core.TraceableStage;
 
@@ -69,7 +69,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	//v1.1
 	private final HttpUserProvider userProvider;
 
-	public FilterExecutionMonitor(HttpRouteConfiguration config, HttpUserProvider userProvider) {
+	public FilterExecutionMonitor(HttpRouteMonitoringProperties config, HttpUserProvider userProvider) {
 		Predicate<HttpServletRequest> filter = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
@@ -132,7 +132,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				ses.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 				ses.setUserAgent(req.getHeader(USER_AGENT));
 			} finally {
-				emit(ses);
+				InspectContext.emit(ses);
 			}
 		}
 		else { // async
@@ -156,15 +156,15 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 					in.setCacheControl(cach);
 					in.setContentType(cntt);
 					in.setEnd(e);
-					emit(in);
+					InspectContext.emit(in);
 				});
 			}
 			else { //IO | CancellationException | ServletException => no ErrorHandler
-				emit(httpRequestStage(in.getRest(), DEFERRED, s, e, t));
+				InspectContext.emit(httpRequestStage(in.getRest(), DEFERRED, s, e, t));
 				if(nonNull(t)) {
 					in.run(()-> {
 						in.setEnd(e);
-						emit(in);
+						InspectContext.emit(in);
 					});
 				}
 			}
@@ -185,7 +185,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 		if(nonNull(ses)) {
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), PRE_PROCESS, beg, now, null));
+			InspectContext.emit(httpRequestStage(ses.getRest(), PRE_PROCESS, beg, now, null));
 			request.setAttribute(STAGE_START, now);
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -197,7 +197,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 		if(nonNull(ses)) {
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), PROCESS, beg, now, null));
+			InspectContext.emit(httpRequestStage(ses.getRest(), PROCESS, beg, now, null));
 			request.setAttribute(STAGE_START, now);
 		}
 	}
@@ -208,7 +208,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 		if(nonNull(ses)) {
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), POST_PROCESS, beg, now, null));
+			InspectContext.emit(httpRequestStage(ses.getRest(), POST_PROCESS, beg, now, null));
 			if(handler instanceof HandlerMethod mth) { //!static resource
 				String name = resolveEndpointName(mth, request); 
 				ses.setName(name);
