@@ -31,14 +31,14 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class InspectRestClient implements RemoteTraceSender<EventTrace> {
+public final class EventTraceRestDispatcher implements EventTraceDispatcher<EventTrace> {
 	
 	private final RestRemoteServerProperties properties;
 	private final InstanceEnvironment application;
 	private final RestTemplate template;
 	private String instanceId;
 
-	public InspectRestClient(RestRemoteServerProperties properties, InstanceEnvironment application) {
+	public EventTraceRestDispatcher(RestRemoteServerProperties properties, InstanceEnvironment application) {
 		this(properties, application, defaultRestTemplate(properties));
 	}
 	

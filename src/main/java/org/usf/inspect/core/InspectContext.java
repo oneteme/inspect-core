@@ -5,7 +5,7 @@ import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.usf.inspect.core.InstanceType.SERVER;
 
 import java.net.UnknownHostException;
@@ -28,7 +28,7 @@ public final class InspectContext {
 	static InspectContext singleton;
 
 	private final InstanceEnvironment currentInstance;
-	private final EventTraceDispatcher dispatcher;
+	private final EventTraceEmitter dispatcher;
 	private final ScheduledExecutorService executor;
 	
 	public InspectCollectorConfiguration getConfiguration() {
@@ -47,7 +47,7 @@ public final class InspectContext {
 	
 	public static void emit(EventTrace trace) {
 		if(nonNull(singleton)) {
-			singleton.dispatcher.emit(trace);
+			singleton.dispatcher.emitTrace(trace);
 		}
 		else {
 			log.warn("inspect context was not started");
@@ -56,19 +56,19 @@ public final class InspectContext {
 	
 	static void startInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		var inst = contextInstance(start, conf, provider);
-		var exct = newScheduledThreadPool(2, InspectContext::daemonThread);
+		var exct = newSingleThreadScheduledExecutor(InspectContext::daemonThread);
 		var schd = conf.getScheduling();
-		var dspt = new EventTraceDispatcher();
-		if(conf.getMonitoring().getResources().isEnabled()) { //important! register before other handlers
+		var dspt = new EventTraceEmitter();
+		if(conf.getMonitoring().getResources().isEnabled()) {
 			var res = new ResourceUsageMonitor();
-			dspt.registerListener(res);
+			dspt.addListener(res); //important! register before other handlers
 			inst.setResource(res.startupResource()); //1st trace 
 		}
 		if(conf.isDebugMode()) {
-			dspt.register(new SessionTraceDebugger());
+			dspt.register(new EventTraceDebugger());
 		}
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-			var client = new InspectRestClient(prop, inst);
+			var client = new EventTraceRestDispatcher(prop, inst);
 			dspt.register(new EventTraceQueueHandler(conf.getTracing(), client));
 		}
 		else if(nonNull(conf.getTracing().getRemote())) {
@@ -76,7 +76,7 @@ public final class InspectContext {
 		}
 		exct.scheduleWithFixedDelay(dspt, 0, schd.getDelay(), schd.getUnit());
 		singleton = new InspectContext(inst, dspt, exct);
-		getRuntime().addShutdownHook(new Thread(context()::complete, "shutdown-hook"));
+		getRuntime().addShutdownHook(new Thread(singleton::complete, "shutdown-hook"));
 	}
 	
 	public static InspectContext context() {

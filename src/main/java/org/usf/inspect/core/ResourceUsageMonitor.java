@@ -15,12 +15,12 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class ResourceUsageMonitor implements DispatchListener {
+public final class ResourceUsageMonitor implements EventListener<DispatchState> {
 
 	private static final int MB = 1024 * 1024;
 	
 	@Override
-	public void onDispatchEvent(DispatchState state, boolean complete) throws Exception {
+	public void onEvent(DispatchState state, boolean complete) throws Exception {
     	emit(getMemory(MemoryUsage::getUsed, MemoryUsage::getCommitted));
 	}
 	
@@ -30,7 +30,7 @@ public final class ResourceUsageMonitor implements DispatchListener {
 	
 	static ResourceUsage getMemory(ToLongFunction<MemoryUsage> lowFn, ToLongFunction<MemoryUsage> hghFn) {
 		var memoryBean = getMemoryMXBean();
-// 		var threadMXBean = getThreadMXBean()
+// 		var threadMXBean = ManagementFactory.getThreadMXBean()
 		var heapUsage = memoryBean.getHeapMemoryUsage();
 		var metaUsage = memoryBean.getNonHeapMemoryUsage();
     	return new ResourceUsage(now(), 

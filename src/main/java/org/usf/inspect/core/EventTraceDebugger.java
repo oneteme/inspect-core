@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class SessionTraceDebugger implements EventTraceHandler<EventTrace>, DispatchListener { //inspect.client.log : SESSION | REQUEST | STAGE
+public final class EventTraceDebugger implements EventHandler<EventTrace>, EventListener<DispatchState> { //inspect.client.log : SESSION | REQUEST | STAGE
 	
 	private static final Comparator<? super Metric> METRIC_COMPARATOR = comparing(Metric::getStart);
 	
@@ -29,21 +29,17 @@ public final class SessionTraceDebugger implements EventTraceHandler<EventTrace>
 
 	@Override
 	public void handle(EventTrace t) {
-		if(t instanceof AbstractSession s) {
+		switch (t) {
+		case AbstractSession s-> {
 			if(s.wasCompleted()) {
 				printSession(s);
 				return;
 			}
 			sessions.put(s.getId(), s);
 		}
-		else if(t instanceof AbstractRequest r) {
-			appendTrace(requests, r.getSessionId(), r);
-		}
-		else if(t instanceof AbstractStage s) {
-			appendTrace(stages, s.getRequestId(), s);
-		}
-		else {
-			log.debug(">{}", t);
+		case AbstractRequest r-> appendTrace(requests, r.getSessionId(), r);
+		case AbstractStage s-> appendTrace(stages, s.getRequestId(), s);
+		default-> log.debug(">{}", t);
 		}
     }
 	
@@ -65,7 +61,7 @@ public final class SessionTraceDebugger implements EventTraceHandler<EventTrace>
 	}
 	
 	@Override
-	public void onDispatchEvent(DispatchState state, boolean complete) throws Exception {
+	public void onEvent(DispatchState state, boolean complete) throws Exception {
 		if(complete) {
 			log.warn("unfinished tasks {}", sessions.size());
 			sessions.values().forEach(this::printSession);
@@ -73,12 +69,17 @@ public final class SessionTraceDebugger implements EventTraceHandler<EventTrace>
 	}
 	
 	static <T> void appendTrace(Map<String, Set<T>> map, String key, T element) {
-		map.compute(key, (k,v)->{
-			if(v == null) {
-				v = new LinkedHashSet<>();
-			}
-			v.add(element);
-			return v;
-		});
+		if(nonNull(key)) {
+			map.compute(key, (k,v)->{
+				if(v == null) {
+					v = new LinkedHashSet<>();
+				}
+				v.add(element);
+				return v;
+			});
+		}
+		else { 
+			new Exception("no active session/request").printStackTrace();
+		}
 	}
 }

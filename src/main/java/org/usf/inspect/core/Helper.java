@@ -3,13 +3,11 @@ package org.usf.inspect.core;
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
 import static java.lang.reflect.Array.getLength;
-import static java.util.Collections.synchronizedList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -103,10 +101,6 @@ public final class Helper {
 		return s;
 	}
 
-	static <T> List<T> synchronizedArrayList() {
-		return synchronizedList(new ArrayList<>());
-	}
-	
 	public static int count(Object o) {
 		if(nonNull(o)) {
 			if(o instanceof Collection<?> c) {

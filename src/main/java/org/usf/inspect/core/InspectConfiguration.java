@@ -57,8 +57,9 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	
 	InspectConfiguration(ApplicationContext ctx, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		this.ctx = ctx;
-		startInspectContext(ofEpochMilli(ctx.getStartupDate()), conf.validate(), provider);
-		initStatupSession(context().getCurrentInstance().getInstant());
+		var start = ofEpochMilli(ctx.getStartupDate());
+		startInspectContext(start, conf.validate(), provider);
+		initStatupSession(start);
 	}
 	
     @Bean //important! name == apiSessionFilter

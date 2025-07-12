@@ -18,10 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class EventTraceQueueHandler implements EventTraceHandler<EventTrace>, DispatchListener {
+public class EventTraceQueueHandler implements EventHandler<EventTrace>, EventListener<DispatchState> {
 	
 	private final TracingProperties prop;
-    private final RemoteTraceSender<EventTrace> sender;
+    private final EventTraceDispatcher<EventTrace> sender;
     private final ThreadSafeQueue<EventTrace> queue = new ThreadSafeQueue<>();
     private int attempts;
 	
@@ -31,12 +31,12 @@ public class EventTraceQueueHandler implements EventTraceHandler<EventTrace>, Di
 	}
 	
 	@Override
-	public void onDispatchEvent(DispatchState state, boolean complete) throws Exception {
+	public void onEvent(DispatchState state, boolean complete) throws Exception {
     	if(state == DISPATCH) {
 			dispatch(complete);
 		}
     	else {
-    		log.warn("cannot dispatch items as the dispatcher state is {}, current queue size: {}", state, queue.size());
+    		log.warn("cannot emit items as the dispatcher state is {}, current queue size: {}", state, queue.size());
     	}
     	if(prop.getQueueCapacity() > 0 && (state != DISPATCH || attempts > 0)) { // !DISPACH | dispatch=fail
     		queue.removeRange(prop.getQueueCapacity()); //remove exceeding cache sessions (LIFO)
@@ -45,7 +45,7 @@ public class EventTraceQueueHandler implements EventTraceHandler<EventTrace>, Di
 	
    void dispatch(boolean complete) {
     	var cs = queue.pop();
-        log.trace("scheduled dispatch of {} items...", cs.size());
+        log.trace("dispatching {} items, current queue size: {}", cs.size(), queue.size());
         try {
         	var modifiable = new ArrayList<>(cs);
         	var pending = extractPendingMetrics(prop.getDelayIfPending(), modifiable);
@@ -104,12 +104,8 @@ public class EventTraceQueueHandler implements EventTraceHandler<EventTrace>, Di
 	final class ThreadSafeQueue<T> {
 	
 		private final Object mutex = new Object();
-	    private LinkedHashSet<T> queue; //guarantees order and uniqueness of items, no duplicates (force updates)
+	    private LinkedHashSet<T> queue = new LinkedHashSet<>(); //guarantees order and uniqueness of items, no duplicates (force updates)
 	
-		public ThreadSafeQueue() {
-			this.queue = new LinkedHashSet<>();
-		}
-		
 		/**
 		 * Adds an item to the queue, overwriting existing items (more recent).
 		 */

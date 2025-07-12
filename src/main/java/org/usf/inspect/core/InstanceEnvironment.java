@@ -35,6 +35,5 @@ public final class InstanceEnvironment {
 	//v1.1
 	private final Map<String, String> additionalProperties; //additional properties, e.g. for docker container, kubernetes pod, etc.
 	private final InspectCollectorConfiguration configuration;
-	
 	private ResourceUsage resource; //init/max heap +  init/max metaspace
 }

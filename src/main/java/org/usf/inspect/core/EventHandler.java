@@ -6,7 +6,7 @@ package org.usf.inspect.core;
  *
  */
 @FunctionalInterface
-public interface EventTraceHandler<T> {
+public interface EventHandler<T> {
 	
 	void handle(T obj) throws Exception;
 	
@@ -14,8 +14,8 @@ public interface EventTraceHandler<T> {
 	 * Create a handler that filters the object type before calling the original handler.
 	 *
 	 **/
-	static <T> EventTraceHandler<T> filtredHandler(Class<T> type, EventTraceHandler<T> handler) {
-		return new EventTraceHandler<T>() {
+	static <T> EventHandler<T> filtredHandler(Class<T> type, EventHandler<T> handler) {
+		return new EventHandler<T>() {
 			@Override
 			public void handle(T obj) throws Exception {
 				if(type.isInstance(obj)) {
