@@ -1,9 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.SessionManager.endSession;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
-import static org.usf.inspect.core.SessionManager.updateCurrentSession;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -52,13 +50,13 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			session.lock(); //important! sync lock !timeout 
 			try {
 				return fn.apply(()->{
-					updateCurrentSession(session);
+					session.updateContext();
 			    	try {
 				    	command.run();
 			    	}
 			    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
 						session.unlock();
-						endSession(); 
+						session.releaseContext();
 			    	}
 				});
 			}
@@ -76,13 +74,13 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			session.lock(); //important! sync lock
 			try {
 				return fn.apply(()->{
-					updateCurrentSession(session);
+					session.updateContext();
 			    	try {
 			    		return command.call();
 			    	}
 			    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
 						session.unlock();
-						endSession(); 
+						session.releaseContext();
 			    	}
 				});
 			}

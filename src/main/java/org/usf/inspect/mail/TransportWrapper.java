@@ -4,7 +4,8 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.startRequest;
+import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.SessionManager.createMailRequest;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
 import static org.usf.inspect.mail.MailAction.SEND;
@@ -15,7 +16,6 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
-import org.usf.inspect.core.InspectContext;
 import org.usf.inspect.core.Mail;
 import org.usf.inspect.core.MailRequest;
 import org.usf.inspect.core.MailRequestStage;
@@ -71,25 +71,25 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 				}
 				req.getMails().add(mail);
 			}); //do not emit here, because it is not finish yet
-			InspectContext.emit(smtpStage(SEND, s, e, t));
+			emit(smtpStage(SEND, s, e, t));
 		});
 	}
 
 	public void close() throws MessagingException {
 		exec(trsp::close, (s,e,o,t)-> {
-			InspectContext.emit(smtpStage(DISCONNECTION, s, e, t));
+			emit(smtpStage(DISCONNECTION, s, e, t));
 			req.run(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
-				InspectContext.emit(req);
+				emit(req);
 			});
 		});
 	}
 	
 	ExecutionMonitorListener<Void> smtpRequestListener(String host, Integer port, String user) {
-		req = startRequest(MailRequest::new); 
+		req = createMailRequest(); 
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -110,8 +110,8 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			acceptIfNonNull(host, req::setHost);
 			acceptIfNonNull(port, req::setPort);
 			acceptIfNonNull(user, req::setUser);
-			InspectContext.emit(req);
-			InspectContext.emit(smtpStage(CONNECTION, s, e, t));
+			emit(req);
+			emit(smtpStage(CONNECTION, s, e, t));
 		};
 	}
 	

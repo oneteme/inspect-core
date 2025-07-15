@@ -9,8 +9,10 @@ import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.InspectContext.startInspectContext;
-import static org.usf.inspect.core.SessionManager.endStatupSession;
-import static org.usf.inspect.core.SessionManager.startupSession;
+import static org.usf.inspect.core.MainSessionType.STARTUP;
+import static org.usf.inspect.core.SessionManager.createStartupSession;
+import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
+import static org.usf.inspect.core.SessionManager.emitStartupSession;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -36,7 +38,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.inspect.jdbc.DataSourceWrapper;
-import org.usf.inspect.rest.ControllerAdviceMonitor;
 import org.usf.inspect.rest.FilterExecutionMonitor;
 import org.usf.inspect.rest.RestRequestInterceptor;
 
@@ -54,12 +55,13 @@ import lombok.extern.slf4j.Slf4j;
 class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
 	private final ApplicationContext ctx;
+	private final MainSession session;
 	
 	InspectConfiguration(ApplicationContext ctx, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		this.ctx = ctx;
 		var start = ofEpochMilli(ctx.getStartupDate());
 		startInspectContext(start, conf.validate(), provider);
-		initStatupSession(start);
+		this.session = traceStartupSession(start);
 	}
 	
     @Bean //important! name == apiSessionFilter
@@ -89,12 +91,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	log.debug("loading 'RestRequestInterceptor' bean ..");
         return new RestRequestInterceptor();
     }
-    
-    @Bean
-    ControllerAdviceMonitor controllerAdviceAspect() {
-    	log.debug("loading 'ControllerAdviceTracker' bean ..");
-    	return new ControllerAdviceMonitor();
-    }
      
     @Bean
     BeanPostProcessor dataSourceWrapper() {
@@ -106,46 +102,40 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		};
     }
     
-    @Bean
+    @Bean // Cacheable, TraceableStage, ControllerAdvice
     MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
     	log.debug("loading 'MethodExecutionMonitorAspect' bean ..");
     	return new MethodExecutionMonitor(aspectUser);
-    }
-    
-    void initStatupSession(Instant start) {
-    	var ses = startupSession();
-    	try {
-	    	ses.setName("main");
-	    	ses.setThreadName(threadName());
-	    	ses.setStart(start);
-    	}
-    	finally {
-    		InspectContext.emit(ses);
-		}
     }
 
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
 		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
+			traceStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 		}
 	}
+    
+    MainSession traceStartupSession(Instant start) {
+		var ses = createStartupSession();
+		ses.setType(STARTUP.name());
+    	ses.setName("main");
+    	ses.setStart(start);
+    	ses.setThreadName(threadName());
+    	emitStartupSession(ses);
+    	return ses;
+    }
 	
-	void emitStartupSession(Object appName, Throwable e){
+	void traceStartupSession(Object appName, Throwable t) {
     	var end = now();
-        var ses = endStatupSession();
-    	if(nonNull(ses)) {
-    		try {
-    	    	ses.setLocation(mainApplicationClass(appName));
-    	    	if(nonNull(e)) {
-		    		ses.setException(mainCauseException(e)); //nullable
-		    	}
-				ses.setEnd(end);
-    		}
-    		finally {
-    			InspectContext.emit(ses);
+    	var app = mainApplicationClass(appName);
+    	session.run(()-> {
+			session.setLocation(app);
+			if(nonNull(t)) {  //nullable
+				session.setException(mainCauseException(t));
 			}
-    	}
+			session.setEnd(end);
+		});
+    	emitStartupSesionEnd(session);
 	}
 	
     static String mainApplicationClass(Object source) {

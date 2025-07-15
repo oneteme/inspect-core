@@ -4,7 +4,8 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.startRequest;
+import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.SessionManager.createFtpRequest;
 import static org.usf.inspect.ftp.FtpAction.CD;
 import static org.usf.inspect.ftp.FtpAction.CHGRP;
 import static org.usf.inspect.ftp.FtpAction.CHMOD;
@@ -26,7 +27,6 @@ import java.util.Vector;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.FtpRequest;
 import org.usf.inspect.core.FtpRequestStage;
-import org.usf.inspect.core.InspectContext;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
@@ -254,19 +254,19 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	ExecutionMonitorListener<Void> closeListener() {
 		return (s,e,o,t)->{
-			InspectContext.emit(sftpStage(DISCONNECTION, s, e, t));
+			emit(sftpStage(DISCONNECTION, s, e, t));
 			req.run(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
-				InspectContext.emit(req);
 			});
+			emit(req);
 		};
 	}
 
 	ExecutionMonitorListener<Void> sftpRequestListener() {
-		req = startRequest(FtpRequest::new);
+		req = createFtpRequest();
 		return (s,e,o,t)-> { //safe block
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -281,14 +281,14 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			req.setUser(cs.getUserName());
 			req.setServerVersion(cs.getServerVersion());
 			req.setClientVersion(cs.getClientVersion());
-			InspectContext.emit(req);
-			InspectContext.emit(sftpStage(CONNECTION, s, e, t));
+			emit(req);
+			emit(sftpStage(CONNECTION, s, e, t));
 		};
 	}
 
 	<T> ExecutionMonitorListener<T> sftpStageListener(FtpAction action, String... args) {
 		return (s,e,o,t)->{ 
-			InspectContext.emit(sftpStage(action, s, e, t, args));
+			emit(sftpStage(action, s, e, t, args));
 			if(nonNull(t)) {
 				req.run(()-> req.setFailed(true));
 			}

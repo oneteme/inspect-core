@@ -21,23 +21,23 @@ public final class ResourceUsageMonitor implements EventListener<DispatchState> 
 	
 	@Override
 	public void onEvent(DispatchState state, boolean complete) throws Exception {
-    	emit(getMemory(MemoryUsage::getUsed, MemoryUsage::getCommitted));
+    	emit(getMemoryUsage(MemoryUsage::getUsed, MemoryUsage::getCommitted));
 	}
 	
-	public ResourceUsage startupResource() {
-    	return getMemory(MemoryUsage::getInit, MemoryUsage::getMax);
+	public MachineResourceUsage startupResource() {
+    	return getMemoryUsage(MemoryUsage::getInit, MemoryUsage::getMax);
 	}
 	
-	static ResourceUsage getMemory(ToLongFunction<MemoryUsage> lowFn, ToLongFunction<MemoryUsage> hghFn) {
-		var memoryBean = getMemoryMXBean();
+	static MachineResourceUsage getMemoryUsage(ToLongFunction<MemoryUsage> lowFn, ToLongFunction<MemoryUsage> hghFn) {
 // 		var threadMXBean = ManagementFactory.getThreadMXBean()
-		var heapUsage = memoryBean.getHeapMemoryUsage();
-		var metaUsage = memoryBean.getNonHeapMemoryUsage();
-    	return new ResourceUsage(now(), 
-    			toMb(lowFn.applyAsLong(heapUsage)), 
-    			toMb(hghFn.applyAsLong(heapUsage)), 
-    			toMb(lowFn.applyAsLong(metaUsage)), 
-    			toMb(hghFn.applyAsLong(metaUsage)));
+		var memr = getMemoryMXBean();
+		var heap = memr.getHeapMemoryUsage();
+		var meta = memr.getNonHeapMemoryUsage();
+    	return new MachineResourceUsage(now(), 
+    			toMb(lowFn.applyAsLong(heap)), 
+    			toMb(hghFn.applyAsLong(heap)), 
+    			toMb(lowFn.applyAsLong(meta)), 
+    			toMb(hghFn.applyAsLong(meta)));
 	}
     
     static int toMb(long value) {

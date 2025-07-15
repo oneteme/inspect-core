@@ -8,7 +8,8 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.startRequest;
+import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -225,16 +226,16 @@ public class DatabaseRequestMonitor {
 	
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,o,t)-> {
-			InspectContext.emit(jdbcStage(DISCONNECTION, s, e, t, null));
+			emit(jdbcStage(DISCONNECTION, s, e, t, null));
 			req.run(()-> {
 				req.setEnd(e);
-				InspectContext.emit(req);
+				emit(req);
 			});
 		});
 	}
 	
 	ExecutionMonitorListener<Connection> jdbcRequestListener(SQLFunction<Connection, ConnectionInfo> infoFn) {
-		req = startRequest(DatabaseRequest::new);
+		req = createDatabaseRequest();
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -254,8 +255,8 @@ public class DatabaseRequestMonitor {
 				req.setProductVersion(info.productVersion());
 				req.setDriverVersion(info.driverVersion());
 			}
-			InspectContext.emit(req);
-			InspectContext.emit(jdbcStage(CONNECTION, s, e, t, null));
+			emit(req);
+			emit(jdbcStage(CONNECTION, s, e, t, null));
 		};
 	}
 

@@ -21,7 +21,7 @@ import lombok.ToString;
 public final class RestRemoteServerProperties implements RemoteServerProperties {
 	
 	private static final String INSTANCE_ENDPOINT = "v3/trace/instance"; //[POST] async
-	private static final String SESSION_ENDPOINT  = "v4/trace/instance/{id}/session?pending={pending}&attemps={attemps}&end={end}"; //[PUT] async
+	private static final String SESSION_ENDPOINT  = "v4/trace/instance/{id}/session?pending={pending}&attempts={attempts}&end={end}"; //[PUT] async
 	private static final String HOST_PATTERN = "https?://[\\w\\-\\.]+(:\\d{2,5})?\\/?";
 	
 	private String ins;

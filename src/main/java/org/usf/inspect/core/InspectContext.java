@@ -1,12 +1,15 @@
 package org.usf.inspect.core;
 
 import static java.lang.Runtime.getRuntime;
+import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.usf.inspect.core.InstanceType.SERVER;
+import static org.usf.inspect.core.LogEntry.log;
+import static org.usf.inspect.core.LogEntry.Level.ERROR;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -119,5 +122,13 @@ public final class InspectContext {
 	static String collectorID() {
 		return "spring-collector/" //use getImplementationTitle
 				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
+	}
+
+	public static void reportError(String msg, Throwable t) { //stack trace ??
+		reportError(msg + format(", cause=%s: %s", t.getClass().getSimpleName(), t.getMessage()));
+	}
+
+	public static void reportError(String msg) {
+		emit(log(ERROR, msg)); //no session id 
 	}
 }

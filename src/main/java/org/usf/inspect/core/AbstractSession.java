@@ -12,21 +12,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 abstract class AbstractSession implements Session {
 
-	private final AtomicInteger pending = new AtomicInteger();
+	private final AtomicInteger threads = new AtomicInteger();
 
 	@Override
 	public void lock(){ //must be called before session end
-		pending.incrementAndGet();
+		threads.incrementAndGet();
 	}
 
 	@Override
 	public void unlock() {
-		pending.decrementAndGet();
+		threads.decrementAndGet();
 	}
 
 	@Override
 	public boolean wasCompleted() {
-		var c = pending.get();
+		var c = threads.get();
 		if(c < 0) {
 			log.warn("illegal session lock state={}, {}", c, this);
 			return true;

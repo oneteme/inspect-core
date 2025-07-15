@@ -1,11 +1,10 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
-import static org.slf4j.LoggerFactory.getLogger;
+import static org.usf.inspect.core.InspectContext.reportError;
 
 import java.time.Instant;
 
-import org.slf4j.Logger;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
 import lombok.AccessLevel;
@@ -18,8 +17,6 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExecutionMonitor {
-	
-	private static final Logger log = getLogger(ExecutionMonitor.class);
 	
 	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionMonitorListener<? super Void> listener) throws E {
 		call(fn, listener);
@@ -42,10 +39,12 @@ public final class ExecutionMonitor {
 				listener.handle(s, e, o, t);
 			}
 			catch (Throwable ex) {// do not throw exception
-			    log.warn("failed to notify listener after callable execution: {}: {}", ex.getClass().getSimpleName(), ex.getMessage());
+			    reportError("failed to handle execution monitor event", ex);
 			}
 		}
 	}
+	
+	
 
 	@FunctionalInterface
 	public static interface ExecutionMonitorListener<T> {

@@ -14,13 +14,14 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public final class ResourceUsage implements EventTrace {
+public final class MachineResourceUsage implements EventTrace {
 	
 	private final Instant instant;
 	private final int lowHeap; //heap used or min
 	private final int highHeap; //heap committed or max
 	private final int lowMeta; //metaspace used or min 
 	private final int highMeta; //metaspace committed or max 
+	//threads, CPU, disk ?
 	
 	@Override
 	public String toString() {

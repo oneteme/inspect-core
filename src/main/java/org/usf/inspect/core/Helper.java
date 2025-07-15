@@ -51,15 +51,6 @@ public final class Helper {
 				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
 	}
 	
-	public static <T> Optional<T> newInstance(Class<? extends T> clazz) {
-		try {
-			return Optional.of(clazz.getDeclaredConstructor().newInstance());
-		} catch (Exception e) {
-			log.warn("cannot instantiate class '{}', exception={}", clazz.getName(), e.getMessage());
-			return empty();
-		}
-	}
-	
 	public static Optional<StackTraceElement> outerStackTraceElement() {
 		var arr = currentThread().getStackTrace();
 		var i = 1; //skip this method call
@@ -67,6 +58,7 @@ public final class Helper {
 		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
+	@Deprecated(forRemoval = true, since = "1.1.0")
 	public static void warnStackTrace(String msg) {
 		log.warn(msg);
 		var arr = currentThread().getStackTrace();

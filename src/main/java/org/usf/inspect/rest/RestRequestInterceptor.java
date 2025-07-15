@@ -11,8 +11,9 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.SessionManager.sessionContextUpdater;
-import static org.usf.inspect.core.SessionManager.startRequest;
+import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.SessionManager.createHttpRequest;
+import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
 
 import java.io.IOException;
@@ -25,7 +26,6 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpRequestStage;
-import org.usf.inspect.core.InspectContext;
 import org.usf.inspect.core.RestRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -48,7 +48,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	}
 	
 	RestRequest traceHttpRequest(HttpRequest request, byte[] body) {
-		var req = startRequest(RestRequest::new);
+		var req = createHttpRequest();
 		try {
 			req.setStart(now());
 			req.setMethod(request.getMethod().name());
@@ -57,7 +57,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			req.setOutDataSize(nonNull(body) ? body.length : 0);
 			req.setOutContentEncoding(request.getHeaders().getFirst(CONTENT_ENCODING)); 
 			//req.setUser(decode AUTHORIZATION)
-			InspectContext.emit(req);
+			emit(req);
 		} catch (Throwable e) {
 			log.warn("cannot collect request metrics, {}:{}", e.getClass().getSimpleName(), e.getMessage());
 		}
@@ -65,7 +65,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	}
 
 	ExecutionMonitorListener<ClientHttpResponse> httpResponseListener(RestRequest req) {
-		var upd = sessionContextUpdater();
+		var upd = requireCurrentSession();
 		return (s,e,r,t)->{
 			if(nonNull(upd)) {
 				upd.updateContext(); // if parallel execution
@@ -75,7 +75,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			var ctty = nonNull(r) ? r.getHeaders().getFirst(CONTENT_TYPE) : null;
 			var cten = nonNull(r) ? r.getHeaders().getFirst(CONTENT_ENCODING) : null;
 			var stts = nonNull(r) ? r.getStatusCode().value() : 0; //break ClientHttpRes. dependency
-			InspectContext.emit(httpRequestStage(req, PROCESS, s, e, t));
+			emit(httpRequestStage(req, PROCESS, s, e, t));
 			req.run(()-> {
 				req.setThreadName(tn);
 				req.setId(id);
@@ -84,26 +84,26 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				req.setInContentEncoding(cten); 
 				if(nonNull(t)) { // IOException
 					req.setEnd(e);
-					InspectContext.emit(req);
+					emit(req);
 				}
 			});
 		};
 	}
 	
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
-		var upd = sessionContextUpdater();
+		var upd = requireCurrentSession();
 		return (s,e,n,b,t)-> {
 			if(nonNull(upd)) {
-				upd.updateContext(); // if parallel execution
+				upd.updateContext(); // deferred execution
 			}
-			InspectContext.emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //red content
+			emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //red content
 			req.run(()-> {
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));
 				}
 				req.setInDataSize(n);
 				req.setEnd(e);
-				InspectContext.emit(req);
+				emit(req);
 			});
 		};
 	}

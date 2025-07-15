@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.time.Instant.now;
+
 import java.time.Instant;
 
 import lombok.Getter;
@@ -20,8 +22,12 @@ final class LogEntry implements EventTrace {
 	private final Level level;
 	private final String message;
 	private String sessionId; //nullable
+	
+	public static LogEntry log(Level lvl, String msg) {
+		return new LogEntry(now(), lvl, msg);	
+	}
 
-	enum Level {
+	public enum Level {
 		INFO, WARN, ERROR;
 	}
 }
