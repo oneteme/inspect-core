@@ -44,8 +44,6 @@ public final class ExecutionMonitor {
 		}
 	}
 	
-	
-
 	@FunctionalInterface
 	public static interface ExecutionMonitorListener<T> {
 		

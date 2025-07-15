@@ -2,7 +2,10 @@ package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
+import java.time.Instant;
 import java.util.List;
+
+import org.usf.inspect.mail.MailAction;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +26,10 @@ public class MailRequest extends AbstractRequest {
 	//v1.1
 	private boolean failed;
 	//mail-collector
+	
+	public MailRequestStage createStage(MailAction type, Instant start, Instant end, Throwable t) {
+		return createStage(type, start, end, t, MailRequestStage::new);
+	}
 
 	@Override
 	public MailRequest copy() {

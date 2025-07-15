@@ -2,6 +2,10 @@ package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
+import java.time.Instant;
+
+import org.usf.inspect.naming.NamingAction;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,6 +23,12 @@ public class NamingRequest extends AbstractRequest {
 	private int port; // positive number, -1 otherwise
 	//v1.1
 	private boolean failed;
+	
+	public NamingRequestStage createStage(NamingAction type, Instant start, Instant end, Throwable t, String... args) {
+		var stg = createStage(type, start, end, t, NamingRequestStage::new);
+		stg.setArgs(args);
+		return stg;
+	}
 
 	@Override
 	public NamingRequest copy() {

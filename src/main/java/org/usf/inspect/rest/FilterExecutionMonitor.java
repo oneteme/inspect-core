@@ -27,7 +27,6 @@ import static org.usf.inspect.core.SessionManager.createRestSession;
 import static org.usf.inspect.core.SessionManager.emitSessionEnd;
 import static org.usf.inspect.core.SessionManager.emitSessionStart;
 import static org.usf.inspect.core.SessionManager.reportUpdateMetric;
-import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 
 import java.io.IOException;
 import java.net.URI;
@@ -146,7 +145,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 					var encd = nonNull(response) ? response.getHeader(CONTENT_ENCODING) : null; 
 					var cach = nonNull(response) ? response.getHeader(CACHE_CONTROL) : null;
 					var cntt = nonNull(response) ? response.getContentType() : null;
-					ses.run(()->{
+					ses.runSynchronized(()->{
 						ses.setStatus(sttt);
 						ses.setOutDataSize(size); //!exact size
 						ses.setOutContentEncoding(encd); 
@@ -159,9 +158,9 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 //					request.removeAttribute(STAGE_START);
 				}
 				else {
-					emit(httpRequestStage(ses.getRest(), DEFERRED, s, e, t));
+					emit(ses.createStage(DEFERRED, s, e, t));
 					if(nonNull(t)) {
-						ses.run(()-> ses.setEnd(e));
+						ses.runSynchronized(()-> ses.setEnd(e));
 						emitSessionEnd(ses); //emit session & clean context
 					}
 				}
@@ -183,7 +182,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 		if(nonNull(ses)) { //skip BasicErrorController
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), PRE_PROCESS, beg, now, null));
+			emit(ses.createStage(PRE_PROCESS, beg, now, null));
 			request.setAttribute(STAGE_START, now);
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -195,7 +194,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 		if(nonNull(ses)) { //skip BasicErrorController
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), PROCESS, beg, now, null));
+			emit(ses.createStage(PROCESS, beg, now, null));
 			request.setAttribute(STAGE_START, now);
 		}
 	}
@@ -206,13 +205,12 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 		if(nonNull(ses)) { //skip BasicErrorController
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), POST_PROCESS, beg, now, null));
+			emit(ses.createStage(POST_PROCESS, beg, now, null));
 			if(handler instanceof HandlerMethod mth) { //!static resource
 				var name = resolveEndpointName(mth, request); 
-				var user = userProvider.getUser(request, name);
-				ses.run(()->{
+				ses.runSynchronized(()->{
 					ses.setName(name);
-					ses.setUser(user);
+					ses.setUser(userProvider.getUser(request, name));
 					if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
 						ses.setException(mainCauseException(ex));
 					}

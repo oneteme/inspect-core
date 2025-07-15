@@ -63,8 +63,8 @@ public final class SessionManager {
 	}
 	
 	public static Session currentSession() {
-		var ses = localTrace.get(); // priority
-		return nonNull(ses) ? ses : startupSession;
+		var ses = localTrace.get();
+		return nonNull(ses) ? ses : startupSession; // priority
 	}
 	
 	public static void emitSessionStart(Session session) {
@@ -118,7 +118,6 @@ public final class SessionManager {
 			reportSessionConflict(startupSession.getId(), session.getId());
 		}
 	}
-	
 
 	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
 		trackCallble(name, fn);
@@ -143,13 +142,15 @@ public final class SessionManager {
 			reportUpdateMetric("local request", req.getId(), t);
 		}
 		emit(req);
-		return (s,e,o,t)-> req.run(()-> {
-    		if(nonNull(t)) {
-				req.setException(mainCauseException(t));
-			}
-			req.setEnd(e);
+		return (s,e,o,t)->{
+			req.runSynchronized(()-> {
+	    		if(nonNull(t)) {
+					req.setException(mainCauseException(t));
+				}
+				req.setEnd(e);
+			});
 			emit(req);
-		});
+		};
 	}
 	
 	private static String stackLocation() {

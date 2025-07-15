@@ -60,7 +60,7 @@ public class MethodExecutionMonitor implements Ordered {
 		}
 		emitSessionStart(ses);
     	return call(point::proceed, (s,e,o,t)-> {
-    		ses.run(()-> {
+    		ses.runSynchronized(()-> {
 				if(nonNull(t)) {
 					ses.setException(mainCauseException(t));
 				}
@@ -94,7 +94,7 @@ public class MethodExecutionMonitor implements Ordered {
 		if(nonNull(ses) && nonNull(joinPoint.getArgs())) {
 			for(var arg : joinPoint.getArgs()) {
 				if(arg instanceof Throwable t) {
-					ses.run(()->ses.setException(mainCauseException(t)));
+					ses.runSynchronized(()-> ses.setException(mainCauseException(t)));
 					break;
 				}
 			}

@@ -21,12 +21,10 @@ import static org.usf.inspect.ftp.FtpAction.RM;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.time.Instant;
 import java.util.Vector;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.FtpRequest;
-import org.usf.inspect.core.FtpRequestStage;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
@@ -254,14 +252,23 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	ExecutionMonitorListener<Void> closeListener() {
 		return (s,e,o,t)->{
-			emit(sftpStage(DISCONNECTION, s, e, t));
-			req.run(()-> {
+			emit(req.createStage(DISCONNECTION, s, e, t));
+			req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
 			});
 			emit(req);
+		};
+	}
+
+	<T> ExecutionMonitorListener<T> sftpStageListener(FtpAction action, String... args) {
+		return (s,e,o,t)->{ 
+			emit(req.createStage(action, s, e, t, args));
+			if(nonNull(t)) {
+				req.runSynchronized(()-> req.setFailed(true));
+			}
 		};
 	}
 
@@ -275,30 +282,15 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 				req.setEnd(e);
 			}
 			req.setProtocol("sftp");
-			var cs = channel.getSession(); //broke session dependency
+			var cs = channel.getSession(); //throws JSchException
 			req.setHost(cs.getHost());
 			req.setPort(cs.getPort());
 			req.setUser(cs.getUserName());
 			req.setServerVersion(cs.getServerVersion());
 			req.setClientVersion(cs.getClientVersion());
 			emit(req);
-			emit(sftpStage(CONNECTION, s, e, t));
+			emit(req.createStage(CONNECTION, s, e, t));
 		};
-	}
-
-	<T> ExecutionMonitorListener<T> sftpStageListener(FtpAction action, String... args) {
-		return (s,e,o,t)->{ 
-			emit(sftpStage(action, s, e, t, args));
-			if(nonNull(t)) {
-				req.run(()-> req.setFailed(true));
-			}
-		};
-	}
-	
-	FtpRequestStage sftpStage(FtpAction action, Instant start, Instant end, Throwable t, String... args) {
-		var stg = req.createStage(action.name(), start, end, t, FtpRequestStage::new);
-		stg.setArgs(args);
-		return stg;
 	}
 	
 	public static final ChannelSftpWrapper wrap(ChannelSftp channel) {

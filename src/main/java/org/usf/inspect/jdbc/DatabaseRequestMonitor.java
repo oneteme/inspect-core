@@ -41,7 +41,6 @@ import java.util.stream.IntStream;
 import org.usf.inspect.core.DatabaseRequest;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
-import org.usf.inspect.core.InspectContext;
 import org.usf.inspect.core.SafeCallable;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
@@ -50,7 +49,7 @@ import org.usf.inspect.core.SafeCallable.SafeRunnable;
  * @author u$f
  *
  */
-public class DatabaseRequestMonitor {
+public final class DatabaseRequestMonitor {
 	
 	private DatabaseRequest req;
 	private List<SqlCommand> commands;
@@ -79,7 +78,7 @@ public class DatabaseRequestMonitor {
 		prepared = true;
 		commands = new ArrayList<>(1);
 		return new PreparedStatementWrapper(call(supplier, (s,e,o,t)-> {
-			submitStage(jdbcStage(STATEMENT, s, e, t, null));
+			submitStage(req.createStage(STATEMENT, s, e, t, null));
 			commands.add(isNull(sql) ? null : mainCommand(sql));
 		}), this);
 	}
@@ -102,7 +101,7 @@ public class DatabaseRequestMonitor {
 				}
 			}
 			else {
-				submitStage(jdbcStage(BATCH, s, e, t, new long[] {1}));
+				submitStage(req.createStage(BATCH, s, e, t, new long[] {1}));
 			}
 			if(nonNull(sql)) { //statement
 				commands.add(mainCommand(sql));
@@ -158,7 +157,7 @@ public class DatabaseRequestMonitor {
 
 	private <T> T execute(String sql, SafeCallable<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
 		return call(supplier, (s,e,o,t)-> {
-			var stg = jdbcStage(EXECUTE, s, e, t, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			var stg = req.createStage(EXECUTE, s, e, t, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(nonNull(sql)) { //statement
 				commands.add(mainCommand(sql));
 			}
@@ -184,7 +183,7 @@ public class DatabaseRequestMonitor {
 	
 	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
 		exec(method, (s,e,o,t)-> //differed start 
-			submitStage(jdbcStage(FETCH, start, e, t, new long[] {n})));
+			submitStage(req.createStage(FETCH, start, e, t, new long[] {n})));
 	}
 
 	/**
@@ -226,11 +225,9 @@ public class DatabaseRequestMonitor {
 	
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,o,t)-> {
-			emit(jdbcStage(DISCONNECTION, s, e, t, null));
-			req.run(()-> {
-				req.setEnd(e);
-				emit(req);
-			});
+			emit(req.createStage(DISCONNECTION, s, e, t, null));
+			req.runSynchronized(()-> req.setEnd(e));
+			emit(req);
 		});
 	}
 	
@@ -256,26 +253,20 @@ public class DatabaseRequestMonitor {
 				req.setDriverVersion(info.driverVersion());
 			}
 			emit(req);
-			emit(jdbcStage(CONNECTION, s, e, t, null));
+			emit(req.createStage(CONNECTION, s, e, t, null));
 		};
 	}
 
 	<T> ExecutionMonitorListener<T> jdbcStageListener(JDBCAction action) {
-		return (s,e,o,t)-> submitStage(jdbcStage(action, s, e, t, null));
+		return (s,e,o,t)-> submitStage(req.createStage(action, s, e, t, null));
 	}
 	
 	private void submitStage(DatabaseRequestStage stg) {
-		InspectContext.emit(stg);
+		emit(stg);
 		if(nonNull(stg.getException())) {
-			req.run(()-> req.setFailed(true));
+			req.runSynchronized(()-> req.setFailed(true));
 		}
 		this.lastStage = stg; //hold last stage
-	}
-
-	DatabaseRequestStage jdbcStage(JDBCAction action, Instant start, Instant end, Throwable t, long[] count) {
-		var stg = req.createStage(action.name(), start, end, t, DatabaseRequestStage::new);
-		stg.setCount(count);
-		return stg;
 	}
 	
 	boolean isLastStage(JDBCAction stg) {

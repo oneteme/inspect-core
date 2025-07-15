@@ -79,7 +79,7 @@ public class EventTraceQueueHandler implements EventHandler<EventTrace>, EventLi
 			var now = now();
 			for(var it=traces.listIterator(); it.hasNext();) {
 				if(it.next() instanceof CompletableMetric o) {
-					o.runIfPending(()-> {
+					o.runSynchronizedIfNotComplete(()-> {
 						if(seconds > -1 && o.getStart().until(now, SECONDS) > seconds) {
 							it.set(o.copy()); //do not put it in pending, will be sent later
 							log.trace("pending trace will be sent now : {}", o);

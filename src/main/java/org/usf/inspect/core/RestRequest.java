@@ -4,6 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
 import java.net.URI;
+import java.time.Instant;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -35,6 +36,10 @@ public class RestRequest extends AbstractRequest { //APiRequest
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	// => in/out Content [type, size, encoding]
 	//rest-collector
+	
+	public HttpRequestStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
+		return createStage(type, start, end, t, HttpRequestStage::new);
+	}
 	
 	public void setURI(URI uri) {
 		setProtocol(uri.getScheme());

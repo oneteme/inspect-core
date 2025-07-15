@@ -128,7 +128,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	void traceStartupSession(Object appName, Throwable t) {
     	var end = now();
     	var app = mainApplicationClass(appName);
-    	session.run(()-> {
+    	session.runSynchronized(()-> {
 			session.setLocation(app);
 			if(nonNull(t)) {  //nullable
 				session.setException(mainCauseException(t));

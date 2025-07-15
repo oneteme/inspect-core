@@ -14,7 +14,6 @@ import static org.usf.inspect.naming.NamingAction.LIST;
 import static org.usf.inspect.naming.NamingAction.LOOKUP;
 import static org.usf.inspect.naming.NamingAction.SEARCH;
 
-import java.time.Instant;
 import java.util.function.Function;
 
 import javax.naming.Name;
@@ -27,9 +26,7 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
-import org.usf.inspect.core.InspectContext;
 import org.usf.inspect.core.NamingRequest;
-import org.usf.inspect.core.NamingRequestStage;
 import org.usf.inspect.core.SafeCallable;
 
 import lombok.RequiredArgsConstructor;
@@ -134,15 +131,24 @@ public class DirContextTracker implements DirContext {
 	@Override
 	public void close() throws NamingException {
 		exec(ctx::close, (s,e,o,t)-> {
-			InspectContext.emit(ldapStage(DISCONNECTION, s, e, t));
-			req.run(()-> {
+			emit(req.createStage(DISCONNECTION, s, e, t));
+			req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
-				InspectContext.emit(req);
 			});
+			emit(req);
 		});
+	}
+
+	<T> ExecutionMonitorListener<T> ldapStageListener(NamingAction action, String... args) {
+		return (s,e,o,t)-> {
+			emit(req.createStage(action, s, e, t, args));
+			if(nonNull(t)) {
+				req.runSynchronized(()-> req.setFailed(true));
+			}
+		};
 	}
 	
 	//dummy spring org.springframework.ldap.NamingException
@@ -166,23 +172,8 @@ public class DirContextTracker implements DirContext {
  				req.setUser(user);
  			}
  			emit(req);
- 			emit(ldapStage(CONNECTION, s, e, t));
+ 			emit(req.createStage(CONNECTION, s, e, t));
 		};
-	}
-	
-	<T> ExecutionMonitorListener<T> ldapStageListener(NamingAction action, String... args) {
-		return (s,e,o,t)-> {
-			InspectContext.emit(ldapStage(action, s, e, t, args));
-			if(nonNull(t)) {
-				req.run(()-> req.setFailed(true));
-			}
-		};
-	}
-	
-	NamingRequestStage ldapStage(NamingAction action, Instant start, Instant end, Throwable t, String... args) {
-		var stg = req.createStage(action.name(), start, end, t, NamingRequestStage::new);
-		stg.setArgs(args);
-		return stg;
 	}
 	
 	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {

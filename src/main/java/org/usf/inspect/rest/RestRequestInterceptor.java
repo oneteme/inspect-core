@@ -24,8 +24,6 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
-import org.usf.inspect.core.HttpAction;
-import org.usf.inspect.core.HttpRequestStage;
 import org.usf.inspect.core.RestRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -75,8 +73,8 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			var ctty = nonNull(r) ? r.getHeaders().getFirst(CONTENT_TYPE) : null;
 			var cten = nonNull(r) ? r.getHeaders().getFirst(CONTENT_ENCODING) : null;
 			var stts = nonNull(r) ? r.getStatusCode().value() : 0; //break ClientHttpRes. dependency
-			emit(httpRequestStage(req, PROCESS, s, e, t));
-			req.run(()-> {
+			emit(req.createStage(PROCESS, s, e, t));
+			req.runSynchronized(()-> {
 				req.setThreadName(tn);
 				req.setId(id);
 				req.setStatus(stts);
@@ -96,21 +94,16 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			if(nonNull(upd)) {
 				upd.updateContext(); // deferred execution
 			}
-			emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //red content
-			req.run(()-> {
+			emit(req.createStage(POST_PROCESS, s, e, t)); //red content
+			req.runSynchronized(()-> {
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));
 				}
 				req.setInDataSize(n);
 				req.setEnd(e);
-				emit(req);
 			});
+			emit(req);
 		};
-	}
-	
-	static HttpRequestStage httpRequestStage(RestRequest req, HttpAction action, Instant start, Instant end, Throwable t) {
-		
-		return req.createStage(action.name(), start, end, t, HttpRequestStage::new);
 	}
 	
 	static interface RestExecutionMonitorListener {
