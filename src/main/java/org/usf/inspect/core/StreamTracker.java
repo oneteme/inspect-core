@@ -1,7 +1,8 @@
 package org.usf.inspect.core;
 
+import static java.util.Arrays.stream;
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.SessionManager.sessionContextUpdater;
+import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
 import java.util.Collection;
 import java.util.stream.Stream;
@@ -19,7 +20,7 @@ public final class StreamTracker {
 
     @SafeVarargs
 	public static <T> Stream<T> parallelStream(T... array) {
-		return parallel(Stream.of(array));
+		return parallel(stream(array));
 	}
 
 	public static <T> Stream<T> parallelStream(Collection<T> c) {
@@ -27,12 +28,12 @@ public final class StreamTracker {
 	}
 
 	public static <T> Stream<T> parallel(Stream<T> stream) {
-		var su = sessionContextUpdater();
-    	return isNull(su)
+		var ses = requireCurrentSession();
+    	return isNull(ses)
     			? stream.parallel()
     			: stream.parallel().map(c-> {
-        			su.updateContext();
+        			ses.updateContext();
         			return c;
-        		});
+        		}).onClose(ses::releaseContext);
 	}
 }

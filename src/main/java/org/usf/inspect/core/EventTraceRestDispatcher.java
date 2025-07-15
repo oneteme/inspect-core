@@ -31,19 +31,19 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class InspectRestClient implements Dispatcher<Traceable> {
+public final class EventTraceRestDispatcher implements EventTraceDispatcher<EventTrace> {
 	
-	private final RestDispatchingProperties properties;
+	private final RestRemoteServerProperties properties;
 	private final InstanceEnvironment application;
 	private final RestTemplate template;
 	private String instanceId;
 
-	public InspectRestClient(RestDispatchingProperties properties, InstanceEnvironment application) {
+	public EventTraceRestDispatcher(RestRemoteServerProperties properties, InstanceEnvironment application) {
 		this(properties, application, defaultRestTemplate(properties));
 	}
 	
 	@Override
-    public boolean dispatch(boolean complete, int attemps, int pending, List<Traceable> metrics) {
+    public boolean dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces) {
 		if(isNull(instanceId)) {//if not registered before
 			try {
 				log.info("registering instance: {}", application);
@@ -55,13 +55,13 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 			}
 		}
     	if(nonNull(instanceId)) {
-			template.put(properties.getSessionEndpoint(), metrics.toArray(Metric[]::new), instanceId, attemps, pending, complete ? now() : null);
+			template.put(properties.getSessionEndpoint(), traces.toArray(EventTrace[]::new), instanceId, attemps, pending, complete ? now() : null);
 			return true; //return true to remove items from the queue
     	}
     	return false; //add back items back to the queue
     }
 	
-	static RestTemplate defaultRestTemplate(RestDispatchingProperties properties) {
+	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties) {
 		var json = new MappingJackson2HttpMessageConverter(createObjectMapper());
 		var plain = new StringHttpMessageConverter(); //for instanceID
 	    var timeout = ofSeconds(600); //wait for server startup 
@@ -76,7 +76,7 @@ public final class InspectRestClient implements Dispatcher<Traceable> {
 	    return rt.build();
 	}
 	
-	static ClientHttpRequestInterceptor compressRequest(final RestDispatchingProperties properties) {
+	static ClientHttpRequestInterceptor compressRequest(final RestRemoteServerProperties properties) {
 		return (req, body, exec)->{
 			if(body.length >= properties.getCompressMinSize()) {
 			    var baos = new ByteArrayOutputStream();

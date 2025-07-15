@@ -12,10 +12,9 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.SessionManager.startRequest;
-import static org.usf.inspect.core.TraceBroadcast.emit;
+import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.SessionManager.createHttpRequest;
 import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
-import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
 
 import java.time.Instant;
 import java.util.List;
@@ -42,7 +41,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 	
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {
-		var req = startRequest(RestRequest::new); //see RestRequestInterceptor
+		var req = createHttpRequest(); //see RestRequestInterceptor
 		return call(()-> exc.exchange(request), restRequestListener(req, request))
 		.map(res->{
 			var trck = new DataBufferMetricsTracker(contentReadListener(req));
@@ -77,8 +76,8 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var ctty = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_TYPE) : null;
 		var cten = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_ENCODING) : null;
 		var id   = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(TRACE_HEADER) : null;
-		emit(httpRequestStage(req, PROCESS, req.getStart(), end, thrw)); //same thread
-    	req.run(()->{
+		emit(req.createStage(PROCESS, req.getStart(), end, thrw)); //same thread
+    	req.runSynchronized(()->{
     		req.setThreadName(tn);
 			req.setId(id); //+ send api_name !?
 			req.setStatus(stts);
@@ -93,15 +92,15 @@ public final class WebClientFilter implements ExchangeFilterFunction {
     
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
 		return (s,e,n,b,t)-> {
-			emit(httpRequestStage(req, POST_PROCESS, s, e, t)); //READ content
-			req.run(()->{
+			emit(req.createStage(POST_PROCESS, s, e, t)); //READ content
+			req.runSynchronized(()->{
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));
 				}
 				req.setInDataSize(n);
 				req.setEnd(e);
-				emit(req);
 			});
+			emit(req);
 		};
 	}
     

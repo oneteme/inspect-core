@@ -1,22 +1,23 @@
 package org.usf.inspect.core;
 
+import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.Helper.warnStackTrace;
+import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.reportError;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
+import static org.usf.inspect.core.LogEntry.log;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
 import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.TraceBroadcast.emit;
 
 import java.util.function.Supplier;
 
@@ -43,89 +44,79 @@ public final class SessionManager {
 		if(clazz.isInstance(ses)) { //nullable
 			return clazz.cast(ses);
 		}
-		log.warn("unexpected session type: expected={}, but was={}", clazz.getSimpleName(), ses);
+		if(nonNull(ses)) {
+			reportError("unexpected session type: " + ses.getId());
+		}
 		return null;
 	}
 	
 	public static Session requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
-			warnStackTrace("no active session");
+			reportError("no current session found");
 		}
 		else if(ses.wasCompleted()) {
-			warnStackTrace("current session already completed: " + ses);
+			reportError("current session was already completed: " + ses.getId());
 			ses = null;
 		}
 		return ses;
 	}
 	
 	public static Session currentSession() {
-		var ses = localTrace.get(); // priority
-		return nonNull(ses) ? ses : startupSession;
-	}
-	
-	@Deprecated
-	public static void updateCurrentSession(Session s) {
-		if(localTrace.get() != s) { // null || local previous session
-			localTrace.set(s);
-		}
-	}
-	
-	public static SessionContextUpdater sessionContextUpdater() {
-		var ses = requireCurrentSession();
-		return nonNull(ses) ? ()-> updateCurrentSession(ses) : null;
-	}
-	
-	public static MainSession startBatchSession() {
-		var ses = mainSession(BATCH);
-		localTrace.set(ses);
-		return ses;
-	}
-	
-	public static MainSession startupSession() {
-		if(isNull(startupSession)) {
-			startupSession = mainSession(STARTUP);
-		}
-		else {
-			log.warn("startup session already exists {}", startupSession);
-		}
-		return startupSession;
-	}
-	
-	private static MainSession mainSession(MainSessionType type) {
-		var ses = new MainSession();
-		ses.setId(nextId());
-		ses.setType(type.name());
-		return ses;
-	}
-	
-	public static RestSession startRestSession() {
-		var ses = new RestSession();
-		ses.setId(nextId());
-		localTrace.set(ses);
-		return ses;
-	}	
-	
-	public static Session endSession() {
 		var ses = localTrace.get();
-		if(nonNull(ses)) {
+		return nonNull(ses) ? ses : startupSession; // priority
+	}
+	
+	public static void emitSessionStart(Session session) {
+		emit(session);
+		setCurrentSession(session);
+	}
+	
+	static void setCurrentSession(Session ses) {
+		var prv = localTrace.get();
+		if(prv != ses) {
+			if(isNull(prv) || prv.wasCompleted()) {
+				localTrace.set(ses);
+			}
+			else {
+				reportSessionConflict(prv.getId(), ses.getId());
+			}
+		}// else do nothing, already set
+	}
+		
+	public static void emitSessionEnd(Session session) {
+		emit(session);
+		releaseSession(session);
+	}
+	
+	static void releaseSession(Session ses) {
+		var prv = localTrace.get();
+		if(prv == ses) {
 			localTrace.remove();
 		}
 		else {
-			warnStackTrace("no active session");
-		}	
-		return ses;
+			reportSessionConflict(prv.getId(), ses.getId());
+		}
 	}
 	
-	public static MainSession endStatupSession() {
-		var ses = startupSession;
-		if(nonNull(startupSession)) {
+	public static void emitStartupSession(MainSession session) {
+		emit(session);
+		if(isNull(startupSession)) {
+			startupSession = session;
+		}
+		else {
+			reportSessionConflict(startupSession.getId(), session.getId());
+		}
+	}
+	
+	public static void emitStartupSesionEnd(MainSession session) {
+		emit(startupSession);
+		if(startupSession == session) {
 			startupSession = null;
 		}
 		else {
-			warnStackTrace("no startup session");
+			reportSessionConflict(startupSession.getId(), session.getId());
 		}
-		return ses;
 	}
 
 	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
@@ -139,7 +130,7 @@ public final class SessionManager {
 	
 	static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
 		var now = now();
-		var req = startRequest(LocalRequest::new);
+		var req = createLocalRequest();
     	try {
         	req.setStart(now);
         	req.setThreadName(threadName());
@@ -147,16 +138,19 @@ public final class SessionManager {
         	req.setName(nameSupp.get());
         	req.setLocation(locationSupp.get());
     	}
-    	finally {
-			emit(req);
+    	catch (Throwable t) {
+			reportUpdateMetric("local request", req.getId(), t);
 		}
-		return (s,e,o,t)-> req.run(()-> {
-    		if(nonNull(t)) {
-				req.setException(mainCauseException(t));
-			}
-			req.setEnd(e);
+		emit(req);
+		return (s,e,o,t)->{
+			req.runSynchronized(()-> {
+	    		if(nonNull(t)) {
+					req.setException(mainCauseException(t));
+				}
+				req.setEnd(e);
+			});
 			emit(req);
-		});
+		};
 	}
 	
 	private static String stackLocation() {
@@ -165,30 +159,74 @@ public final class SessionManager {
 				.orElse(null);
 	}
 	
-	public static <T extends AbstractRequest> T startRequest(Supplier<T> supp) {
-		var req = supp.get();
-		var ses = requireCurrentSession();
+	public static RestSession createRestSession() {
+		var session = new RestSession();
+		session.setId(nextId());
+		return session;
+	}
+	
+	public static MainSession createStartupSession() {
+		return createMainSession(STARTUP);
+	}
+	
+	public static MainSession createBatchSession() {
+		return createMainSession(BATCH);
+	}
+	
+	static MainSession createMainSession(MainSessionType type) {
+		var ses = new MainSession();
+		ses.setId(nextId());
+		ses.setType(type.name());
+		return ses;
+	}
+	
+	public static RestRequest createHttpRequest() {
+		return traceableRequest(new RestRequest());
+	}
+	
+	public static DatabaseRequest createDatabaseRequest() {
+		return traceableRequest(new DatabaseRequest());
+	}
+
+	public static FtpRequest createFtpRequest() {
+		return traceableRequest(new FtpRequest());
+	}
+	
+	public static MailRequest createMailRequest() {
+		return traceableRequest(new MailRequest());
+	}
+	
+	public static NamingRequest createNamingRequest() {
+		return traceableRequest(new NamingRequest());
+	}
+
+	public static LocalRequest createLocalRequest() {
+		return traceableRequest(new LocalRequest());
+	}
+	
+	static <T extends AbstractRequest> T traceableRequest(T req) {
 		req.setId(nextId());
+		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
 			req.setSessionId(ses.getId());
 		}
 		return req;
 	}
 	
-	public void info(String msg) {
-		trace(INFO, msg);
+	public static void emitInfo(String msg) {
+		emitLog(INFO, msg);
 	}
 
-	public void warn(String msg) {
-		trace(WARN, msg);
+	public static void emitWarn(String msg) {
+		emitLog(WARN, msg);
 	}
 	
-	public void error(String msg) {
-		trace(ERROR, msg);
+	public static void emitError(String msg) {
+		emitLog(ERROR, msg);
 	}
 	
-	public void trace(Level lvl, String msg) {
-		var log = new LogEntry(now(), lvl, msg);
+	private static void emitLog(Level lvl, String msg) {
+		var log = log(lvl, msg);
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
 			log.setSessionId(ses.getId());
@@ -199,10 +237,12 @@ public final class SessionManager {
 	public static String nextId() {
 		return randomUUID().toString();
 	}
+	
+	static void reportSessionConflict(String prev, String next) { //TODO: stack trace !?
+		reportError(format("session conflict detected : previous=%s, next=%s", prev, next));
+	}
 
-	@FunctionalInterface
-	public interface SessionContextUpdater {
-
-		void updateContext();
+	public static void reportUpdateMetric(String type, String id, Throwable t) { //TODO: stack trace !?
+		reportError(format("failed to update %s %s", type, id), t);
 	}
 }

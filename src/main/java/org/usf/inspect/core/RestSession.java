@@ -26,7 +26,6 @@ public class RestSession extends AbstractSession {
 	private String name; //api name
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
-
 	//v1.1
 	private ExceptionInfo exception;
 

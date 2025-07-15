@@ -2,6 +2,10 @@ package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
+import java.time.Instant;
+
+import org.usf.inspect.ftp.FtpAction;
+
 import lombok.Getter;
 import lombok.Setter;
 /**
@@ -21,6 +25,12 @@ public class FtpRequest extends AbstractRequest {
 	//v1.1
 	private boolean failed;
 	//ftp-collector
+	
+	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, Throwable t, String... args) {
+		var stg = createStage(type, start, end, t, FtpRequestStage::new);
+		stg.setArgs(args);
+		return stg;
+	}
 	
 	@Override
 	public FtpRequest copy() {

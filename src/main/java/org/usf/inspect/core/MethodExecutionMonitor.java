@@ -8,11 +8,14 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
+import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.SessionManager.asynclocalRequestListener;
+import static org.usf.inspect.core.SessionManager.createBatchSession;
 import static org.usf.inspect.core.SessionManager.currentSession;
-import static org.usf.inspect.core.SessionManager.endSession;
-import static org.usf.inspect.core.SessionManager.startBatchSession;
-import static org.usf.inspect.core.TraceBroadcast.emit;
+import static org.usf.inspect.core.SessionManager.emitSessionEnd;
+import static org.usf.inspect.core.SessionManager.emitSessionStart;
+import static org.usf.inspect.core.SessionManager.reportUpdateMetric;
+import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -43,28 +46,28 @@ public class MethodExecutionMonitor implements Ordered {
     }
     
     Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
-    	var main = startBatchSession();
+    	var ses = createBatchSession();
     	try {
-    		main.setStart(now());
-        	main.setThreadName(threadName());        
+    		ses.setType(BATCH.name());
+    		ses.setStart(now());
+        	ses.setThreadName(threadName());        
         	var sgn = (MethodSignature)point.getSignature();
-    		main.setName(getTraceableName(sgn));
-    		main.setLocation(sgn.getDeclaringTypeName());   
-        	main.setUser(userProvider.getUser(point, main.getName()));
-    	}
-    	finally {
-			emit(main);
+    		ses.setName(getTraceableName(sgn));
+    		ses.setLocation(sgn.getDeclaringTypeName());   
+        	ses.setUser(userProvider.getUser(point, ses.getName()));
+		} catch (Throwable t) {
+			reportUpdateMetric("batch session", ses.getId(), t);
 		}
+		emitSessionStart(ses);
     	return call(point::proceed, (s,e,o,t)-> {
-    		main.run(()-> {
-    			if(nonNull(t)) {
-    				main.setException(mainCauseException(t));
-    			}
-    			main.setEnd(e);
-    			emit(main);
+    		ses.runSynchronized(()-> {
+				if(nonNull(t)) {
+					ses.setException(mainCauseException(t));
+				}
+				ses.setEnd(e);
     		});
-			endSession();
-    	});
+    		emitSessionEnd(ses);
+		});
 	}
     
     Object aroundStage(ProceedingJoinPoint point) throws Throwable {
@@ -80,6 +83,23 @@ public class MethodExecutionMonitor implements Ordered {
     	return call(point::proceed, asynclocalRequestListener(CACHE, 
     			sgn::getDeclaringTypeName,
     			()-> getCacheableName(sgn)));
+    }
+    
+    /**
+	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
+	 */
+    @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
+    Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
+		var ses = requireCurrentSession(RestSession.class);
+		if(nonNull(ses) && nonNull(joinPoint.getArgs())) {
+			for(var arg : joinPoint.getArgs()) {
+				if(arg instanceof Throwable t) {
+					ses.runSynchronized(()-> ses.setException(mainCauseException(t)));
+					break;
+				}
+			}
+		}
+		return joinPoint.proceed();
     }
     
 	@Override

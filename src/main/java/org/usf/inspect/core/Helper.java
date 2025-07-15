@@ -3,13 +3,11 @@ package org.usf.inspect.core;
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
 import static java.lang.reflect.Array.getLength;
-import static java.util.Collections.synchronizedList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -53,15 +51,6 @@ public final class Helper {
 				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
 	}
 	
-	public static <T> Optional<T> newInstance(Class<? extends T> clazz) {
-		try {
-			return Optional.of(clazz.getDeclaredConstructor().newInstance());
-		} catch (Exception e) {
-			log.warn("cannot instantiate class '{}', exception={}", clazz.getName(), e.getMessage());
-			return empty();
-		}
-	}
-	
 	public static Optional<StackTraceElement> outerStackTraceElement() {
 		var arr = currentThread().getStackTrace();
 		var i = 1; //skip this method call
@@ -69,6 +58,7 @@ public final class Helper {
 		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
+	@Deprecated(forRemoval = true, since = "1.1.0")
 	public static void warnStackTrace(String msg) {
 		log.warn(msg);
 		var arr = currentThread().getStackTrace();
@@ -103,10 +93,6 @@ public final class Helper {
 		return s;
 	}
 
-	static <T> List<T> synchronizedArrayList() {
-		return synchronizedList(new ArrayList<>());
-	}
-	
 	public static int count(Object o) {
 		if(nonNull(o)) {
 			if(o instanceof Collection<?> c) {

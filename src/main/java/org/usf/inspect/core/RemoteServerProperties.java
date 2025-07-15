@@ -5,7 +5,7 @@ package org.usf.inspect.core;
  * @author u$f
  *
  */
-public interface DispatchingProperties {
+public interface RemoteServerProperties {
 	
 	void validate();
 }

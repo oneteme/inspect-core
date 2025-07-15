@@ -3,10 +3,7 @@ package org.usf.inspect.core;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.usf.inspect.core.Assertions.assertGreaterOrEquals;
-import static org.usf.inspect.core.Assertions.assertMatches;
 import static org.usf.inspect.core.Assertions.assertOneOf;
-import static org.usf.inspect.core.Assertions.assertPositive;
 import static org.usf.inspect.core.Assertions.assertStrictPositive;
 
 import java.util.EnumSet;
@@ -26,18 +23,11 @@ import lombok.ToString;
 @ToString
 public class SchedulingProperties {
 	
-    private int delay = 5;
+    private byte delay = 5;
 	private TimeUnit unit = SECONDS;
-	private int queueCapacity = 10_000; // {n} max buffering traces, 0: unlimited
-	//v1.1
-	private int dispatchDelayIfPending = 30; // send pending traces after {n} seconds, 0: send immediately, -1 not 
-	private String dumpDirectory = "/tmp"; // dump folder
 
 	void validate() {
 		assertStrictPositive(delay, "delay");
 		assertOneOf(unit, EnumSet.of(SECONDS, MINUTES, HOURS), "unit");
-		assertPositive(queueCapacity, "queue-capacity");
-		assertGreaterOrEquals(dispatchDelayIfPending, -1, "dispatch-delay-if-pending");
-		assertMatches(dumpDirectory, "(\\/[\\w-]+)+", "dumpDir");
 	}
 }

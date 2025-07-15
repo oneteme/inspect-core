@@ -30,7 +30,11 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private String sessionId;
 	private String id;
 	@JsonIgnore
-	private final AtomicInteger counter = new AtomicInteger();
+	private final AtomicInteger stageCounter = new AtomicInteger();
+	
+	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Throwable t, Supplier<T> supp) {
+		return createStage(type.name(), start, end, t, supp);
+	}
 	
 	public <T extends AbstractStage> T createStage(String name, Instant start, Instant end, Throwable t, Supplier<T> supp) {
 		var stg = supp.get();
@@ -41,7 +45,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 			stg.setException(mainCauseException(t));
 		}
 		stg.setRequestId(id);
-		stg.setOrder(counter.getAndIncrement());
+		stg.setOrder(stageCounter.getAndIncrement());
 		return stg;
 	}
 	

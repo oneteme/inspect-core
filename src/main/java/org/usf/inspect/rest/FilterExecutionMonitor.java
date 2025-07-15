@@ -22,11 +22,11 @@ import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.SessionManager.endSession;
-import static org.usf.inspect.core.SessionManager.startRestSession;
-import static org.usf.inspect.core.SessionManager.updateCurrentSession;
-import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.rest.RestRequestInterceptor.httpRequestStage;
+import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.SessionManager.createRestSession;
+import static org.usf.inspect.core.SessionManager.emitSessionEnd;
+import static org.usf.inspect.core.SessionManager.emitSessionStart;
+import static org.usf.inspect.core.SessionManager.reportUpdateMetric;
 
 import java.io.IOException;
 import java.net.URI;
@@ -42,7 +42,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
-import org.usf.inspect.core.HttpRouteConfiguration;
+import org.usf.inspect.core.HttpRouteMonitoringProperties;
 import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.RestSession;
 import org.usf.inspect.core.TraceableStage;
@@ -69,7 +69,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	//v1.1
 	private final HttpUserProvider userProvider;
 
-	public FilterExecutionMonitor(HttpRouteConfiguration config, HttpUserProvider userProvider) {
+	public FilterExecutionMonitor(HttpRouteMonitoringProperties config, HttpUserProvider userProvider) {
 		Predicate<HttpServletRequest> filter = req-> false;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
@@ -93,10 +93,10 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-		var ses = traceRestSession(req, res);
+		traceRestSession(req, res);
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
-			exec(()-> filterChain.doFilter(req, res), restSessionListener(ses, req, res));	
+			exec(()-> filterChain.doFilter(req, res), restSessionListener(req, res));	
 		}
 		catch (IOException | ServletException | RuntimeException e) {
 			throw e;
@@ -104,25 +104,14 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		catch (Exception e) {//should never happen
 			throw new IllegalStateException(e); 
 		}
-		finally {
-			if(!isAsyncStarted(req)) { //!Async || isAsyncDispatch
-				req.removeAttribute(CURRENT_SESSION); //avoid intercepting BasicErrorController 
-				req.removeAttribute(STAGE_START);
-			}
-			endSession(); //remove session from both (sync/async) thread local
-		}
 	}
 	
-	private RestSession traceRestSession(HttpServletRequest req, HttpServletResponse res) {
-		var ses = (RestSession) req.getAttribute(CURRENT_SESSION);
+	private void traceRestSession(HttpServletRequest req, HttpServletResponse res) {
 		var start = now();
-		req.setAttribute(STAGE_START, start); //SYNC | ASYNC stage start
+		var ses = (RestSession) req.getAttribute(CURRENT_SESSION);
 		if(isNull(ses)) {
-			ses = startRestSession();
+			ses = createRestSession();
 			try {
-				req.setAttribute(CURRENT_SESSION, ses);
-				res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
-				res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 				ses.setStart(start);
 				ses.setThreadName(threadName());
 				ses.setMethod(req.getMethod());
@@ -131,41 +120,49 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				ses.setInDataSize(req.getContentLength());
 				ses.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 				ses.setUserAgent(req.getHeader(USER_AGENT));
-			} finally {
-				emit(ses);
 			}
+			catch (Throwable t) {
+				reportUpdateMetric("rest session", ses.getId(), t);
+			}
+			res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
+			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
+			req.setAttribute(CURRENT_SESSION, ses);
+			emitSessionStart(ses);
 		}
-		else { // async
-			updateCurrentSession(ses); //different thread
+		else {
+			ses.updateContext(); //deferred execution
 		}
-		return ses;
+		req.setAttribute(STAGE_START, start); //SYNC & ASYNC stage start
 	}
 	
-	private ExecutionMonitorListener<Void> restSessionListener(RestSession in, HttpServletRequest req, HttpServletResponse res) {
+	private ExecutionMonitorListener<Void> restSessionListener(HttpServletRequest request, HttpServletResponse response) {
 		return (s,e,o,t)-> {
-			if(!isAsyncStarted(req)) { //!Async || isAsyncDispatch
-				var sttt = nonNull(res) ? res.getStatus() : 0;
-				var size = nonNull(res) ? res.getBufferSize() : null; //!exact size
-				var encd = nonNull(res) ? res.getHeader(CONTENT_ENCODING) : null; 
-				var cach = nonNull(res) ? res.getHeader(CACHE_CONTROL) : null;
-				var cntt = nonNull(res) ? res.getContentType() : null;
-				in.run(()->{
-					in.setStatus(sttt);
-					in.setOutDataSize(size); //!exact size
-					in.setOutContentEncoding(encd); 
-					in.setCacheControl(cach);
-					in.setContentType(cntt);
-					in.setEnd(e);
-					emit(in);
-				});
-			}
-			else { //IO | CancellationException | ServletException => no ErrorHandler
-				emit(httpRequestStage(in.getRest(), DEFERRED, s, e, t));
-				if(nonNull(t)) {
-					in.run(()-> {
-						in.setEnd(e);
-						emit(in);
+			var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
+			if(nonNull(ses)) {
+				if(!isAsyncStarted(request)) { //!Async || isAsyncDispatch
+					var sttt = nonNull(response) ? response.getStatus() : 0;
+					var size = nonNull(response) ? response.getBufferSize() : null; //!exact size
+					var encd = nonNull(response) ? response.getHeader(CONTENT_ENCODING) : null; 
+					var cach = nonNull(response) ? response.getHeader(CACHE_CONTROL) : null;
+					var cntt = nonNull(response) ? response.getContentType() : null;
+					ses.runSynchronized(()->{
+						ses.setStatus(sttt);
+						ses.setOutDataSize(size); //!exact size
+						ses.setOutContentEncoding(encd); 
+						ses.setCacheControl(cach);
+						ses.setContentType(cntt);
+						ses.setEnd(e);  //IO | CancellationException | ServletException => no ErrorHandler
 					});
+					emitSessionEnd(ses); //emit session & clean context
+//					request.removeAttribute(CURRENT_SESSION); 
+//					request.removeAttribute(STAGE_START);
+				}
+				else {
+					emit(ses.createStage(DEFERRED, s, e, t));
+					if(nonNull(t)) {
+						ses.runSynchronized(()-> ses.setEnd(e));
+						emitSessionEnd(ses); //emit session & clean context
+					}
 				}
 			}
 		};
@@ -183,9 +180,9 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 		var now = now();
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
-		if(nonNull(ses)) {
+		if(nonNull(ses)) { //skip BasicErrorController
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), PRE_PROCESS, beg, now, null));
+			emit(ses.createStage(PRE_PROCESS, beg, now, null));
 			request.setAttribute(STAGE_START, now);
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -195,9 +192,9 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
 		var now = now();
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
-		if(nonNull(ses)) {
+		if(nonNull(ses)) { //skip BasicErrorController
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), PROCESS, beg, now, null));
+			emit(ses.createStage(PROCESS, beg, now, null));
 			request.setAttribute(STAGE_START, now);
 		}
 	}
@@ -206,16 +203,18 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 		var now = now();
 		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
-		if(nonNull(ses)) {
+		if(nonNull(ses)) { //skip BasicErrorController
 			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(httpRequestStage(ses.getRest(), POST_PROCESS, beg, now, null));
+			emit(ses.createStage(POST_PROCESS, beg, now, null));
 			if(handler instanceof HandlerMethod mth) { //!static resource
-				String name = resolveEndpointName(mth, request); 
-				ses.setName(name);
-				ses.setUser(userProvider.getUser(request, name));
-				if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
-					ses.setException(mainCauseException(ex));
-				}
+				var name = resolveEndpointName(mth, request); 
+				ses.runSynchronized(()->{
+					ses.setName(name);
+					ses.setUser(userProvider.getUser(request, name));
+					if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
+						ses.setException(mainCauseException(ex));
+					}
+				});
 			}
 		}
 	}

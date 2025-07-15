@@ -17,13 +17,13 @@ public interface CompletableMetric extends Metric {
 		return nonNull(getEnd());
 	}
 	
-	default void run(Runnable r) {
+	default void runSynchronized(Runnable r) {
 		synchronized (this) {
 			r.run();
 		}
 	}
 	
-	default void runIfPending(Runnable r) {
+	default void runSynchronizedIfNotComplete(Runnable r) {
 		synchronized (this) {
 			if(!wasCompleted()) {
 				r.run();

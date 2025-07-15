@@ -7,11 +7,12 @@ import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InstanceEnvironment.localInstance;
-import static org.usf.inspect.core.SessionManager.endStatupSession;
-import static org.usf.inspect.core.SessionManager.startupSession;
-import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.TraceBroadcast.register;
+import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.InspectContext.startInspectContext;
+import static org.usf.inspect.core.MainSessionType.STARTUP;
+import static org.usf.inspect.core.SessionManager.createStartupSession;
+import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
+import static org.usf.inspect.core.SessionManager.emitStartupSession;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -37,7 +38,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.inspect.jdbc.DataSourceWrapper;
-import org.usf.inspect.rest.ControllerAdviceMonitor;
 import org.usf.inspect.rest.FilterExecutionMonitor;
 import org.usf.inspect.rest.RestRequestInterceptor;
 
@@ -55,35 +55,19 @@ import lombok.extern.slf4j.Slf4j;
 class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
 	private final ApplicationContext ctx;
-	private final InspectCollectorConfiguration config;
+	private final MainSession session;
 	
 	InspectConfiguration(ApplicationContext ctx, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		this.ctx = ctx;
-		this.config = conf.validate();
-		log.info("inspect.properties={}", conf);
-		var instance = localInstance(
-				ofEpochMilli(ctx.getStartupDate()),
-				provider.getName(),
-				provider.getVersion(),
-				provider.getBranch(),
-				provider.getCommitHash(),
-				provider.getEnvironment(),
-				provider.additionalProperties());
-		log.info("inspect enabled on instance={}", instance);
-		instance.setConfiguration(conf);
-		if(conf.isDebugMode()) {
-			register(new SessionTraceDebugger());
-		}
-		if(conf.getDispatching() instanceof RestDispatchingProperties rest) {
-			var disp = new InspectRestClient(rest, instance);
-			register(new ScheduledDispatchHandler(conf.getScheduling(), disp));
-		}//else unsupported dispatching mode
-		initStatupSession(instance.getInstant());
+		var start = ofEpochMilli(ctx.getStartupDate());
+		startInspectContext(start, conf.validate(), provider);
+		this.session = traceStartupSession(start);
 	}
 	
     @Bean //important! name == apiSessionFilter
     FilterRegistrationBean<Filter> apiSessionFilter(HttpUserProvider userProvider) {
-    	var filter = new FilterExecutionMonitor(config.getTracking().getHttpRoute(), userProvider);
+    	var conf = context().getConfiguration().getMonitoring().getHttpRoute();
+    	var filter = new FilterExecutionMonitor(conf, userProvider);
     	var rb = new FilterRegistrationBean<Filter>(filter);
     	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*"); //check that
@@ -107,12 +91,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	log.debug("loading 'RestRequestInterceptor' bean ..");
         return new RestRequestInterceptor();
     }
-    
-    @Bean
-    ControllerAdviceMonitor controllerAdviceAspect() {
-    	log.debug("loading 'ControllerAdviceTracker' bean ..");
-    	return new ControllerAdviceMonitor();
-    }
      
     @Bean
     BeanPostProcessor dataSourceWrapper() {
@@ -124,46 +102,40 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		};
     }
     
-    @Bean
+    @Bean // Cacheable, TraceableStage, ControllerAdvice
     MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
     	log.debug("loading 'MethodExecutionMonitorAspect' bean ..");
     	return new MethodExecutionMonitor(aspectUser);
-    }
-    
-    void initStatupSession(Instant start) {
-    	var ses = startupSession();
-    	try {
-	    	ses.setName("main");
-	    	ses.setThreadName(threadName());
-	    	ses.setStart(start);
-    	}
-    	finally {
-			emit(ses);
-		}
     }
 
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
 		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-			emitStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
+			traceStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
 		}
 	}
+    
+    MainSession traceStartupSession(Instant start) {
+		var ses = createStartupSession();
+		ses.setType(STARTUP.name());
+    	ses.setName("main");
+    	ses.setStart(start);
+    	ses.setThreadName(threadName());
+    	emitStartupSession(ses);
+    	return ses;
+    }
 	
-	void emitStartupSession(Object appName, Throwable e){
+	void traceStartupSession(Object appName, Throwable t) {
     	var end = now();
-        var ses = endStatupSession();
-    	if(nonNull(ses)) {
-    		try {
-    	    	ses.setLocation(mainApplicationClass(appName));
-    	    	if(nonNull(e)) {
-		    		ses.setException(mainCauseException(e)); //nullable
-		    	}
-				ses.setEnd(end);
-    		}
-    		finally {
-				emit(ses);
+    	var app = mainApplicationClass(appName);
+    	session.runSynchronized(()-> {
+			session.setLocation(app);
+			if(nonNull(t)) {  //nullable
+				session.setException(mainCauseException(t));
 			}
-    	}
+			session.setEnd(end);
+		});
+    	emitStartupSesionEnd(session);
 	}
 	
     static String mainApplicationClass(Object source) {
@@ -196,11 +168,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     
     @Bean
     @ConfigurationProperties(prefix = "inspect.collector")
-    static InspectCollectorConfiguration inspectConfigurationProperties(Optional<DispatchingProperties> dispatching) {
+    static InspectCollectorConfiguration inspectConfigurationProperties(Optional<RemoteServerProperties> dispatching) {
     	log.debug("loading 'InspectConfigurationProperties' bean ..");
     	var conf = new InspectCollectorConfiguration();
     	if(dispatching.isPresent()) {
-    		conf.setDispatching(dispatching.get()); //spring will not call this setter
+    		conf.getTracing().setRemote(dispatching.get()); //spring will never call this setter
     	}
 		else {
 			log.warn("no dispatching type found, dispatching will not be configured");
@@ -209,12 +181,12 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
 
     @Bean
-    @ConfigurationProperties(prefix = "inspect.collector.dispatching")
-    @ConditionalOnProperty(prefix = "inspect.collector.dispatching", name = "mode")
-    static DispatchingProperties dispatchingProperties(@Value("${inspect.collector.dispatching.mode}") DispatchTarget mode) {
+    @ConfigurationProperties(prefix = "inspect.collector.tracing.remote")
+    @ConditionalOnProperty(prefix = "inspect.collector.tracing.remote", name = "mode")
+    static RemoteServerProperties dispatchingProperties(@Value("${inspect.collector.tracing.remote.mode}") DispatchTarget mode) {
     	log.debug("loading 'DispatchingProperties' bean ..");
     	return switch (mode) {
-		case REST -> new RestDispatchingProperties();
+		case REST -> new RestRemoteServerProperties();
 		default -> throw new UnsupportedOperationException(format("dispatching type '%s' is not supported, ", mode));
 		};
     }

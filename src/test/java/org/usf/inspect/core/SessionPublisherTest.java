@@ -5,9 +5,9 @@ import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Stream.generate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.TraceBroadcast.emit;
-import static org.usf.inspect.core.TraceBroadcast.handlers;
-import static org.usf.inspect.core.TraceBroadcast.register;
+import static org.usf.inspect.core.EventTraceEmitter.emit;
+import static org.usf.inspect.core.EventTraceDispatcher.handlers;
+import static org.usf.inspect.core.EventTraceEmitter.register;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,7 +32,7 @@ class SessionPublisherTest {
 	@ParameterizedTest
 	@ValueSource(ints = {1, 5, 10, 20, 50, 100})
 	void testRegister(int n) {
-		nParallelExec(n, ()-> register(s-> {}));
+		nParallelExec(n, ()-> addHandler(s-> {}));
 		assertEquals(n, handlers.size());
 	}
 
@@ -41,9 +41,9 @@ class SessionPublisherTest {
 	void testEmit(int n) {
 		var reg = generate(AtomicInteger::new).limit(10).toArray(AtomicInteger[]::new);
 		for(var o : reg) {
-			register(s-> o.incrementAndGet());
+			addHandler(s-> o.incrementAndGet());
 		}
-		nParallelExec(n, ()-> emit(new RestSession()));
+		nParallelExec(n, ()-> emitTrace(new RestSession()));
 		for(var o : reg) {
 			assertEquals(n, o.get());
 		}

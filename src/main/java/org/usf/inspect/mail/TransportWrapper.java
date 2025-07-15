@@ -4,13 +4,12 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionManager.startRequest;
-import static org.usf.inspect.core.TraceBroadcast.emit;
+import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.SessionManager.createMailRequest;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
 import static org.usf.inspect.mail.MailAction.SEND;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -18,7 +17,6 @@ import java.util.stream.Stream;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.Mail;
 import org.usf.inspect.core.MailRequest;
-import org.usf.inspect.core.MailRequestStage;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
@@ -41,23 +39,24 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	private MailRequest req;
 	
 	public void connect() throws MessagingException {
-		exec(trsp::connect, smtpRequestListener(null, null, null));
+		exec(trsp::connect, mailRequestListener(null, null, null));
 	}
 
 	public void connect(String user, String password) throws MessagingException {
-		exec(()-> trsp.connect(user, password), smtpRequestListener(null, null, user));
+		exec(()-> trsp.connect(user, password), mailRequestListener(null, null, user));
 	}
 
 	public void connect(String host, String user, String password) throws MessagingException {
-		exec(()-> trsp.connect(host, user, password), smtpRequestListener(host, null, user));
+		exec(()-> trsp.connect(host, user, password), mailRequestListener(host, null, user));
 	}
 	
 	public void connect(String arg0, int arg1, String arg2, String arg3) throws MessagingException {
-		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), smtpRequestListener(arg0, arg1, arg2));
+		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), mailRequestListener(arg0, arg1, arg2));
 	}
 	
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
 		exec(()-> trsp.sendMessage(arg0, arg1), (s,e,o,t)->{
+			emit(req.createStage(SEND, s, e, t));
 			var mail = new Mail(); // broke Mail dependency !?
 			mail.setSubject(arg0.getSubject());
 			mail.setFrom(toStringArray(arg0.getFrom()));
@@ -65,31 +64,30 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			mail.setReplyTo(toStringArray(arg0.getReplyTo()));
 			mail.setContentType(arg0.getContentType());
 			mail.setSize(arg0.getSize());
-			req.run(()-> {
+			req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.getMails().add(mail);
 			}); //do not emit here, because it is not finish yet
-			emit(smtpStage(SEND, s, e, t));
 		});
 	}
 
 	public void close() throws MessagingException {
 		exec(trsp::close, (s,e,o,t)-> {
-			emit(smtpStage(DISCONNECTION, s, e, t));
-			req.run(()-> {
+			emit(req.createStage(DISCONNECTION, s, e, t));
+			req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
-				emit(req);
 			});
+			emit(req);
 		});
 	}
 	
-	ExecutionMonitorListener<Void> smtpRequestListener(String host, Integer port, String user) {
-		req = startRequest(MailRequest::new); 
+	ExecutionMonitorListener<Void> mailRequestListener(String host, Integer port, String user) {
+		req = createMailRequest(); 
 		return (s,e,o,t)->{
 			req.setThreadName(threadName());
 			req.setStart(s);
@@ -100,7 +98,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			else {
 				req.setMails(new ArrayList<>(1));
 			}
-			var url = trsp.getURLName(); //broke trsp dependency
+			var url = trsp.getURLName();
 			if(nonNull(url)) {
 				req.setProtocol(url.getProtocol());
 				req.setHost(url.getHost());
@@ -111,12 +109,8 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			acceptIfNonNull(port, req::setPort);
 			acceptIfNonNull(user, req::setUser);
 			emit(req);
-			emit(smtpStage(CONNECTION, s, e, t));
+			emit(req.createStage(CONNECTION, s, e, t));
 		};
-	}
-	
-	MailRequestStage smtpStage(MailAction action, Instant start, Instant end, Throwable t) {
-		return req.createStage(action.name(), start, end, t, MailRequestStage::new);
 	}
 	
 	private static String[] toStringArray(Address... address) {

@@ -2,6 +2,10 @@ package org.usf.inspect.core;
 
 import static org.usf.inspect.core.Helper.prettyURLFormat;
 
+import java.time.Instant;
+
+import org.usf.inspect.jdbc.JDBCAction;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -25,6 +29,12 @@ public class DatabaseRequest extends AbstractRequest {
 	//v1.1
 	private boolean failed;
 	//java-collector
+	
+	public DatabaseRequestStage createStage(JDBCAction type, Instant start, Instant end, Throwable t, long[] count) {
+		var stg = createStage(type, start, end, t, DatabaseRequestStage::new);
+		stg.setCount(count);
+		return stg;
+	}
 
 	@Override
 	public DatabaseRequest copy() {

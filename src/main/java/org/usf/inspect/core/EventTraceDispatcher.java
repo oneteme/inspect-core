@@ -8,7 +8,7 @@ import java.util.List;
  *
  */
 @FunctionalInterface
-public interface Dispatcher<T> {
+public interface EventTraceDispatcher<T> {
 
 	boolean dispatch(boolean complete, int attemps, int pending, List<T> items) throws Exception;
 }

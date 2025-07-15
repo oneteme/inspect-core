@@ -9,6 +9,6 @@ public enum DispatchTarget {
 	
 	REST,
 	//JMS, KAFKA, AMQP, MQTT,
-	//Binary
+	//Binary, BDD
 	;
 }
