@@ -44,6 +44,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.HttpRouteMonitoringProperties;
 import org.usf.inspect.core.HttpUserProvider;
+import org.usf.inspect.core.MainExceptionInfo;
 import org.usf.inspect.core.RestSession;
 import org.usf.inspect.core.TraceableStage;
 
@@ -212,7 +213,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 					ses.setName(name);
 					ses.setUser(userProvider.getUser(request, name));
 					if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
-						ses.setException(mainCauseException(ex));
+						ses.setException(MainExceptionInfo.form(ex, 30));
 					}
 				});
 			}
