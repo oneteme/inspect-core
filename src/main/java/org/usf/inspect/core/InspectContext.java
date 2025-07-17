@@ -4,11 +4,12 @@ import static java.lang.Runtime.getRuntime;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.LogEntry.log;
+import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 
 import java.net.UnknownHostException;
@@ -30,31 +31,45 @@ public final class InspectContext {
 
 	static InspectContext singleton;
 
-	private final InstanceEnvironment currentInstance;
-	private final EventTraceEmitter dispatcher;
-	private final ScheduledExecutorService executor;
+	private final InspectCollectorConfiguration configuration;
+	private final EventTraceEmitter eventEmitter; //optional, can be null
+	private final ScheduledExecutorService executor; //optional, can be null
 	
-	public InspectCollectorConfiguration getConfiguration() {
-		return currentInstance.getConfiguration();
+	public static InspectContext context() {
+		if(isNull(singleton)) {
+			singleton = new InspectContext(disabledConfiguration(), null, null);
+			log.warn("", new IllegalStateException("inspect context was not started"));
+		}
+		return singleton;
 	}
 	
-	public InstanceEnvironment getCurrentInstance() {
-		return currentInstance;
+	public InspectCollectorConfiguration getConfiguration() {
+		return configuration;
+	}
+
+	public void reportError(String msg, Throwable thrw) { //stack trace ??
+		msg += format(", cause=%s: %s", thrw.getClass().getSimpleName(), thrw.getMessage());
+		emitTrace(logEntry(ERROR, msg, thrw, 10)); //takes no session id
+	}
+
+	public void reportError(String msg) {
+		emitTrace(logEntry(ERROR, msg, 10)); //takes no session id 
+	}
+	
+	public void emitTrace(EventTrace trace) {
+		if(nonNull(eventEmitter)) {
+			eventEmitter.emitTrace(trace);
+		}
 	}
 	
 	void complete() {
     	log.info("shutting down the scheduler service...");
-		executor.shutdown();
-		dispatcher.complete();
-	}
-	
-	public static void emit(EventTrace trace) {
-		if(nonNull(singleton)) {
-			singleton.dispatcher.emitTrace(trace);
+    	if(nonNull(executor)) {
+    		executor.shutdown();
 		}
-		else {
-			log.warn("inspect context was not started");
-		}
+    	if(nonNull(eventEmitter)) {
+			eventEmitter.complete();
+    	}
 	}
 	
 	static void startInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
@@ -78,12 +93,8 @@ public final class InspectContext {
 			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
 		}
 		exct.scheduleWithFixedDelay(dspt, 0, schd.getDelay(), schd.getUnit());
-		singleton = new InspectContext(inst, dspt, exct);
+		singleton = new InspectContext(conf, dspt, exct);
 		getRuntime().addShutdownHook(new Thread(singleton::complete, "shutdown-hook"));
-	}
-	
-	public static InspectContext context() {
-		return singleton;
 	}
 	
 	static Thread daemonThread(Runnable r) {
@@ -123,12 +134,16 @@ public final class InspectContext {
 		return "spring-collector/" //use getImplementationTitle
 				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
 	}
-
-	public static void reportError(String msg, Throwable t) { //stack trace ??
-		reportError(msg + format(", cause=%s: %s", t.getClass().getSimpleName(), t.getMessage()));
-	}
-
-	public static void reportError(String msg) {
-		emit(log(ERROR, msg)); //no session id 
+	
+	static InspectCollectorConfiguration disabledConfiguration() {
+		var conf = new InspectCollectorConfiguration();
+		conf.setEnabled(false);
+		conf.setDebugMode(false);
+		conf.getTracing().setRemote(null); //avoid remote dispatching
+		//conf.getScheduling().setDelay(0); //avoid scheduling
+		conf.getMonitoring().getResources().setEnabled(false); //avoid resource monitoring
+		conf.getMonitoring().getException().setMaxStackTraceRows(0); //avoid memory leak
+		conf.getMonitoring().getException().setMaxCauseDepth(0); //avoid memory leak
+		return conf;
 	}
 }

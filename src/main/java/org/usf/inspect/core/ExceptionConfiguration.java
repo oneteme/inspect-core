@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.Assertions.assertGreaterOrEquals;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -11,6 +13,12 @@ import lombok.ToString;
 @RequiredArgsConstructor
 public final class ExceptionConfiguration {
 	
-	private int maxStackTrace = 5;
-	private int messageMaxLength = 1000; // max length of exception message, 0 means no limit
+	private int maxStackTraceRows = 5; // max rows in stack trace, -1 means no limit
+	private int maxCauseDepth = -1; // max depth of cause chain, -1 means no limit
+	//private String[] classNamePatterns = null 
+	
+	void validate() {
+		assertGreaterOrEquals(maxStackTraceRows, -1, "stack-trace-rows");
+		assertGreaterOrEquals(maxCauseDepth, -1, "max-cause-depth");
+	}
 }

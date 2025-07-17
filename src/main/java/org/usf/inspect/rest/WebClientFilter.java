@@ -12,7 +12,7 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createHttpRequest;
 import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
 
@@ -65,7 +65,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 				traceHttpResponse(req, now(), null, t);
 			}
 			else {
-				emit(req); //no action
+				context().emitTrace(req); //no action
 			}
 		};
     }
@@ -76,7 +76,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 		var ctty = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_TYPE) : null;
 		var cten = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_ENCODING) : null;
 		var id   = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(TRACE_HEADER) : null;
-		emit(req.createStage(PROCESS, req.getStart(), end, thrw)); //same thread
+		context().emitTrace(req.createStage(PROCESS, req.getStart(), end, thrw)); //same thread
     	req.runSynchronized(()->{
     		req.setThreadName(tn);
 			req.setId(id); //+ send api_name !?
@@ -85,14 +85,14 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			req.setInContentEncoding(cten); 
     		if(nonNull(thrw)) {
     			req.setEnd(end);
-    			emit(req);
+    			context().emitTrace(req);
     		}
     	});
     }
     
 	RestExecutionMonitorListener contentReadListener(RestRequest req){
 		return (s,e,n,b,t)-> {
-			emit(req.createStage(POST_PROCESS, s, e, t)); //READ content
+			context().emitTrace(req.createStage(POST_PROCESS, s, e, t)); //READ content
 			req.runSynchronized(()->{
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));
@@ -100,7 +100,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 				req.setInDataSize(n);
 				req.setEnd(e);
 			});
-			emit(req);
+			context().emitTrace(req);
 		};
 	}
     

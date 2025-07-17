@@ -4,7 +4,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +16,6 @@ import lombok.experimental.Delegate;
  */
 @Getter
 @Setter
-@JsonTypeName("rest")
 public class RestSession extends AbstractSession {
 
 	@Delegate

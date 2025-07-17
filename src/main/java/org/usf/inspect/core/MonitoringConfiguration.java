@@ -17,10 +17,11 @@ public final class MonitoringConfiguration {
 	private HttpRouteMonitoringProperties httpRoute = new HttpRouteMonitoringProperties(); //replace restSession
 	//v1.1
 	private ResourceMonitoringProperties resources = new ResourceMonitoringProperties();
-	private ExceptionConfiguration exception = new ExceptionConfiguration(); // max stack trace rows, max message length
+	private ExceptionConfiguration exception = new ExceptionConfiguration();
 	
 	void validate() {
 		httpRoute.validate();
 		resources.validate();
+		exception.validate();
 	}
 }

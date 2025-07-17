@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-@NoArgsConstructor(access = AccessLevel.PACKAGE)
 public final class EventTraceEmitter implements Runnable {
 	
 	private final List<EventHandler<EventTrace>> handlers = synchronizedArrayList();

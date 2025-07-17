@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
-import static org.usf.inspect.core.InspectContext.reportError;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
 
@@ -39,7 +39,7 @@ public final class ExecutionMonitor {
 				listener.handle(s, e, o, t);
 			}
 			catch (Throwable ex) {// do not throw exception
-			    reportError("failed to handle execution monitor event", ex);
+			    context().reportError("failed to handle execution monitor event", ex);
 			}
 		}
 	}

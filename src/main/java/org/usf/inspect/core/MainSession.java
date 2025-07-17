@@ -1,7 +1,6 @@
 package org.usf.inspect.core;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -14,7 +13,6 @@ import lombok.experimental.Delegate;
  */
 @Getter
 @Setter
-@JsonTypeName("main")
 public class MainSession extends AbstractSession {
 	
 	@Delegate

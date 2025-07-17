@@ -4,7 +4,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createMailRequest;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
@@ -56,7 +56,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
 		exec(()-> trsp.sendMessage(arg0, arg1), (s,e,o,t)->{
-			emit(req.createStage(SEND, s, e, t));
+			context().emitTrace(req.createStage(SEND, s, e, t));
 			var mail = new Mail(); // broke Mail dependency !?
 			mail.setSubject(arg0.getSubject());
 			mail.setFrom(toStringArray(arg0.getFrom()));
@@ -75,14 +75,14 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 
 	public void close() throws MessagingException {
 		exec(trsp::close, (s,e,o,t)-> {
-			emit(req.createStage(DISCONNECTION, s, e, t));
+			context().emitTrace(req.createStage(DISCONNECTION, s, e, t));
 			req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
 			});
-			emit(req);
+			context().emitTrace(req);
 		});
 	}
 	
@@ -108,8 +108,8 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			acceptIfNonNull(host, req::setHost);
 			acceptIfNonNull(port, req::setPort);
 			acceptIfNonNull(user, req::setUser);
-			emit(req);
-			emit(req.createStage(CONNECTION, s, e, t));
+			context().emitTrace(req);
+			context().emitTrace(req.createStage(CONNECTION, s, e, t));
 		};
 	}
 	

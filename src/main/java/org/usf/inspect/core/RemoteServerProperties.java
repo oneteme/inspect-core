@@ -7,5 +7,7 @@ package org.usf.inspect.core;
  */
 public interface RemoteServerProperties {
 	
+	int getRetentionMaxAge();
+	
 	void validate();
 }

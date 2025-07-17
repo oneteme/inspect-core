@@ -5,7 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createNamingRequest;
 import static org.usf.inspect.naming.NamingAction.ATTRIB;
 import static org.usf.inspect.naming.NamingAction.CONNECTION;
@@ -131,20 +131,20 @@ public class DirContextTracker implements DirContext {
 	@Override
 	public void close() throws NamingException {
 		exec(ctx::close, (s,e,o,t)-> {
-			emit(req.createStage(DISCONNECTION, s, e, t));
+			context().emitTrace(req.createStage(DISCONNECTION, s, e, t));
 			req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
 			});
-			emit(req);
+			context().emitTrace(req);
 		});
 	}
 
 	<T> ExecutionMonitorListener<T> ldapStageListener(NamingAction action, String... args) {
 		return (s,e,o,t)-> {
-			emit(req.createStage(action, s, e, t, args));
+			context().emitTrace(req.createStage(action, s, e, t, args));
 			if(nonNull(t)) {
 				req.runSynchronized(()-> req.setFailed(true));
 			}
@@ -171,8 +171,8 @@ public class DirContextTracker implements DirContext {
  			if(nonNull(user)) {
  				req.setUser(user);
  			}
- 			emit(req);
- 			emit(req.createStage(CONNECTION, s, e, t));
+ 			context().emitTrace(req);
+ 			context().emitTrace(req.createStage(CONNECTION, s, e, t));
 		};
 	}
 	

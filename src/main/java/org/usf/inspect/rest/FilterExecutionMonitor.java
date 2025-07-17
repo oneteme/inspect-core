@@ -14,7 +14,7 @@ import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
@@ -22,7 +22,7 @@ import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createRestSession;
 import static org.usf.inspect.core.SessionManager.emitSessionEnd;
 import static org.usf.inspect.core.SessionManager.emitSessionStart;
@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
@@ -44,7 +45,6 @@ import org.springframework.web.servlet.ModelAndView;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.HttpRouteMonitoringProperties;
 import org.usf.inspect.core.HttpUserProvider;
-import org.usf.inspect.core.MainExceptionInfo;
 import org.usf.inspect.core.RestSession;
 import org.usf.inspect.core.TraceableStage;
 
@@ -139,31 +139,29 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	private ExecutionMonitorListener<Void> restSessionListener(HttpServletRequest request, HttpServletResponse response) {
 		return (s,e,o,t)-> {
 			var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
-			if(nonNull(ses)) {
-				if(!isAsyncStarted(request)) { //!Async || isAsyncDispatch
-					var sttt = nonNull(response) ? response.getStatus() : 0;
-					var size = nonNull(response) ? response.getBufferSize() : null; //!exact size
-					var encd = nonNull(response) ? response.getHeader(CONTENT_ENCODING) : null; 
-					var cach = nonNull(response) ? response.getHeader(CACHE_CONTROL) : null;
-					var cntt = nonNull(response) ? response.getContentType() : null;
-					ses.runSynchronized(()->{
-						ses.setStatus(sttt);
-						ses.setOutDataSize(size); //!exact size
-						ses.setOutContentEncoding(encd); 
-						ses.setCacheControl(cach);
-						ses.setContentType(cntt);
-						ses.setEnd(e);  //IO | CancellationException | ServletException => no ErrorHandler
-					});
-					emitSessionEnd(ses); //emit session & clean context
-//					request.removeAttribute(CURRENT_SESSION); 
-//					request.removeAttribute(STAGE_START);
-				}
-				else {
-					emit(ses.createStage(DEFERRED, s, e, t));
-					if(nonNull(t)) {
-						ses.runSynchronized(()-> ses.setEnd(e));
-						emitSessionEnd(ses); //emit session & clean context
+			if(!isAsyncStarted(request)) { //!Async || isAsyncDispatch
+				ses.runSynchronized(()->{
+					if(nonNull(response)) {
+						ses.setStatus(response.getStatus());
+						ses.setOutDataSize(response.getBufferSize()); //!exact size
+						ses.setOutContentEncoding(response.getHeader(CONTENT_ENCODING)); 
+						ses.setCacheControl(response.getHeader(CACHE_CONTROL));
+						ses.setContentType(response.getContentType());
 					}
+					if(nonNull(t) && isNull(ses.getException())) { // see advise & intecteptor
+						ses.setException(fromException(t));
+					}
+					ses.setEnd(e);  //IO | CancellationException | ServletException => no ErrorHandler
+				});
+				emitSessionEnd(ses); //emit session & clean context
+//					request.removeAttribute(CURRENT_SESSION); 
+//					request.removeAttribute(STAGE_START);c
+			}
+			else {
+				context().emitTrace(ses.createStage(DEFERRED, s, e, t));
+				if(nonNull(t)) {
+					ses.runSynchronized(()-> ses.setEnd(e));
+					emitSessionEnd(ses); //emit session & clean context
 				}
 			}
 		};
@@ -179,43 +177,58 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	 */
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		var now = now();
-		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
-		if(nonNull(ses)) { //skip BasicErrorController
-			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(ses.createStage(PRE_PROCESS, beg, now, null));
-			request.setAttribute(STAGE_START, now);
+		if(!shouldIntercept(handler)) { //skip BasicErrorController
+			var now = now();
+			var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
+			try {
+				var beg = (Instant) request.getAttribute(STAGE_START);
+				context().emitTrace(ses.createStage(PRE_PROCESS, beg, now, null));
+				request.setAttribute(STAGE_START, now);
+			}
+			catch (Throwable t) {
+				reportUpdateMetric("rest session", nonNull(ses) ? ses.getId() : null, t);
+			}
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
 	}
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-		var now = now();
-		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
-		if(nonNull(ses)) { //skip BasicErrorController
-			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(ses.createStage(PROCESS, beg, now, null));
-			request.setAttribute(STAGE_START, now);
+		if(!shouldIntercept(handler)) { //skip BasicErrorController
+			var now = now();
+			var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
+			try {
+				var beg = (Instant) request.getAttribute(STAGE_START);
+				context().emitTrace(ses.createStage(PROCESS, beg, now, null));
+				request.setAttribute(STAGE_START, now);
+			}
+			catch (Throwable t) {
+				reportUpdateMetric("rest session", nonNull(ses) ? ses.getId() : null, t);
+			}
 		}
 	}
 
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-		var now = now();
-		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
-		if(nonNull(ses)) { //skip BasicErrorController
-			var beg = (Instant) request.getAttribute(STAGE_START);
-			emit(ses.createStage(POST_PROCESS, beg, now, null));
-			if(handler instanceof HandlerMethod mth) { //!static resource
-				var name = resolveEndpointName(mth, request); 
-				ses.runSynchronized(()->{
-					ses.setName(name);
-					ses.setUser(userProvider.getUser(request, name));
-					if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
-						ses.setException(MainExceptionInfo.form(ex, 30));
-					}
-				});
+		if(!shouldIntercept(handler)) { //skip BasicErrorController
+			var now = now();
+			var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
+			try {
+				var beg = (Instant) request.getAttribute(STAGE_START);
+				context().emitTrace(ses.createStage(POST_PROCESS, beg, now, null));
+				if(handler instanceof HandlerMethod mth) { //!static resource
+					var name = resolveEndpointName(mth, request); 
+					ses.runSynchronized(()->{
+						ses.setName(name);
+						ses.setUser(userProvider.getUser(request, name));
+						if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
+							ses.setException(fromException(ex));
+						}
+					});
+				}
+			}
+			catch (Throwable t) {
+				reportUpdateMetric("rest session", nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 	}
@@ -243,4 +256,10 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
     	var c = req.getRequestURL().toString();
         return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
     }
+    
+    static boolean shouldIntercept(Object handler) {  //BasicErrorController 
+		return handler instanceof HandlerMethod mth && 
+				mth.getBeanType() == BasicErrorController.class;
+	}
+    
 }
