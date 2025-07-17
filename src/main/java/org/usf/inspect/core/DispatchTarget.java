@@ -8,7 +8,7 @@ package org.usf.inspect.core;
 public enum DispatchTarget {
 	
 	REST,
-	//JMS, KAFKA, AMQP, MQTT,
+	//JMS, KAFKA,
 	//Binary, BDD
 	;
 }
