@@ -3,7 +3,7 @@ package org.usf.inspect.core;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
@@ -62,7 +62,7 @@ public class MethodExecutionMonitor implements Ordered {
     	return call(point::proceed, (s,e,o,t)-> {
     		ses.runSynchronized(()-> {
 				if(nonNull(t)) {
-					ses.setException(mainCauseException(t));
+					ses.setException(fromException(t));
 				}
 				ses.setEnd(e);
     		});
@@ -94,7 +94,7 @@ public class MethodExecutionMonitor implements Ordered {
 		if(nonNull(ses) && nonNull(joinPoint.getArgs())) {
 			for(var arg : joinPoint.getArgs()) {
 				if(arg instanceof Throwable t) {
-					ses.runSynchronized(()-> ses.setException(mainCauseException(t)));
+					ses.runSynchronized(()-> ses.setException(fromException(t)));
 					break;
 				}
 			}

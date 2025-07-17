@@ -23,7 +23,7 @@ import lombok.ToString;
 @ToString
 public class SchedulingProperties {
 	
-    private byte delay = 5;
+    private int delay = 5;
 	private TimeUnit unit = SECONDS;
 
 	void validate() {

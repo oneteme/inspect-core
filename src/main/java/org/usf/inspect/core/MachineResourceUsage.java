@@ -25,6 +25,6 @@ public final class MachineResourceUsage implements EventTrace {
 	
 	@Override
 	public String toString() {
-		return format("%s ~ heap: %d/%d, meta: %d/%d", instant, lowHeap, highHeap, lowMeta, highMeta);
+		return format("%s ~heap: %d/%d ~meta: %d/%d", instant, lowHeap, highHeap, lowMeta, highMeta);
 	}
 }

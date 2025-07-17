@@ -8,7 +8,7 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
@@ -225,9 +225,9 @@ public final class DatabaseRequestMonitor {
 	
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,o,t)-> {
-			emit(req.createStage(DISCONNECTION, s, e, t, null));
+			context().emitTrace(req.createStage(DISCONNECTION, s, e, t, null));
 			req.runSynchronized(()-> req.setEnd(e));
-			emit(req);
+			context().emitTrace(req);
 		});
 	}
 	
@@ -252,8 +252,8 @@ public final class DatabaseRequestMonitor {
 				req.setProductVersion(info.productVersion());
 				req.setDriverVersion(info.driverVersion());
 			}
-			emit(req);
-			emit(req.createStage(CONNECTION, s, e, t, null));
+			context().emitTrace(req);
+			context().emitTrace(req.createStage(CONNECTION, s, e, t, null));
 		};
 	}
 
@@ -262,7 +262,7 @@ public final class DatabaseRequestMonitor {
 	}
 	
 	private void submitStage(DatabaseRequestStage stg) {
-		emit(stg);
+		context().emitTrace(stg);
 		if(nonNull(stg.getException())) {
 			req.runSynchronized(()-> req.setFailed(true));
 		}

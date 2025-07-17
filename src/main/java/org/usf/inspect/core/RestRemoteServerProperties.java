@@ -39,7 +39,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 		}
 		ins = host + INSTANCE_ENDPOINT;
 		ses = host + SESSION_ENDPOINT;
-		assertStrictPositive(retentionMaxAge, "retentionMaxAge");
+		assertStrictPositive(retentionMaxAge, "retention-max-age");
 	}
 	
 	public String getInstanceEndpoint() {

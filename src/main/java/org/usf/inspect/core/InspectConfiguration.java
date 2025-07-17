@@ -5,7 +5,6 @@ import static java.time.Instant.now;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.InspectContext.startInspectContext;
@@ -131,7 +130,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	session.runSynchronized(()-> {
 			session.setLocation(app);
 			if(nonNull(t)) {  //nullable
-				session.setException(mainCauseException(t));
+				session.setException(ExceptionInfo.fromException(t));
 			}
 			session.setEnd(end);
 		});

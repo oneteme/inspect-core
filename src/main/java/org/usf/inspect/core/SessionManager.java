@@ -5,14 +5,13 @@ import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.emit;
-import static org.usf.inspect.core.InspectContext.reportError;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.LogEntry.log;
+import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
 import static org.usf.inspect.core.LogEntry.Level.WARN;
@@ -45,7 +44,7 @@ public final class SessionManager {
 			return clazz.cast(ses);
 		}
 		if(nonNull(ses)) {
-			reportError("unexpected session type: " + ses.getId());
+			context().reportError("unexpected session type: " + ses.getId());
 		}
 		return null;
 	}
@@ -53,10 +52,10 @@ public final class SessionManager {
 	public static Session requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
-			reportError("no current session found");
+			context().reportError("no current session found");
 		}
 		else if(ses.wasCompleted()) {
-			reportError("current session was already completed: " + ses.getId());
+			context().reportError("current session was already completed: " + ses.getId());
 			ses = null;
 		}
 		return ses;
@@ -68,7 +67,7 @@ public final class SessionManager {
 	}
 	
 	public static void emitSessionStart(Session session) {
-		emit(session);
+		context().emitTrace(session);
 		setCurrentSession(session);
 	}
 	
@@ -85,7 +84,7 @@ public final class SessionManager {
 	}
 		
 	public static void emitSessionEnd(Session session) {
-		emit(session);
+		context().emitTrace(session);
 		releaseSession(session);
 	}
 	
@@ -100,7 +99,7 @@ public final class SessionManager {
 	}
 	
 	public static void emitStartupSession(MainSession session) {
-		emit(session);
+		context().emitTrace(session);
 		if(isNull(startupSession)) {
 			startupSession = session;
 		}
@@ -110,7 +109,7 @@ public final class SessionManager {
 	}
 	
 	public static void emitStartupSesionEnd(MainSession session) {
-		emit(startupSession);
+		context().emitTrace(startupSession);
 		if(startupSession == session) {
 			startupSession = null;
 		}
@@ -141,15 +140,15 @@ public final class SessionManager {
     	catch (Throwable t) {
 			reportUpdateMetric("local request", req.getId(), t);
 		}
-		emit(req);
+		context().emitTrace(req);
 		return (s,e,o,t)->{
 			req.runSynchronized(()-> {
 	    		if(nonNull(t)) {
-					req.setException(mainCauseException(t));
+					req.setException(fromException(t));
 				}
 				req.setEnd(e);
 			});
-			emit(req);
+			context().emitTrace(req);
 		};
 	}
 	
@@ -226,23 +225,23 @@ public final class SessionManager {
 	}
 	
 	private static void emitLog(Level lvl, String msg) {
-		var log = log(lvl, msg);
+		var log = logEntry(lvl, msg);
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
 			log.setSessionId(ses.getId());
 		}
-		emit(log);
+		context().emitTrace(log);
 	}
 	
 	public static String nextId() {
 		return randomUUID().toString();
 	}
 	
-	static void reportSessionConflict(String prev, String next) { //TODO: stack trace !?
-		reportError(format("session conflict detected : previous=%s, next=%s", prev, next));
+	static void reportSessionConflict(String prev, String next) {
+		context().reportError(format("session conflict detected : previous=%s, next=%s", prev, next));
 	}
 
-	public static void reportUpdateMetric(String type, String id, Throwable t) { //TODO: stack trace !?
-		reportError(format("failed to update %s %s", type, id), t);
+	public static void reportUpdateMetric(String type, String id, Throwable t) {
+		context().reportError(format("failed to update %s %s", type, id), t);
 	}
 }

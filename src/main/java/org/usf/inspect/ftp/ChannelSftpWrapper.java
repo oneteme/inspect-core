@@ -4,7 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createFtpRequest;
 import static org.usf.inspect.ftp.FtpAction.CD;
 import static org.usf.inspect.ftp.FtpAction.CHGRP;
@@ -252,20 +252,20 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	ExecutionMonitorListener<Void> closeListener() {
 		return (s,e,o,t)->{
-			emit(req.createStage(DISCONNECTION, s, e, t));
+			context().emitTrace(req.createStage(DISCONNECTION, s, e, t));
 			req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setFailed(true);
 				}
 				req.setEnd(e);
 			});
-			emit(req);
+			context().emitTrace(req);
 		};
 	}
 
 	<T> ExecutionMonitorListener<T> sftpStageListener(FtpAction action, String... args) {
 		return (s,e,o,t)->{ 
-			emit(req.createStage(action, s, e, t, args));
+			context().emitTrace(req.createStage(action, s, e, t, args));
 			if(nonNull(t)) {
 				req.runSynchronized(()-> req.setFailed(true));
 			}
@@ -288,8 +288,8 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 			req.setUser(cs.getUserName());
 			req.setServerVersion(cs.getServerVersion());
 			req.setClientVersion(cs.getClientVersion());
-			emit(req);
-			emit(req.createStage(CONNECTION, s, e, t));
+			context().emitTrace(req);
+			context().emitTrace(req.createStage(CONNECTION, s, e, t));
 		};
 	}
 	

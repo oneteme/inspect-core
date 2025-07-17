@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.time.Instant.now;
-import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.lang.management.MemoryUsage;
 import java.util.function.ToLongFunction;
@@ -21,7 +21,7 @@ public final class ResourceUsageMonitor implements EventListener<DispatchState> 
 	
 	@Override
 	public void onEvent(DispatchState state, boolean complete) throws Exception {
-    	emit(getMemoryUsage(MemoryUsage::getUsed, MemoryUsage::getCommitted));
+		context().emitTrace(getMemoryUsage(MemoryUsage::getUsed, MemoryUsage::getCommitted));
 	}
 	
 	public MachineResourceUsage startupResource() {

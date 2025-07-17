@@ -21,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.RequiredArgsConstructor;
@@ -94,10 +95,26 @@ public final class EventTraceRestDispatcher implements EventTraceDispatcher<Even
 	}
 	
 	private static ObjectMapper createObjectMapper() {
-	     var mapper = new ObjectMapper();
-	     mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required
-	     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-//	     mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
-	     return mapper;
+		var mapper = new ObjectMapper();
+		mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required
+		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+		//	     mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
+		mapper.registerSubtypes(
+				new NamedType(LogEntry.class, 				"log"),  
+				new NamedType(MachineResourceUsage.class, 	"rsrc-usg"),
+				new NamedType(MainSession.class,  			"main-ses"), 
+				new NamedType(RestSession.class,  			"rest-ses"), 
+				new NamedType(LocalRequest.class, 			"locl-req"), 
+				new NamedType(DatabaseRequest.class,		"jdbc-req"),
+				new NamedType(RestRequest.class,  			"http-req"), 
+				new NamedType(MailRequest.class,  			"mail-req"), 
+				new NamedType(NamingRequest.class,			"ldap-req"), 
+				new NamedType(FtpRequest.class,  			"ftp-req"),
+				new NamedType(DatabaseRequestStage.class,	"jdbc-stg"),
+				new NamedType(HttpRequestStage.class,  		"http-stg"), 
+				new NamedType(MailRequestStage.class,  		"mail-stg"), 
+				new NamedType(NamingRequestStage.class,		"ldap-stg"), 
+				new NamedType(FtpRequestStage.class,  		"ftp-stg"));
+		return mapper;
 	}
 }

@@ -11,7 +11,7 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.InspectContext.emit;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createHttpRequest;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
@@ -55,7 +55,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			req.setOutDataSize(nonNull(body) ? body.length : 0);
 			req.setOutContentEncoding(request.getHeaders().getFirst(CONTENT_ENCODING)); 
 			//req.setUser(decode AUTHORIZATION)
-			emit(req);
+			context().emitTrace(req);
 		} catch (Throwable e) {
 			log.warn("cannot collect request metrics, {}:{}", e.getClass().getSimpleName(), e.getMessage());
 		}
@@ -73,7 +73,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			var ctty = nonNull(r) ? r.getHeaders().getFirst(CONTENT_TYPE) : null;
 			var cten = nonNull(r) ? r.getHeaders().getFirst(CONTENT_ENCODING) : null;
 			var stts = nonNull(r) ? r.getStatusCode().value() : 0; //break ClientHttpRes. dependency
-			emit(req.createStage(PROCESS, s, e, t));
+			context().emitTrace(req.createStage(PROCESS, s, e, t));
 			req.runSynchronized(()-> {
 				req.setThreadName(tn);
 				req.setId(id);
@@ -82,7 +82,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				req.setInContentEncoding(cten); 
 				if(nonNull(t)) { // IOException
 					req.setEnd(e);
-					emit(req);
+					context().emitTrace(req);
 				}
 			});
 		};
@@ -94,7 +94,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			if(nonNull(upd)) {
 				upd.updateContext(); // deferred execution
 			}
-			emit(req.createStage(POST_PROCESS, s, e, t)); //red content
+			context().emitTrace(req.createStage(POST_PROCESS, s, e, t)); //red content
 			req.runSynchronized(()-> {
 				if(nonNull(b)) {
 					req.setBodyContent(new String(b, UTF_8));
@@ -102,7 +102,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 				req.setInDataSize(n);
 				req.setEnd(e);
 			});
-			emit(req);
+			context().emitTrace(req);
 		};
 	}
 	
