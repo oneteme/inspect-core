@@ -22,11 +22,6 @@ public final class EventTraceEmitter implements Runnable {
 	private final List<EventHandler<EventTrace>> handlers = synchronizedArrayList();
 	private final List<EventListener<DispatchState>> listeners = synchronizedArrayList();
     private final AtomicReference<DispatchState> stateRef = new AtomicReference<>(DISPATCH);
-    
-    public <T extends EventHandler<EventTrace> & EventListener<DispatchState>> void register(@NonNull T o) {
-    	addHandler(o);
-    	addListener(o);
-	}
 
 	public void addHandler(@NonNull EventHandler<EventTrace> handler) {
 		handlers.add(handler);
@@ -58,8 +53,7 @@ public final class EventTraceEmitter implements Runnable {
     }
 
     public void complete() {
-    	var stt = stateRef.getAndSet(DISABLE); //set to DISABLE, prevent further processing
-		emitEvent(stt, true);
+		emitEvent(stateRef.getAndSet(DISABLE), true); //set to DISABLE, prevent further processing
     }
     
 	void emitEvent(DispatchState state, boolean complete) {

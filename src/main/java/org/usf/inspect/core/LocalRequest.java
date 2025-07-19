@@ -46,7 +46,7 @@ public class LocalRequest extends AbstractRequest { //TODO extends RequestStage
 		if(nonNull(getUser())) {
 			s+= '<' + getUser() + '>';
 		}
-		s+= name + "(" + location + ")";
+		s+= " " + location + "." + name;
 		if(nonNull(exception)) {
 			s += " >> " + exception;
 		}

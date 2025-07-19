@@ -34,6 +34,6 @@ public final class StreamTracker {
     			: stream.parallel().map(c-> {
         			ses.updateContext();
         			return c;
-        		}).onClose(ses::releaseContext);
+        		});
 	}
 }

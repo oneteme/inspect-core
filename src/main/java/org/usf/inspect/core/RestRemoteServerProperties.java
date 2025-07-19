@@ -1,7 +1,11 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.Assertions.assertMatches;
+import static java.net.URI.create;
+import static java.util.Objects.isNull;
+import static org.usf.inspect.core.Assertions.assertPositive;
 import static org.usf.inspect.core.Assertions.assertStrictPositive;
+
+import java.net.URI;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -17,36 +21,28 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-@JsonIgnoreProperties({"ins", "ses"})
+@JsonIgnoreProperties({"instanceURI", "tracesURI"})
 public final class RestRemoteServerProperties implements RemoteServerProperties {
 	
-	private static final String INSTANCE_ENDPOINT = "v3/trace/instance"; //[POST] async
-	private static final String SESSION_ENDPOINT  = "v4/trace/instance/{id}/session?pending={pending}&attempts={attempts}&end={end}"; //[PUT] async
-	private static final String HOST_PATTERN = "https?://[\\w\\-\\.]+(:\\d{2,5})?\\/?";
+	private static final String INSTANCE_DEFAULT_URI = "v3/trace/instance"; //[POST] async
+	private static final String TRACES_DEFAULT_URI  = "v4/trace/instance/{id}/session?attempts={attempts}&pending={pending}&end={end}"; //[PUT] async
 	
-	private String ins;
-	private String ses;
-	
-	private String host = "http://localhost:9000";
-	private int retentionMaxAge = 30; //
+	private URI host = create("http://localhost:9000/");
+	private String instanceURI;
+	private String tracesURI;
 	private int compressMinSize = 0; // size in bytes, 0: no compression
+	private int retentionMaxAge = 30; 
 	
 	@Override
 	public void validate() {
-		assertMatches(host, HOST_PATTERN, "host");
-		if(!host.endsWith("/")) {
-			host += "/"; //remove trailing slash
+		var base = host.resolve("/").toString(); // append '/' if not present
+		if(isNull(instanceURI)) {
+			instanceURI = base + INSTANCE_DEFAULT_URI;
 		}
-		ins = host + INSTANCE_ENDPOINT;
-		ses = host + SESSION_ENDPOINT;
+		if(isNull(tracesURI)) {
+			tracesURI = base + TRACES_DEFAULT_URI;
+		}
+		assertPositive(retentionMaxAge, "compress-min-size");
 		assertStrictPositive(retentionMaxAge, "retention-max-age");
-	}
-	
-	public String getInstanceEndpoint() {
-		return ins;
-	}
-	
-	public String getSessionEndpoint() {
-		return ses;
 	}
 }

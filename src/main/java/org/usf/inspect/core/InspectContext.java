@@ -8,13 +8,25 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
+import static org.usf.inspect.core.MainSessionType.STARTUP;
+import static org.usf.inspect.core.SessionManager.createStartupSession;
+import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
+import static org.usf.inspect.core.SessionManager.emitStartupSession;
 
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.concurrent.ScheduledExecutorService;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,11 +41,15 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class InspectContext {
 
-	static InspectContext singleton;
+	private static final ObjectMapper mapper = createObjectMapper(); //json mapper, used for serialization
+
+	private static InspectContext singleton;
 
 	private final InspectCollectorConfiguration configuration;
 	private final EventTraceEmitter eventEmitter; //optional, can be null
 	private final ScheduledExecutorService executor; //optional, can be null
+	
+	private MainSession session;
 	
 	public static InspectContext context() {
 		if(isNull(singleton)) {
@@ -41,6 +57,10 @@ public final class InspectContext {
 			log.warn("", new IllegalStateException("inspect context was not started"));
 		}
 		return singleton;
+	}
+	
+	public static ObjectMapper defaultObjectMapper() {
+		return mapper;
 	}
 	
 	public InspectCollectorConfiguration getConfiguration() {
@@ -71,29 +91,57 @@ public final class InspectContext {
 			eventEmitter.complete();
     	}
 	}
+
+    void traceStartupSession(Instant instant) {
+		var ses = createStartupSession();
+		ses.setType(STARTUP.name());
+    	ses.setName("main");
+    	ses.setStart(instant);
+    	ses.setThreadName(threadName());
+    	emitStartupSession(ses);
+    	this.session = ses;
+    }
+
+	void traceStartupSession(Instant instant, String clazz, Throwable t) {
+    	session.runSynchronized(()-> {
+			session.setLocation(clazz);
+			if(nonNull(t)) {  //nullable
+				session.setException(fromException(t));
+			}
+			session.setEnd(instant);
+		});
+    	emitStartupSesionEnd(session);
+    	this.session = null; //prevent further usage
+	}
 	
-	static void startInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		var inst = contextInstance(start, conf, provider);
-		var exct = newSingleThreadScheduledExecutor(InspectContext::daemonThread);
-		var schd = conf.getScheduling();
-		var dspt = new EventTraceEmitter();
+		var emtt = new EventTraceEmitter();
 		if(conf.getMonitoring().getResources().isEnabled()) {
 			var res = new ResourceUsageMonitor();
-			dspt.addListener(res); //important! register before other handlers
+			emtt.addListener(res); //important! register before other handlers
 			inst.setResource(res.startupResource()); //1st trace 
 		}
 		if(conf.isDebugMode()) {
-			dspt.register(new EventTraceDebugger());
+			var debugger = new EventTraceDebugger();
+			emtt.addHandler(debugger);
+			emtt.addListener(debugger);
 		}
-		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-			var client = new EventTraceRestDispatcher(prop, inst);
-			dspt.register(new EventTraceQueueHandler(conf.getTracing(), client));
+		var trc = conf.getTracing();
+		if(trc.getRemote() instanceof RestRemoteServerProperties prop) {
+			var agnt = new RestDispatcherAgent(prop, inst);
+			var dump = new DumpFileDispatcher(mapper, Path.of(trc.getDumpDirectory()));
+			var queu = new ConcurrentLinkedSetQueue<EventTrace>();
+			emtt.addHandler(queu);
+			emtt.addListener(new EventTraceDispatcher(trc, queu, dump, agnt));
 		}
-		else if(nonNull(conf.getTracing().getRemote())) {
-			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
+		else if(nonNull(trc.getRemote())) {
+			throw new UnsupportedOperationException("unsupported remote " + trc.getRemote());
 		}
-		exct.scheduleWithFixedDelay(dspt, 0, schd.getDelay(), schd.getUnit());
-		singleton = new InspectContext(conf, dspt, exct);
+		var exct = newSingleThreadScheduledExecutor(InspectContext::daemonThread);
+		singleton = new InspectContext(conf, emtt, exct);
+		var schd = conf.getScheduling();
+		exct.scheduleWithFixedDelay(emtt, schd.getDelay(), schd.getDelay(), schd.getUnit()); //schedule after singleton is set
 		getRuntime().addShutdownHook(new Thread(singleton::complete, "shutdown-hook"));
 	}
 	
@@ -135,6 +183,30 @@ public final class InspectContext {
 				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
 	}
 	
+	static ObjectMapper createObjectMapper() {
+		var mapper = new ObjectMapper();
+		mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required, read only
+		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+		//mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
+		mapper.registerSubtypes(
+			new NamedType(LogEntry.class, 				"log"),  
+			new NamedType(MachineResourceUsage.class, 	"rsrc-usg"),
+			new NamedType(MainSession.class,  			"main-ses"), 
+			new NamedType(RestSession.class,  			"rest-ses"), 
+			new NamedType(LocalRequest.class, 			"locl-req"), 
+			new NamedType(DatabaseRequest.class,		"jdbc-req"),
+			new NamedType(RestRequest.class,  			"http-req"), 
+			new NamedType(MailRequest.class,  			"mail-req"), 
+			new NamedType(NamingRequest.class,			"ldap-req"), 
+			new NamedType(FtpRequest.class,  			"ftp-req"),
+			new NamedType(DatabaseRequestStage.class,	"jdbc-stg"),
+			new NamedType(HttpRequestStage.class,  		"http-stg"), 
+			new NamedType(MailRequestStage.class,  		"mail-stg"), 
+			new NamedType(NamingRequestStage.class,		"ldap-stg"), 
+			new NamedType(FtpRequestStage.class,  		"ftp-stg"));
+		return mapper;
+	}
+	
 	static InspectCollectorConfiguration disabledConfiguration() {
 		var conf = new InspectCollectorConfiguration();
 		conf.setEnabled(false);
@@ -145,5 +217,5 @@ public final class InspectContext {
 		conf.getMonitoring().getException().setMaxStackTraceRows(0); //avoid memory leak
 		conf.getMonitoring().getException().setMaxCauseDepth(0); //avoid memory leak
 		return conf;
-	}
+	}	
 }

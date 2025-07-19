@@ -26,6 +26,7 @@ public final class EventTraceDebugger implements EventHandler<EventTrace>, Event
 	private Map<String, AbstractSession> sessions = synchronizedMap(new HashMap<>());
 	private Map<String, Set<AbstractRequest>> requests = synchronizedMap(new HashMap<>());
 	private Map<String, Set<AbstractStage>> stages = synchronizedMap(new HashMap<>());
+	private Map<String, Set<LogEntry>> logs = synchronizedMap(new HashMap<>());
 
 	@Override
 	public void handle(EventTrace t) {
@@ -39,6 +40,8 @@ public final class EventTraceDebugger implements EventHandler<EventTrace>, Event
 		}
 		case AbstractRequest r-> appendTrace(requests, r.getSessionId(), r);
 		case AbstractStage s-> appendTrace(stages, s.getRequestId(), s);
+		case LogEntry e when nonNull(e.getSessionId()) ->
+				appendTrace(logs, e.getSessionId(), e);
 		default-> log.debug(">{}", t);
 		}
     }

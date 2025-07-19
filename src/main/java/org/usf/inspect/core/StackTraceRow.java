@@ -60,3 +60,12 @@ public final class StackTraceRow {
 		}
 	}
 }
+
+
+class Youssef {
+	
+	public static void main(String[] args) {
+		System.out.println(new Youssef().getClass());
+	}
+	
+}
