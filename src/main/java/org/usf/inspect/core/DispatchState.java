@@ -1,11 +1,20 @@
 package org.usf.inspect.core;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * 
  * @author u$f
  *
  */
+@RequiredArgsConstructor
 public enum DispatchState {
 	
-	DISABLE, QUEUE, DISPATCH; //release
+	DISABLE(false, false), 
+	QUEUE(true, false), 
+	DISPATCH(true, false), 
+	COMPLETE(false, true);
+	
+	final boolean canEmit;
+	final boolean canDispatch;
 }

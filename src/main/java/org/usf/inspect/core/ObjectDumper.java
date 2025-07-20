@@ -3,16 +3,17 @@ package org.usf.inspect.core;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Files.delete;
 import static java.util.Arrays.stream;
+import static java.util.Collections.emptyList;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
+
+import org.usf.inspect.core.Dispatcher.DispatchHook;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RequiredArgsConstructor
-public final class DumpFileDispatcher {
+public final class ObjectDumper implements DispatchHook {
 	
 	private static final AtomicInteger COUNTER = new AtomicInteger(0);
 	
@@ -35,31 +36,43 @@ public final class DumpFileDispatcher {
 	private final int id = COUNTER.incrementAndGet(); //unique id for this dispatcher, used in dump file names
 	private final Set<String> excludeFiles = new HashSet<>(); //TD save to file, load on start?
 	
-	public void dump(Collection<?> items) throws IOException {
-		var fn = id + "-dump-" + currentTimeMillis() + ".json";
-		try {
-			mapper.writeValue(dumpDir.resolve(fn).toFile(), items);
-			log.debug("dump {} itemps in file {}", items.size(), fn);
-		} catch (Exception e) {
-			context().reportError("cannot write dump file " + fn, e); //rename
-			throw e;
-		}
-	}
-	
-	public void forEachDump(Predicate<File> fn) {
-		var files = dumpDir.toFile().listFiles(f-> f.getName().matches(id + "-dump-\\d+\\.json"));
-		stream(files).filter(f-> !excludeFiles.contains(f.getName())).forEach(f->{
-			try {
-				if(fn.test(f)){
-					skipFile(f);
-				}
-			} catch (Exception e) {
-				context().reportError("cannot read dump file " + f, e); //rename
+	@Override
+	public void preDispatch(Dispatcher dispatcher) {
+		stream(dumpFiles()).forEach(f->{
+			if(dispatcher.dispatch(f)) {
+				deleteFile(f);
 			}
 		});
 	}
 	
-	private void skipFile(File file) {
+	@Override
+	public void postDispatch(Dispatcher dispatcher) {
+		dispatcher.tryReduceQueue(-1, (trc, max)-> { //excludes all pending metrics
+			try {
+				dump(trc);
+			}
+			catch (Exception e) {
+				return trc;
+			}
+			return emptyList();
+		});
+	}
+	
+	String dump(Object o) throws IOException {
+		var fn = id + "-dump-" + currentTimeMillis() + ".json";
+		mapper.writeValue(dumpDir.resolve(fn).toFile(), o);
+		log.debug("dump file {} created", fn);
+		return fn;
+	}
+	
+	
+	File[] dumpFiles() {
+		return dumpDir.toFile()
+				.listFiles(f-> f.getName().matches(id + "-dump-\\d+\\.json")
+						&& !excludeFiles.contains(f.getName()));
+	}
+	
+	void deleteFile(File file) {
 		boolean done = false;
 		try {
 			delete(file.toPath());

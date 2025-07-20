@@ -4,10 +4,12 @@ import static java.lang.Runtime.getRuntime;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
+import static java.util.Collections.synchronizedList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceType.SERVER;
@@ -19,8 +21,9 @@ import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
 import static org.usf.inspect.core.SessionManager.emitStartupSession;
 
 import java.net.UnknownHostException;
-import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -46,14 +49,14 @@ public final class InspectContext {
 	private static InspectContext singleton;
 
 	private final InspectCollectorConfiguration configuration;
-	private final EventTraceEmitter eventEmitter; //optional, can be null
-	private final ScheduledExecutorService executor; //optional, can be null
+	private final EventTraceDispatcher dispatcher;
+	private final List<EventHandler<EventTrace>> handlers;
 	
 	private MainSession session;
 	
 	public static InspectContext context() {
 		if(isNull(singleton)) {
-			singleton = new InspectContext(disabledConfiguration(), null, null);
+			singleton = new InspectContext(disabledConfiguration(), null);
 			log.warn("", new IllegalStateException("inspect context was not started"));
 		}
 		return singleton;
@@ -77,19 +80,14 @@ public final class InspectContext {
 	}
 	
 	public void emitTrace(EventTrace trace) {
-		if(nonNull(eventEmitter)) {
-			eventEmitter.emitTrace(trace);
-		}
-	}
-	
-	void complete() {
-    	log.info("shutting down the scheduler service...");
-    	if(nonNull(executor)) {
-    		executor.shutdown();
-		}
-    	if(nonNull(eventEmitter)) {
-			eventEmitter.complete();
-    	}
+		handlers.forEach(h->{//!Async
+			try {
+				h.handle(trace); //trace == QUEUE | DISPATCH
+			} catch (Exception e) {
+				log.warn("{} handle trace={} error, [{}]:{}", 
+						h.getClass(), trace, e.getClass(), e.getMessage());
+			}
+		});
 	}
 
     void traceStartupSession(Instant instant) {
@@ -116,33 +114,25 @@ public final class InspectContext {
 	
 	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		var inst = contextInstance(start, conf, provider);
-		var emtt = new EventTraceEmitter();
+		var listeners = new ArrayList<EventHandler<EventTrace>>();
 		if(conf.getMonitoring().getResources().isEnabled()) {
 			var res = new ResourceUsageMonitor();
-			emtt.addListener(res); //important! register before other handlers
+			listeners.add(res); //important! register before other handlers
 			inst.setResource(res.startupResource()); //1st trace 
 		}
 		if(conf.isDebugMode()) {
 			var debugger = new EventTraceDebugger();
-			emtt.addHandler(debugger);
-			emtt.addListener(debugger);
+			listeners.add(debugger);
 		}
-		var trc = conf.getTracing();
-		if(trc.getRemote() instanceof RestRemoteServerProperties prop) {
+		EventTraceDispatcher dspt = null;
+		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
 			var agnt = new RestDispatcherAgent(prop, inst);
-			var dump = new DumpFileDispatcher(mapper, Path.of(trc.getDumpDirectory()));
-			var queu = new ConcurrentLinkedSetQueue<EventTrace>();
-			emtt.addHandler(queu);
-			emtt.addListener(new EventTraceDispatcher(trc, queu, dump, agnt));
+			dspt= new EventTraceDispatcher(conf.getTracing(), conf.getScheduling(), agnt, mapper);
 		}
-		else if(nonNull(trc.getRemote())) {
-			throw new UnsupportedOperationException("unsupported remote " + trc.getRemote());
+		else if(nonNull(conf.getTracing().getRemote())) {
+			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
 		}
-		var exct = newSingleThreadScheduledExecutor(InspectContext::daemonThread);
-		singleton = new InspectContext(conf, emtt, exct);
-		var schd = conf.getScheduling();
-		exct.scheduleWithFixedDelay(emtt, schd.getDelay(), schd.getDelay(), schd.getUnit()); //schedule after singleton is set
-		getRuntime().addShutdownHook(new Thread(singleton::complete, "shutdown-hook"));
+		singleton = new InspectContext(conf, dspt, listeners);
 	}
 	
 	static Thread daemonThread(Runnable r) {
@@ -217,5 +207,9 @@ public final class InspectContext {
 		conf.getMonitoring().getException().setMaxStackTraceRows(0); //avoid memory leak
 		conf.getMonitoring().getException().setMaxCauseDepth(0); //avoid memory leak
 		return conf;
-	}	
+	}
+
+	static <T> List<T> synchronizedArrayList() {
+		return synchronizedList(new ArrayList<>());
+	}
 }

@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.util.Collections.synchronizedMap;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.DispatchState.COMPLETE;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -10,6 +11,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import org.usf.inspect.core.Dispatcher.DispatchHook;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class EventTraceDebugger implements EventHandler<EventTrace>, EventListener<DispatchState> { //inspect.client.log : SESSION | REQUEST | STAGE
+public final class EventTraceDebugger implements DispatchHook { //inspect.client.log : SESSION | REQUEST | STAGE
 	
 	private static final Comparator<? super Metric> METRIC_COMPARATOR = comparing(Metric::getStart);
 	
@@ -29,7 +32,7 @@ public final class EventTraceDebugger implements EventHandler<EventTrace>, Event
 	private Map<String, Set<LogEntry>> logs = synchronizedMap(new HashMap<>());
 
 	@Override
-	public void handle(EventTrace t) {
+	public void onTrace(EventTrace t) {
 		switch (t) {
 		case AbstractSession s-> {
 			if(s.wasCompleted()) {
@@ -64,8 +67,8 @@ public final class EventTraceDebugger implements EventHandler<EventTrace>, Event
 	}
 	
 	@Override
-	public void onEvent(DispatchState state, boolean complete) throws Exception {
-		if(complete) {
+	public void postDispatch(Dispatcher dispatcher) {
+		if(dispatcher.getState() == COMPLETE) {
 			log.warn("unfinished tasks {}", sessions.size());
 			sessions.values().forEach(this::printSession);
 		}

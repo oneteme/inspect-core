@@ -6,8 +6,8 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Assertions.assertGreaterOrEquals;
 import static org.usf.inspect.core.Assertions.assertPositive;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -23,26 +23,26 @@ import lombok.ToString;
 @ToString
 public class TracingProperties { //add remote
 	
-	private int queueCapacity = 10_000; // {n} max buffering traces, 0: unlimited
+	private int queueCapacity = 10_000; // {n} max buffering traces, min=100
 	//v1.1
 	private int delayIfPending = 30; // send pending traces after {n} seconds, 0: send immediately, -1 not 
-	private String dumpDirectory = getProperty("java.io.tmpdir"); // dump folder
+	private Path dumpDirectory = Path.of(getProperty("java.io.tmpdir")); // dump folder
 	private RemoteServerProperties remote; //replace server
 	
 	void validate() {
 		dumpDirectory = createDumpDirs(dumpDirectory);
-		assertPositive(queueCapacity, "queue-capacity");
+		assertGreaterOrEquals(queueCapacity, 100, "queue-capacity");
 		assertGreaterOrEquals(delayIfPending, -1, "dispatch-delay-if-pending");
 		if(nonNull(remote)) {
 			remote.validate();
 		}
 	}
 	
-	static String createDumpDirs(String baseDir) {
-		var f = new File(baseDir);
+	static Path createDumpDirs(Path baseDir) {
+		var f = baseDir.toFile();
 		if(f.exists()) {
 			try {
-				return createDirectories(f.toPath().resolve("inspect/dump")).toString();
+				return createDirectories(f.toPath().resolve("inspect/dump"));
 			} catch (IOException e) {
 				throw new IllegalArgumentException("cannot create dump directory", e);
 			}

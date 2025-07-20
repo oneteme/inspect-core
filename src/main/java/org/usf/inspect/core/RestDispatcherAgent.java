@@ -12,6 +12,7 @@ import static org.usf.inspect.core.InspectContext.defaultObjectMapper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
@@ -19,6 +20,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import lombok.RequiredArgsConstructor;
@@ -38,8 +40,8 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	private final RestTemplate template;
 	private String instanceId;
 
-	public RestDispatcherAgent(RestRemoteServerProperties properties, InstanceEnvironment application) {
-		this(properties, application, defaultRestTemplate(properties));
+	public RestDispatcherAgent(RestRemoteServerProperties properties, InstanceEnvironment instance) {
+		this(properties, instance, defaultRestTemplate(properties));
 	}
 	
 	@Override
@@ -49,7 +51,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 				instanceId = template.postForObject(properties.getInstanceURI(), instance, String.class);
 				log.info("instance was registred with id={}", instanceId);
 			}
-			catch(Exception e) {
+			catch(RestClientException e) {
 				throw new DispatchException("instance register error", e);
 			}
 		}
@@ -57,7 +59,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
     		try {
     			template.put(properties.getTracesURI(), traces.toArray(EventTrace[]::new), instanceId, attemps, pending, complete ? now() : null);
     		}
-    		catch (Exception e) {
+    		catch (RestClientException e) {
 				throw new DispatchException("traces dispatch error", e);
 			}
     	}
@@ -68,8 +70,11 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 		try {
 			template.put(properties.getTracesURI(), readString(dumpFile.toPath()), instanceId);
 		}
-		catch (Exception e) {
-			throw new DispatchException("dispatch dump traces file error", e);
+		catch (RestClientException e) {
+			throw new DispatchException("dump file dispatch error", e);
+		}
+		catch (IOException e) {
+			throw new DispatchException("cannot read dump file " + dumpFile, e);
 		}
 	}
 	

@@ -9,6 +9,8 @@ import java.util.List;
  *
  */
 public interface DispatcherAgent {
+	
+	void dispatch(InstanceEnvironment env);
     
 	void dispatch(boolean complete, int attemps, int pending, List<EventTrace> items) throws DispatchException;
 
