@@ -36,24 +36,30 @@ import lombok.extern.slf4j.Slf4j;
 public final class RestDispatcherAgent implements DispatcherAgent {
 	
 	private final RestRemoteServerProperties properties;
-	private final InstanceEnvironment instance;
 	private final RestTemplate template;
+
+	private InstanceEnvironment instance;
 	private String instanceId;
 
-	public RestDispatcherAgent(RestRemoteServerProperties properties, InstanceEnvironment instance) {
-		this(properties, instance, defaultRestTemplate(properties));
+	public RestDispatcherAgent(RestRemoteServerProperties properties) {
+		this(properties, defaultRestTemplate(properties));
 	}
 	
 	@Override
-    public void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces) throws DispatchException  {
+	public void register(InstanceEnvironment env) {
+		try {
+			instanceId = template.postForObject(properties.getInstanceURI(), instance, String.class);
+			log.info("instance was registred with id={}", instanceId);
+		}
+		catch(RestClientException e) {
+			throw new DispatchException("instance register error", e);
+		}
+	}
+	
+	@Override
+    public void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces)  {
 		if(isNull(instanceId)) {//if not registered before
-			try {
-				instanceId = template.postForObject(properties.getInstanceURI(), instance, String.class);
-				log.info("instance was registred with id={}", instanceId);
-			}
-			catch(RestClientException e) {
-				throw new DispatchException("instance register error", e);
-			}
+			register(instance);
 		}
     	if(nonNull(instanceId)) {
     		try {
@@ -66,9 +72,9 @@ public final class RestDispatcherAgent implements DispatcherAgent {
     }
 	
 	@Override
-	public void dispatch(File dumpFile) throws DispatchException {
+	public void dispatch(File dumpFile) {
 		try {
-			template.put(properties.getTracesURI(), readString(dumpFile.toPath()), instanceId);
+			template.put(properties.getTracesURI(), readString(dumpFile.toPath()), instanceId, null, null, null);
 		}
 		catch (RestClientException e) {
 			throw new DispatchException("dump file dispatch error", e);

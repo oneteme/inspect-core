@@ -8,13 +8,22 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public enum DispatchState {
+public enum DispatchState implements DispatchState2 {
 	
 	DISABLE(false, false), 
 	QUEUE(true, false), 
-	DISPATCH(true, false), 
-	COMPLETE(false, true);
+	DISPATCH(true, true);
 	
 	final boolean canEmit;
 	final boolean canDispatch;
+	
+	@Override
+	public boolean canEmit() {
+		return canEmit;
+	}
+	
+	@Override
+	public boolean canDispatch() {
+		return canDispatch;
+	}	
 }

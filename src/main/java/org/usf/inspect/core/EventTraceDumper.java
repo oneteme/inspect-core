@@ -7,8 +7,8 @@ import static java.util.Collections.emptyList;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RequiredArgsConstructor
-public final class ObjectDumper implements DispatchHook {
+public final class EventTraceDumper implements DispatchHook {
 	
 	private static final AtomicInteger COUNTER = new AtomicInteger(0);
 	
@@ -38,38 +38,37 @@ public final class ObjectDumper implements DispatchHook {
 	
 	@Override
 	public void preDispatch(Dispatcher dispatcher) {
-		stream(dumpFiles()).forEach(f->{
-			if(dispatcher.dispatch(f)) {
-				deleteFile(f);
+		stream(listDumpFiles()).forEach(f->{
+			if(dispatcher.dispatchNow(f)) {
+				deleteFile(f); //cannot throw exception 
 			}
 		});
 	}
 	
 	@Override
 	public void postDispatch(Dispatcher dispatcher) {
-		dispatcher.tryReduceQueue(-1, (trc, max)-> { //excludes all pending metrics
-			try {
-				dump(trc);
-			}
-			catch (Exception e) {
-				return trc;
-			}
+		dispatcher.tryDispatchQueue(-1, (arr, max)-> { //excludes all pending metrics
+			dumpTraces(arr);
 			return emptyList();
 		});
 	}
 	
-	String dump(Object o) throws IOException {
+	String dumpTraces(Collection<EventTrace> traces) {
 		var fn = id + "-dump-" + currentTimeMillis() + ".json";
-		mapper.writeValue(dumpDir.resolve(fn).toFile(), o);
-		log.debug("dump file {} created", fn);
-		return fn;
+		try {
+			mapper.writeValue(dumpDir.resolve(fn).toFile(), traces);
+			log.debug("{} traces was dumped in {}", traces.size(), fn);
+			return fn;
+		}
+		catch (Exception e) {
+			throw new DispatchException("creating dump file " + fn + " error", e);
+		}
 	}
 	
-	
-	File[] dumpFiles() {
-		return dumpDir.toFile()
-				.listFiles(f-> f.getName().matches(id + "-dump-\\d+\\.json")
-						&& !excludeFiles.contains(f.getName()));
+	File[] listDumpFiles() {
+		return dumpDir.toFile().listFiles(f-> 
+			!excludeFiles.contains(f.getName())
+			&& f.getName().matches(id + "-dump-\\d+\\.json"));
 	}
 	
 	void deleteFile(File file) {

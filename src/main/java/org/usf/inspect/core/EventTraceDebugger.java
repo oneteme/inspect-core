@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import static java.util.Collections.synchronizedMap;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.DispatchState.COMPLETE;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -32,7 +31,7 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 	private Map<String, Set<LogEntry>> logs = synchronizedMap(new HashMap<>());
 
 	@Override
-	public void onTrace(EventTrace t) {
+	public void onTraceEmit(EventTrace t) {
 		switch (t) {
 		case AbstractSession s-> {
 			if(s.wasCompleted()) {
@@ -49,7 +48,7 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 		}
     }
 	
-	void printSession(AbstractSession ses) {
+	synchronized void printSession(AbstractSession ses) {
 		sessions.remove(ses.getId());
 		log.debug(">{}",ses);
 		printMap(stages, ses.getId(), o-> log.debug("\t\t-{}", o));
@@ -68,7 +67,7 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 	
 	@Override
 	public void postDispatch(Dispatcher dispatcher) {
-		if(dispatcher.getState() == COMPLETE) {
+		if(dispatcher.getState().wasCompleted()) {
 			log.warn("unfinished tasks {}", sessions.size());
 			sessions.values().forEach(this::printSession);
 		}

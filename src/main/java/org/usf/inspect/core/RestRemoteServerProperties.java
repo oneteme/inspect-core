@@ -42,7 +42,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 		if(isNull(tracesURI)) {
 			tracesURI = base + TRACES_DEFAULT_URI;
 		}
-		assertPositive(retentionMaxAge, "compress-min-size");
+		assertPositive(compressMinSize, "compress-min-size");
 		assertStrictPositive(retentionMaxAge, "retention-max-age");
 	}
 }

@@ -4,7 +4,6 @@ import static java.lang.System.getProperty;
 import static java.nio.file.Files.createDirectories;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Assertions.assertGreaterOrEquals;
-import static org.usf.inspect.core.Assertions.assertPositive;
 
 import java.io.IOException;
 import java.nio.file.Path;

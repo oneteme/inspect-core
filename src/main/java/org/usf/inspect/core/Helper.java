@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.lang.Math.min;
+import static java.lang.System.arraycopy;
 import static java.lang.Thread.currentThread;
 import static java.lang.reflect.Array.getLength;
 import static java.util.Objects.isNull;
@@ -106,5 +107,19 @@ public final class Helper {
 			}
 		}
 		return -1;
+	}
+	
+	public static void warnException(Logger log, Throwable t, String msg, Object... args) {
+		if(nonNull(args)) {
+			var arr =  new Object[args.length + 2];
+			arraycopy(args, 0, arr, 0, args.length);
+			args = arr;
+		}
+		else {
+			args = new Object[2];
+		}
+		args[args.length-2] = t.getClass().getSimpleName();
+		args[args.length-1] = t.getMessage();
+		log.warn(msg + ", cause: [{}] {}", args);
 	}
 }

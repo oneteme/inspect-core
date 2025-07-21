@@ -1,124 +1,118 @@
 package org.usf.inspect.core;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static java.util.stream.Stream.empty;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import lombok.extern.slf4j.Slf4j;
+/**
+ * A thread-safe queue that allows adding items while maintaining uniqueness and order.
+ * 
+ * @param <T>
+ * 
+ * @author u$f
+ */
+public interface ConcurrentLinkedSetQueue<T> {
 
-@Slf4j
-public final class ConcurrentLinkedSetQueue<T> {
-
-	private final Object mutex = new Object();
-    private LinkedHashSet<T> queue = new LinkedHashSet<>(); //guarantees order and uniqueness of items, no duplicates (force updates)
-
-    /**
+	/**
 	 * Adds an item to the queue, overwriting existing items (more recent).
+	 * 
+	 * @return the size of the queue after adding the item
 	 */
-	public int add(T o) { //return size
-    	synchronized(mutex){
-			queue.add(o);
-			return queue.size();
-    	}
-	}
-	
+	int add(T o);
+
 	/**
 	 * Adds all items to the queue, overwriting existing items (more recent).
+	 * 
+	 * @return the size of the queue after adding the item
 	 */
-	public int addAll(Collection<T> arr){
-    	synchronized(mutex){
-			queue.addAll(arr); //add or overwrite items (update)
-			return queue.size();
-		}
-	}
-	
+	int addAll(Collection<T> arr);
+
 	/**
 	 * Adds all items to the queue, overwriting existing items (more recent).
+	 * 
+	 * @return the size of the queue after adding the item
 	 */
-	public int addAll(T[] arr){
-    	synchronized(mutex){
-    		Collections.addAll(queue, arr);
-			return queue.size();
-		}
-	}
-	
+	int addAll(T[] arr);
+
 	/**
 	 * Prepends items to the queue, preserving their order.
 	 * If an item already exists in the queue, the existing (more recent) version is kept and the one from {@code arr} is ignored.
 	 */
-	public void requeueAll(Collection<T> arr){
-    	synchronized(mutex){
-    		var set = new LinkedHashSet<>(arr);
-    		set.addAll(queue); //add or overwrite items (update)
-    		queue = set;
-		}
-	}
-    
-    /**
-     * Pops all items from the queue, clearing it.
-     */
-    public Collection<T> pop() {
-    	synchronized(mutex){
-    		if(queue.isEmpty()) {
-    			return emptyList();
-    		}
-    		var res = queue;
-			queue = new LinkedHashSet<>(); //reset queue, may release memory (do not use clear())
-			return res;
-    	}
-    }
+	void requeueAll(Collection<T> arr);
+
+	/**
+	 * Pops all items from the queue, clearing it.
+	 */
+	Set<T> pop();
+
+	Stream<T> peek();
+
+	int size();
+
+	int removeIf(Predicate<T> filter);
+
+	int removeNLast(int n);
+
 	
-    public Stream<T> peek() {
-    	synchronized(mutex){
-    		return queue.isEmpty() ? empty() : queue.stream();
-    	}
-    }
-    
-	public int size() {
-		synchronized (mutex) {
-			return queue.size();
-		}
-	}
-	
-    public int removeIf(Predicate<T> filter) {
-    	synchronized(mutex){
-    		var size = queue.size();
-    		queue.removeIf(filter);
-    		return size - queue.size();
-    	}
-    }
-    
-    public int removeNLast(int n) { 
-    	synchronized(mutex){ // queue.reversed().iterator : java21
-    		var size = queue.size();
-    		if(queue.size() > n) {
-    			var it =  queue.iterator();
-        		for(var i=queue.size()-n; i>0; i--, it.next());
-        		while(it.hasNext()) {
-        			it.next();
-        			it.remove();
-        		}
-    		}
-    		else if(n > 0) {
-    			queue = new LinkedHashSet<>();
-    		}
-    		else {
-    			throw new IllegalArgumentException("illegal parameter value=" + n);
-    		}
-    		return size - queue.size();
-    	}
-    }
-    
-	
-	@Override
-	public String toString() {
-		synchronized (mutex) {
-			return queue.toString();
-		}
+	public static <T> ConcurrentLinkedSetQueue<T> noQueue() {
+		
+		return new ConcurrentLinkedSetQueue<>() {
+			
+			@Override
+			public int add(T o) {
+				return 0; //do not add to empty queue
+			}
+			
+			@Override
+			public int addAll(Collection<T> arr) {
+				return 0; //do not add to empty queue
+			}
+			
+			@Override
+			public int addAll(T[] arr) {
+				return 0; //do not add to empty queue
+			}
+			
+			@Override
+			public void requeueAll(Collection<T> arr) {
+				//do not requeue to empty queue
+			}
+			
+			@Override
+			public Set<T> pop() {
+				return emptySet();
+			}
+			
+			@Override
+			public Stream<T> peek() {
+				return empty();
+			}
+			
+			@Override
+			public int size() {
+				return 0;
+			}
+			
+			@Override
+			public int removeIf(Predicate<T> filter) {
+				return 0; //do not remove from empty queue
+			}
+			
+			@Override
+			public int removeNLast(int n) {
+				return 0; //do not remove from empty queue
+			}
+			
+			@Override
+			public String toString() {
+				return "[]";
+			}
+		};
 	}
 }

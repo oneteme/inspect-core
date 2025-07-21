@@ -10,9 +10,29 @@ import java.util.List;
  */
 public interface DispatcherAgent {
 	
-	void dispatch(InstanceEnvironment env);
+	void register(InstanceEnvironment env);
     
-	void dispatch(boolean complete, int attemps, int pending, List<EventTrace> items) throws DispatchException;
+	void dispatch(boolean complete, int attemps, int pending, List<EventTrace> items);
 
-	void dispatch(File dumpFile) throws DispatchException; //json
+	void dispatch(File dumpFile); //json
+	
+	static DispatcherAgent noAgent() {
+		
+		return new DispatcherAgent() {
+			@Override
+			public void register(InstanceEnvironment env) {
+				//do nothing
+			}
+			@Override
+			public void dispatch(boolean complete, int attemps, int pending, List<EventTrace> items) throws DispatchException {
+				//do nothing
+			}
+			@Override
+			public void dispatch(File dumpFile) throws DispatchException {
+				//do nothing
+			}
+		};
+		
+	}
+	
 }

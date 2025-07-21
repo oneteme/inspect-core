@@ -1,15 +1,12 @@
 package org.usf.inspect.core;
 
-import static java.lang.Runtime.getRuntime;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
-import static java.util.Collections.synchronizedList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-import static org.usf.inspect.core.DispatchState.DISABLE;
+import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceType.SERVER;
@@ -23,8 +20,8 @@ import static org.usf.inspect.core.SessionManager.emitStartupSession;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
+
+import org.usf.inspect.core.Dispatcher.DispatchHook;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,7 +47,6 @@ public final class InspectContext {
 
 	private final InspectCollectorConfiguration configuration;
 	private final EventTraceDispatcher dispatcher;
-	private final List<EventHandler<EventTrace>> handlers;
 	
 	private MainSession session;
 	
@@ -80,14 +76,9 @@ public final class InspectContext {
 	}
 	
 	public void emitTrace(EventTrace trace) {
-		handlers.forEach(h->{//!Async
-			try {
-				h.handle(trace); //trace == QUEUE | DISPATCH
-			} catch (Exception e) {
-				log.warn("{} handle trace={} error, [{}]:{}", 
-						h.getClass(), trace, e.getClass(), e.getMessage());
-			}
-		});
+		if(nonNull(dispatcher)) {
+			dispatcher.emit(trace);
+		}
 	}
 
     void traceStartupSession(Instant instant) {
@@ -113,33 +104,29 @@ public final class InspectContext {
 	}
 	
 	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
-		var inst = contextInstance(start, conf, provider);
-		var listeners = new ArrayList<EventHandler<EventTrace>>();
+		var hooks = new ArrayList<DispatchHook>();
 		if(conf.getMonitoring().getResources().isEnabled()) {
-			var res = new ResourceUsageMonitor();
-			listeners.add(res); //important! register before other handlers
-			inst.setResource(res.startupResource()); //1st trace 
+			hooks.add(new ResourceUsageMonitor()); //important! register before other hooks
 		}
 		if(conf.isDebugMode()) {
-			var debugger = new EventTraceDebugger();
-			listeners.add(debugger);
+			hooks.add(new EventTraceDebugger());
 		}
-		EventTraceDispatcher dspt = null;
+		DispatcherAgent agnt = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-			var agnt = new RestDispatcherAgent(prop, inst);
-			dspt= new EventTraceDispatcher(conf.getTracing(), conf.getScheduling(), agnt, mapper);
+			agnt = new RestDispatcherAgent(prop);
+			hooks.add(new EventTraceDumper(mapper, conf.getTracing().getDumpDirectory()));
+			hooks.add(new EventTracePurger(conf.getTracing().getQueueCapacity()));
 		}
 		else if(nonNull(conf.getTracing().getRemote())) {
 			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
 		}
-		singleton = new InspectContext(conf, dspt, listeners);
-	}
-	
-	static Thread daemonThread(Runnable r) {
-		var thread = new Thread(r, "inspect-dispatcher");
- 		thread.setDaemon(true);
- 		thread.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception", e));
-		return thread;
+		else {
+			agnt = noAgent(); //no remote agent
+			log.warn("remote tracing is disabled, traces will be lost");
+		}
+		var dspt = new EventTraceDispatcher(conf.getTracing(), conf.getScheduling(), agnt, hooks);
+		dspt.initialize(contextInstance(start, conf, provider));
+		singleton = new InspectContext(conf, dspt);
 	}
 	
     static InstanceEnvironment contextInstance(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
@@ -209,7 +196,10 @@ public final class InspectContext {
 		return conf;
 	}
 
-	static <T> List<T> synchronizedArrayList() {
-		return synchronizedList(new ArrayList<>());
+	static Thread daemonThread(Runnable r) {
+		var thread = new Thread(r, "inspect-dispatcher");
+ 		thread.setDaemon(true);
+ 		thread.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception", e));
+		return thread;
 	}
 }
