@@ -71,9 +71,9 @@ public final class RestDispatcherAgent implements DispatcherAgent {
     }
 	
 	@Override
-	public void dispatch(File dumpFile) {
+	public void dispatch(int attempts, File dumpFile) {
 		try {
-			template.put(properties.getTracesURI(), readString(dumpFile.toPath()), instance.getId(), null, null, null);
+			template.put(properties.getTracesURI(), readString(dumpFile.toPath()), instance.getId(), attempts, null, null);
 		}
 		catch (RestClientException e) {
 			throw new DispatchException("dump file dispatch error", e);

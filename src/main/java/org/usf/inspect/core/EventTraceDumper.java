@@ -1,7 +1,9 @@
 package org.usf.inspect.core;
 
+import static java.lang.Integer.parseInt;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Files.delete;
+import static java.nio.file.Files.move;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
@@ -35,17 +37,22 @@ public final class EventTraceDumper implements DispatchHook {
 	
 	@Override
 	public void preDispatch(Dispatcher dispatcher) {
-		stream(listDumpFiles()).forEach(f->
-			dispatcher.dispatchNow(f, (v, t)->{
+		stream(listDumpFiles()).forEach(f->{
+			var it = getFileDispatchAttempts(f)+1;
+			dispatcher.dispatchNow(f, it, (v, t)->{
 				if(isNull(t)) {
 					deleteFile(f); //cannot throw exception 
 				}
-			}));
+				else {
+					updateFileDispatchAttempts(f, it);
+				}
+			});
+		});
 	}
 	
 	@Override
 	public void postDispatch(Dispatcher dispatcher) {
-		dispatcher.tryDispatchQueue(dispatcher.getState().wasCompleted() ? 0 : -1, (arr, max)-> { //excludes all pending metrics
+		dispatcher.tryPropagateQueue(dispatcher.getState().wasCompleted() ? 0 : -1, (arr, max)-> { //excludes all pending metrics
 			dumpTraces(arr);
 			return emptyList();
 		});
@@ -66,7 +73,7 @@ public final class EventTraceDumper implements DispatchHook {
 	File[] listDumpFiles() {
 		return dumpDir.toFile().listFiles(f-> 
 			!excludeFiles.contains(f.getName())
-			&& f.getName().matches("dump_\\d+\\.json"));
+			&& f.getName().matches("dump_\\d+\\.json(~\\d+)?"));
 	}
 	
 	void deleteFile(File file) {
@@ -89,6 +96,33 @@ public final class EventTraceDumper implements DispatchHook {
 		if(!done) {
 			excludeFiles.add(file.getName());
 			context().reportError("cannot delete or rename dump file " + file.getName());
+		}
+	}
+	
+	static void updateFileDispatchAttempts(File file, int attempts) {
+		try {
+			var fn = file.getName();
+			var idx = fn.indexOf('~');
+			if(idx > -1) {
+				fn = fn.substring(0, idx);
+			}
+			var path = file.toPath();
+			move(path, path.getParent().resolve(fn+"~"+attempts));
+		}
+		catch (Exception e) {
+			//ignore it
+		}
+	}
+	
+	static int getFileDispatchAttempts(File file) {
+		try {
+			var fn = file.getName();
+			var idx = fn.indexOf('~')+1;
+			return idx > -1 ? parseInt(fn.substring(idx)) : 0;
+		}
+		catch (Exception e) {
+			//ignore it
+			return 0;
 		}
 	}
 }

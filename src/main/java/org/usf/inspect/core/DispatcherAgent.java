@@ -14,7 +14,7 @@ public interface DispatcherAgent {
     
 	void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces);
 
-	void dispatch(File dumpFile); //json
+	void dispatch(int attemps, File dumpFile); //json
 	
 	static DispatcherAgent noAgent() {
 		
@@ -31,11 +31,9 @@ public interface DispatcherAgent {
 			}
 			
 			@Override
-			public void dispatch(File dumpFile) throws DispatchException {
+			public void dispatch(int attemps, File dumpFile) throws DispatchException {
 				//do nothing
 			}
 		};
-		
 	}
-	
 }

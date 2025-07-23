@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 public enum DispatchState implements DispatchState2 {
 	
 	DISABLE(false, false, false), 
-	QUEUE(true, true, false), 
+	PROPAGATE(true, true, false), 
 	DISPATCH(true, true, true);
 	
 	private final boolean canEmit;

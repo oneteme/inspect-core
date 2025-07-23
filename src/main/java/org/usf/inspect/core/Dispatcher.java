@@ -15,17 +15,15 @@ public interface Dispatcher {
 	
 	boolean emitAll(EventTrace[] traces);
 	
-	void tryDispatchQueue(int delay, BiFunction<List<EventTrace>, Integer, List<EventTrace>> cons);
+	void tryPropagateQueue(int delay, BiFunction<List<EventTrace>, Integer, List<EventTrace>> cons);
 	
-	void dispatchNow(File file, Callback<Void> cons);
-
-	void dispatchNow(EventTrace[] traces, Callback<Void> cons); //server usage
+	void dispatchNow(File file, int attempts, Callback<Void> cons);
 	
 	DispatchState2 getState();
 	
 	public interface DispatchHook {
 		
-		default void onInstanceEmit(Dispatcher dispatcher, InstanceEnvironment env) {}
+		default void onInstanceEmit(InstanceEnvironment env) {}
 
 		default void onTraceEmit(EventTrace trace) {}
 		

@@ -3,11 +3,9 @@ package org.usf.inspect.core;
 import static java.lang.Runtime.getRuntime;
 import static java.time.Instant.now;
 import static java.time.temporal.ChronoUnit.SECONDS;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.usf.inspect.core.DispatchState.DISPATCH;
 import static org.usf.inspect.core.Helper.warnException;
@@ -58,7 +56,7 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     
 	public boolean dispatch(InstanceEnvironment instance) { //synch dispatch
     	if(atomicState.get().canDispatch()) {
-			triggerHooks(h-> h.onInstanceEmit(this, instance));
+			triggerHooks(h-> h.onInstanceEmit(instance));
 			try {
 				agent.dispatch(instance);
 				return true;
@@ -99,32 +97,40 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     	if(!atomicRunning.compareAndExchange(false, true) || complete) { //complete => force dispatch, deferred => after trace emit
     		if(deferred) {
         		log.trace("deferred dispatching traces ..");
-    			executor.submit(()-> run(complete, ()-> {
+    			executor.submit(()-> dispatchQueue(complete, ()-> {
     				log.trace("deferred dispatch end");
     				atomicRunning.set(false);
     			}));
     		}
     		else {
     			log.trace("scheduled dispatching traces ...");
-    			run(complete, ()-> {
+    			dispatchQueue(complete, ()-> {
     				log.trace("scheduled dispatch end");
     				atomicRunning.set(false);
     			});
     		}
     	}
 	}
-    
-	void run(boolean complete, Runnable callback) {
-    	dispatch(h-> h.preDispatch(this), 
-		()-> dispatchQueue(complete ? 0 : prop.getDelayIfPending(), (arr, pnd)->{ //send all if complete
-    		agent.dispatch(complete, ++attempts, pnd, arr);
-    		if(attempts > 1) { //more than one attempt
-    			log.info("successfully dispatched {} items after {} attempts", arr.size(), attempts);
+
+    void dispatchQueue(boolean complete, Runnable callback) {
+    	var state = atomicState.get();
+    	if(state.canPropagate()) {
+			triggerHooks(h-> h.preDispatch(this));
+    		if(state.canDispatch()) {
+    			propagateQueue(complete ? 0 : prop.getDelayIfPending(), (arr, pnd)->{ //send all if complete
+    	    		agent.dispatch(complete, ++attempts, pnd, arr);
+    	    		if(attempts > 1) { //more than one attempt
+    	    			log.info("successfully dispatched {} items after {} attempts", arr.size(), attempts);
+    	    		}
+    	    		attempts=0;
+    	    		return emptyList();
+    	    	});
     		}
-    		attempts=0;
-    		return emptyList();
-    	}), 
-    	h-> h.postDispatch(this));
+        	else {
+        		log.warn("cannot dispatch traces as the dispatcher state is {}", state);
+        	}
+			triggerHooks(h-> h.postDispatch(this));//reduce queue even when dispatcher.state != DISPATCH
+		}
     	var n = queue.size() - prop.getQueueCapacity(); 
     	if(n > 0) { 
     		queue.removeNLast(n);
@@ -132,49 +138,15 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     	callback.run();
     }
     
-    protected void dispatch(Consumer<DispatchHook> pre, Runnable process, Consumer<DispatchHook> post) {
-    	var state = atomicState.get();
-    	if(state.canPropagate()) {
-    		if(nonNull(pre)) {
-    			triggerHooks(pre);
-    		}
-    		if(state.canDispatch()) {
-    			try {
-    				process.run(); 
-				}
-    			catch (Exception e) {
-    				warnException(log, e, "failed to dispatch traces");
-    			}
-    		}
-        	else {
-        		log.warn("cannot dispatch traces as the dispatcher state is {}", state);
-        	}
-    		if(nonNull(post)) {//reduce queue even when dispatcher.state = QUEUE
-    			triggerHooks(post);
-    		}
-		}
-    }
-    
-    void triggerHooks(Consumer<DispatchHook> post){
-    	hooks.forEach(h->{
-			try {
-				post.accept(h);
-			}
-			catch (Exception e) {
-				warnException(log, e, "failed to execute hook '{}'", h.getClass().getSimpleName());
-			}
-		});
-    }
-    
     @Override
-    public void tryDispatchQueue(int delay, BiFunction<List<EventTrace>, Integer, List<EventTrace>> cons) {
+    public void tryPropagateQueue(int delay, BiFunction<List<EventTrace>, Integer, List<EventTrace>> cons) {
     	var size = queue.size();
     	if(size > prop.getQueueCapacity() || (size > 0 && atomicState.get().wasCompleted())) {
-    		dispatchQueue(delay, cons);
+    		propagateQueue(delay, cons);
     	}
     }
 
-    void dispatchQueue(int delay, BiFunction<List<EventTrace>, Integer, List<EventTrace>> cons) {
+    void propagateQueue(int delay, BiFunction<List<EventTrace>, Integer, List<EventTrace>> cons) {
     	Collection<EventTrace> cs = queue.pop(); //return LinkedHashSet
 		var modifiable = new ArrayList<>(cs);
     	try {
@@ -198,13 +170,13 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     }
     
     @Override
-	public void dispatchNow(File file, Callback<Void> cons) { //deferred !? + callback
+	public void dispatchNow(File file, int attempts, Callback<Void> cons) { //deferred !? + callback
     	if(atomicState.get().canDispatch()) {
 	    	executor.submit(()->{
 	        	Throwable thrw = null;
 	        	try {
-	    			agent.dispatch(file); //dispatch dump file
-	    			log.debug("dump file {} dispatched", file.getName());
+	    			log.trace("dispatching dump file {}", file.getName());
+	    			agent.dispatch(attempts, file);
 	    		} catch (Throwable e) {
 	    			thrw = e;
 	    			warnException(log, e, "cannot dispatch dump file {}", file.getName());
@@ -215,24 +187,6 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
 	    	});
     	}
 	}
-    
-    @Override
-    public void dispatchNow(EventTrace[] traces, Callback<Void> cons) { //deferred !? + callback
-    	if(atomicState.get().canDispatch()) {
-	    	executor.submit(()->{
-	        	Throwable thrw = null;
-	        	try {
-	    			agent.dispatch(false, 0, 0, asList(traces)); //dispatch dump file
-	    		} catch (Throwable e) {
-	    			thrw = e;
-	    			warnException(log, e, "cannot dispatch {} traces", traces.length);
-	    		}
-	        	finally {
-	    			cons.accept(null, thrw);
-	    		}
-	    	});
-    	}
-    }
    
     @Override
     public DispatchState2 getState() {
@@ -252,6 +206,17 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
 	
     public Stream<EventTrace> peek() {
     	return queue.peek();
+    }
+    
+    void triggerHooks(Consumer<DispatchHook> post){
+    	hooks.forEach(h->{
+			try {
+				post.accept(h);
+			}
+			catch (Exception e) {
+				warnException(log, e, "failed to execute hook '{}'", h.getClass().getSimpleName());
+			}
+		});
     }
     
 	static List<EventTrace> extractPendingMetrics(int seconds, List<EventTrace> traces) {

@@ -16,7 +16,7 @@ public final class EventTracePurger implements DispatchHook {
 	
 	@Override
 	public void postDispatch(Dispatcher dispatcher) {
-    	dispatcher.tryDispatchQueue(0, (trc, pnd)->{ //will be sent later
+    	dispatcher.tryPropagateQueue(0, (trc, pnd)->{ //will be sent later
     		trc.removeIf(t-> t instanceof CompletableMetric cm && !cm.wasCompleted());
         	if(trc.size() > queueCapacity) {
         		trc.removeIf(t-> t instanceof LogEntry);
