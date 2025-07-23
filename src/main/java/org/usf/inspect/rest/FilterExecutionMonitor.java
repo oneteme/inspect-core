@@ -148,7 +148,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 						ses.setCacheControl(response.getHeader(CACHE_CONTROL));
 						ses.setContentType(response.getContentType());
 					}
-					if(nonNull(t) && isNull(ses.getException())) { // see advise & intecteptor
+					if(nonNull(t) && isNull(ses.getException())) { // see advise & interceptor
 						ses.setException(fromException(t));
 					}
 					ses.setEnd(e);  //IO | CancellationException | ServletException => no ErrorHandler

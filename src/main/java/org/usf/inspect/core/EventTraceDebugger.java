@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.usf.inspect.core.Dispatcher.DispatchHook;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -19,31 +21,35 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class EventTraceDebugger implements EventHandler<EventTrace>, EventListener<DispatchState> { //inspect.client.log : SESSION | REQUEST | STAGE
+public final class EventTraceDebugger implements DispatchHook { //inspect.client.log : SESSION | REQUEST | STAGE
 	
 	private static final Comparator<? super Metric> METRIC_COMPARATOR = comparing(Metric::getStart);
 	
 	private Map<String, AbstractSession> sessions = synchronizedMap(new HashMap<>());
 	private Map<String, Set<AbstractRequest>> requests = synchronizedMap(new HashMap<>());
 	private Map<String, Set<AbstractStage>> stages = synchronizedMap(new HashMap<>());
+	private Map<String, Set<LogEntry>> logs = synchronizedMap(new HashMap<>());
 
 	@Override
-	public void handle(EventTrace t) {
-		switch (t) {
-		case AbstractSession s-> {
-			if(s.wasCompleted()) {
-				printSession(s);
-				return;
+	public void onTracesEmit(EventTrace... traces) {
+		for(var t : traces) {
+			switch (t) {
+			case AbstractSession s-> {
+				if(s.wasCompleted()) {
+					printSession(s);
+					return;
+				}
+				sessions.put(s.getId(), s);
 			}
-			sessions.put(s.getId(), s);
-		}
-		case AbstractRequest r-> appendTrace(requests, r.getSessionId(), r);
-		case AbstractStage s-> appendTrace(stages, s.getRequestId(), s);
-		default-> log.debug(">{}", t);
+			case AbstractRequest r-> appendTrace(requests, r.getSessionId(), r);
+			case AbstractStage s-> appendTrace(stages, s.getRequestId(), s);
+			case LogEntry e when nonNull(e.getSessionId()) -> appendTrace(logs, e.getSessionId(), e);
+			default-> log.debug(">{}", t);
+			}
 		}
     }
 	
-	void printSession(AbstractSession ses) {
+	synchronized void printSession(AbstractSession ses) {
 		sessions.remove(ses.getId());
 		log.debug(">{}",ses);
 		printMap(stages, ses.getId(), o-> log.debug("\t\t-{}", o));
@@ -61,8 +67,8 @@ public final class EventTraceDebugger implements EventHandler<EventTrace>, Event
 	}
 	
 	@Override
-	public void onEvent(DispatchState state, boolean complete) throws Exception {
-		if(complete) {
+	public void postDispatch(Dispatcher dispatcher) {
+		if(dispatcher.getState().wasCompleted()) {
 			log.warn("unfinished tasks {}", sessions.size());
 			sessions.values().forEach(this::printSession);
 		}

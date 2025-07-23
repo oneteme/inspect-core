@@ -39,9 +39,9 @@ public final class StackTraceRow {
 	
 	public static StackTraceRow[] excetionStackTraceRows(Throwable thrw, int maxRows) {
 		StackTraceRow[] rows = null;
-		if(maxRows > 0) {
+		if(maxRows != 0) {
 			var stack = thrw.getStackTrace(); 
-			rows = new StackTraceRow[min(maxRows, stack.length)];
+			rows = new StackTraceRow[maxRows < 0 ? stack.length : min(maxRows, stack.length)];
 			for(var i=0; i<rows.length; i++) {
 				rows[i] = new StackTraceRow(
 						stack[i].getClassName(),

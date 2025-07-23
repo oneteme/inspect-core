@@ -107,4 +107,15 @@ public final class Helper {
 		}
 		return -1;
 	}
+	
+	public static void warnException(Logger log, Throwable t, String msg, Object... args) {
+		log.warn(msg, args);
+		log.warn(" Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
+		if(log.isDebugEnabled()) {
+			while(nonNull(t.getCause()) && t != t.getCause()) {
+				t = t.getCause();
+				log.warn(" Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
+			}
+		}
+	}
 }

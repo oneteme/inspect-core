@@ -1,19 +1,11 @@
 package org.usf.inspect.core;
 
 import static java.lang.String.format;
-import static java.time.Instant.now;
 import static java.time.Instant.ofEpochMilli;
-import static java.util.Objects.nonNull;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
-import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.InspectContext.startInspectContext;
-import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.SessionManager.createStartupSession;
-import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
-import static org.usf.inspect.core.SessionManager.emitStartupSession;
+import static org.usf.inspect.core.InspectContext.initializeInspectContext;
 
-import java.time.Instant;
 import java.util.Optional;
 
 import javax.sql.DataSource;
@@ -21,7 +13,6 @@ import javax.sql.DataSource;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationFailedEvent;
@@ -33,6 +24,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -41,6 +34,7 @@ import org.usf.inspect.rest.FilterExecutionMonitor;
 import org.usf.inspect.rest.RestRequestInterceptor;
 
 import jakarta.servlet.Filter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -50,20 +44,23 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "inspect.collector", name = "enabled", havingValue = "true")
 class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
 	
-	private final ApplicationContext ctx;
-	private final MainSession session;
+	private final ApplicationContext appContext;
 	
-	InspectConfiguration(ApplicationContext ctx, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
-		this.ctx = ctx;
-		var start = ofEpochMilli(ctx.getStartupDate());
-		startInspectContext(start, conf.validate(), provider);
-		this.session = traceStartupSession(start);
+	@Primary
+	@Bean("inspectContext")
+	InspectContext inspectContext(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+		var start = ofEpochMilli(appContext.getStartupDate());
+		initializeInspectContext(start, conf.validate(), provider); 
+		context().traceStartupSession(start); //start session after context is initialized
+		return context();
 	}
 	
     @Bean //important! name == apiSessionFilter
+    @DependsOn("inspectContext") //ensure inspectContext is loaded first
     FilterRegistrationBean<Filter> apiSessionFilter(HttpUserProvider userProvider) {
     	var conf = context().getConfiguration().getMonitoring().getHttpRoute();
     	var filter = new FilterExecutionMonitor(conf, userProvider);
@@ -75,8 +72,8 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
-		if(ctx.containsBean("apiSessionFilter")) {
-			var filter = (FilterExecutionMonitor) ctx.getBean("apiSessionFilter", FilterRegistrationBean.class).getFilter(); //see 
+		if(appContext.containsBean("apiSessionFilter")) {
+			var filter = (FilterExecutionMonitor) appContext.getBean("apiSessionFilter", FilterRegistrationBean.class).getFilter(); //see 
 			registry.addInterceptor(filter).order(HIGHEST_PRECEDENCE); //before other interceptors
 //				.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
 		}
@@ -86,12 +83,14 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
     
     @Bean //important! name == restRequestInterceptor
+    @DependsOn("inspectContext") //ensure inspectContext is loaded first
     RestRequestInterceptor restRequestInterceptor() {
     	log.debug("loading 'RestRequestInterceptor' bean ..");
         return new RestRequestInterceptor();
     }
      
     @Bean
+    @DependsOn("inspectContext") //ensure inspectContext is loaded first
     BeanPostProcessor dataSourceWrapper() {
     	return new BeanPostProcessor() {
     		@Override
@@ -102,6 +101,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
     
     @Bean // Cacheable, TraceableStage, ControllerAdvice
+    @DependsOn("inspectContext") //ensure inspectContext is loaded first
     MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
     	log.debug("loading 'MethodExecutionMonitorAspect' bean ..");
     	return new MethodExecutionMonitor(aspectUser);
@@ -110,39 +110,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
 		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-			traceStartupSession(e.getSource(), e instanceof ApplicationFailedEvent f ? f.getException() : null);
+			context().traceStartupSession(ofEpochMilli(e.getTimestamp()), 
+					e.getSpringApplication().getMainApplicationClass().getName(), 
+					e instanceof ApplicationFailedEvent f ? f.getException() : null);
 		}
 	}
-    
-    MainSession traceStartupSession(Instant start) {
-		var ses = createStartupSession();
-		ses.setType(STARTUP.name());
-    	ses.setName("main");
-    	ses.setStart(start);
-    	ses.setThreadName(threadName());
-    	emitStartupSession(ses);
-    	return ses;
-    }
-	
-	void traceStartupSession(Object appName, Throwable t) {
-    	var end = now();
-    	var app = mainApplicationClass(appName);
-    	session.runSynchronized(()-> {
-			session.setLocation(app);
-			if(nonNull(t)) {  //nullable
-				session.setException(ExceptionInfo.fromException(t));
-			}
-			session.setEnd(end);
-		});
-    	emitStartupSesionEnd(session);
-	}
-	
-    static String mainApplicationClass(Object source) {
-    	return (source instanceof SpringApplication app 
-    			? app.getMainApplicationClass()
-    			: SpringApplication.class)
-    			.getCanonicalName();
-    }
     
     @Bean
     @ConditionalOnMissingBean
@@ -160,14 +132,15 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 
     @Bean
     @ConditionalOnMissingBean
-    static ApplicationPropertiesProvider applicationPropertiesProvider(Environment env) {
+    ApplicationPropertiesProvider applicationPropertiesProvider(Environment env) {
     	log.debug("loading 'ApplicationPropertiesProvider' bean ..");
     	return new DefaultApplicationPropertiesProvider(env);
     }
     
     @Bean
+    @Primary
     @ConfigurationProperties(prefix = "inspect.collector")
-    static InspectCollectorConfiguration inspectConfigurationProperties(Optional<RemoteServerProperties> dispatching) {
+    InspectCollectorConfiguration inspectConfigurationProperties(Optional<RemoteServerProperties> dispatching) {
     	log.debug("loading 'InspectConfigurationProperties' bean ..");
     	var conf = new InspectCollectorConfiguration();
     	if(dispatching.isPresent()) {
@@ -180,9 +153,10 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
 
     @Bean
+    @Primary
     @ConfigurationProperties(prefix = "inspect.collector.tracing.remote")
     @ConditionalOnProperty(prefix = "inspect.collector.tracing.remote", name = "mode")
-    static RemoteServerProperties dispatchingProperties(@Value("${inspect.collector.tracing.remote.mode}") DispatchTarget mode) {
+    RemoteServerProperties dispatchingProperties(@Value("${inspect.collector.tracing.remote.mode}") DispatchMode mode) {
     	log.debug("loading 'DispatchingProperties' bean ..");
     	return switch (mode) {
 		case REST -> new RestRemoteServerProperties();

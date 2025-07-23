@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 public class FlywayModuleConfiguration {
     
     @Bean
+    @DependsOn("inspectContext") //ensure inspectContext is loaded first
     FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
     	log.debug("loading 'flywayConfigurationCustomizer' bean ..");
     	return conf-> conf.dataSource(new DataSourceWrapper(conf.getDataSource()));
