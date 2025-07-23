@@ -46,20 +46,20 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	}
 	
 	@Override
-	public void register(InstanceEnvironment env) {
-		try {
-			instanceId = template.postForObject(properties.getInstanceURI(), instance, String.class);
-			log.info("instance was registred with id={}", instanceId);
-		}
-		catch(RestClientException e) {
-			throw new DispatchException("instance register error", e);
-		}
+	public void register(InstanceEnvironment instance) {
+		this.instance = instance;
 	}
 	
 	@Override
     public void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces)  {
 		if(isNull(instanceId)) {//if not registered before
-			register(instance);
+			try {
+				instanceId = template.postForObject(properties.getInstanceURI(), instance, String.class);
+				log.info("instance was registred with id={}", instanceId);
+			}
+			catch(RestClientException e) {
+				throw new DispatchException("instance register error", e);
+			}
 		}
     	if(nonNull(instanceId)) {
     		try {

@@ -10,12 +10,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum DispatchState implements DispatchState2 {
 	
-	DISABLE(false, false), 
-	QUEUE(true, false), 
-	DISPATCH(true, true);
+	DISABLE(false, false, false), 
+	QUEUE(true, true, false), 
+	DISPATCH(true, true, true);
 	
-	final boolean canEmit;
-	final boolean canDispatch;
+	private final boolean canEmit;
+	private final boolean propagate;
+	private final boolean canDispatch;
 	
 	@Override
 	public boolean canEmit() {
@@ -23,7 +24,12 @@ public enum DispatchState implements DispatchState2 {
 	}
 	
 	@Override
+	public boolean canPropagate() {
+		return propagate;
+	}
+	
+	@Override
 	public boolean canDispatch() {
 		return canDispatch;
-	}	
+	}
 }

@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.lang.String.join;
 import static java.lang.System.getProperty;
 import static java.nio.file.Files.createDirectories;
 import static java.util.Objects.nonNull;
@@ -29,25 +30,26 @@ public class TracingProperties { //add remote
 	private RemoteServerProperties remote; //replace server
 	
 	void validate() {
-		dumpDirectory = createDumpDirs(dumpDirectory);
-		assertGreaterOrEquals(queueCapacity, 100, "queue-capacity");
+		dumpDirectory = createDirs(dumpDirectory, "inspect");
+		assertGreaterOrEquals(queueCapacity, 500, "queue-capacity");
 		assertGreaterOrEquals(delayIfPending, -1, "dispatch-delay-if-pending");
 		if(nonNull(remote)) {
 			remote.validate();
 		}
 	}
 	
-	static Path createDumpDirs(Path baseDir) {
+	static Path createDirs(Path baseDir, String... dirs) {
 		var f = baseDir.toFile();
 		if(f.exists()) {
-			try {
-				return createDirectories(f.toPath().resolve("inspect/dump"));
-			} catch (IOException e) {
-				throw new IllegalArgumentException("cannot create dump directory", e);
+			if(nonNull(dirs) && dirs.length > 0) {
+				try {
+					return createDirectories(f.toPath().resolve(join("/", dirs)));
+				} catch (IOException e) {
+					throw new IllegalArgumentException("cannot create directories", e);
+				}
 			}
+			return baseDir;
 		}
-		else {
-			throw new IllegalArgumentException("dump-directory='" + baseDir + "' no found");
-		}
+		throw new IllegalArgumentException("dump-directory='" + baseDir + "' no found");
 	}
 }

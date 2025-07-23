@@ -15,11 +15,11 @@ public interface Dispatcher {
 	
 	void emitAll(EventTrace[] traces);
 	
-	boolean dispatchNow(File file);
-
-	boolean dispatchNow(EventTrace[] traces);
-	
 	void tryDispatchQueue(int delay, BiFunction<List<EventTrace>, Integer, List<EventTrace>> cons);
+	
+	void dispatchNow(File file, Callback<Void> cons);
+
+	void dispatchNow(EventTrace[] traces, Callback<Void> cons); //server usage
 	
 	DispatchState2 getState();
 	
@@ -29,9 +29,7 @@ public interface Dispatcher {
 
 		default void postRegister(Dispatcher dispatcher, InstanceEnvironment env) {}
 		
-		default void onTraceEmit(EventTrace trace) {}
-
-		default void onTracesEmit(EventTrace[] trace) {}
+		default void onTracesEmit(EventTrace... trace) {}
 		
 		default void preDispatch(Dispatcher dispatcher) {}
 	

@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class StreamTracker {
+public final class StreamMonitor {
 
     @SafeVarargs
 	public static <T> Stream<T> parallelStream(T... array) {

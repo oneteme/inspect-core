@@ -42,8 +42,7 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 		}
 		case AbstractRequest r-> appendTrace(requests, r.getSessionId(), r);
 		case AbstractStage s-> appendTrace(stages, s.getRequestId(), s);
-		case LogEntry e when nonNull(e.getSessionId()) ->
-				appendTrace(logs, e.getSessionId(), e);
+		case LogEntry e when nonNull(e.getSessionId()) -> appendTrace(logs, e.getSessionId(), e);
 		default-> log.debug(">{}", t);
 		}
     }

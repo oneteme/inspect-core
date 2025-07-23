@@ -4,6 +4,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Files.delete;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.isNull;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.File;
@@ -11,7 +12,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.usf.inspect.core.Dispatcher.DispatchHook;
 
@@ -29,32 +29,30 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class EventTraceDumper implements DispatchHook {
 	
-	private static final AtomicInteger COUNTER = new AtomicInteger(0);
-	
+	private final Set<String> excludeFiles = new HashSet<>(); //TD save to file, load on start?
 	private final ObjectMapper mapper;
 	private final Path dumpDir;
-	private final int id = COUNTER.incrementAndGet(); //unique id for this dispatcher, used in dump file names
-	private final Set<String> excludeFiles = new HashSet<>(); //TD save to file, load on start?
 	
 	@Override
 	public void preDispatch(Dispatcher dispatcher) {
-		stream(listDumpFiles()).forEach(f->{
-			if(dispatcher.dispatchNow(f)) {
-				deleteFile(f); //cannot throw exception 
-			}
-		});
+		stream(listDumpFiles()).forEach(f->
+			dispatcher.dispatchNow(f, (v, t)->{
+				if(isNull(t)) {
+					deleteFile(f); //cannot throw exception 
+				}
+			}));
 	}
 	
 	@Override
 	public void postDispatch(Dispatcher dispatcher) {
-		dispatcher.tryDispatchQueue(-1, (arr, max)-> { //excludes all pending metrics
+		dispatcher.tryDispatchQueue(dispatcher.getState().wasCompleted() ? 0 : -1, (arr, max)-> { //excludes all pending metrics
 			dumpTraces(arr);
 			return emptyList();
 		});
 	}
 	
 	String dumpTraces(Collection<EventTrace> traces) {
-		var fn = id + "-dump-" + currentTimeMillis() + ".json";
+		var fn = "dump_" + currentTimeMillis() + ".json";
 		try {
 			mapper.writeValue(dumpDir.resolve(fn).toFile(), traces);
 			log.debug("{} traces was dumped in {}", traces.size(), fn);
@@ -68,7 +66,7 @@ public final class EventTraceDumper implements DispatchHook {
 	File[] listDumpFiles() {
 		return dumpDir.toFile().listFiles(f-> 
 			!excludeFiles.contains(f.getName())
-			&& f.getName().matches(id + "-dump-\\d+\\.json"));
+			&& f.getName().matches("dump_\\d+\\.json"));
 	}
 	
 	void deleteFile(File file) {

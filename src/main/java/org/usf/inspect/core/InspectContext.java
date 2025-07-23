@@ -16,8 +16,10 @@ import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionManager.createStartupSession;
 import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
 import static org.usf.inspect.core.SessionManager.emitStartupSession;
+import static org.usf.inspect.core.TracingProperties.createDirs;
 
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 
@@ -46,7 +48,7 @@ public final class InspectContext {
 	private static InspectContext singleton;
 
 	private final InspectCollectorConfiguration configuration;
-	private final EventTraceDispatcher dispatcher;
+	private final EventTraceScheduledDispatcher dispatcher;
 	
 	private MainSession session;
 	
@@ -114,7 +116,7 @@ public final class InspectContext {
 		DispatcherAgent agnt = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
 			agnt = new RestDispatcherAgent(prop);
-			hooks.add(new EventTraceDumper(mapper, conf.getTracing().getDumpDirectory()));
+			hooks.add(new EventTraceDumper(mapper, createDumpDir(start, conf.getTracing().getDumpDirectory(), provider)));
 			hooks.add(new EventTracePurger(conf.getTracing().getQueueCapacity()));
 		}
 		else if(nonNull(conf.getTracing().getRemote())) {
@@ -124,9 +126,14 @@ public final class InspectContext {
 			agnt = noAgent(); //no remote agent
 			log.warn("remote tracing is disabled, traces will be lost");
 		}
-		var dspt = new EventTraceDispatcher(conf.getTracing(), conf.getScheduling(), agnt, hooks);
+		var dspt = new EventTraceScheduledDispatcher(conf.getTracing(), conf.getScheduling(), agnt, hooks);
 		dspt.initialize(contextInstance(start, conf, provider));
 		singleton = new InspectContext(conf, dspt);
+	}
+	
+	static Path createDumpDir(Instant start, Path baseDir, ApplicationPropertiesProvider provider) {
+		var v = nonNull(provider.getName()) ? provider.getName() : "instance";
+		return createDirs(baseDir, v + '.' + start.getEpochSecond());
 	}
 	
     static InstanceEnvironment contextInstance(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
