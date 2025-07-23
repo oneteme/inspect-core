@@ -21,7 +21,7 @@ public final class ResourceUsageMonitor implements DispatchHook {
 	private static final int MB = 1024 * 1024;
 	
 	@Override
-	public void preRegister(Dispatcher dispatcher, InstanceEnvironment instance) {
+	public void onInstanceEmit(Dispatcher dispatcher, InstanceEnvironment instance) {
 		instance.setResource(getMemoryUsage(MemoryUsage::getInit, MemoryUsage::getMax));
 	}
 

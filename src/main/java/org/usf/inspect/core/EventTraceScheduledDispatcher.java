@@ -8,7 +8,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.usf.inspect.core.DispatchState.DISPATCH;
 import static org.usf.inspect.core.Helper.warnException;
 
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class EventTraceScheduledDispatcher implements Dispatcher {
 	
-	private final ScheduledExecutorService executor = newScheduledThreadPool(5, EventTraceScheduledDispatcher::daemonThread);
+	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(EventTraceScheduledDispatcher::daemonThread);
     private final AtomicReference<DispatchState2> atomicState = new AtomicReference<>(DISPATCH);
     private final AtomicBoolean atomicRunning = new AtomicBoolean(false);
     
@@ -43,7 +43,6 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     private final ConcurrentLinkedSetQueue<EventTrace> queue;
     private int attempts;
     
-
 	public EventTraceScheduledDispatcher(TracingProperties prop, SchedulingProperties schd, DispatcherAgent agent) {
 		this(prop, schd, agent, emptyList());
 	}
@@ -57,17 +56,24 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
 		getRuntime().addShutdownHook(new Thread(this::complete, "shutdown-hook"));
 	}
     
-	void initialize(InstanceEnvironment env) {
-		dispatch(h-> h.preRegister(this, env), 
-    			()-> agent.register(env), 
-    			h-> h.postRegister(this, env));
+	public boolean dispatch(InstanceEnvironment instance) { //synch dispatch
+    	if(atomicState.get().canEmit()) {
+			triggerHooks(h-> h.onInstanceEmit(this, instance));
+			try {
+				agent.dispatch(instance);
+				return true;
+			} catch (Exception e) {
+				warnException(log, e, "failed to dispatch instance {}", instance.getId());
+			}
+    	}
+    	return false;
 	}
 	
     @Override
     public boolean emit(EventTrace trace) {
     	if(atomicState.get().canEmit()) {
-    		dispatchIfCapacityExceeded(queue.add(trace));
     		triggerHooks(h-> h.onTracesEmit(trace));
+    		dispatchIfCapacityExceeded(queue.add(trace));
     		return true;
     	}
     	return false;
@@ -76,8 +82,8 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     @Override
     public boolean emitAll(EventTrace[] traces) { //server usage
     	if(atomicState.get().canEmit()) {
-    		dispatchIfCapacityExceeded(queue.addAll(traces));
     		triggerHooks(h-> h.onTracesEmit(traces));
+    		dispatchIfCapacityExceeded(queue.addAll(traces));
     		return true;
     	}
     	return false;
@@ -275,7 +281,7 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
 		return isNull(arr) || arr.isEmpty();
 	}
 	
-	static Thread daemonThread(Runnable r) {
+	static Thread daemonThread(Runnable r) { //counter !?
 		var thread = new Thread(r, "inspect-dispatcher");
  		thread.setDaemon(true);
  		thread.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));

@@ -16,10 +16,10 @@ import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionManager.createStartupSession;
 import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
 import static org.usf.inspect.core.SessionManager.emitStartupSession;
+import static org.usf.inspect.core.SessionManager.nextId;
 import static org.usf.inspect.core.TracingProperties.createDirs;
 
 import java.net.UnknownHostException;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 
@@ -106,6 +106,7 @@ public final class InspectContext {
 	}
 	
 	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+		var instance = contextInstance(start, conf, provider);
 		var hooks = new ArrayList<DispatchHook>();
 		if(conf.getMonitoring().getResources().isEnabled()) {
 			hooks.add(new ResourceUsageMonitor()); //important! register before other hooks
@@ -116,7 +117,7 @@ public final class InspectContext {
 		DispatcherAgent agnt = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
 			agnt = new RestDispatcherAgent(prop);
-			hooks.add(new EventTraceDumper(mapper, createDumpDir(start, conf.getTracing().getDumpDirectory(), provider)));
+			hooks.add(new EventTraceDumper(createDirs(conf.getTracing().getDumpDirectory(), instance.getId()), mapper));
 			hooks.add(new EventTracePurger(conf.getTracing().getQueueCapacity()));
 		}
 		else if(nonNull(conf.getTracing().getRemote())) {
@@ -127,17 +128,12 @@ public final class InspectContext {
 			log.warn("remote tracing is disabled, traces will be lost");
 		}
 		var dspt = new EventTraceScheduledDispatcher(conf.getTracing(), conf.getScheduling(), agnt, hooks);
-		dspt.initialize(contextInstance(start, conf, provider));
 		singleton = new InspectContext(conf, dspt);
-	}
-	
-	static Path createDumpDir(Instant start, Path baseDir, ApplicationPropertiesProvider provider) {
-		var v = nonNull(provider.getName()) ? provider.getName() : "instance";
-		return createDirs(baseDir, v + '.' + start.getEpochSecond());
+		dspt.dispatch(instance);
 	}
 	
     static InstanceEnvironment contextInstance(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
-    	return new InstanceEnvironment(
+    	return new InstanceEnvironment(nextId(),
     			start, SERVER,
     			provider.getName(), 
     			provider.getVersion(),

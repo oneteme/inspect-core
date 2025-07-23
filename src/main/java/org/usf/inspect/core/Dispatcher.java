@@ -25,10 +25,8 @@ public interface Dispatcher {
 	
 	public interface DispatchHook {
 		
-		default void preRegister(Dispatcher dispatcher, InstanceEnvironment env) {}
+		default void onInstanceEmit(Dispatcher dispatcher, InstanceEnvironment env) {}
 
-		default void postRegister(Dispatcher dispatcher, InstanceEnvironment env) {}
-		
 		default void onTracesEmit(EventTrace... trace) {}
 		
 		default void preDispatch(Dispatcher dispatcher) {}

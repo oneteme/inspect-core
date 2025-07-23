@@ -3,8 +3,6 @@ package org.usf.inspect.core;
 import static java.nio.file.Files.readString;
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
-import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -39,31 +37,32 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	private final RestTemplate template;
 
 	private InstanceEnvironment instance;
-	private String instanceId;
+	private boolean registred;
 
 	public RestDispatcherAgent(RestRemoteServerProperties properties) {
 		this(properties, defaultRestTemplate(properties));
 	}
 	
 	@Override
-	public void register(InstanceEnvironment instance) {
+	public void dispatch(InstanceEnvironment instance) {
 		this.instance = instance;
 	}
 	
 	@Override
     public void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces)  {
-		if(isNull(instanceId)) {//if not registered before
+		if(!registred) {//if not registered before
 			try {
-				instanceId = template.postForObject(properties.getInstanceURI(), instance, String.class);
-				log.info("instance was registred with id={}", instanceId);
+				template.postForObject(properties.getInstanceURI(), instance, String.class);
+				log.info("instance was registred with id={}", instance.getId());
+				registred = true;
 			}
 			catch(RestClientException e) {
 				throw new DispatchException("instance register error", e);
 			}
 		}
-    	if(nonNull(instanceId)) {
+    	if(registred) {
     		try {
-    			template.put(properties.getTracesURI(), traces.toArray(EventTrace[]::new), instanceId, attemps, pending, complete ? now() : null);
+    			template.put(properties.getTracesURI(), traces.toArray(EventTrace[]::new), instance.getId(), attemps, pending, complete ? now() : null);
     		}
     		catch (RestClientException e) {
 				throw new DispatchException("traces dispatch error", e);
@@ -74,7 +73,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	@Override
 	public void dispatch(File dumpFile) {
 		try {
-			template.put(properties.getTracesURI(), readString(dumpFile.toPath()), instanceId, null, null, null);
+			template.put(properties.getTracesURI(), readString(dumpFile.toPath()), instance.getId(), null, null, null);
 		}
 		catch (RestClientException e) {
 			throw new DispatchException("dump file dispatch error", e);

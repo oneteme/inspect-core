@@ -30,8 +30,8 @@ import lombok.extern.slf4j.Slf4j;
 public final class EventTraceDumper implements DispatchHook {
 	
 	private final Set<String> excludeFiles = new HashSet<>(); //TD save to file, load on start?
-	private final ObjectMapper mapper;
 	private final Path dumpDir;
+	private final ObjectMapper mapper;
 	
 	@Override
 	public void preDispatch(Dispatcher dispatcher) {

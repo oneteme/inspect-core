@@ -10,7 +10,7 @@ import java.util.List;
  */
 public interface DispatcherAgent {
 	
-	void register(InstanceEnvironment instance); //callback ?
+	void dispatch(InstanceEnvironment instance); //callback ?
     
 	void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces);
 
@@ -21,7 +21,7 @@ public interface DispatcherAgent {
 		return new DispatcherAgent() {
 			
 			@Override
-			public void register(InstanceEnvironment env) {
+			public void dispatch(InstanceEnvironment env) {
 				//do nothing
 			}
 			

@@ -20,6 +20,7 @@ import lombok.ToString;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public final class InstanceEnvironment {
 
+	private final String id;
 	private final Instant instant; //startup time
 	private final InstanceType type; //server, client
 	private final String name; //project name
