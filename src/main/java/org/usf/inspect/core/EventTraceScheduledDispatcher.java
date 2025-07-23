@@ -23,7 +23,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -32,7 +31,6 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-@RequiredArgsConstructor
 public final class EventTraceScheduledDispatcher implements Dispatcher {
 	
 	private final ScheduledExecutorService executor = newScheduledThreadPool(5, EventTraceScheduledDispatcher::daemonThread);
@@ -44,6 +42,11 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     private final List<DispatchHook> hooks;
     private final ConcurrentLinkedSetQueue<EventTrace> queue;
     private int attempts;
+    
+
+	public EventTraceScheduledDispatcher(TracingProperties prop, SchedulingProperties schd, DispatcherAgent agent) {
+		this(prop, schd, agent, emptyList());
+	}
     
 	public EventTraceScheduledDispatcher(TracingProperties prop, SchedulingProperties schd, DispatcherAgent agent, List<DispatchHook> hooks) {
 		this.prop = prop;
