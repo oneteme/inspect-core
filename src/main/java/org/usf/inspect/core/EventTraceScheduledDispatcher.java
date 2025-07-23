@@ -57,7 +57,7 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
 	}
     
 	public boolean dispatch(InstanceEnvironment instance) { //synch dispatch
-    	if(atomicState.get().canEmit()) {
+    	if(atomicState.get().canDispatch()) {
 			triggerHooks(h-> h.onInstanceEmit(this, instance));
 			try {
 				agent.dispatch(instance);

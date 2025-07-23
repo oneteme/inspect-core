@@ -21,7 +21,7 @@ import lombok.ToString;
 public final class InstanceEnvironment {
 
 	private final String id;
-	private final Instant instant; //startup time
+	private final Instant instant; //startup time TD : rename to start
 	private final InstanceType type; //server, client
 	private final String name; //project name
 	private final String version; //project version using : maven, NPM, ..
@@ -37,4 +37,5 @@ public final class InstanceEnvironment {
 	private final Map<String, String> additionalProperties; //additional properties, e.g. for docker container, kubernetes pod, etc.
 	private final InspectCollectorConfiguration configuration;
 	private MachineResourceUsage resource; //init/max heap +  init/max metaspace
+	private Instant end;
 }
