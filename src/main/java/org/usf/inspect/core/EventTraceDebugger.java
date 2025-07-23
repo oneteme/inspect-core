@@ -31,9 +31,8 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 	private Map<String, Set<LogEntry>> logs = synchronizedMap(new HashMap<>());
 
 	@Override
-	public void onTracesEmit(EventTrace... traces) {
-		for(var t : traces) {
-			switch (t) {
+	public void onTraceEmit(EventTrace t) {
+		switch (t) {
 			case AbstractSession s-> {
 				if(s.wasCompleted()) {
 					printSession(s);
@@ -45,7 +44,6 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 			case AbstractStage s-> appendTrace(stages, s.getRequestId(), s);
 			case LogEntry e when nonNull(e.getSessionId()) -> appendTrace(logs, e.getSessionId(), e);
 			default-> log.debug(">{}", t);
-			}
 		}
     }
 	

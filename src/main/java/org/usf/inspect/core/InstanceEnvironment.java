@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import java.time.Instant;
 import java.util.Map;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -17,7 +16,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+@RequiredArgsConstructor
 public final class InstanceEnvironment {
 
 	private final String id;

@@ -27,7 +27,9 @@ public interface Dispatcher {
 		
 		default void onInstanceEmit(Dispatcher dispatcher, InstanceEnvironment env) {}
 
-		default void onTracesEmit(EventTrace... trace) {}
+		default void onTraceEmit(EventTrace trace) {}
+		
+		default void onTracesEmit(EventTrace[] trace) {}
 		
 		default void preDispatch(Dispatcher dispatcher) {}
 	

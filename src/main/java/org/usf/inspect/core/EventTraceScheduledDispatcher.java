@@ -72,7 +72,7 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     @Override
     public boolean emit(EventTrace trace) {
     	if(atomicState.get().canEmit()) {
-    		triggerHooks(h-> h.onTracesEmit(trace));
+    		triggerHooks(h-> h.onTraceEmit(trace));
     		dispatchIfCapacityExceeded(queue.add(trace));
     		return true;
     	}
