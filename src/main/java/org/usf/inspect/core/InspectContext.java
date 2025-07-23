@@ -187,7 +187,8 @@ public final class InspectContext {
 			new NamedType(HttpRequestStage.class,  		"http-stg"), 
 			new NamedType(MailRequestStage.class,  		"mail-stg"), 
 			new NamedType(NamingRequestStage.class,		"ldap-stg"), 
-			new NamedType(FtpRequestStage.class,  		"ftp-stg"));
+			new NamedType(FtpRequestStage.class,  		"ftp-stg"),
+			new NamedType(RestRemoteServerProperties.class, "rest-rmt"));
 		return mapper;
 	}
 	
