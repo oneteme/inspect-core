@@ -64,19 +64,23 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
 	}
 	
     @Override
-    public void emit(EventTrace trace) {
+    public boolean emit(EventTrace trace) {
     	if(atomicState.get().canEmit()) {
     		dispatchIfCapacityExceeded(queue.add(trace));
     		triggerHooks(h-> h.onTracesEmit(trace));
+    		return true;
     	}
+    	return false;
     }
 
     @Override
-    public void emitAll(EventTrace[] traces) { //server usage
+    public boolean emitAll(EventTrace[] traces) { //server usage
     	if(atomicState.get().canEmit()) {
     		dispatchIfCapacityExceeded(queue.addAll(traces));
     		triggerHooks(h-> h.onTracesEmit(traces));
+    		return true;
     	}
+    	return false;
     }
     
     private void dispatchIfCapacityExceeded(int size){
@@ -228,6 +232,10 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
     public DispatchState2 getState() {
     	return atomicState.get();
     }
+    
+    public void setState(DispatchState state) {
+    	atomicState.set(state);
+	}
 	
 	void complete() {
 		atomicState.getAndUpdate(DispatchState2::complete);

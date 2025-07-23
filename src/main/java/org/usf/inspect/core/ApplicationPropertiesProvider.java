@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.util.Collections.emptyMap;
+
 import java.util.Map;
 
 /**
@@ -20,5 +22,7 @@ public interface ApplicationPropertiesProvider {
 	String getEnvironment();
 	
 	//v1.1
-	Map<String, String> additionalProperties(); //JSON
+	default Map<String, String> additionalProperties() {
+		return emptyMap(); 
+	}
 }

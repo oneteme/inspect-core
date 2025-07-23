@@ -11,9 +11,9 @@ import java.util.function.BiFunction;
  */
 public interface Dispatcher {
 	
-	void emit(EventTrace trace);
+	boolean emit(EventTrace trace);
 	
-	void emitAll(EventTrace[] traces);
+	boolean emitAll(EventTrace[] traces);
 	
 	void tryDispatchQueue(int delay, BiFunction<List<EventTrace>, Integer, List<EventTrace>> cons);
 	
