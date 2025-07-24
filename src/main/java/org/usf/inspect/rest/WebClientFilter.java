@@ -1,23 +1,15 @@
 package org.usf.inspect.rest;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Instant.now;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.Helper.extractAuthScheme;
-import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.HttpAction.POST_PROCESS;
-import static org.usf.inspect.core.HttpAction.PROCESS;
+import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.SessionManager.createHttpRequest;
-import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
+import static org.usf.inspect.rest.RestResponseMonitorListener.afterResponse;
+import static org.usf.inspect.rest.RestResponseMonitorListener.emitRestRequest;
+import static org.usf.inspect.rest.RestResponseMonitorListener.responseContentReadListener;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.CancellationException;
 
 import org.springframework.web.reactive.function.client.ClientRequest;
@@ -26,9 +18,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.RestRequest;
-import org.usf.inspect.rest.RestRequestInterceptor.RestExecutionMonitorListener;
 
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 /**
@@ -36,75 +26,42 @@ import reactor.core.publisher.Mono;
  * @author u$f
  *
  */
-@Slf4j
-public final class WebClientFilter implements ExchangeFilterFunction {
+public final class WebClientFilter implements ExchangeFilterFunction { //see RestRequestInterceptor
+
+	private static final String STAGE_START = WebClientFilter.class.getName() + ".stageStart";
 	
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {
-		var req = createHttpRequest(); //see RestRequestInterceptor
-		return call(()-> exc.exchange(request), restRequestListener(req, request))
+		var req = emitRestRequest(request.method(), request.url(), request.headers());
+		return call(()-> exc.exchange(request), preRequestListener(request, req))
 		.map(res->{
-			var trck = new DataBufferMetricsTracker(contentReadListener(req));
+			var trck = new DataBufferMetricsTracker(responseContentReadListener(req));
 			return res.mutate().body(f-> trck.track(f, res.statusCode().isError())).build();
 		})
-		.doOnNext(r-> traceHttpResponse(req, now(), r, null))
-		.doOnError(e-> traceHttpResponse(req, now(), null, e)) //DnsNameResolverTimeoutException 
-		.doOnCancel(()-> traceHttpResponse(req, now(), null, new CancellationException("cancelled")));
+		.doOnNext(r-> traceHttpResponse(request, r, req, null))
+		.doOnError(e-> traceHttpResponse(request, null, req, e)) //DnsNameResolverTimeoutException 
+		.doOnCancel(()-> traceHttpResponse(request, null, req, new CancellationException("cancelled")));
     }
-
-    ExecutionMonitorListener<Mono<ClientResponse>> restRequestListener(RestRequest req, ClientRequest request) {
-    	return (s,e,res,t)->{
-			req.setStart(s);
-			req.setMethod(request.method().name());
-			req.setURI(request.url());
-			req.setAuthScheme(extractAuthScheme(request.headers().get(AUTHORIZATION)));
-			req.setOutDataSize(request.headers().getContentLength()); //-1 unknown !
-			req.setOutContentEncoding(getFirstOrNull(request.headers().get(CONTENT_ENCODING))); 
-			//req.setUser(decode AUTHORIZATION)
-			if(nonNull(t)) { //no response
-				traceHttpResponse(req, now(), null, t);
-			}
-			else {
-				context().emitTrace(req); //no action
-			}
-		};
-    }
-
-    private void traceHttpResponse(RestRequest req, Instant end, ClientResponse cr, Throwable thrw) {
-    	var tn = threadName(); //run outside task
-		var stts = nonNull(cr) ? cr.statusCode().value() : 0; //break ClientHttpRes. dependency
-		var ctty = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_TYPE) : null;
-		var cten = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(CONTENT_ENCODING) : null;
-		var id   = nonNull(cr) ? cr.headers().asHttpHeaders().getFirst(TRACE_HEADER) : null;
-		context().emitTrace(req.createStage(PROCESS, req.getStart(), end, thrw)); //same thread
-    	req.runSynchronized(()->{
-    		req.setThreadName(tn);
-			req.setId(id); //+ send api_name !?
-			req.setStatus(stts);
-			req.setContentType(ctty);
-			req.setInContentEncoding(cten); 
-    		if(nonNull(thrw)) {
-    			req.setEnd(end);
-    			context().emitTrace(req);
-    		}
-    	});
-    }
-    
-	RestExecutionMonitorListener contentReadListener(RestRequest req){
-		return (s,e,n,b,t)-> {
-			context().emitTrace(req.createStage(POST_PROCESS, s, e, t)); //READ content
+	
+    ExecutionMonitorListener<Mono<ClientResponse>> preRequestListener(ClientRequest request, RestRequest req) {
+    	return (s,e,m,t)->{
+			context().emitTrace(req.createStage(PRE_PROCESS, s, e, t));
 			req.runSynchronized(()->{
-				if(nonNull(b)) {
-					req.setBodyContent(new String(b, UTF_8));
-				}
-				req.setInDataSize(n);
 				req.setEnd(e);
+				context().emitTrace(req);
 			});
-			context().emitTrace(req);
+			request.attributes().put(STAGE_START, e);
 		};
-	}
+    }
     
-    static <T> T getFirstOrNull(List<T> list) {
-    	return isNull(list) || list.isEmpty() ? null : list.get(0);
+    private void traceHttpResponse(ClientRequest request, ClientResponse response, RestRequest req, Throwable thrw) {
+    	var now = now();
+    	var beg = (Instant) request.attribute(STAGE_START).orElse(now);
+    	if(nonNull(response)) {
+        	afterResponse(req, beg, now, response.statusCode().value(), response.headers().asHttpHeaders(), thrw);
+		}
+		else {
+	    	afterResponse(req, beg, now, 0, null, thrw);
+		}
     }
 }

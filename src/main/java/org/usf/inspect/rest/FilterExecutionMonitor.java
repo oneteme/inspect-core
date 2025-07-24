@@ -64,7 +64,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	static final String STAGE_START = FilterExecutionMonitor.class.getName() + ".stageStart";
 
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
-	static final String TRACE_HEADER = "x-tracert";
+	static final String TRACE_HEADER = "x-tracert"; //"x-inspect"
 
 	private final Predicate<HttpServletRequest> excludeFilter;
 	//v1.1
@@ -111,7 +111,8 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		var start = now();
 		var ses = (RestSession) req.getAttribute(CURRENT_SESSION);
 		if(isNull(ses)) {
-			ses = createRestSession();
+			var reqID = req.getHeader(TRACE_HEADER);
+			ses = nonNull(reqID) ? createRestSession(reqID) :  createRestSession();
 			try {
 				ses.setStart(start);
 				ses.setThreadName(threadName());
@@ -122,8 +123,8 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				ses.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 				ses.setUserAgent(req.getHeader(USER_AGENT));
 			}
-			catch (Throwable t) {
-				reportUpdateMetric("rest session", ses.getId(), t);
+			catch (Exception t) {
+				reportUpdateMetric(RestSession.class, ses.getId(), t);
 			}
 			res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
@@ -154,8 +155,6 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 					ses.setEnd(e);  //IO | CancellationException | ServletException => no ErrorHandler
 				});
 				emitSessionEnd(ses); //emit session & clean context
-//					request.removeAttribute(CURRENT_SESSION); 
-//					request.removeAttribute(STAGE_START);c
 			}
 			else {
 				context().emitTrace(ses.createStage(DEFERRED, s, e, t));
@@ -185,8 +184,8 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				context().emitTrace(ses.createStage(PRE_PROCESS, beg, now, null));
 				request.setAttribute(STAGE_START, now);
 			}
-			catch (Throwable t) {
-				reportUpdateMetric("rest session", nonNull(ses) ? ses.getId() : null, t);
+			catch (Exception t) {
+				reportUpdateMetric(RestSession.class, nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -202,8 +201,8 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				context().emitTrace(ses.createStage(PROCESS, beg, now, null));
 				request.setAttribute(STAGE_START, now);
 			}
-			catch (Throwable t) {
-				reportUpdateMetric("rest session", nonNull(ses) ? ses.getId() : null, t);
+			catch (Exception t) {
+				reportUpdateMetric(RestSession.class, nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 	}
@@ -227,8 +226,8 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 					});
 				}
 			}
-			catch (Throwable t) {
-				reportUpdateMetric("rest session", nonNull(ses) ? ses.getId() : null, t);
+			catch (Exception t) {
+				reportUpdateMetric(RestSession.class, nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 	}

@@ -6,10 +6,10 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.core.Helper.log;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
+import static org.usf.inspect.core.SessionManager.reportUpdateMetric;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -203,7 +203,7 @@ public final class DatabaseRequestMonitor {
     			}
     		}
     		catch (Exception e) {
-    			log.warn("cannot collect updateCount metrics => [{}]:{}", e.getClass().getSimpleName(), e.getMessage());
+    			reportUpdateMetric(DatabaseRequestStage.class, lastStage.getRequestId(), e);
     		}
     	}
     	return more;
@@ -218,7 +218,7 @@ public final class DatabaseRequestMonitor {
         	return rows;
 		}
 		catch (Exception e) {
-			log.warn("cannot collect updateCount metrics => [{}]:{}", e.getClass().getSimpleName(), e.getMessage());
+			reportUpdateMetric(DatabaseRequestStage.class, lastStage.getRequestId(), e);
 		}
     	return -1;
     }

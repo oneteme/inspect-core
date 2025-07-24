@@ -1,7 +1,8 @@
 package org.usf.inspect.core;
 
+import static java.lang.String.format;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.log;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,7 +29,7 @@ abstract class AbstractSession implements Session {
 	public boolean wasCompleted() {
 		var c = threads.get();
 		if(c < 0) {
-			log.warn("illegal session lock state={}, {}", c, this);
+			context().reportError(format("illegal session thread state=%d, id=%s", c, getId()));
 			return true;
 		}
 		return c == 0 && nonNull(getEnd());

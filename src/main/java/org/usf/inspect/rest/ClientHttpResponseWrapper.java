@@ -3,6 +3,7 @@ package org.usf.inspect.rest;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,7 +11,6 @@ import java.time.Instant;
 
 import org.springframework.http.client.ClientHttpResponse;
 import org.usf.inspect.core.CacheableInputStream;
-import org.usf.inspect.rest.RestRequestInterceptor.RestExecutionMonitorListener;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
@@ -27,7 +27,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 
 	@Delegate
 	private final ClientHttpResponse cr;
-	private final RestExecutionMonitorListener handler;
+	private final RestResponseMonitorListener handler;
 	private CacheableInputStream pipe;
 	private Instant start;
 		
@@ -58,8 +58,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 				}
 			}
 			catch (Exception e) {
-				log.warn("Error while handling request response {}: {}", 
-						e.getClass().getSimpleName(), e.getMessage());
+				context().reportError("HttpResponse handle error", e);
 			}
 		}
 	}

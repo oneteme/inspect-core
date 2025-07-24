@@ -55,8 +55,8 @@ public class MethodExecutionMonitor implements Ordered {
     		ses.setName(getTraceableName(sgn));
     		ses.setLocation(sgn.getDeclaringTypeName());   
         	ses.setUser(userProvider.getUser(point, ses.getName()));
-		} catch (Throwable t) {
-			reportUpdateMetric("batch session", ses.getId(), t);
+		} catch (Exception t) {
+			reportUpdateMetric(MainSession.class, ses.getId(), t);
 		}
 		emitSessionStart(ses);
     	return call(point::proceed, (s,e,o,t)-> {
