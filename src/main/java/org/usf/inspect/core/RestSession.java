@@ -3,6 +3,8 @@ package org.usf.inspect.core;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
+import java.time.Instant;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Getter;
@@ -36,6 +38,10 @@ public class RestSession extends AbstractSession {
 		ses.setCacheControl(cacheControl);
 		ses.setException(exception);
 		return ses;
+	}
+	
+	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
+		return rest.createStage(type, start, end, t, HttpSessionStage::new);
 	}
 	
 	@Override
