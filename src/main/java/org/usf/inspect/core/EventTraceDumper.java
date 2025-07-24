@@ -44,7 +44,7 @@ public final class EventTraceDumper implements DispatchHook {
 					deleteFile(f); //cannot throw exception 
 				}
 				else {
-					updateFileDispatchAttempts(f, it);
+					setFileDispatchAttempts(f, it);
 				}
 			});
 		});
@@ -61,7 +61,7 @@ public final class EventTraceDumper implements DispatchHook {
 	String dumpTraces(Collection<EventTrace> traces) {
 		var fn = "dump_" + currentTimeMillis() + ".json";
 		try {
-			mapper.writeValue(dumpDir.resolve(fn).toFile(), traces);
+			mapper.writeValue(dumpDir.resolve(fn).toFile(), traces.toArray(EventTrace[]::new));
 			log.debug("{} traces was dumped in {}", traces.size(), fn);
 			return fn;
 		}
@@ -99,7 +99,7 @@ public final class EventTraceDumper implements DispatchHook {
 		}
 	}
 	
-	static void updateFileDispatchAttempts(File file, int attempts) {
+	static void setFileDispatchAttempts(File file, int attempts) {
 		try {
 			var fn = file.getName();
 			var idx = fn.indexOf('~');
@@ -109,8 +109,7 @@ public final class EventTraceDumper implements DispatchHook {
 			var path = file.toPath();
 			move(path, path.getParent().resolve(fn+"~"+attempts));
 		}
-		catch (Exception e) {
-			//ignore it
+		catch (Exception e) {//ignore it
 		}
 	}
 	
@@ -120,8 +119,7 @@ public final class EventTraceDumper implements DispatchHook {
 			var idx = fn.indexOf('~')+1;
 			return idx > -1 ? parseInt(fn.substring(idx)) : 0;
 		}
-		catch (Exception e) {
-			//ignore it
+		catch (Exception e) { //ignore it
 			return 0;
 		}
 	}

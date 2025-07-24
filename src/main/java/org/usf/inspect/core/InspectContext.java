@@ -28,6 +28,7 @@ import org.usf.inspect.core.Dispatcher.DispatchHook;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.AccessLevel;
@@ -58,10 +59,6 @@ public final class InspectContext {
 			log.warn("", new IllegalStateException("inspect context was not started"));
 		}
 		return singleton;
-	}
-	
-	public static ObjectMapper defaultObjectMapper() {
-		return mapper;
 	}
 	
 	public InspectCollectorConfiguration getConfiguration() {
@@ -116,7 +113,7 @@ public final class InspectContext {
 		}
 		DispatcherAgent agnt = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-			agnt = new RestDispatcherAgent(prop);
+			agnt = new RestDispatcherAgent(prop, mapper);
 			hooks.add(new EventTraceDumper(createDirs(conf.getTracing().getDumpDirectory(), instance.getId()), mapper));
 			hooks.add(new EventTracePurger(conf.getTracing().getQueueCapacity()));
 		}
@@ -168,7 +165,9 @@ public final class InspectContext {
 		mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required, read only
 		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 		//mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
-		mapper.registerSubtypes(
+
+        SimpleModule module = new SimpleModule();
+        module.registerSubtypes(
 			new NamedType(LogEntry.class, 				"log"),  
 			new NamedType(MachineResourceUsage.class, 	"rsrc-usg"),
 			new NamedType(MainSession.class,  			"main-ses"), 
@@ -185,6 +184,7 @@ public final class InspectContext {
 			new NamedType(NamingRequestStage.class,		"ldap-stg"), 
 			new NamedType(FtpRequestStage.class,  		"ftp-stg"),
 			new NamedType(RestRemoteServerProperties.class, "rest-rmt"));
+		mapper.registerModules(new JavaTimeModule(), module); 
 		return mapper;
 	}
 	

@@ -1,12 +1,11 @@
 package org.usf.inspect.core;
 
-import static java.nio.file.Files.readString;
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
+import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.usf.inspect.core.InspectContext.defaultObjectMapper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -21,6 +20,8 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,13 +35,14 @@ import lombok.extern.slf4j.Slf4j;
 public final class RestDispatcherAgent implements DispatcherAgent {
 	
 	private final RestRemoteServerProperties properties;
+	private final ObjectMapper mapper;
 	private final RestTemplate template;
 
 	private InstanceEnvironment instance;
-	private boolean registred;
+	private boolean registred = false;
 
-	public RestDispatcherAgent(RestRemoteServerProperties properties) {
-		this(properties, defaultRestTemplate(properties));
+	public RestDispatcherAgent(RestRemoteServerProperties properties, ObjectMapper mapper) {
+		this(properties, mapper, defaultRestTemplate(properties, mapper));
 	}
 	
 	@Override
@@ -50,7 +52,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	
 	@Override
     public void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces)  {
-		if(!registred) {//if not registered before
+		if(!registred && nonNull(instance)) { //dispatch traces before instance !
 			try {
 				template.postForObject(properties.getInstanceURI(), instance, String.class);
 				log.info("instance was registred with id={}", instance.getId());
@@ -62,7 +64,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 		}
     	if(registred) {
     		try {
-    			template.put(properties.getTracesURI(), traces.toArray(EventTrace[]::new), instance.getId(), attemps, pending, complete ? now() : null);
+    			template.put(properties.getTracesURI(), traces, instance.getId(), attemps, pending, complete ? now() : null);
     		}
     		catch (RestClientException e) {
 				throw new DispatchException("traces dispatch error", e);
@@ -73,7 +75,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	@Override
 	public void dispatch(int attempts, File dumpFile) {
 		try {
-			template.put(properties.getTracesURI(), readString(dumpFile.toPath()), instance.getId(), attempts, null, null);
+			template.put(properties.getTracesURI(), mapper.readTree(dumpFile), instance.getId(), attempts, null, null);
 		}
 		catch (RestClientException e) {
 			throw new DispatchException("dump file dispatch error", e);
@@ -83,8 +85,8 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 		}
 	}
 	
-	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties) {
-		var json = new MappingJackson2HttpMessageConverter(defaultObjectMapper());
+	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper) {
+		var json = new MappingJackson2HttpMessageConverter(mapper);
 		var plain = new StringHttpMessageConverter(); //for instanceID
 	    var timeout = ofSeconds(600); //wait for server startup 
 	    var rt = new RestTemplateBuilder()

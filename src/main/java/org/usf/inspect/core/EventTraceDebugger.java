@@ -50,10 +50,10 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 	synchronized void printSession(AbstractSession ses) {
 		sessions.remove(ses.getId());
 		log.debug(">{}",ses);
-		printMap(stages, ses.getId(), o-> log.debug("\t\t-{}", o));
+		printMap(stages, ses.getId(), o-> log.debug("    -{}", o));
 		printMap(requests, ses.getId(), r-> {
-			log.debug("\t-{}", r);
-			printMap(stages, r.getId(), s-> log.debug("\t\t-{}", s));
+			log.debug("  -{}", r);
+			printMap(stages, r.getId(), s-> log.debug("    -{}", s));
 		});
 	}
 	

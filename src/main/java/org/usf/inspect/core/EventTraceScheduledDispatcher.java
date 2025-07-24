@@ -226,15 +226,16 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
 			for(var it=traces.listIterator(); it.hasNext();) {
 				if(it.next() instanceof CompletableMetric o) {
 					o.runSynchronizedIfNotComplete(()-> {
-						if(seconds > -1 && o.getStart().until(now, SECONDS) > seconds) {
+						var dur = o.getStart().until(now, SECONDS);
+						if(seconds > -1 && dur > seconds) {
 							it.set(o.copy()); //do not put it in pending, will be sent later
-							log.trace("pending trace will be sent now : {}", o);
+							log.trace("pending trace since {}s, will be sent now : {}", dur, o);
 						}
 						else { //-1 => do not trace pending
 							pending.add(o);
-							it.remove();
-							log.trace("pending trace will be sent later : {} ", o);
+							log.trace("pending trace since {}s, will be sent later : {} ", dur, o);
 						}
+						it.remove();
 					});
 				}
 			}
