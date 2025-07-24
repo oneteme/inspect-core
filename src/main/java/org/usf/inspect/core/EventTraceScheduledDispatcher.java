@@ -233,9 +233,9 @@ public final class EventTraceScheduledDispatcher implements Dispatcher {
 						}
 						else { //-1 => do not trace pending
 							pending.add(o);
+							it.remove();
 							log.trace("pending trace since {}s, will be sent later : {} ", dur, o);
 						}
-						it.remove();
 					});
 				}
 			}

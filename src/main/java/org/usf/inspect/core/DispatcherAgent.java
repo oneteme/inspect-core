@@ -12,9 +12,9 @@ public interface DispatcherAgent {
 	
 	void dispatch(InstanceEnvironment instance); //callback ?
     
-	void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces);
+	void dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces);
 
-	void dispatch(int attemps, File dumpFile); //json
+	void dispatch(int attempts, File dumpFile);
 	
 	static DispatcherAgent noAgent() {
 		
@@ -26,12 +26,12 @@ public interface DispatcherAgent {
 			}
 			
 			@Override
-			public void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces) throws DispatchException {
+			public void dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces) throws DispatchException {
 				//do nothing
 			}
 			
 			@Override
-			public void dispatch(int attemps, File dumpFile) throws DispatchException {
+			public void dispatch(int attempts, File dumpFile) throws DispatchException {
 				//do nothing
 			}
 		};

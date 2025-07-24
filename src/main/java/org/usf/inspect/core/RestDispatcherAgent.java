@@ -3,14 +3,18 @@ package org.usf.inspect.core;
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
+import static java.util.Optional.empty;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -47,11 +51,45 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	
 	@Override
 	public void dispatch(InstanceEnvironment instance) {
-		this.instance = instance;
+		this.instance = instance; //to register on first dispatch
 	}
 	
 	@Override
-    public void dispatch(boolean complete, int attemps, int pending, List<EventTrace> traces)  {
+    public void dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces)  {
+    	if(checkRegisteredInstance()) {
+    		try {
+    			var uri = fromUriString(properties.getTracesURI())
+    					.queryParam("attempts", attempts)
+    					.queryParam("pending", pending)
+    					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
+    					.buildAndExpand(instance.getId()).toUri();
+    			template.put(uri, traces.toArray(EventTrace[]::new));
+    		}
+    		catch (RestClientException e) {
+				throw new DispatchException("traces dispatch error", e);
+			}
+    	}
+    }
+	
+	@Override
+	public void dispatch(int attempts, File dumpFile) {
+    	if(checkRegisteredInstance()) {
+			try {
+    			var uri = fromUriString(properties.getTracesURI())
+    					.queryParam("attempts", attempts)
+    					.buildAndExpand(instance.getId()).toUri();
+				template.put(uri, mapper.readTree(dumpFile));
+			}
+			catch (RestClientException e) {
+				throw new DispatchException("dump file dispatch error", e);
+			}
+			catch (IOException e) {
+				throw new DispatchException("dump file read error" + dumpFile, e);
+			}
+    	}
+	}
+	
+	boolean checkRegisteredInstance() {
 		if(!registred && nonNull(instance)) { //dispatch traces before instance !
 			try {
 				template.postForObject(properties.getInstanceURI(), instance, String.class);
@@ -62,27 +100,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 				throw new DispatchException("instance register error", e);
 			}
 		}
-    	if(registred) {
-    		try {
-    			template.put(properties.getTracesURI(), traces, instance.getId(), attemps, pending, complete ? now() : null);
-    		}
-    		catch (RestClientException e) {
-				throw new DispatchException("traces dispatch error", e);
-			}
-    	}
-    }
-	
-	@Override
-	public void dispatch(int attempts, File dumpFile) {
-		try {
-			template.put(properties.getTracesURI(), mapper.readTree(dumpFile), instance.getId(), attempts, null, null);
-		}
-		catch (RestClientException e) {
-			throw new DispatchException("dump file dispatch error", e);
-		}
-		catch (IOException e) {
-			throw new DispatchException("cannot read dump file " + dumpFile, e);
-		}
+		return registred;
 	}
 	
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper) {
@@ -110,7 +128,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 			        body = baos.toByteArray();
 			    }
 			    catch (Exception e) {/*do not throw exception */
-			    	log.warn("cannot compress sessions, {}", e.getMessage());
+			    	context().reportError("request body compression error", e);
 			    }
 			}
 	    	return exec.execute(req, body);

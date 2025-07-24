@@ -24,8 +24,8 @@ import lombok.ToString;
 @JsonIgnoreProperties({"instanceURI", "tracesURI"})
 public final class RestRemoteServerProperties implements RemoteServerProperties {
 	
-	private static final String INSTANCE_DEFAULT_URI = "v3/trace/instance"; //[POST] async
-	private static final String TRACES_DEFAULT_URI  = "v4/trace/instance/{id}/session?attempts={attempts}&pending={pending}&end={end}"; //[PUT] async
+	private static final String INSTANCE_DEFAULT_URI = "v3/trace/instance"; //[POST] Sync
+	private static final String TRACES_DEFAULT_URI  = "v4/trace/instance/{id}/session"; //[PUT] Async
 	
 	private URI host = create("http://localhost:9000/");
 	private String instanceURI;
