@@ -8,7 +8,7 @@ package org.usf.inspect.core;
 public enum DispatchMode {
 	
 	REST,
-	//JMS, KAFKA,
+	//JMS, KAFKA, Redis
 	//Binary, BDD
 	;
 }

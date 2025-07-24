@@ -27,8 +27,8 @@ public class MailRequest extends AbstractRequest {
 	private boolean failed;
 	//mail-collector
 	
-	public MailRequestStage createStage(MailAction type, Instant start, Instant end, Throwable t) {
-		return createStage(type, start, end, t, MailRequestStage::new);
+	public MailRequestStage createStage(MailAction type, Instant start, Instant end, Throwable thrw) {
+		return createStage(type, start, end, thrw, MailRequestStage::new);
 	}
 
 	@Override

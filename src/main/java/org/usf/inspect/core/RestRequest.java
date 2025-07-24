@@ -1,7 +1,9 @@
 package org.usf.inspect.core;
 
+import static java.lang.String.format;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.prettyURLFormat;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.net.URI;
 import java.time.Instant;
@@ -77,6 +79,12 @@ public class RestRequest extends AbstractRequest { //APiRequest
 		req.setInContentEncoding(inContentEncoding);
 		req.setOutContentEncoding(outContentEncoding);
 		req.setBodyContent(bodyContent);
+	}
+	
+	public void assertRemoteID(String id) {
+		if(!getId().equals(id)) {
+			context().reportError(format("req.id='%s' <> ses.id='%s'", getId(), id));
+		}
 	}
 	
 	@Override

@@ -2,6 +2,7 @@ package org.usf.inspect.rest;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
+import static org.usf.inspect.core.InspectContext.context;
 import static reactor.core.publisher.Flux.defer;
 
 import java.time.Instant;
@@ -10,7 +11,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.usf.inspect.rest.RestRequestInterceptor.RestExecutionMonitorListener;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 final class DataBufferMetricsTracker {
 	
-	private final RestExecutionMonitorListener listener;
+	private final RestResponseMonitorListener listener;
 
 	private byte[] bytes;
 	private long size;
@@ -46,8 +46,8 @@ final class DataBufferMetricsTracker {
 					    return new DefaultDataBufferFactory().wrap(bytes);
 					}
 				}
-				catch (Throwable e) {
-					log.warn("cannot extract request body, {}:{}", e.getClass().getSimpleName(), e.getMessage());
+				catch (Exception e) {
+					context().reportError("DataBuffer handle error", e);
 				}
 				return db; //maybe consumed
 			})

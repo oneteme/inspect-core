@@ -78,7 +78,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 //				.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
 		}
 		else {
-			log.warn("cannot find 'apiSessionFilter' bean, check your configuration, rest session tracking will not work correctly");
+			context().reportError("cannot find 'apiSessionFilter' bean, check your configuration, rest session tracking will not work correctly");
 		}
     }
     

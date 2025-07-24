@@ -137,8 +137,8 @@ public final class SessionManager {
         	req.setName(nameSupp.get());
         	req.setLocation(locationSupp.get());
     	}
-    	catch (Throwable t) {
-			reportUpdateMetric("local request", req.getId(), t);
+    	catch (Exception t) {
+			reportUpdateMetric(LocalRequest.class, req.getId(), t);
 		}
 		context().emitTrace(req);
 		return (s,e,o,t)->{
@@ -159,8 +159,12 @@ public final class SessionManager {
 	}
 	
 	public static RestSession createRestSession() {
+		return createRestSession(nextId());
+	}
+	
+	public static RestSession createRestSession(String uuid) {
 		var session = new RestSession();
-		session.setId(nextId());
+		session.setId(uuid);
 		return session;
 	}
 	
@@ -241,7 +245,7 @@ public final class SessionManager {
 		context().reportError(format("session conflict detected : previous=%s, next=%s", prev, next));
 	}
 
-	public static void reportUpdateMetric(String type, String id, Throwable t) {
-		context().reportError(format("failed to update %s %s", type, id), t);
+	public static void reportUpdateMetric(Class<?> clazz, String id, Throwable t) {
+		context().reportError(format("error while initialize or update '%s' with id='%s'", clazz.getSimpleName(), id), t);
 	}
 }
