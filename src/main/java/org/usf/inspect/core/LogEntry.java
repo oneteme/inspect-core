@@ -20,7 +20,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @RequiredArgsConstructor
-final class LogEntry implements EventTrace {
+public final class LogEntry implements EventTrace {
 	
 	private final Instant instant;
 	private final Level level;

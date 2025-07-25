@@ -34,4 +34,14 @@ abstract class AbstractSession implements Session {
 		}
 		return c == 0 && nonNull(getEnd());
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		return CompletableMetric.areEquals(this, obj);
+	}
+	
+	@Override
+	public int hashCode() {
+		return CompletableMetric.hashCodeOf(this);
+	}
 }
