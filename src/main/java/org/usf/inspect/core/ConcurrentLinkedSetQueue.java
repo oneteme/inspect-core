@@ -94,12 +94,10 @@ public final class ConcurrentLinkedSetQueue<T> {
 		}
 	}
 
-	public void removeFrom(int n) { 
+	public int removeFrom(int n) { 
 		synchronized(mutex){ // queue.reversed().iterator : java21
-			if(n == 0) {
-				queue = new LinkedHashSet<>();
-			}
-			if(n > 0 && n < queue.size()) {
+			var size = queue.size();
+			if(n > 0 && n < size) {
 				var it = queue.iterator(); //clear
 				for(var i=0; i<n; i++, it.next());
 				while(it.hasNext()) {
@@ -107,9 +105,10 @@ public final class ConcurrentLinkedSetQueue<T> {
 					it.remove();
 				}
 			}
-			else if(n < 0) {
-				throw new IllegalArgumentException("illegal parameter value=" + n);
-			}
+			else if(n <= 0) { //avoid throwing exception
+				queue = new LinkedHashSet<>();
+			}// else do nothing
+			return size - queue.size();
 		}
 	}
 

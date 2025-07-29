@@ -7,6 +7,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
+import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceType.SERVER;
@@ -17,7 +18,6 @@ import static org.usf.inspect.core.SessionManager.createStartupSession;
 import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
 import static org.usf.inspect.core.SessionManager.emitStartupSession;
 import static org.usf.inspect.core.SessionManager.nextId;
-import static org.usf.inspect.core.TracingProperties.createDirs;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -115,10 +115,12 @@ public final class InspectContext {
 		if(conf.isDebugMode()) {
 			hooks.add(new EventTraceDebugger());
 		}
+		if(conf.getDump().isEnabled()) {
+			hooks.add(new EventTraceDumper(createDirs(conf.getDump().getLocation(), instance.getId()), mapper));
+		}
 		DispatcherAgent agnt = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
 			agnt = new RestDispatcherAgent(prop, mapper);
-			hooks.add(new EventTraceDumper(createDirs(conf.getTracing().getDumpDirectory(), instance.getId()), mapper));
 		}
 		else if(nonNull(conf.getTracing().getRemote())) {
 			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());

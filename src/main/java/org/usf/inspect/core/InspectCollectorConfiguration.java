@@ -19,6 +19,7 @@ public final class InspectCollectorConfiguration {
 	private MonitoringConfiguration monitoring = new MonitoringConfiguration();
 	//v1.1
 	private TracingProperties tracing = new TracingProperties();
+	private DumpProperties dump = new DumpProperties();
 	private boolean debugMode = false; // enable debug mode, e.g. for testing
 	
 	public InspectCollectorConfiguration validate() {
@@ -26,6 +27,7 @@ public final class InspectCollectorConfiguration {
 			scheduling.validate();
 			monitoring.validate();
 			tracing.validate();
+			dump.validate();
 		}
 		return this;
 	}
