@@ -18,13 +18,15 @@ import lombok.ToString;
 public class TracingProperties { //add remote
 	
 	private int queueCapacity = 10_000; // {n} max buffering traces, min=100
+	private RemoteServerProperties remote; //replace server
 	//v1.1
 	private int delayIfPending = 30; // send pending traces after {n} seconds, 0: send immediately, -1 not 
-	private RemoteServerProperties remote; //replace server
+	private DumpProperties dump = new DumpProperties();
 	
 	void validate() {
 		assertGreaterOrEquals(queueCapacity, 100, "queue-capacity");
 		assertGreaterOrEquals(delayIfPending, -1, "dispatch-delay-if-pending");
+		dump.validate();
 		if(nonNull(remote)) {
 			remote.validate();
 		}

@@ -1,11 +1,13 @@
 package org.usf.inspect.core;
 
 import static java.net.URI.create;
+import static java.time.Duration.ofDays;
 import static java.util.Objects.isNull;
+import static org.usf.inspect.core.Assertions.assertBetween;
 import static org.usf.inspect.core.Assertions.assertPositive;
-import static org.usf.inspect.core.Assertions.assertStrictPositive;
 
 import java.net.URI;
+import java.time.Duration;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -31,7 +33,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	private String instanceURI;
 	private String tracesURI;
 	private int compressMinSize = 0; // size in bytes, 0: no compression
-	private int retentionMaxAge = 30; 
+	private Duration retentionMaxAge = ofDays(30); 
 	
 	@Override
 	public void validate() {
@@ -43,6 +45,6 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 			tracesURI = base + TRACES_DEFAULT_URI;
 		}
 		assertPositive(compressMinSize, "compress-min-size");
-		assertStrictPositive(retentionMaxAge, "retention-max-age");
+		assertBetween(retentionMaxAge, ofDays(1), ofDays(365), "retention-max-age");
 	}
 }

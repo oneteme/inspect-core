@@ -9,6 +9,7 @@ import static java.util.Collections.synchronizedList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.DispatchState.DISPATCH;
 import static org.usf.inspect.core.Helper.warnException;
 
@@ -52,7 +53,8 @@ public final class EventTraceScheduledDispatcher {
 		this.hooks = unmodifiableList(hooks);
 		this.queue = new ConcurrentLinkedSetQueue<>();
 		this.tasks = synchronizedList(new ArrayList<>());
-		this.executor.scheduleWithFixedDelay(()-> synchronizedDispatch(false, false), schd.getDelay(), schd.getDelay(), schd.getUnit());
+		var delay = schd.getInterval().getSeconds();
+		this.executor.scheduleWithFixedDelay(()-> synchronizedDispatch(false, false), delay, delay, SECONDS);
 		getRuntime().addShutdownHook(new Thread(this::complete, "shutdown-hook"));
 	}
 
@@ -194,17 +196,17 @@ public final class EventTraceScheduledDispatcher {
 				}
 			} 
 		}
-		size = queue.size(); // 2- remove all stages
+		size = queue.size(); // 2- remove resource usage 
+		if(size > propr.getQueueCapacity()) {
+			queue.removeIf(t-> t instanceof MachineResourceUsage);
+			log.debug("{} resource usage traces was deleted", size-queue.size());
+		} 
+		size = queue.size(); // 3- remove all stages
 		log.debug("{} completable traces was deleted", size-queue.size());
 		if(size > propr.getQueueCapacity()) {
 			queue.removeIf(t-> t instanceof AbstractStage);
 			log.debug("{} stage traces was deleted", size-queue.size());
 		}
-		size = queue.size(); // 3- remove resource usage 
-		if(size > propr.getQueueCapacity()) {
-			queue.removeIf(t-> t instanceof MachineResourceUsage);
-			log.debug("{} resource usage traces was deleted", size-queue.size());
-		} 
 		size = queue.size(); // 4- remove all logs
 		if(size > propr.getQueueCapacity()) {
 			queue.removeIf(t-> t instanceof LogEntry);

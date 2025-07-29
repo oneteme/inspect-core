@@ -17,6 +17,12 @@ import static org.usf.inspect.core.LogEntry.Level.INFO;
 import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
+import static org.usf.inspect.core.RequestMask.FTP;
+import static org.usf.inspect.core.RequestMask.JDBC;
+import static org.usf.inspect.core.RequestMask.LDAP;
+import static org.usf.inspect.core.RequestMask.LOCAL;
+import static org.usf.inspect.core.RequestMask.REST;
+import static org.usf.inspect.core.RequestMask.SMTP;
 
 import java.util.function.Supplier;
 
@@ -184,34 +190,35 @@ public final class SessionManager {
 	}
 	
 	public static RestRequest createHttpRequest() {
-		return traceableRequest(new RestRequest());
+		return traceableRequest(new RestRequest(), REST);
 	}
 	
 	public static DatabaseRequest createDatabaseRequest() {
-		return traceableRequest(new DatabaseRequest());
+		return traceableRequest(new DatabaseRequest(), JDBC);
 	}
 
 	public static FtpRequest createFtpRequest() {
-		return traceableRequest(new FtpRequest());
+		return traceableRequest(new FtpRequest(), FTP);
 	}
 	
 	public static MailRequest createMailRequest() {
-		return traceableRequest(new MailRequest());
+		return traceableRequest(new MailRequest(), SMTP);
 	}
 	
 	public static NamingRequest createNamingRequest() {
-		return traceableRequest(new NamingRequest());
+		return traceableRequest(new NamingRequest(), LDAP);
 	}
 
 	public static LocalRequest createLocalRequest() {
-		return traceableRequest(new LocalRequest());
+		return traceableRequest(new LocalRequest(), LOCAL);
 	}
 	
-	static <T extends AbstractRequest> T traceableRequest(T req) {
+	static <T extends AbstractRequest> T traceableRequest(T req, RequestMask mask) {
 		req.setId(nextId());
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
 			req.setSessionId(ses.getId());
+			ses.updateMask(mask);
 		}
 		return req;
 	}

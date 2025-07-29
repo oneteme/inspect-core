@@ -1,13 +1,10 @@
 package org.usf.inspect.core;
 
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.usf.inspect.core.Assertions.assertOneOf;
-import static org.usf.inspect.core.Assertions.assertStrictPositive;
+import static java.time.Duration.ofHours;
+import static java.time.Duration.ofSeconds;
+import static org.usf.inspect.core.Assertions.assertBetween;
 
-import java.util.EnumSet;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -23,11 +20,9 @@ import lombok.ToString;
 @ToString
 public class SchedulingProperties {
 	
-    private int delay = 5;
-	private TimeUnit unit = SECONDS;
+	private Duration interval = ofSeconds(60);
 
 	void validate() {
-		assertStrictPositive(delay, "delay");
-		assertOneOf(unit, EnumSet.of(SECONDS, MINUTES, HOURS), "unit");
+		assertBetween(interval, ofSeconds(10), ofHours(1), "interval");
 	}
 }

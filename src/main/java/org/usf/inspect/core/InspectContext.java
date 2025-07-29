@@ -115,8 +115,8 @@ public final class InspectContext {
 		if(conf.isDebugMode()) {
 			hooks.add(new EventTraceDebugger());
 		}
-		if(conf.getDump().isEnabled()) {
-			hooks.add(new EventTraceDumper(createDirs(conf.getDump().getLocation(), instance.getId()), mapper));
+		if(conf.getTracing().getDump().isEnabled()) {
+			hooks.add(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), instance.getId()), mapper));
 		}
 		DispatcherAgent agnt = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {

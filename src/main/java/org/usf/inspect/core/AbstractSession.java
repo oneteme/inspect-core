@@ -6,14 +6,18 @@ import static org.usf.inspect.core.InspectContext.context;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import lombok.Getter;
+
 /**
  * 
  * @author u$f
  *
  */
+@Getter
 abstract class AbstractSession implements Session {
 
 	private final AtomicInteger threads = new AtomicInteger();
+	private int mask; //TD -1 if absent
 
 	@Override
 	public void lock(){ //must be called before session end
@@ -33,6 +37,11 @@ abstract class AbstractSession implements Session {
 			return true;
 		}
 		return c == 0 && nonNull(getEnd());
+	}
+	
+	@Override
+	public void updateMask(RequestMask mask) {
+		this.mask |= mask.getValue();
 	}
 	
 	@Override
