@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.hash;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
@@ -27,14 +26,16 @@ public interface CompletableMetric extends Metric {
 		}
 	}
 	
-	default void runSynchronizedIfNotComplete(Runnable r) {
+	default boolean runSynchronizedIfNotComplete(Runnable r) {
 		synchronized (this) {
 			if(!wasCompleted()) {
 				r.run();
+				return true;
 			}
 		}
+		return false;
 	}
-	
+
 	static boolean areEquals(CompletableMetric o1, Object o2) {
 		if(o1 == o2) {
 			return true;

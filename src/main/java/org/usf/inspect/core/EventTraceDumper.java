@@ -4,18 +4,11 @@ import static java.lang.Integer.parseInt;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.move;
-import static java.util.Arrays.stream;
-import static java.util.Collections.emptyList;
-import static java.util.Objects.isNull;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.usf.inspect.core.Dispatcher.DispatchHook;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -31,52 +24,48 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class EventTraceDumper implements DispatchHook {
 	
-	private final Set<String> excludeFiles = new HashSet<>(); //TD save to file, load on start?
-	private final Path dumpDir;
+	private final Path baseDir;
 	private final ObjectMapper mapper;
 	
 	@Override
-	public void preDispatch(Dispatcher dispatcher) {
-		stream(listDumpFiles()).forEach(f->{
-			var it = getFileDispatchAttempts(f)+1;
-			dispatcher.dispatchNow(f, it, (v, t)->{
-				if(isNull(t)) {
-					deleteFile(f); //cannot throw exception 
-				}
-				else {
-					setFileDispatchAttempts(f, it);
-				}
-			});
-		});
-	}
-	
-	@Override
-	public void postDispatch(Dispatcher dispatcher) {
-		dispatcher.tryPropagateQueue(dispatcher.getState().wasCompleted() ? 0 : -1, (arr, max)-> { //excludes all pending metrics
-			dumpTraces(arr);
-			return emptyList();
-		});
-	}
-	
-	String dumpTraces(Collection<EventTrace> traces) {
+	public boolean onCapacityExceeded(EventTrace[] traces) {
 		var fn = "dump_" + currentTimeMillis() + ".json";
+		var f = baseDir.resolve(fn).toFile(); //can write !?
 		try {
-			mapper.writeValue(dumpDir.resolve(fn).toFile(), traces.toArray(EventTrace[]::new));
-			log.debug("{} traces was dumped in {}", traces.size(), fn);
-			return fn;
+			mapper.writeValue(f, traces);
+			log.debug("{} traces was dumped in '{}' file", traces.length, fn);
 		}
-		catch (Exception e) {
-			throw new DispatchException("creating dump file " + fn + " error", e);
+		catch (IOException e) {
+			throw new DispatchException("creating traces dump file '" + fn + "' error", e);
 		}
+		emitDispatchFileTask(f);
+		return true;
 	}
 	
-	File[] listDumpFiles() {
-		return dumpDir.toFile().listFiles(f-> 
-			!excludeFiles.contains(f.getName())
-			&& f.getName().matches("dump_\\d+\\.json(~\\d+)?"));
+	static void emitDispatchFileTask(File f) {
+		var fileRef = new File[] {f};
+		context().emitTask(agn->{
+			if(fileRef[0].exists()) {
+				var rt = getFileDispatchAttempts(fileRef[0].getName());
+				try {
+					agn.dispatch(++rt, fileRef[0]);
+					deleteFile(fileRef[0]); //ignore deleteFile exception
+					if(rt > 5) { //more than one attempt
+						log.info("successfully dispatched '{}' file after {} attempts", fileRef[0].getName(), rt);
+					}
+				}
+				catch (Exception e) {
+					fileRef[0] = setFileDispatchAttempts(fileRef[0], rt);
+					throw e;
+				}
+			}
+			else { //do not throw exception => end task
+				context().reportError("traces dump file '" + f.getName() + "' is not found"); 
+			}
+		});
 	}
 	
-	void deleteFile(File file) {
+	static void deleteFile(File file) {
 		boolean done = false;
 		try {
 			delete(file.toPath());
@@ -87,19 +76,18 @@ public final class EventTraceDumper implements DispatchHook {
 		}
 		if(!done) {
 			try {
-				done = file.renameTo(dumpDir.resolve(file.getName() + ".back").toFile());
+				done = file.renameTo(file.toPath().resolveSibling(file.getName() + ".back").toFile());
 			}
 			catch (Exception e) {
 				log.warn("cannot rename dump file {}", file, e);
 			}
 		}
 		if(!done) {
-			excludeFiles.add(file.getName());
-			context().reportError("cannot delete or rename dump file " + file.getName());
+			context().reportError("cannot delete or rename file '" + file.getName() + "'"); 
 		}
 	}
 	
-	static void setFileDispatchAttempts(File file, int attempts) {
+	static File setFileDispatchAttempts(File file, int attempts) {
 		try {
 			var fn = file.getName();
 			var idx = fn.indexOf('~');
@@ -107,17 +95,17 @@ public final class EventTraceDumper implements DispatchHook {
 				fn = fn.substring(0, idx);
 			}
 			var path = file.toPath();
-			move(path, path.getParent().resolve(fn+"~"+attempts));
+			return move(path, path.resolveSibling(fn+"~"+attempts)).toFile();
 		}
-		catch (Exception e) {//ignore it
+		catch (Exception e) {//cannot move file
+			return file;
 		}
 	}
 	
-	static int getFileDispatchAttempts(File file) {
+	static int getFileDispatchAttempts(String fn) {
 		try {
-			var fn = file.getName();
-			var idx = fn.indexOf('~')+1;
-			return idx > -1 ? parseInt(fn.substring(idx)) : 0;
+			var idx = fn.indexOf('~');
+			return idx > 0 ? parseInt(fn.substring(++idx)) : 0;
 		}
 		catch (Exception e) { //ignore it
 			return 0;

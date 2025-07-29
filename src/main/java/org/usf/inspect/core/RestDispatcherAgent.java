@@ -13,7 +13,6 @@ import static org.usf.inspect.core.InspectContext.context;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 
@@ -37,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public final class RestDispatcherAgent implements DispatcherAgent {
-	
+
 	private final RestRemoteServerProperties properties;
 	private final ObjectMapper mapper;
 	private final RestTemplate template;
@@ -48,36 +47,36 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	public RestDispatcherAgent(RestRemoteServerProperties properties, ObjectMapper mapper) {
 		this(properties, mapper, defaultRestTemplate(properties, mapper));
 	}
-	
+
 	@Override
 	public void dispatch(InstanceEnvironment instance) {
 		this.instance = instance; //to register on first dispatch
 	}
-	
+
 	@Override
-    public void dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces)  {
-    	if(checkRegisteredInstance()) {
-    		try {
-    			var uri = fromUriString(properties.getTracesURI())
-    					.queryParam("attempts", attempts)
-    					.queryParam("pending", pending)
-    					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
-    					.buildAndExpand(instance.getId()).toUri();
-    			template.put(uri, traces.toArray(EventTrace[]::new));
-    		}
-    		catch (RestClientException e) {
+	public void dispatch(boolean complete, int attempts, int pending, EventTrace[] traces)  {
+		if(isInstanceRegistred()) {
+			try {
+				var uri = fromUriString(properties.getTracesURI())
+						.queryParam("attempts", attempts)
+						.queryParam("pending", pending)
+						.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
+						.buildAndExpand(instance.getId()).toUri();
+				template.put(uri, traces);
+			}
+			catch (RestClientException e) { //server / client ?
 				throw new DispatchException("traces dispatch error", e);
 			}
-    	}
-    }
-	
+		}
+	}
+
 	@Override
 	public void dispatch(int attempts, File dumpFile) {
-    	if(checkRegisteredInstance()) {
+		if(isInstanceRegistred()) {
 			try {
-    			var uri = fromUriString(properties.getTracesURI())
-    					.queryParam("attempts", attempts)
-    					.buildAndExpand(instance.getId()).toUri();
+				var uri = fromUriString(properties.getTracesURI())
+						.queryParam("attempts", attempts)
+						.buildAndExpand(instance.getId()).toUri();
 				template.put(uri, mapper.readTree(dumpFile));
 			}
 			catch (RestClientException e) {
@@ -86,52 +85,52 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 			catch (IOException e) {
 				throw new DispatchException("dump file read error" + dumpFile, e);
 			}
-    	}
+		}
 	}
-	
-	boolean checkRegisteredInstance() {
+
+	boolean isInstanceRegistred() {
 		if(!registred && nonNull(instance)) { //dispatch traces before instance !
 			try {
 				template.postForObject(properties.getInstanceURI(), instance, String.class);
 				log.info("instance was registred with id={}", instance.getId());
 				registred = true;
 			}
-			catch(RestClientException e) {
+			catch(RestClientException e) {//server / client ?
 				throw new DispatchException("instance register error", e);
 			}
 		}
 		return registred;
 	}
-	
+
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper) {
 		var json = new MappingJackson2HttpMessageConverter(mapper);
 		var plain = new StringHttpMessageConverter(); //for instanceID
-	    var timeout = ofSeconds(600); //wait for server startup 
-	    var rt = new RestTemplateBuilder()
-	    		.messageConverters(json, plain) //minimum converters
+		var timeout = ofSeconds(600); //wait for server startup 
+		var rt = new RestTemplateBuilder()
+				.messageConverters(json, plain) //minimum converters
 				.setConnectTimeout(timeout)
 				.setReadTimeout(timeout)
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
-	    if(properties.getCompressMinSize() > 0) {
-	    	rt = rt.interceptors(bodyCompressionInterceptor(properties));
-	    }
-	    return rt.build();
+		if(properties.getCompressMinSize() > 0) {
+			rt = rt.interceptors(bodyCompressionInterceptor(properties));
+		}
+		return rt.build();
 	}
-	
+
 	static ClientHttpRequestInterceptor bodyCompressionInterceptor(final RestRemoteServerProperties properties) {
 		return (req, body, exec)->{
 			if(body.length >= properties.getCompressMinSize()) {
-			    var baos = new ByteArrayOutputStream();
-			    try (var gos = new GZIPOutputStream(baos)) {
-			        gos.write(body);
-				    req.getHeaders().add(CONTENT_ENCODING, "gzip");
-			        body = baos.toByteArray();
-			    }
-			    catch (Exception e) {/*do not throw exception */
-			    	context().reportError("request body compression error", e);
-			    }
+				var baos = new ByteArrayOutputStream();
+				try (var gos = new GZIPOutputStream(baos)) {
+					gos.write(body);
+					req.getHeaders().add(CONTENT_ENCODING, "gzip");
+					body = baos.toByteArray();
+				}
+				catch (Exception e) {/*do not throw exception */
+					context().reportError("request body compression error", e);
+				}
 			}
-	    	return exec.execute(req, body);
+			return exec.execute(req, body);
 		};
 	}
 }

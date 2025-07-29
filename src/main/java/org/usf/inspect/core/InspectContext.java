@@ -23,8 +23,6 @@ import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
 
-import org.usf.inspect.core.Dispatcher.DispatchHook;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
@@ -80,6 +78,12 @@ public final class InspectContext {
 		}
 	}
 
+	public void emitTask(DispatchTask task) {
+		if(nonNull(dispatcher)) {
+			dispatcher.emit(task);
+		}
+	}
+
     void traceStartupSession(Instant instant) {
 		var ses = createStartupSession();
 		ses.setType(STARTUP.name());
@@ -115,7 +119,6 @@ public final class InspectContext {
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
 			agnt = new RestDispatcherAgent(prop, mapper);
 			hooks.add(new EventTraceDumper(createDirs(conf.getTracing().getDumpDirectory(), instance.getId()), mapper));
-			hooks.add(new EventTracePurger(conf.getTracing().getQueueCapacity()));
 		}
 		else if(nonNull(conf.getTracing().getRemote())) {
 			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());

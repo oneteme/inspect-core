@@ -31,7 +31,7 @@ public class TracingProperties { //add remote
 	
 	void validate() {
 		dumpDirectory = createDirs(dumpDirectory, "inspect");
-		assertGreaterOrEquals(queueCapacity, 500, "queue-capacity");
+		assertGreaterOrEquals(queueCapacity, 100, "queue-capacity");
 		assertGreaterOrEquals(delayIfPending, -1, "dispatch-delay-if-pending");
 		if(nonNull(remote)) {
 			remote.validate();

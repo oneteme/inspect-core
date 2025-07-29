@@ -51,6 +51,11 @@ public interface DispatchState2 {
 			public boolean wasCompleted() {
 				return true;
 			}
+			
+			@Override
+			public String toString() {
+				return DispatchState2.this.toString() + ".completed";
+			}
 		};
 	}
 }

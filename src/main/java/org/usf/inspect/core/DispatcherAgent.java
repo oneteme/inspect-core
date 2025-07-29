@@ -1,7 +1,6 @@
 package org.usf.inspect.core;
 
 import java.io.File;
-import java.util.List;
 
 /**
  * 
@@ -12,7 +11,7 @@ public interface DispatcherAgent {
 	
 	void dispatch(InstanceEnvironment instance); //callback ?
     
-	void dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces);
+	void dispatch(boolean complete, int attempts, int pending, EventTrace[] traces);
 
 	void dispatch(int attempts, File dumpFile);
 	
@@ -26,7 +25,7 @@ public interface DispatcherAgent {
 			}
 			
 			@Override
-			public void dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces) throws DispatchException {
+			public void dispatch(boolean complete, int attempts, int pending, EventTrace[] traces) throws DispatchException {
 				//do nothing
 			}
 			

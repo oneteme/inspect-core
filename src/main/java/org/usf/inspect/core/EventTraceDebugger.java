@@ -11,8 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.usf.inspect.core.Dispatcher.DispatchHook;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -46,6 +44,14 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 			default-> log.debug(">{}", t);
 		}
     }
+
+	@Override
+	public void onDispatch(boolean complete, EventTrace[] traces)  {
+		if(complete) {
+			log.warn("unfinished tasks {}", sessions.size());
+			sessions.values().forEach(this::printSession);
+		}
+	}
 	
 	synchronized void printSession(AbstractSession ses) {
 		sessions.remove(ses.getId());
@@ -57,18 +63,10 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 		});
 	}
 	
-	<T extends Metric> void printMap(Map<String, Set<T>> map, String key, Consumer<T> cons) {
+	static <T extends Metric> void printMap(Map<String, Set<T>> map, String key, Consumer<T> cons) {
 		var stg = map.remove(key);
 		if(nonNull(stg)) {
 			stg.stream().sorted(METRIC_COMPARATOR).forEach(cons);
-		}
-	}
-	
-	@Override
-	public void postDispatch(Dispatcher dispatcher) {
-		if(dispatcher.getState().wasCompleted()) {
-			log.warn("unfinished tasks {}", sessions.size());
-			sessions.values().forEach(this::printSession);
 		}
 	}
 	
