@@ -26,7 +26,6 @@ import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createRestSession;
 import static org.usf.inspect.core.SessionManager.emitSessionEnd;
 import static org.usf.inspect.core.SessionManager.emitSessionStart;
-import static org.usf.inspect.core.SessionManager.reportUpdateMetric;
 
 import java.io.IOException;
 import java.net.URI;
@@ -124,7 +123,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				ses.setUserAgent(req.getHeader(USER_AGENT));
 			}
 			catch (Exception t) {
-				reportUpdateMetric(RestSession.class, ses.getId(), t);
+				context().reportEventHandle(ses.getId(), t);
 			}
 			res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
@@ -185,7 +184,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				reportUpdateMetric(RestSession.class, nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandle(nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -202,7 +201,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				reportUpdateMetric(RestSession.class, nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandle(nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 	}
@@ -227,7 +226,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				}
 			}
 			catch (Exception t) {
-				reportUpdateMetric(RestSession.class, nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandle(nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 	}

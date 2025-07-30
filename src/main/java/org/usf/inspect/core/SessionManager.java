@@ -144,7 +144,7 @@ public final class SessionManager {
         	req.setLocation(locationSupp.get());
     	}
     	catch (Exception t) {
-			reportUpdateMetric(LocalRequest.class, req.getId(), t);
+    		context().reportEventHandle(req.getId(), t);
 		}
 		context().emitTrace(req);
 		return (s,e,o,t)->{
@@ -250,9 +250,5 @@ public final class SessionManager {
 	
 	static void reportSessionConflict(String prev, String next) {
 		context().reportError(format("session conflict detected : previous=%s, next=%s", prev, next));
-	}
-
-	public static void reportUpdateMetric(Class<?> clazz, String id, Throwable t) {
-		context().reportError(format("error while initialize or update '%s' with id='%s'", clazz.getSimpleName(), id), t);
 	}
 }

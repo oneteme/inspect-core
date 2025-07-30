@@ -28,6 +28,7 @@ public class DatabaseRequest extends AbstractRequest {
 	private String productVersion;
 	//v1.1
 	private boolean failed;
+	private String command;
 	//java-collector
 	
 	public DatabaseRequestStage createStage(JDBCAction type, Instant start, Instant end, Throwable t, long[] count) {

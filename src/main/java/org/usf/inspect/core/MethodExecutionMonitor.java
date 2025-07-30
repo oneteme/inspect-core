@@ -6,6 +6,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.MainSessionType.BATCH;
@@ -14,7 +15,6 @@ import static org.usf.inspect.core.SessionManager.createBatchSession;
 import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.emitSessionEnd;
 import static org.usf.inspect.core.SessionManager.emitSessionStart;
-import static org.usf.inspect.core.SessionManager.reportUpdateMetric;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -56,7 +56,7 @@ public class MethodExecutionMonitor implements Ordered {
     		ses.setLocation(sgn.getDeclaringTypeName());   
         	ses.setUser(userProvider.getUser(point, ses.getName()));
 		} catch (Exception t) {
-			reportUpdateMetric(MainSession.class, ses.getId(), t);
+			context().reportEventHandle(ses.getId(), t);
 		}
 		emitSessionStart(ses);
     	return call(point::proceed, (s,e,o,t)-> {

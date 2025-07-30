@@ -30,7 +30,7 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 	
 	@Override
 	public boolean execute() throws SQLException {
-		return tracer.execute(null, ps::execute, ps);
+		return tracer.execute(null, ps::execute);
 	}
 	
 	@Override

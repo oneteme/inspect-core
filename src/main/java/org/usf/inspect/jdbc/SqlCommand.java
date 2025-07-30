@@ -23,6 +23,8 @@ public enum SqlCommand {
 	GRANT, REVOKE, //DCL
 	INSERT, UPDATE, DELETE, //DML
 	SELECT, //DQL
+	//TCL 
+	CALL, SET, //OTHER
 	SQL; //multiple command
 	
 	public static final Pattern PATTERN =

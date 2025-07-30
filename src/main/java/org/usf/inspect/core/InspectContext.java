@@ -62,6 +62,10 @@ public final class InspectContext {
 	public InspectCollectorConfiguration getConfiguration() {
 		return configuration;
 	}
+	
+	public void reportEventHandle(String id, Throwable t) {
+		reportError("event handle error, id=" + id, t);
+	}
 
 	public void reportError(String msg, Throwable thrw) { //stack trace ??
 		msg += format(", cause=%s: %s", thrw.getClass().getSimpleName(), thrw.getMessage());

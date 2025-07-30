@@ -9,18 +9,15 @@ import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
-import static org.usf.inspect.core.SessionManager.reportUpdateMetric;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
-import static org.usf.inspect.jdbc.JDBCAction.DATABASE;
 import static org.usf.inspect.jdbc.JDBCAction.DISCONNECTION;
 import static org.usf.inspect.jdbc.JDBCAction.EXECUTE;
 import static org.usf.inspect.jdbc.JDBCAction.FETCH;
 import static org.usf.inspect.jdbc.JDBCAction.METADATA;
 import static org.usf.inspect.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.inspect.jdbc.JDBCAction.SAVEPOINT;
-import static org.usf.inspect.jdbc.JDBCAction.SCHEMA;
 import static org.usf.inspect.jdbc.JDBCAction.STATEMENT;
 import static org.usf.inspect.jdbc.SqlCommand.mainCommand;
 
@@ -53,19 +50,21 @@ public final class DatabaseRequestMonitor {
 	
 	private DatabaseRequest req;
 	private List<SqlCommand> commands;
-	private DatabaseRequestStage lastStage; // hold last exec stage
 	private boolean prepared;
+	
+	private DatabaseRequestStage lastExec; // hold last exec stage
+	private DatabaseRequestStage lastBatch; // hold last batch stage
 	
 	public Connection getConnection(SafeCallable<Connection, SQLException> supplier, SQLFunction<Connection, ConnectionInfo> infoFn) throws SQLException {
 		return new ConnectionWrapper(call(supplier, jdbcRequestListener(infoFn)), this);
 	}
 	
-	public String databaseInfo(SafeCallable<String, SQLException> supplier) throws SQLException {
-		return call(supplier, jdbcStageListener(DATABASE));
+	public String metaInfo(JDBCAction action, SafeCallable<String, SQLException> supplier) throws SQLException {
+		return call(supplier, jdbcStageListener(action));
 	}
 
-	public ResultSetWrapper schemaInfo(SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
-		return new ResultSetWrapper(call(supplier, jdbcStageListener(SCHEMA)), this);
+	public ResultSetWrapper metaData(JDBCAction action, SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
+		return new ResultSetWrapper(call(supplier, jdbcStageListener(action)), this);
 	}
 	
 	public StatementWrapper statement(SafeCallable<Statement, SQLException> supplier) throws SQLException {
@@ -79,7 +78,7 @@ public final class DatabaseRequestMonitor {
 		commands = new ArrayList<>(1);
 		return new PreparedStatementWrapper(call(supplier, (s,e,o,t)-> {
 			submitStage(req.createStage(STATEMENT, s, e, t, null));
-			commands.add(isNull(sql) ? null : mainCommand(sql));
+			appendCommand(sql);
 		}), this);
 	}
 
@@ -93,18 +92,19 @@ public final class DatabaseRequestMonitor {
 
 	public void addBatch(String sql, SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,v,t)-> {
-			if(isLastStage(BATCH)) { //safe++
-				lastStage.setEnd(e); //optim this
-				lastStage.getCount()[0]++;
+			if(nonNull(lastBatch)) { //safe++
+				lastBatch.setEnd(e); //optim this
+				lastBatch.getCount()[0]++;
 				if(nonNull(t)) {
-					lastStage.setException(mainCauseException(t)); //may overwrite previous
+					lastBatch.setException(mainCauseException(t)); //may overwrite previous
 				}
 			}
 			else {
-				submitStage(req.createStage(BATCH, s, e, t, new long[] {1}));
+				lastBatch = req.createStage(BATCH, s, e, t, new long[] {1});
+				submitStage(lastBatch);
 			}
 			if(nonNull(sql)) { //statement
-				commands.add(mainCommand(sql));
+				appendCommand(sql);
 			}
 		});
 	}
@@ -117,8 +117,8 @@ public final class DatabaseRequestMonitor {
 		return new ResultSetWrapper(execute(sql, supplier, rs-> null), this); // no count 
 	}
 
-	public boolean execute(String sql, SafeCallable<Boolean, SQLException> supplier, Statement st) throws SQLException {
-		return execute(sql, supplier, b-> new long[] {getUpdateCount(st)}); //-1 if select
+	public boolean execute(String sql, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
+		return execute(sql, supplier, b-> null); //-1 if select, cannot call  getUpdateCount
 	}
 	
 	public int executeUpdate(String sql, SafeCallable<Integer, SQLException> supplier) throws SQLException {
@@ -157,16 +157,30 @@ public final class DatabaseRequestMonitor {
 
 	private <T> T execute(String sql, SafeCallable<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
 		return call(supplier, (s,e,o,t)-> {
-			var stg = req.createStage(EXECUTE, s, e, t, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			lastExec = req.createStage(EXECUTE, s, e, t, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(nonNull(sql)) { //statement
-				commands.add(mainCommand(sql));
+				appendCommand(sql);
 			}
-			stg.setCommands(commands.toArray(SqlCommand[]::new));
+			lastExec.setCommands(commands.toArray(SqlCommand[]::new));
 			if(!prepared) { //statement.batch: sql is null
 				commands = new ArrayList<>();
 			}
-			submitStage(stg);
+			submitStage(lastExec);
 		});
+	}
+	
+	void appendCommand(String sql) {
+		var cmd = mainCommand(sql);
+		if(isNull(req.getCommand())) {
+			req.setCommand(sql);
+		}
+		else if(isNull(cmd)) {
+			req.setCommand("?"); //unknown
+		}
+		else if(!cmd.name().equals(req.getCommand())) {
+			req.setCommand(SqlCommand.SQL.name()); //multiple
+		}
+		commands.add(cmd);
 	}
 
 	public Savepoint savePoint(SafeCallable<Savepoint, SQLException> supplier) throws SQLException {
@@ -185,42 +199,33 @@ public final class DatabaseRequestMonitor {
 		exec(method, (s,e,o,t)-> //differed start 
 			submitStage(req.createStage(FETCH, start, e, t, new long[] {n})));
 	}
+    
+    /*  This method should be called only once per result. */
+    public long getLargeUpdateCount(Statement st) throws SQLException {
+    	var rows = st.getLargeUpdateCount();
+    	updateStageRowsCount(rows);
+    	return rows;
+    }
 
-	/**
-     * <P>There are no more results when the following is true:
-     * <PRE>{@code
-     *     ((stmt.getMoreResults() == false) && (stmt.getUpdateCount() == -1))
-     * }</PRE>
-	 */
-    public boolean getMoreResults(Statement st) throws SQLException {
-    	var more = st.getMoreResults();
-    	if(isLastStage(EXECUTE)) { //safe++
-    		try { //safe
-            	var rows = getUpdateCount(st);
-            	if(rows > -1) {
-    				var arr = lastStage.getCount();
-    				lastStage.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
-    			}
-    		}
-    		catch (Exception e) {
-    			reportUpdateMetric(DatabaseRequestStage.class, lastStage.getRequestId(), e);
-    		}
-    	}
-    	return more;
+    /*  This method should be called only once per result. */
+    public int getUpdateCount(Statement st) throws SQLException {
+    	var rows = st.getUpdateCount();
+    	updateStageRowsCount(rows);
+    	return rows;
     }
     
-    long getUpdateCount(Statement st) {
-    	try { //safe
-        	var rows = st.getLargeUpdateCount();
-        	if(rows == -1) {
-        		rows = st.getUpdateCount(); //check both
-        	}
-        	return rows;
-		}
-		catch (Exception e) {
-			reportUpdateMetric(DatabaseRequestStage.class, lastStage.getRequestId(), e);
-		}
-    	return -1;
+    void updateStageRowsCount(long rows) {
+    	if(rows > -1) {
+	    	try { //safe
+	    		if(nonNull(lastExec)) {
+					var arr = lastExec.getCount();
+					lastExec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
+	    		}
+			}
+			catch (Exception e) {
+				context().reportEventHandle(req.getId(), e);
+			}
+    	}
     }
 	
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
@@ -266,11 +271,6 @@ public final class DatabaseRequestMonitor {
 		if(nonNull(stg.getException())) {
 			req.runSynchronized(()-> req.setFailed(true));
 		}
-		this.lastStage = stg; //hold last stage
-	}
-	
-	boolean isLastStage(JDBCAction stg) {
-		return nonNull(lastStage) && stg.name().equals(lastStage.getName());
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

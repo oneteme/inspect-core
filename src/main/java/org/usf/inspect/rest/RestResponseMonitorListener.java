@@ -13,7 +13,6 @@ import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createHttpRequest;
-import static org.usf.inspect.core.SessionManager.reportUpdateMetric;
 import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
 
 import java.net.URI;
@@ -40,7 +39,7 @@ interface RestResponseMonitorListener {
 			req.setOutContentEncoding(getFirstOrNull(headers.get(CONTENT_ENCODING))); 
 			//req.setUser(decode AUTHORIZATION)
 		} catch (Exception e) {
-			reportUpdateMetric(RestRequest.class, req.getId(), e);
+			context().reportEventHandle(req.getId(), e);
 		}
 		headers.add(TRACE_HEADER, req.getId());
 		context().emitTrace(req); //finally

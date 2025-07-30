@@ -39,7 +39,7 @@ public final class ExecutionMonitor {
 				listener.handle(s, e, o, t);
 			}
 			catch (Throwable ex) {// do not throw exception
-			    context().reportError("failed to handle execution monitor event", ex);
+			    context().reportEventHandle("?", ex);
 			}
 		}
 	}
