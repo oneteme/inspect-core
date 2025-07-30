@@ -76,6 +76,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 			try {
 				var uri = fromUriString(properties.getTracesURI())
 						.queryParam("attempts", attempts)
+						.queryParam("filename", dumpFile.getName())
 						.buildAndExpand(instance.getId()).toUri();
 				template.put(uri, mapper.readTree(dumpFile));
 			}

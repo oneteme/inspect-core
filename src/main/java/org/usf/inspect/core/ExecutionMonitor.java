@@ -30,7 +30,7 @@ public final class ExecutionMonitor {
 			return (o = fn.call());
 		}
 		catch(Throwable e) { //also error
-			t  = e;
+			t = e;
 			throw e;
 		}
 		finally {
