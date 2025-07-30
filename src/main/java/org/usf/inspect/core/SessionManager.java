@@ -190,30 +190,30 @@ public final class SessionManager {
 	}
 	
 	public static RestRequest createHttpRequest() {
-		return traceableRequest(new RestRequest(), REST);
+		return traceableRequest(REST, new RestRequest());
 	}
 	
 	public static DatabaseRequest createDatabaseRequest() {
-		return traceableRequest(new DatabaseRequest(), JDBC);
+		return traceableRequest(JDBC, new DatabaseRequest());
 	}
 
 	public static FtpRequest createFtpRequest() {
-		return traceableRequest(new FtpRequest(), FTP);
+		return traceableRequest(FTP, new FtpRequest());
 	}
 	
 	public static MailRequest createMailRequest() {
-		return traceableRequest(new MailRequest(), SMTP);
+		return traceableRequest(SMTP, new MailRequest());
 	}
 	
 	public static NamingRequest createNamingRequest() {
-		return traceableRequest(new NamingRequest(), LDAP);
+		return traceableRequest(LDAP, new NamingRequest());
 	}
 
 	public static LocalRequest createLocalRequest() {
-		return traceableRequest(new LocalRequest(), LOCAL);
+		return traceableRequest(LOCAL, new LocalRequest());
 	}
 	
-	static <T extends AbstractRequest> T traceableRequest(T req, RequestMask mask) {
+	static <T extends AbstractRequest> T traceableRequest(RequestMask mask, T req) {
 		req.setId(nextId());
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
