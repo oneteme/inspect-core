@@ -218,7 +218,7 @@ public final class SessionManager {
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
 			req.setSessionId(ses.getId());
-			ses.updateMask(mask);
+			ses.updateRequestsMask(mask);
 		}
 		return req;
 	}

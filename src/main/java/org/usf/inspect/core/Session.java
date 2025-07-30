@@ -14,7 +14,7 @@ public interface Session extends CompletableMetric {
 	
 	void unlock();
 	
-	void updateMask(RequestMask mask);
+	void updateRequestsMask(RequestMask mask);
 	
 	default void updateContext() {
 		setCurrentSession(this);

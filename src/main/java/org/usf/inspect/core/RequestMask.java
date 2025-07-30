@@ -29,6 +29,6 @@ public enum RequestMask {
 	}
 
 	public boolean is(int value) {
-		return (value & this.value) > 0;
+		return (value & this.value) == value;
 	}
 }

@@ -6,7 +6,10 @@ import static org.usf.inspect.core.InspectContext.context;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 
@@ -14,10 +17,12 @@ import lombok.Getter;
  *
  */
 @Getter
+@Setter
+@JsonIgnoreProperties("threads")
 abstract class AbstractSession implements Session {
 
 	private final AtomicInteger threads = new AtomicInteger();
-	private int mask; //TD -1 if absent
+	private int requestsMask; //TD -1 if absent
 
 	@Override
 	public void lock(){ //must be called before session end
@@ -40,8 +45,8 @@ abstract class AbstractSession implements Session {
 	}
 	
 	@Override
-	public void updateMask(RequestMask mask) {
-		this.mask |= mask.getValue();
+	public void updateRequestsMask(RequestMask mask) {
+		this.requestsMask |= mask.getValue();
 	}
 	
 	@Override
