@@ -33,12 +33,8 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private final AtomicInteger stageCounter = new AtomicInteger();
 	
 	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Throwable t, Supplier<T> supp) {
-		return createStage(type.name(), start, end, t, supp);
-	}
-	
-	public <T extends AbstractStage> T createStage(String name, Instant start, Instant end, Throwable t, Supplier<T> supp) {
 		var stg = supp.get();
-		stg.setName(name);
+		stg.setName(type.name());
 		stg.setStart(start);
 		stg.setEnd(end);
 		if(nonNull(t)) {

@@ -10,7 +10,7 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.usf.inspect.core.DispatchState.DISPATCH;
+import static org.usf.inspect.core.BasicDispatchState.DISPATCH;
 import static org.usf.inspect.core.Helper.warnException;
 
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 public final class EventTraceScheduledDispatcher {
 
 	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(EventTraceScheduledDispatcher::daemonThread);
-	private final AtomicReference<DispatchState2> atomicState = new AtomicReference<>(DISPATCH);
+	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISPATCH);
 	private final AtomicBoolean atomicRunning = new AtomicBoolean(false);
 
 	private final TracingProperties propr;
@@ -122,7 +122,7 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 
-	void safeDispatch(DispatchState2 state, Runnable after) {
+	void safeDispatch(DispatchState state, Runnable after) {
 		try {
 			dispatchQueue(state);
 		}
@@ -148,7 +148,7 @@ public final class EventTraceScheduledDispatcher {
 		after.run();
 	}
 	
-	void dispatchTasks(DispatchState2 state) {
+	void dispatchTasks(DispatchState state) {
 		if(state.canDispatch() && !tasks.isEmpty()) {
 			var arr = tasks.toArray(DispatchTask[]::new);
 			for(var t : arr) { // iterator is not synchronized @see SynchronizedCollection.iterator
@@ -163,7 +163,7 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 
-	void propagateTraces(DispatchState2 state){
+	void propagateTraces(DispatchState state){
 		if(state.canPropagate()) {
 			dequeue(state.wasCompleted() ? 0 : -1, (trc, pnd, que)->{
 				var arr = trc.toArray(EventTrace[]::new);
@@ -214,7 +214,7 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 
-	void dispatchQueue(DispatchState2 state) {
+	void dispatchQueue(DispatchState state) {
 		if(state.canPropagate()) {
 			dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (trc, pnd, que)->{
 				var arr = trc.toArray(EventTrace[]::new);
@@ -287,16 +287,16 @@ public final class EventTraceScheduledDispatcher {
 		return arr;
 	}
 
-	public DispatchState2 getState() {
+	public DispatchState getState() {
 		return atomicState.get();
 	}
 
-	public void setState(DispatchState state) {
+	public void setState(BasicDispatchState state) {
 		atomicState.set(state);
 	}
 
 	void complete() {
-		atomicState.getAndUpdate(DispatchState2::complete);
+		atomicState.getAndUpdate(DispatchState::complete);
 		log.info("shutting down the scheduler service...");
 		executor.shutdown();
 		synchronizedDispatch(false, true);

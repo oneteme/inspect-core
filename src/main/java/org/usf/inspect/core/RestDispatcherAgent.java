@@ -50,7 +50,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 
 	@Override
 	public void dispatch(InstanceEnvironment instance) {
-		this.instance = instance; //to register on first dispatch
+		this.instance = instance; //register on next dispatch
 	}
 
 	@Override
@@ -80,7 +80,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 						.buildAndExpand(instance.getId()).toUri();
 				template.put(uri, mapper.readTree(dumpFile));
 			}
-			catch (RestClientException e) {
+			catch (RestClientException e) { //server / client ?
 				throw new DispatchException("dump file dispatch error", e);
 			}
 			catch (IOException e) {
