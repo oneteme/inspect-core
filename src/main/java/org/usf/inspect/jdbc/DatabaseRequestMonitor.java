@@ -19,6 +19,7 @@ import static org.usf.inspect.jdbc.JDBCAction.METADATA;
 import static org.usf.inspect.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.inspect.jdbc.JDBCAction.SAVEPOINT;
 import static org.usf.inspect.jdbc.JDBCAction.STATEMENT;
+import static org.usf.inspect.jdbc.SqlCommand.SQL;
 import static org.usf.inspect.jdbc.SqlCommand.mainCommand;
 
 import java.sql.Connection;
@@ -178,7 +179,7 @@ public final class DatabaseRequestMonitor {
 			req.setCommand("?"); //unknown
 		}
 		else if(!cmd.name().equals(req.getCommand())) {
-			req.setCommand(SqlCommand.SQL.name()); //multiple
+			req.setCommand(SQL.name()); //multiple
 		}
 		commands.add(cmd);
 	}
