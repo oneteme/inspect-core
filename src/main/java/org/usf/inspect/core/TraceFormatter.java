@@ -67,9 +67,9 @@ public final class TraceFormatter {
 			sb.append(":"+port);
 		}
 		if(nonNull(path)) {
-//			if(!path.startsWith("/") && !s.endsWith("/")) { //host & port are null
-//				s+= '/';
-//			}
+			if(!path.startsWith("/")) { //host & port are null
+				sb.append('/');
+			}
 			sb.append(path);
 		}
 		if(nonNull(query)) {
