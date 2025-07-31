@@ -25,8 +25,8 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
-import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.DirectoryRequest;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.SafeCallable;
 
 import lombok.RequiredArgsConstructor;

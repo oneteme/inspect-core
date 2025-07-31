@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.StackTraceRow.appendStackTrace;
 import static org.usf.inspect.core.StackTraceRow.excetionStackTraceRows;
 
 import lombok.Getter;
