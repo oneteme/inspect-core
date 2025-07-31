@@ -114,7 +114,7 @@ public final class InspectContext {
 		var instance = contextInstance(start, conf, provider);
 		var hooks = new ArrayList<DispatchHook>();
 		if(conf.getMonitoring().getResources().isEnabled()) {
-			hooks.add(new ResourceUsageMonitor()); //important! register before other hooks
+			hooks.add(new MachineResourceMonitor(conf.getMonitoring().getResources().getDisk())); //important! register before other hooks
 		}
 		if(conf.isDebugMode()) {
 			hooks.add(new EventTraceDebugger());

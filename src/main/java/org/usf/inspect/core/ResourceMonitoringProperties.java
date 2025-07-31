@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.io.File;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -15,8 +17,11 @@ import lombok.ToString;
 public class ResourceMonitoringProperties {
 
 	private boolean enabled = true;
+	private File disk = new File("/");
 
 	void validate() { 
-		//noting to validate
+		if(enabled && !disk.exists()) {
+			throw new IllegalArgumentException("disk=" + disk + " not found");
+		}
 	}
 }
