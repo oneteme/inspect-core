@@ -7,8 +7,4 @@ package org.usf.inspect.core;
  */
 public final class HttpRequestStage extends AbstractStage {
 	
-	@Override
-	String prettyFormat() {
-		return getName();
-	}
 }

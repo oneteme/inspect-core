@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.StackTraceRow.appendStackTrace;
 import static org.usf.inspect.core.StackTraceRow.excetionStackTraceRows;
 import static org.usf.inspect.core.StackTraceRow.threadStackTraceRows;
 
@@ -30,9 +29,12 @@ public final class LogEntry implements EventTrace {
 	
 	@Override
 	public String toString() {
-		var sb = new StringBuilder(instant + " [" + level + "] " + message);
-		appendStackTrace(sb, stackRows);
-		return sb.toString();
+//		appendStackTrace(sb, stackRows);
+		return new TraceFormatter()
+		.withCommand(level.name())
+		.withMessageAsResource(message)
+		.withInstant(instant)
+		.format();
 	}
 	
 	public static LogEntry logEntry(Level lvl, String msg) {

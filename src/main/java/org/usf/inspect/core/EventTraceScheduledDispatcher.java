@@ -39,8 +39,8 @@ public final class EventTraceScheduledDispatcher {
 	private final TracingProperties propr;
 	private final DispatcherAgent agent;
 	private final List<DispatchHook> hooks;
-	private final ConcurrentLinkedSetQueue<EventTrace> queue;
 	private final List<DispatchTask> tasks;
+	private final ConcurrentLinkedSetQueue<EventTrace> queue;
 	private int attempts;
 
 	public EventTraceScheduledDispatcher(TracingProperties prop, SchedulingProperties schd, DispatcherAgent agent) {
@@ -130,6 +130,7 @@ public final class EventTraceScheduledDispatcher {
 			warnException(log, e, "dispatch traces error"); //do not log exception stack trace
 		}
 		if(queue.size() > propr.getQueueCapacity()) {
+	        log.info("Queue capacity exceeded: removed last {} traces");
 			try {
 				propagateTraces(state);
 			}
@@ -137,7 +138,7 @@ public final class EventTraceScheduledDispatcher {
 				warnException(log, e, "propagate traces error"); //do not log exception stack trace
 			}
 			int n = queue.removeFrom(propr.getQueueCapacity());
-			log.debug("{} last traces was deleted", n);
+			log.debug("{} last traces were deleted", n);
 		}
 		try {
 			dispatchTasks(state);
@@ -170,7 +171,7 @@ public final class EventTraceScheduledDispatcher {
 				for(var h : hooks) {
 					try {
 						if(h.onCapacityExceeded(arr)) {
-							return pnd;
+							return pnd; 
 						}
 					}
 					catch (Exception e) { //catch exception => next hook
@@ -195,22 +196,22 @@ public final class EventTraceScheduledDispatcher {
 					cm.runSynchronizedIfNotComplete(it::remove);  
 				}
 			} 
-		}
-		size = queue.size(); // 2- remove resource usage 
-		if(size > propr.getQueueCapacity()) {
-			queue.removeIf(t-> t instanceof MachineResourceUsage);
-			log.debug("{} resource usage traces was deleted", size-queue.size());
-		} 
-		size = queue.size(); // 3- remove all stages
-		log.debug("{} completable traces was deleted", size-queue.size());
-		if(size > propr.getQueueCapacity()) {
-			queue.removeIf(t-> t instanceof AbstractStage);
-			log.debug("{} stage traces was deleted", size-queue.size());
-		}
-		size = queue.size(); // 4- remove all logs
-		if(size > propr.getQueueCapacity()) {
-			queue.removeIf(t-> t instanceof LogEntry);
-			log.debug("{} log traces was deleted", size-queue.size());
+			log.debug("{} non-complete traces were deleted", size - queue.size());
+			size = queue.size(); // 2- remove resource usage 
+			if(size > propr.getQueueCapacity()) {
+				queue.removeIf(t-> t instanceof MachineResourceUsage);
+				log.debug("{} resource usage traces were deleted", size-queue.size());
+				size = queue.size(); // 3- remove all stages
+				if(size > propr.getQueueCapacity()) {
+					queue.removeIf(t-> t instanceof AbstractStage);
+					log.debug("{} stage traces were deleted", size-queue.size());
+					size = queue.size(); // 4- remove all logs
+					if(size > propr.getQueueCapacity()) {
+						queue.removeIf(t-> t instanceof LogEntry);
+						log.debug("{} log traces were deleted", size-queue.size());
+					}
+				}
+			}
 		}
 	}
 
@@ -221,7 +222,7 @@ public final class EventTraceScheduledDispatcher {
 				triggerHooks(h-> h.onDispatch(state.wasCompleted(), arr));
 				if(state.canDispatch()) {
 					try {
-						log.debug("dispatching {}/{} traces ..", trc.size(), trc.size()+pnd.size());
+						log.debug("dispatching {}/{} traces ..", trc.size(), que.size());
 						agent.dispatch(state.wasCompleted(), ++attempts, pnd.size(), arr);
 						if(attempts > 5) { //more than one attempt
 							log.info("successfully dispatched {} items after {} attempts", trc.size(), attempts);

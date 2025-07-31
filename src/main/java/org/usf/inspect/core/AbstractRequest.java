@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.Metric.prettyDurationFormat;
 
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,11 +53,4 @@ public abstract class AbstractRequest implements CompletableMetric {
 	public int hashCode() {
 		return CompletableMetric.hashCodeOf(this);
 	}
-	
-	@Override
-	public String toString() {
-		return prettyFormat() + " " + prettyDurationFormat(this);
-	}
-	
-	abstract String prettyFormat();
 }

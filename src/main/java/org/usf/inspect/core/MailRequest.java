@@ -1,6 +1,6 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.Helper.prettyURLFormat;
+import static java.util.Objects.nonNull;
 
 import java.time.Instant;
 import java.util.List;
@@ -49,7 +49,14 @@ public class MailRequest extends AbstractRequest {
 	}
 	
 	@Override
-	String prettyFormat() {
-		return prettyURLFormat(getUser(), protocol, host, port, null);
+	public String toString() {
+		return new TraceFormatter()
+		.withThread(getThreadName())
+		.withCommand("SEND")
+		.withUser(getUser())
+		.withUrlAsResource(protocol, host, port, null, null)
+		.withPeriod(getStart(), getEnd())
+		.withResult(nonNull(mails) ? mails.size() + "mails" : null)
+		.format();
 	}
 }

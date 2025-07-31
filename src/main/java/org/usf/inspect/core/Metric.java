@@ -21,8 +21,4 @@ public interface Metric extends EventTrace {
 				? getStart().until(getEnd(), MILLIS)
 				: -1; // not set yet
 	}
-
-	static String prettyDurationFormat(Metric m) {
-		return "(in " + m.duration() + "ms)";
-	}
 }

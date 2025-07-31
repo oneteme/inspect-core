@@ -1,8 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
-
 import java.time.Instant;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -46,10 +43,14 @@ public class RestSession extends AbstractSession {
 	
 	@Override
 	public String toString() {
-		var s = rest.toString();
-		if(isNull(getBodyContent()) && nonNull(exception)) {
-			s += " >> " + exception;
-		}
-		return s;
+		return new TraceFormatter()
+		.withThread(getThreadName())
+		.withCommand(getMethod())
+		.withUser(getUser())
+		.withUrlAsResource(getProtocol(), getHost(), getPort(), getPath(), getQuery())
+		.withStatus(getStatus()+"")
+		.withResult(exception)
+		.withPeriod(getStart(), getEnd())
+		.format();
 	}
 }

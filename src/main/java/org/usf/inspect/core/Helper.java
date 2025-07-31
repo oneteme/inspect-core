@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.lang.Thread.currentThread;
 import static java.lang.reflect.Array.getLength;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -56,26 +55,6 @@ public final class Helper {
 		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
-	public static String prettyURLFormat(String user, String protocol, String host, int port, String path) {
-		var s = isNull(user) ? "" : '<' + user + '>';
-		if(nonNull(protocol)) {
-			s+= protocol + "://";
-		}
-		if(nonNull(host)) {
-			s+= host;
-		}
-		if(port > 0) {
-			s+= ":"+port;
-		}
-		if(nonNull(path)) {
-			if(!path.startsWith("/") && !s.endsWith("/")) { //host & port are null
-				s+= '/';
-			}
-			s+= path;
-		}
-		return s;
-	}
-
 	public static int count(Object o) {
 		if(nonNull(o)) {
 			if(o instanceof Collection<?> c) {

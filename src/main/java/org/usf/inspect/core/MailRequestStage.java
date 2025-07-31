@@ -7,8 +7,4 @@ package org.usf.inspect.core;
  */
 public final class MailRequestStage extends AbstractStage {
 
-	@Override
-	String prettyFormat() {
-		return getName();
-	}
 }

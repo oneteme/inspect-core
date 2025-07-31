@@ -1,7 +1,5 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.Helper.prettyURLFormat;
-
 import java.time.Instant;
 
 import org.usf.inspect.naming.NamingAction;
@@ -47,7 +45,12 @@ public class NamingRequest extends AbstractRequest {
 	}
 	
 	@Override
-	String prettyFormat() {
-		return prettyURLFormat(getUser(), protocol, host, port, null);
+	public String toString() {
+		return new TraceFormatter()
+		.withThread(getThreadName())
+		.withUser(getUser())
+		.withUrlAsResource(protocol, host, port, null, null)
+		.withPeriod(getStart(), getEnd())
+		.format();
 	}
 }

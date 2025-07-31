@@ -26,12 +26,12 @@ public class ExceptionInfo {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder(type + ": " + message);
-		if(nonNull(stackTraceRows)) {
-			appendStackTrace(sb, stackTraceRows);
-		}
-		if(nonNull(cause)) {
-			sb.append("\nCaused by: ").append(cause);
-		}
+//		if(nonNull(stackTraceRows)) {
+//			appendStackTrace(sb, stackTraceRows);
+//		}
+//		if(nonNull(cause)) {
+//			sb.append("\nCaused by: ").append(cause);
+//		}
 		return sb.toString();
 	}
 	

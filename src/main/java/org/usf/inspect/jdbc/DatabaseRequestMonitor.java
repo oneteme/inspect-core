@@ -48,32 +48,38 @@ import org.usf.inspect.core.SafeCallable.SafeRunnable;
  *
  */
 public final class DatabaseRequestMonitor {
-	
+
 	private DatabaseRequest req;
 	private List<SqlCommand> commands;
 	private boolean prepared;
-	
+
 	private DatabaseRequestStage lastExec; // hold last exec stage
 	private DatabaseRequestStage lastBatch; // hold last batch stage
-	
+
 	public Connection getConnection(SafeCallable<Connection, SQLException> supplier, SQLFunction<Connection, ConnectionInfo> infoFn) throws SQLException {
 		return new ConnectionWrapper(call(supplier, jdbcRequestListener(infoFn)), this);
 	}
-	
+
 	public String metaInfo(JDBCAction action, SafeCallable<String, SQLException> supplier) throws SQLException {
-		return call(supplier, jdbcStageListener(action));
+		return call(supplier, (s,e,o,t)-> {
+			submitStage(req.createStage(action, s, e, t, null));
+			updateRequestCommand("METADATA"); //no command
+		});
 	}
 
 	public ResultSetWrapper metaData(JDBCAction action, SafeCallable<ResultSet, SQLException> supplier) throws SQLException {
-		return new ResultSetWrapper(call(supplier, jdbcStageListener(action)), this);
+		return new ResultSetWrapper(call(supplier, (s,e,o,t)-> {
+			submitStage(req.createStage(action, s, e, t, null));
+			updateRequestCommand("METADATA");
+		}), this);
 	}
-	
+
 	public StatementWrapper statement(SafeCallable<Statement, SQLException> supplier) throws SQLException {
 		prepared = false;
 		commands = new ArrayList<>(1);
 		return new StatementWrapper(call(supplier, jdbcStageListener(STATEMENT)), this);
 	}
-	
+
 	public PreparedStatementWrapper preparedStatement(String sql, SafeCallable<PreparedStatement, SQLException> supplier) throws SQLException {
 		prepared = true;
 		commands = new ArrayList<>(1);
@@ -121,11 +127,11 @@ public final class DatabaseRequestMonitor {
 	public boolean execute(String sql, SafeCallable<Boolean, SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, b-> null); //-1 if select, cannot call  getUpdateCount
 	}
-	
+
 	public int executeUpdate(String sql, SafeCallable<Integer, SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> new long[] {n});
 	}
-	
+
 	public long executeLargeUpdate(String sql, SafeCallable<Long, SQLException> supplier) throws SQLException {
 		return execute(sql, supplier, n-> new long[] {n});
 	}
@@ -142,7 +148,7 @@ public final class DatabaseRequestMonitor {
 			return IntStream.of(arr).mapToLong(v->v).toArray();
 		});
 	}
-	
+
 	public long[] executeLargeBatch(SafeCallable<long[], SQLException> supplier) throws SQLException {
 		return execute(null, supplier, arr-> {
 			if(arr.length > 1) {
@@ -158,6 +164,7 @@ public final class DatabaseRequestMonitor {
 
 	private <T> T execute(String sql, SafeCallable<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
 		return call(supplier, (s,e,o,t)-> {
+			lastBatch = null;
 			lastExec = req.createStage(EXECUTE, s, e, t, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(nonNull(sql)) { //statement
 				appendCommand(sql);
@@ -169,66 +176,52 @@ public final class DatabaseRequestMonitor {
 			submitStage(lastExec);
 		});
 	}
-	
-	void appendCommand(String sql) {
-		var cmd = mainCommand(sql);
-		if(isNull(req.getCommand())) {
-			req.setCommand(sql);
-		}
-		else if(isNull(cmd)) {
-			req.setCommand("?"); //unknown
-		}
-		else if(!cmd.name().equals(req.getCommand())) {
-			req.setCommand(SQL.name()); //multiple
-		}
-		commands.add(cmd);
-	}
 
 	public Savepoint savePoint(SafeCallable<Savepoint, SQLException> supplier) throws SQLException {
 		return call(supplier, jdbcStageListener(SAVEPOINT));
 	}
-	
+
 	public void commit(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, jdbcStageListener(COMMIT));
 	}
-	
+
 	public void rollback(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, jdbcStageListener(ROLLBACK));
 	}
-	
+
 	public void fetch(Instant start, SafeRunnable<SQLException> method, int n) throws SQLException {
 		exec(method, (s,e,o,t)-> //differed start 
 			submitStage(req.createStage(FETCH, start, e, t, new long[] {n})));
 	}
-    
-    /*  This method should be called only once per result. */
-    public long getLargeUpdateCount(Statement st) throws SQLException {
-    	var rows = st.getLargeUpdateCount();
-    	updateStageRowsCount(rows);
-    	return rows;
-    }
 
-    /*  This method should be called only once per result. */
-    public int getUpdateCount(Statement st) throws SQLException {
-    	var rows = st.getUpdateCount();
-    	updateStageRowsCount(rows);
-    	return rows;
-    }
-    
-    void updateStageRowsCount(long rows) {
-    	if(rows > -1) {
-	    	try { //safe
-	    		if(nonNull(lastExec)) {
+	/*  This method should be called only once per result. */
+	public long getLargeUpdateCount(Statement st) throws SQLException {
+		var rows = st.getLargeUpdateCount();
+		updateStageRowsCount(rows);
+		return rows;
+	}
+
+	/*  This method should be called only once per result. */
+	public int getUpdateCount(Statement st) throws SQLException {
+		var rows = st.getUpdateCount();
+		updateStageRowsCount(rows);
+		return rows;
+	}
+
+	void updateStageRowsCount(long rows) {
+		if(rows > -1) {
+			try { //safe
+				if(nonNull(lastExec)) {
 					var arr = lastExec.getCount();
 					lastExec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
-	    		}
+				}
 			}
 			catch (Exception e) {
 				context().reportEventHandle(req.getId(), e);
 			}
-    	}
-    }
-	
+		}
+	}
+
 	public void disconnection(SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,o,t)-> {
 			context().emitTrace(req.createStage(DISCONNECTION, s, e, t, null));
@@ -236,7 +229,22 @@ public final class DatabaseRequestMonitor {
 			context().emitTrace(req);
 		});
 	}
+
+	void appendCommand(String sql) {
+		var cmd = mainCommand(sql);
+		commands.add(cmd);
+		updateRequestCommand(isNull(cmd) ? null : cmd.name());
+	}
 	
+	void updateRequestCommand(String cmd) {
+		if(isNull(req.getCommand())) {
+			req.setCommand(isNull(cmd) ? "?" : cmd);
+		}
+		else if(!req.getCommand().equals(cmd)) {
+			req.setCommand(SQL.name()); //multiple
+		}
+	}
+
 	ExecutionMonitorListener<Connection> jdbcRequestListener(SQLFunction<Connection, ConnectionInfo> infoFn) {
 		req = createDatabaseRequest();
 		return (s,e,o,t)->{
@@ -266,22 +274,22 @@ public final class DatabaseRequestMonitor {
 	<T> ExecutionMonitorListener<T> jdbcStageListener(JDBCAction action) {
 		return (s,e,o,t)-> submitStage(req.createStage(action, s, e, t, null));
 	}
-	
+
 	private void submitStage(DatabaseRequestStage stg) {
 		context().emitTrace(stg);
 		if(nonNull(stg.getException())) {
 			req.runSynchronized(()-> req.setFailed(true));
 		}
 	}
-	
+
 	static long[] appendLong(long[]arr, long v) {
 		var a = copyOf(arr, arr.length+1);
 		a[arr.length] = v;
 		return a;
 	}
-	
+
 	public interface SQLFunction<T,R> {
-		
+
 		R apply(T o) throws SQLException;
 	}
 }

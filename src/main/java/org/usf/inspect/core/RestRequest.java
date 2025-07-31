@@ -1,8 +1,6 @@
 package org.usf.inspect.core;
 
 import static java.lang.String.format;
-import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.prettyURLFormat;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.net.URI;
@@ -86,17 +84,17 @@ public class RestRequest extends AbstractRequest { //APiRequest
 			context().reportError(format("req.id='%s' <> ses.id='%s'", getId(), id));
 		}
 	}
-	
+
 	@Override
-	String prettyFormat() {
-		var s = '['+method+']'+ prettyURLFormat(getUser(), protocol, host, port, path);
-		if(nonNull(query)) {
-			s += '?' + query;
-		}
-		s += " >> " + status;
-		if(nonNull(bodyContent)) {
-			s += bodyContent;
-		}
-		return s;
+	public String toString() {
+		return new TraceFormatter()
+		.withThread(getThreadName())
+		.withCommand(method)
+		.withUser(getUser())
+		.withUrlAsResource(protocol, host, port, path, query)
+		.withStatus(status+"")
+		.withResult(bodyContent)
+		.withPeriod(getStart(), getEnd())
+		.format();
 	}
 }

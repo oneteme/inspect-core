@@ -1,8 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -39,17 +36,16 @@ public class LocalRequest extends AbstractRequest { //TODO extends RequestStage
 		req.setLocation(location);
 		req.setException(exception);
 	}
-	
+
 	@Override
-	String prettyFormat() {
-		var s = isNull(type) ? "" : '['+type+']';
-		if(nonNull(getUser())) {
-			s+= '<' + getUser() + '>';
-		}
-		s+= " " + location + "." + name;
-		if(nonNull(exception)) {
-			s += " >> " + exception;
-		}
-		return s;
+	public String toString() {
+		return new TraceFormatter()
+		.withThread(getThreadName())
+		.withCommand(type)
+		.withUser(getUser())
+		.withLocationAsResource(location, name)
+		.withResult(exception)
+		.withPeriod(getStart(), getEnd())
+		.format();
 	}
 }

@@ -1,7 +1,5 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.Helper.prettyURLFormat;
-
 import java.time.Instant;
 
 import org.usf.inspect.jdbc.JDBCAction;
@@ -59,8 +57,13 @@ public class DatabaseRequest extends AbstractRequest {
 	}
 	
 	@Override
-	String prettyFormat() {
-		return '['+productName+']' 
-				+ prettyURLFormat(getUser(), "jdbc", host, port, name);
+	public String toString() {
+		return new TraceFormatter()
+		.withThread(getThreadName())
+		.withCommand(command)
+		.withUser(getUser())
+		.withUrlAsResource("jdbc:"+productName.toLowerCase(), host, port, name, null)
+		.withPeriod(getStart(), getEnd())
+		.format();
 	}
 }

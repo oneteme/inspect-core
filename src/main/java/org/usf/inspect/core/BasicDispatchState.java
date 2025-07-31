@@ -15,7 +15,7 @@ public enum BasicDispatchState implements DispatchState {
 	DISPATCH(true, true, true);
 	
 	private final boolean canEmit;
-	private final boolean propagate;
+	private final boolean canPropagate;
 	private final boolean canDispatch;
 	
 	@Override
@@ -25,7 +25,7 @@ public enum BasicDispatchState implements DispatchState {
 	
 	@Override
 	public boolean canPropagate() {
-		return propagate;
+		return canPropagate;
 	}
 	
 	@Override

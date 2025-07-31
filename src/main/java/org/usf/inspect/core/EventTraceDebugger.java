@@ -81,7 +81,7 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 			});
 		}
 		else { 
-			new Exception("no active session/request").printStackTrace();
+			new Exception("no active session/request " + element).printStackTrace();
 		}
 	}
 }

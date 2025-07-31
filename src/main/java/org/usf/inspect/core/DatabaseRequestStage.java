@@ -1,10 +1,8 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static java.util.stream.Collectors.joining;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 import org.usf.inspect.jdbc.SqlCommand;
 
@@ -24,16 +22,12 @@ public final class DatabaseRequestStage extends AbstractStage {
 	private SqlCommand[] commands;
 	
 	@Override
-	String prettyFormat() {
-		var s = getName();
-		if(nonNull(commands)) {
-			s += " ~ " + Stream.of(commands)
-			.map(c-> nonNull(c) ? c.name() : "?")
-			.collect(joining(", "));
-		}
-		if(nonNull(count)) {// !exception
-			s += " >> " + Arrays.toString(count);
-		}
-		return s;
+	public String toString() {
+		return new TraceFormatter()
+		.withCommand(getName())
+		.withArgsAsResource(commands)
+		.withPeriod(getStart(), getEnd())
+		.withResult(nonNull(count) ? Arrays.toString(count) : getException())
+		.format();
 	}
 }
