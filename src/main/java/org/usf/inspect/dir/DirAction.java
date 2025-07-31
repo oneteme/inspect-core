@@ -1,11 +1,11 @@
-package org.usf.inspect.naming;
+package org.usf.inspect.dir;
 
 /**
  * 
  * @author u$f
  *
  */
-public enum NamingAction {
+public enum DirAction {
 
 	CONNECTION, DISCONNECTION,
 	LOOKUP, LIST, ATTRIB, SEARCH;

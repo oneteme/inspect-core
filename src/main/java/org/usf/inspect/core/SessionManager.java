@@ -205,8 +205,8 @@ public final class SessionManager {
 		return traceableRequest(SMTP, new MailRequest());
 	}
 	
-	public static NamingRequest createNamingRequest() {
-		return traceableRequest(LDAP, new NamingRequest());
+	public static DirectoryRequest createNamingRequest() {
+		return traceableRequest(LDAP, new DirectoryRequest());
 	}
 
 	public static LocalRequest createLocalRequest() {

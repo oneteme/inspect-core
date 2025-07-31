@@ -58,7 +58,7 @@ public class DatabaseRequest extends AbstractRequest {
 	
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withCommand(command)
 		.withUser(getUser())

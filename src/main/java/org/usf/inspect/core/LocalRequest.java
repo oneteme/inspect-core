@@ -39,7 +39,7 @@ public class LocalRequest extends AbstractRequest { //TODO extends RequestStage
 
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withCommand(type)
 		.withUser(getUser())

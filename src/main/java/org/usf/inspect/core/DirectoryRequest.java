@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import java.time.Instant;
 
-import org.usf.inspect.naming.NamingAction;
+import org.usf.inspect.dir.DirAction;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -14,7 +14,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class NamingRequest extends AbstractRequest {
+public class DirectoryRequest extends AbstractRequest {
 	
 	private String protocol; // ldap, ldaps
 	private String host;  //IP, domain
@@ -22,15 +22,15 @@ public class NamingRequest extends AbstractRequest {
 	//v1.1
 	private boolean failed;
 	
-	public NamingRequestStage createStage(NamingAction type, Instant start, Instant end, Throwable t, String... args) {
+	public NamingRequestStage createStage(DirAction type, Instant start, Instant end, Throwable t, String... args) {
 		var stg = createStage(type, start, end, t, NamingRequestStage::new);
 		stg.setArgs(args);
 		return stg;
 	}
 
 	@Override
-	public NamingRequest copy() {
-		var req = new NamingRequest();
+	public DirectoryRequest copy() {
+		var req = new DirectoryRequest();
 		req.setId(getId());
 		req.setStart(getStart());
 		req.setEnd(getEnd());
@@ -46,7 +46,7 @@ public class NamingRequest extends AbstractRequest {
 	
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withUser(getUser())
 		.withUrlAsResource(protocol, host, port, null, null)

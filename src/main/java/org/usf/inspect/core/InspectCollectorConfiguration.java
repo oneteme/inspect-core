@@ -17,8 +17,8 @@ public final class InspectCollectorConfiguration {
 	private boolean enabled = false;
 	private SchedulingProperties scheduling = new SchedulingProperties(); //replace dispatch
 	private MonitoringConfiguration monitoring = new MonitoringConfiguration();
-	//v1.1
 	private TracingProperties tracing = new TracingProperties();
+	//v1.1
 	private boolean debugMode = false; // enable debug mode, e.g. for testing
 	
 	public InspectCollectorConfiguration validate() {

@@ -25,7 +25,7 @@ public final class MachineResourceUsage implements EventTrace {
 	
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withCommand("METRIC")
 		.withInstant(instant)
 		.withMessageAsResource(format("heap: %d/%d | meta: %d/%d", lowHeap, highHeap, lowMeta, highMeta))

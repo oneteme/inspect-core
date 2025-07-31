@@ -1,4 +1,4 @@
-package org.usf.inspect.naming;
+package org.usf.inspect.dir;
 
 import javax.naming.directory.DirContext;
 
@@ -19,17 +19,17 @@ public final class ContextSourceWrapper implements ContextSource {
 
 	@Override
 	public DirContext getReadOnlyContext() throws NamingException {
-		return new DirContextTracker(contextSource::getReadOnlyContext);
+		return new DirContextWrapper(contextSource::getReadOnlyContext);
 	}
 
 	@Override
 	public DirContext getReadWriteContext() throws NamingException {
-		return new DirContextTracker(contextSource::getReadWriteContext);
+		return new DirContextWrapper(contextSource::getReadWriteContext);
 	}
 	
 	@Override
 	public DirContext getContext(String principal, String credentials) throws NamingException {
-		return new DirContextTracker(()-> contextSource.getContext(principal, credentials));
+		return new DirContextWrapper(()-> contextSource.getContext(principal, credentials));
 	}
 	
 	public static ContextSourceWrapper wrap(ContextSource contextSource) {

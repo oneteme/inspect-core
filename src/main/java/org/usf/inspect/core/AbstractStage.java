@@ -25,6 +25,10 @@ public abstract class AbstractStage implements Metric {
 
 	@Override
 	public String toString() {
-		return new TraceFormatter().withCommand(name).withPeriod(getStart(), getEnd()).withResult(exception).format();
+		return new EventTraceFormatter()
+				.withCommand(name)
+				.withPeriod(getStart(), getEnd())
+				.withResult(exception)
+				.format();
 	}
 }

@@ -50,7 +50,7 @@ public class FtpRequest extends AbstractRequest {
 	
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withUser(getUser())
 		.withUrlAsResource(protocol, host, port, null, null)

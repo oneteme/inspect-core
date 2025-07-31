@@ -87,7 +87,7 @@ public class RestRequest extends AbstractRequest { //APiRequest
 
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withCommand(method)
 		.withUser(getUser())

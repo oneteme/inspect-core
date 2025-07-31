@@ -7,7 +7,7 @@ import static java.util.stream.Collectors.joining;
 import java.time.Instant;
 import java.util.stream.Stream;
 
-public final class TraceFormatter {
+public final class EventTraceFormatter {
 
 	private String thread;
 	private String command; //method
@@ -46,16 +46,21 @@ public final class TraceFormatter {
 		return sb.toString();
 	}
 	
-	public TraceFormatter withCommand(String command) {
+	public EventTraceFormatter withThread(String thread) {
+		this.thread = thread;
+		return this;
+	}
+	
+	public EventTraceFormatter withCommand(String command) {
 		this.command = command;
 		return this;
 	}
 
-	public TraceFormatter withUser(String user) {
+	public EventTraceFormatter withUser(String user) {
 		this.user = user;
 		return this;
 	}
-	public TraceFormatter withUrlAsResource(String protocol, String host, int port, String path, String query) {
+	public EventTraceFormatter withUrlAsResource(String protocol, String host, int port, String path, String query) {
 		var sb = new StringBuilder();
 		if(nonNull(protocol)) {
 			sb.append(protocol + "://");
@@ -79,7 +84,7 @@ public final class TraceFormatter {
 		return this;
 	}
 	
-	public TraceFormatter withLocationAsResource(String classname, String methodName) {
+	public EventTraceFormatter withLocationAsResource(String classname, String methodName) {
 		this.resource = nonNull(classname) ? classname : "";
 		if(nonNull(methodName)) {
 			this.resource+= "." + methodName;
@@ -87,12 +92,12 @@ public final class TraceFormatter {
 		return this;
 	}
 	
-	public TraceFormatter withMessageAsResource(String message) {
+	public EventTraceFormatter withMessageAsResource(String message) {
 		this.resource = message;
 		return this;
 	}
 	
-	public TraceFormatter withArgsAsResource(Object[] args) {
+	public EventTraceFormatter withArgsAsResource(Object[] args) {
 		if(nonNull(args)) {
 			this.resource = Stream.of(args)
 			.map(c-> nonNull(c) ? c.toString() : "?")
@@ -100,31 +105,25 @@ public final class TraceFormatter {
 		}
 		return this;
 	}
-	
-	public TraceFormatter withThread(String thread) {
-		this.thread = thread;
-		return this;
-	}
 
-	public TraceFormatter withStatus(String status) {
+	public EventTraceFormatter withStatus(String status) {
 		this.status = status;
 		return this;
 	}
 
-	public TraceFormatter withResult(Object result) {
+	public EventTraceFormatter withResult(Object result) {
 		this.result = result;
 		return this;
 	}
-	
 
-	public TraceFormatter withInstant(Instant instant) {
+	public EventTraceFormatter withInstant(Instant instant) {
 		if(nonNull(instant)){
 			this.period = "(at " + instant + ")";
 		}
 		return this;
 	}
 	
-	public TraceFormatter withPeriod(Instant start, Instant end) {
+	public EventTraceFormatter withPeriod(Instant start, Instant end) {
 		if(nonNull(start) && nonNull(end)) {
 			this.period = "(in " +  start.until(end, MILLIS) + "ms)";
 		}

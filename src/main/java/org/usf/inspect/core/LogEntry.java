@@ -30,7 +30,7 @@ public final class LogEntry implements EventTrace {
 	@Override
 	public String toString() {
 //		appendStackTrace(sb, stackRows);
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withCommand(level.name())
 		.withMessageAsResource(message)
 		.withInstant(instant)

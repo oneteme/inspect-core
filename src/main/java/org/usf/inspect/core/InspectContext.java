@@ -185,7 +185,7 @@ public final class InspectContext {
 			new NamedType(DatabaseRequest.class,		"jdbc-req"),
 			new NamedType(RestRequest.class,  			"http-req"), 
 			new NamedType(MailRequest.class,  			"mail-req"), 
-			new NamedType(NamingRequest.class,			"ldap-req"), 
+			new NamedType(DirectoryRequest.class,			"ldap-req"), 
 			new NamedType(FtpRequest.class,  			"ftp-req"),
 			new NamedType(DatabaseRequestStage.class,	"jdbc-stg"),
 			new NamedType(HttpRequestStage.class,  		"http-stg"), 

@@ -23,7 +23,7 @@ public final class DatabaseRequestStage extends AbstractStage {
 	
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withCommand(getName())
 		.withArgsAsResource(commands)
 		.withPeriod(getStart(), getEnd())

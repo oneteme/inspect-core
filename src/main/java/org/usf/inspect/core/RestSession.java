@@ -43,7 +43,7 @@ public class RestSession extends AbstractSession {
 	
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withCommand(getMethod())
 		.withUser(getUser())

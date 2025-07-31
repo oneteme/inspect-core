@@ -50,7 +50,7 @@ public class MailRequest extends AbstractRequest {
 	
 	@Override
 	public String toString() {
-		return new TraceFormatter()
+		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withCommand("SEND")
 		.withUser(getUser())

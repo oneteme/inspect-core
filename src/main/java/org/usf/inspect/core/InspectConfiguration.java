@@ -19,6 +19,7 @@ import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.event.SpringApplicationEvent;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.inspect.jdbc.DataSourceWrapper;
@@ -88,14 +90,35 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	log.debug("loading 'RestRequestInterceptor' bean ..");
         return new RestRequestInterceptor();
     }
-     
+    
+    //TODO org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
     @Bean
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
-    BeanPostProcessor dataSourceWrapper() {
+    BeanPostProcessor dataSourceWrapper(RestRequestInterceptor interceptor) {
     	return new BeanPostProcessor() {
+    		
+    		private boolean intecept;
+    		
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-	            return bean instanceof DataSource ds ? new DataSourceWrapper(ds) : bean; //instance of RestTemplate => addInterceptor !!??
+    			System.err.println(beanName + " : " + bean.getClass());
+    			if(bean instanceof DataSource ds) {
+    		    	log.debug("wrapping DataSource '{}' bean ..", beanName);
+    				bean = new DataSourceWrapper(ds);
+    			}
+    			else if(!intecept && bean instanceof RestTemplate rt) {
+    		    	log.debug("adding 'RestRequestInterceptor' on {}", bean.getClass());
+    				var arr = rt.getInterceptors();
+    				arr.add(0, interceptor);
+    				rt.setInterceptors(arr);
+    				intecept = true; //only one time
+    			}
+    			else if(!intecept && bean instanceof RestTemplateBuilder rtb) {
+    		    	log.debug("adding 'RestRequestInterceptor' on {}", bean.getClass());
+    				rtb.additionalInterceptors(interceptor); //order !
+    				intecept = true; //only one time
+    			}
+	            return bean; //instance of RestTemplate => addInterceptor !!??
     		}
 		};
     }

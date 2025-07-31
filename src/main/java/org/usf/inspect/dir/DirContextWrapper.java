@@ -1,4 +1,4 @@
-package org.usf.inspect.naming;
+package org.usf.inspect.dir;
 
 import static java.net.URI.create;
 import static java.util.Objects.nonNull;
@@ -7,12 +7,12 @@ import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createNamingRequest;
-import static org.usf.inspect.naming.NamingAction.ATTRIB;
-import static org.usf.inspect.naming.NamingAction.CONNECTION;
-import static org.usf.inspect.naming.NamingAction.DISCONNECTION;
-import static org.usf.inspect.naming.NamingAction.LIST;
-import static org.usf.inspect.naming.NamingAction.LOOKUP;
-import static org.usf.inspect.naming.NamingAction.SEARCH;
+import static org.usf.inspect.dir.DirAction.ATTRIB;
+import static org.usf.inspect.dir.DirAction.CONNECTION;
+import static org.usf.inspect.dir.DirAction.DISCONNECTION;
+import static org.usf.inspect.dir.DirAction.LIST;
+import static org.usf.inspect.dir.DirAction.LOOKUP;
+import static org.usf.inspect.dir.DirAction.SEARCH;
 
 import java.util.function.Function;
 
@@ -26,7 +26,7 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
-import org.usf.inspect.core.NamingRequest;
+import org.usf.inspect.core.DirectoryRequest;
 import org.usf.inspect.core.SafeCallable;
 
 import lombok.RequiredArgsConstructor;
@@ -38,13 +38,13 @@ import lombok.experimental.Delegate;
  *
  */
 @RequiredArgsConstructor
-public class DirContextTracker implements DirContext {
+public class DirContextWrapper implements DirContext {
 	
 	@Delegate
 	private final DirContext ctx;
-	private NamingRequest req;
+	private DirectoryRequest req;
 	
-	public DirContextTracker(SafeCallable<DirContext, RuntimeException> fn) {
+	public DirContextWrapper(SafeCallable<DirContext, RuntimeException> fn) {
 		this.ctx = call(fn, ldapRequestListener());
 	}
 
@@ -142,7 +142,7 @@ public class DirContextTracker implements DirContext {
 		});
 	}
 
-	<T> ExecutionMonitorListener<T> ldapStageListener(NamingAction action, String... args) {
+	<T> ExecutionMonitorListener<T> ldapStageListener(DirAction action, String... args) {
 		return (s,e,o,t)-> {
 			context().emitTrace(req.createStage(action, s, e, t, args));
 			if(nonNull(t)) {

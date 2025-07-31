@@ -107,7 +107,7 @@ public final class DatabaseRequestMonitor {
 				}
 			}
 			else {
-				lastBatch = req.createStage(BATCH, s, e, t, new long[] {1});
+				lastBatch = req.createStage(BATCH, s, e, t, new long[]{1});
 				submitStage(lastBatch);
 			}
 			if(nonNull(sql)) { //statement

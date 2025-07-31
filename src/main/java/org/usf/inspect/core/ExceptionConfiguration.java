@@ -13,7 +13,7 @@ import lombok.ToString;
 @RequiredArgsConstructor
 public final class ExceptionConfiguration {
 	
-	private int maxStackTraceRows = 5; // max rows in stack trace, -1 means no limit
+	private int maxStackTraceRows = 5; // max rows in stack trace per exception, -1 means no limit
 	private int maxCauseDepth = -1; // max depth of cause chain, -1 means no limit
 	//private String[] classNamePatterns = null 
 	
