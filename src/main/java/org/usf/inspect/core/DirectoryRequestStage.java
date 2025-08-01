@@ -10,7 +10,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class NamingRequestStage extends AbstractStage {
+public class DirectoryRequestStage extends AbstractStage {
 	
 	private String[] args;
 	//int count !?
