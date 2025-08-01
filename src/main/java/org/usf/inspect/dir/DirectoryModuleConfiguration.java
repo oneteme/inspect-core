@@ -29,7 +29,7 @@ public class DirectoryModuleConfiguration {
 		return new BeanPostProcessor() {
 			@Override
 			public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-				if(bean instanceof ContextSource cs) {
+				if(bean instanceof ContextSource cs && bean.getClass() != ContextSourceWrapper.class) {
 					log.debug("wrapping ContextSource '{}' bean ..", beanName);
 					bean = new ContextSourceWrapper(cs);
 				}
