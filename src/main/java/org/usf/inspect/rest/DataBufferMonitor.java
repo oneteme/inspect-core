@@ -23,7 +23,7 @@ import reactor.core.publisher.Flux;
  */
 @Slf4j
 @RequiredArgsConstructor
-final class DataBufferMetricsTracker {
+final class DataBufferMonitor {
 	
 	private final RestResponseMonitorListener listener;
 
