@@ -24,6 +24,12 @@ public class FlywayModuleConfiguration {
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
     	log.debug("loading 'flywayConfigurationCustomizer' bean ..");
-    	return conf-> conf.dataSource(new DataSourceWrapper(conf.getDataSource()));
+    	return conf-> {
+    		var ds = conf.getDataSource();
+    		if(!(ds instanceof DataSourceWrapper)) {
+		    	log.debug("wrapping flyway DataSource '{}' ..", ds.getClass());
+    			conf.dataSource(new DataSourceWrapper(ds));
+    		}
+    	};
     }
 }
