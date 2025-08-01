@@ -27,7 +27,7 @@ public class FlywayModuleConfiguration {
     	return conf-> {
     		var ds = conf.getDataSource();
     		if(ds.getClass() != DataSourceWrapper.class) {
-		    	log.debug("wrapping flyway DataSource '{}' ..", ds.getClass());
+		    	log.info("wrapping flyway DataSource '{}' ..", ds.getClass());
     			conf.dataSource(new DataSourceWrapper(ds));
     		}
     	};

@@ -102,18 +102,18 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
     			if(bean instanceof DataSource ds && bean.getClass() != DataSourceWrapper.class) {
-    		    	log.debug("wrapping spring DataSource '{}' ..", bean.getClass());
+    		    	log.info("wrapping spring DataSource '{}' ..", bean.getClass());
     				bean = new DataSourceWrapper(ds);
     			}
     			else if(!intecept && bean instanceof RestTemplate rt) {
-    		    	log.debug("adding 'RestRequestInterceptor' on {}", bean.getClass());
+    		    	log.info("adding 'RestRequestInterceptor' on {}", bean.getClass());
     				var arr = rt.getInterceptors();
     				arr.add(0, interceptor);
     				rt.setInterceptors(arr);
     				intecept = true; //only one time
     			}
     			else if(!intecept && bean instanceof RestTemplateBuilder rtb) {
-    		    	log.debug("adding 'RestRequestInterceptor' on {}", bean.getClass());
+    		    	log.info("adding 'RestRequestInterceptor' on {}", bean.getClass());
     				rtb.additionalInterceptors(interceptor); //order !
     				intecept = true; //only one time
     			}
