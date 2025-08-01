@@ -101,7 +101,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     		
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-    			System.err.println(beanName + " : " + bean.getClass());
     			if(bean instanceof DataSource ds) {
     		    	log.debug("wrapping DataSource '{}' bean ..", beanName);
     				bean = new DataSourceWrapper(ds);

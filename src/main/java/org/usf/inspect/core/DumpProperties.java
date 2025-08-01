@@ -35,10 +35,11 @@ public class DumpProperties {
 		var f = location.toFile();
 		if(f.exists()) {
 			if(nonNull(dirs) && dirs.length > 0) {
+				var trg = f.toPath().resolve(join("/", dirs));
 				try {
-					return createDirectories(f.toPath().resolve(join("/", dirs)));
+					return createDirectories(trg);
 				} catch (IOException e) {
-					throw new IllegalArgumentException("cannot create directories", e);
+					throw new IllegalArgumentException("cannot create directories " + trg, e);
 				}
 			}
 			return location;
