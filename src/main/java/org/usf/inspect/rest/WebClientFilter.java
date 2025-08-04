@@ -42,14 +42,14 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 		.doOnError(e-> traceHttpResponse(request, null, req, e)) //DnsNameResolverTimeoutException 
 		.doOnCancel(()-> traceHttpResponse(request, null, req, new CancellationException("cancelled")));
     }
-	
+		
     ExecutionMonitorListener<Mono<ClientResponse>> preRequestListener(ClientRequest request, RestRequest req) {
     	return (s,e,m,t)->{
 			context().emitTrace(req.createStage(PRE_PROCESS, s, e, t));
-			req.runSynchronized(()->{
-				req.setEnd(e);
+    		if(nonNull(t)) {
+				req.runSynchronized(()-> req.setEnd(e));
 				context().emitTrace(req);
-			});
+    		}
 			request.attributes().put(STAGE_START, e);
 		};
     }
