@@ -10,12 +10,10 @@ import java.util.stream.Stream;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author u$f
  */
-@Slf4j
 @AllArgsConstructor(access = AccessLevel.PACKAGE)
 public final class ConcurrentLinkedSetQueue<T> {
 

@@ -175,7 +175,7 @@ public final class InspectContext {
 		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 		//mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
 
-        SimpleModule module = new SimpleModule();
+        SimpleModule module = new SimpleModule("inspect-core-module");
         module.registerSubtypes(
 			new NamedType(LogEntry.class, 				"log"),  
 			new NamedType(MachineResourceUsage.class, 	"rsrc-usg"),

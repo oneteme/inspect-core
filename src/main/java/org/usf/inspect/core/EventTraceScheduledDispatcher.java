@@ -8,10 +8,10 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.BasicDispatchState.DISPATCH;
-import static org.usf.inspect.core.Helper.warnException;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+
+import org.slf4j.Logger;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -332,5 +334,16 @@ public final class EventTraceScheduledDispatcher {
 	static interface QueueConsumer {
 
 		Collection<EventTrace> accept(List<EventTrace> traces, List<EventTrace> pending, Collection<EventTrace> queue);
+	}
+
+	private static void warnException(Logger log, Throwable t, String msg, Object... args) {
+		log.warn(msg, args);
+		log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
+		if(log.isDebugEnabled()) {
+			while(nonNull(t.getCause()) && t != t.getCause()) {
+				t = t.getCause();
+				log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
+			}
+		}
 	}
 }

@@ -91,6 +91,31 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		}
 		return fn.apply(command);
     }
+    
+    public static Runnable aroundRunnable(Runnable r) {
+    	var session = requireCurrentSession();
+		if(nonNull(session)) {
+			session.lock(); //important! sync lock !timeout 
+			try {
+				return ()->{
+					session.updateContext();
+			    	try {
+				    	r.run();
+			    	}
+			    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
+						session.unlock();
+						session.releaseContext();
+			    	}
+				};
+			}
+			catch (Exception e) {  //@see Executor::execute
+				session.unlock();
+				throw e;
+			}
+		}
+		return r;
+    }
+
         
 	public static ExecutorServiceWrapper wrap(@NonNull ExecutorService es) {
 		return new ExecutorServiceWrapper(es);

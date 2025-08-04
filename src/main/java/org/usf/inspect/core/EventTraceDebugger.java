@@ -61,6 +61,10 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 			log.debug("  -{}", r);
 			printMap(stages, r.getId(), s-> log.debug("    -{}", s));
 		});
+		var arr = logs.remove(ses.getId());
+		if(nonNull(arr)) {
+			arr.stream().forEach(o-> log.debug("  -{}", o));
+		}
 	}
 	
 	static <T extends Metric> void printMap(Map<String, Set<T>> map, String key, Consumer<T> cons) {

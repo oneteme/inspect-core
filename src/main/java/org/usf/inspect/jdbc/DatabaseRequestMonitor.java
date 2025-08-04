@@ -99,16 +99,15 @@ public final class DatabaseRequestMonitor {
 
 	public void addBatch(String sql, SafeRunnable<SQLException> method) throws SQLException {
 		exec(method, (s,e,v,t)-> {
-			if(nonNull(lastBatch)) { //safe++
+			if(isNull(lastBatch)) { //safe++
+				lastBatch = req.createStage(BATCH, s, e, t, new long[]{1}); //submit on execute
+			}
+			else {
 				lastBatch.setEnd(e); //optim this
 				lastBatch.getCount()[0]++;
 				if(nonNull(t)) {
 					lastBatch.setException(mainCauseException(t)); //may overwrite previous
 				}
-			}
-			else {
-				lastBatch = req.createStage(BATCH, s, e, t, new long[]{1});
-				submitStage(lastBatch);
 			}
 			if(nonNull(sql)) { //statement
 				appendCommand(sql);
@@ -163,8 +162,11 @@ public final class DatabaseRequestMonitor {
 	}
 
 	private <T> T execute(String sql, SafeCallable<T, SQLException> supplier, Function<T, long[]> countFn) throws SQLException {
-		return call(supplier, (s,e,o,t)-> {
+		if(nonNull(lastBatch)) { //batch & largeBatch
+			submitStage(lastBatch); //wait for last addBatch
 			lastBatch = null;
+		}
+		return call(supplier, (s,e,o,t)-> {
 			lastExec = req.createStage(EXECUTE, s, e, t, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(nonNull(sql)) { //statement
 				appendCommand(sql);
@@ -195,15 +197,15 @@ public final class DatabaseRequestMonitor {
 	}
 
 	/*  This method should be called only once per result. */
-	public long getLargeUpdateCount(Statement st) throws SQLException {
-		var rows = st.getLargeUpdateCount();
+	public int getUpdateCount(Statement st) throws SQLException {
+		var rows = st.getUpdateCount();
 		updateStageRowsCount(rows);
 		return rows;
 	}
 
 	/*  This method should be called only once per result. */
-	public int getUpdateCount(Statement st) throws SQLException {
-		var rows = st.getUpdateCount();
+	public long getLargeUpdateCount(Statement st) throws SQLException {
+		var rows = st.getLargeUpdateCount();
 		updateStageRowsCount(rows);
 		return rows;
 	}
@@ -242,7 +244,7 @@ public final class DatabaseRequestMonitor {
 		}
 		else if(!req.getCommand().equals(cmd)) {
 			req.setCommand(SQL.name()); //multiple
-		}
+		}//else they are same
 	}
 
 	ExecutionMonitorListener<Connection> jdbcRequestListener(SQLFunction<Connection, ConnectionInfo> infoFn) {

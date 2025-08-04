@@ -16,11 +16,11 @@ import lombok.RequiredArgsConstructor;
  */
 @RequiredArgsConstructor
 public final class MachineResourceMonitor implements DispatchHook {
-
-	private static final int MB = 1024 * 1024;
-	private final File file; 
 	
+	private static final int MB = 1024 * 1024;
+
 	private final MemoryMXBean bean = getMemoryMXBean();
+	private final File file; 
 
 	@Override
 	public void onInstanceEmit(InstanceEnvironment instance) {
@@ -43,7 +43,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 				toMb(heap.getCommitted()), 
 				toMb(meta.getUsed()), 
 				toMb(meta.getCommitted()),
-				toMb(file.getTotalSpace() - file.getUsableSpace())));
+				toMb(file.getTotalSpace() - file.getUsableSpace()))); // used space
 	}
 
 	static int toMb(long value) {

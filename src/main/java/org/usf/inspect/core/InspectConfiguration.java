@@ -91,7 +91,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
         return new RestRequestInterceptor();
     }
     
-    //TODO org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
     @Bean
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     BeanPostProcessor dataSourceWrapper(RestRequestInterceptor interceptor) {
@@ -117,6 +116,10 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     				rtb.additionalInterceptors(interceptor); //order !
     				intecept = true; //only one time
     			}
+//    			else if(bean instanceof TaskExecutorBuilder teb) { //check that
+//    				bean = teb.taskDecorator(ExecutorServiceWrapper::aroundRunnable);
+//    			}
+//    			System.err.println(beanName + " " + bean.getClass());
 	            return bean; //instance of RestTemplate => addInterceptor !!??
     		}
 		};
