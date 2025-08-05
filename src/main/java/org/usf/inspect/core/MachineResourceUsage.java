@@ -6,12 +6,14 @@ import java.time.Instant;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 /**
  * 
  * @author u$f
  *
  */
+@Setter
 @Getter
 @RequiredArgsConstructor
 public final class MachineResourceUsage implements EventTrace {

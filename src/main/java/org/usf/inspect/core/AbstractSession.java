@@ -19,7 +19,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonIgnoreProperties("threads")
-abstract class AbstractSession implements Session {
+public abstract class AbstractSession implements Session {
 
 	private final AtomicInteger threads = new AtomicInteger();
 	private int requestsMask; //TD -1 if absent
