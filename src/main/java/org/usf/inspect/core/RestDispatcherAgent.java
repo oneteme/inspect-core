@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
+import static java.util.Collections.emptyList;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
@@ -13,6 +14,7 @@ import static org.usf.inspect.core.InspectContext.context;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 
@@ -54,53 +56,56 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	}
 
 	@Override
-	public void dispatch(boolean complete, int attempts, int pending, EventTrace[] traces)  {
-		if(isInstanceRegistred()) {
-			try {
-				var uri = fromUriString(properties.getTracesURI())
-						.queryParam("attempts", attempts)
-						.queryParam("pending", pending)
-						.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
-						.buildAndExpand(instance.getId()).toUri();
-				template.put(uri, traces);
-			}
-			catch (RestClientException e) { //server / client ?
-				throw new DispatchException("traces dispatch error", e);
-			}
+	public Collection<EventTrace> dispatch(boolean complete, int attempts, int pending, EventTrace[] traces)  {
+		assertInstanceRegistred();
+		try {
+			var uri = fromUriString(properties.getTracesURI())
+					.queryParam("attempts", attempts)
+					.queryParam("pending", pending)
+					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
+					.buildAndExpand(instance.getId()).toUri();
+			template.put(uri, traces);
+			return emptyList(); //no partial dispatch
+		}
+		catch (RestClientException e) { //server / client ?
+			throw new DispatchException("traces dispatch error", e);
 		}
 	}
 
 	@Override
 	public void dispatch(int attempts, File dumpFile) {
-		if(isInstanceRegistred()) {
-			try {
-				var uri = fromUriString(properties.getTracesURI())
-						.queryParam("attempts", attempts)
-						.queryParam("filename", dumpFile.getName())
-						.buildAndExpand(instance.getId()).toUri();
-				template.put(uri, mapper.readTree(dumpFile));
-			}
-			catch (RestClientException e) { //server / client ?
-				throw new DispatchException("dump file dispatch error", e);
-			}
-			catch (IOException e) {
-				throw new DispatchException("dump file read error " + dumpFile, e);
-			}
+		assertInstanceRegistred();
+		try {
+			var uri = fromUriString(properties.getTracesURI())
+					.queryParam("attempts", attempts)
+					.queryParam("filename", dumpFile.getName())
+					.buildAndExpand(instance.getId()).toUri();
+			template.put(uri, mapper.readTree(dumpFile));
+		}
+		catch (RestClientException e) { //server / client ?
+			throw new DispatchException("dump file dispatch error", e);
+		}
+		catch (IOException e) {
+			throw new DispatchException("dump file read error " + dumpFile, e);
 		}
 	}
 
-	boolean isInstanceRegistred() {
-		if(!registred && nonNull(instance)) { //dispatch traces before instance !
-			try {
-				template.postForObject(properties.getInstanceURI(), instance, String.class);
-				log.info("instance was registred with id={}", instance.getId());
-				registred = true;
+	void assertInstanceRegistred() {
+		if(!registred) {
+			if(nonNull(instance)) {
+				try {
+					template.postForObject(properties.getInstanceURI(), instance, String.class);
+					registred = true;
+					log.info("instance was registred with id={}", instance.getId());
+				}
+				catch(RestClientException e) {//server / client ?
+					throw new DispatchException("instance register error", e);
+				}
 			}
-			catch(RestClientException e) {//server / client ?
-				throw new DispatchException("instance register error", e);
+			else {
+				throw new DispatchException("instance is null");
 			}
 		}
-		return registred;
 	}
 
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper) {

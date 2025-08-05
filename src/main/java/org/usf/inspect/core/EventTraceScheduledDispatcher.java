@@ -225,7 +225,10 @@ public final class EventTraceScheduledDispatcher {
 				if(state.canDispatch()) {
 					try {
 						log.debug("dispatching {}/{} traces ..", trc.size(), que.size());
-						agent.dispatch(state.wasCompleted(), ++attempts, pnd.size(), arr);
+						var part = agent.dispatch(state.wasCompleted(), ++attempts, pnd.size(), arr);
+						if(nonNull(part)) { //partial dispatch
+							pnd.addAll(part);
+						}
 						if(attempts > 5) { //more than one attempt
 							log.info("successfully dispatched {} items after {} attempts", trc.size(), attempts);
 						}
