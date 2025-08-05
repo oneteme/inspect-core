@@ -124,7 +124,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				ses.setUserAgent(req.getHeader(USER_AGENT));
 			}
 			catch (Exception t) {
-				context().reportEventHandle(ses.getId(), t);
+				context().reportEventHandleError(ses.getId(), t);
 			}
 			res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
@@ -185,7 +185,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				context().reportEventHandle(nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandleError(nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -202,7 +202,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				context().reportEventHandle(nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandleError(nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 	}
@@ -227,7 +227,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				}
 			}
 			catch (Exception t) {
-				context().reportEventHandle(nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandleError(nonNull(ses) ? ses.getId() : null, t);
 			}
 		}
 	}

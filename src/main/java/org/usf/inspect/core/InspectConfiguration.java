@@ -111,9 +111,9 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     				rt.setInterceptors(arr);
     				intecept = true; //only one time
     			}
-    			else if(!intecept && bean instanceof RestTemplateBuilder rtb) {
+    			else if(!intecept && bean instanceof RestTemplateBuilder builder) {
     		    	log.info("adding 'RestRequestInterceptor' on {}", bean.getClass());
-    				rtb.additionalInterceptors(interceptor); //order !
+    				builder.additionalInterceptors(interceptor); //order !
     				intecept = true; //only one time
     			}
 //    			else if(bean instanceof TaskExecutorBuilder teb) { //check that

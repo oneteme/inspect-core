@@ -56,7 +56,7 @@ public class MethodExecutionMonitor implements Ordered {
     		ses.setLocation(sgn.getDeclaringTypeName());   
         	ses.setUser(userProvider.getUser(point, ses.getName()));
 		} catch (Exception t) {
-			context().reportEventHandle(ses.getId(), t);
+			context().reportEventHandleError(ses.getId(), t);
 		}
 		emitSessionStart(ses);
     	return call(point::proceed, (s,e,o,t)-> {

@@ -26,6 +26,7 @@ public final class LogEntry implements EventTrace {
 	private final String message;
 	private final StackTraceRow[] stackRows;
 	private String sessionId; //nullable
+	private String instanceId; //server usage 
 	
 	@Override
 	public String toString() {

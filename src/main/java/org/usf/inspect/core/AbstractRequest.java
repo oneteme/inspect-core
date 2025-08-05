@@ -27,6 +27,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private String threadName;
 	//v1.1
 	private String sessionId;
+	private String instanceId; //server usage 
 	private String id;
 	@JsonIgnore
 	private final AtomicInteger stageCounter = new AtomicInteger();

@@ -39,7 +39,7 @@ interface RestResponseMonitorListener {
 			req.setOutContentEncoding(getFirstOrNull(headers.get(CONTENT_ENCODING))); 
 			//req.setUser(decode AUTHORIZATION)
 		} catch (Exception e) {
-			context().reportEventHandle(req.getId(), e);
+			context().reportEventHandleError(req.getId(), e);
 		}
 		headers.add(TRACE_HEADER, req.getId());
 		context().emitTrace(req); //finally

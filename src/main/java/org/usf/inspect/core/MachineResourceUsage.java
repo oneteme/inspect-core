@@ -22,6 +22,7 @@ public final class MachineResourceUsage implements EventTrace {
 	private final int usedMeta;
 	private final int commitedMeta;
 	private final int usedDiskSpace;
+	private String instanceId; //server usage 
 	//threads, CPU, disk ?
 	
 	@Override

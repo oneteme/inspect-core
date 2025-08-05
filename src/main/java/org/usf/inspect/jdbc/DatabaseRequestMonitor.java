@@ -219,7 +219,7 @@ public final class DatabaseRequestMonitor {
 				}
 			}
 			catch (Exception e) {
-				context().reportEventHandle(req.getId(), e);
+				context().reportEventHandleError(req.getId(), e);
 			}
 		}
 	}

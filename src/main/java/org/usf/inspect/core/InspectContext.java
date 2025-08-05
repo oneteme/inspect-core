@@ -63,17 +63,17 @@ public final class InspectContext {
 		return configuration;
 	}
 	
-	public void reportEventHandle(String id, Throwable t) {
+	public void reportEventHandleError(String id, Throwable t) {
 		reportError("event handle error, id=" + id, t);
 	}
 
 	public void reportError(String msg, Throwable thrw) { //stack trace ??
 		msg += format(", cause=%s: %s", thrw.getClass().getSimpleName(), thrw.getMessage());
-		emitTrace(logEntry(ERROR, msg, thrw, 10)); //takes no session id
+		emitTrace(logEntry(ERROR, msg, thrw, configuration.isDebugMode() ? -1 : 0)); //takes no session id
 	}
 
 	public void reportError(String msg) {
-		emitTrace(logEntry(ERROR, msg, 10)); //takes no session id 
+		emitTrace(logEntry(ERROR, msg, configuration.isDebugMode() ? -1 : 0)); //takes no session id 
 	}
 	
 	public void emitTrace(EventTrace trace) {
@@ -126,12 +126,12 @@ public final class InspectContext {
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
 			agnt = new RestDispatcherAgent(prop, mapper);
 		}
-		else if(nonNull(conf.getTracing().getRemote())) {
-			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
-		}
-		else {
+		else if(isNull(conf.getTracing().getRemote())) {
 			agnt = noAgent(); //no remote agent
 			log.warn("remote tracing is disabled, traces will be lost");
+		}
+		else {
+			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
 		}
 		var dspt = new EventTraceScheduledDispatcher(conf.getTracing(), conf.getScheduling(), agnt, hooks);
 		singleton = new InspectContext(conf, dspt);

@@ -25,12 +25,12 @@ public interface DispatcherAgent {
 			}
 			
 			@Override
-			public void dispatch(boolean complete, int attempts, int pending, EventTrace[] traces) throws DispatchException {
+			public void dispatch(boolean complete, int attempts, int pending, EventTrace[] traces) {
 				//do nothing
 			}
 			
 			@Override
-			public void dispatch(int attempts, File dumpFile) throws DispatchException {
+			public void dispatch(int attempts, File dumpFile) {
 				//do nothing
 			}
 		};

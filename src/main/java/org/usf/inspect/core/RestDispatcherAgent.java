@@ -84,7 +84,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 				throw new DispatchException("dump file dispatch error", e);
 			}
 			catch (IOException e) {
-				throw new DispatchException("dump file read error" + dumpFile, e);
+				throw new DispatchException("dump file read error " + dumpFile, e);
 			}
 		}
 	}

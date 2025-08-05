@@ -144,7 +144,7 @@ public final class SessionManager {
         	req.setLocation(locationSupp.get());
     	}
     	catch (Exception t) {
-    		context().reportEventHandle(req.getId(), t);
+    		context().reportEventHandleError(req.getId(), t);
 		}
 		context().emitTrace(req);
 		return (s,e,o,t)->{

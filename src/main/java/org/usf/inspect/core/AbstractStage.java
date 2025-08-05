@@ -21,6 +21,7 @@ public abstract class AbstractStage implements Metric {
 	// v1.1
 	private int order; // stages has same start sometimes (duration=0)
 	private String requestId;
+	private String instanceId; //server usage 
 //	private String threadName
 
 	@Override
