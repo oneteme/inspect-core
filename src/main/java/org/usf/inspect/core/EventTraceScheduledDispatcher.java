@@ -331,12 +331,7 @@ public final class EventTraceScheduledDispatcher {
 		return thread;
 	}
 
-	static interface QueueConsumer {
-
-		Collection<EventTrace> accept(List<EventTrace> traces, List<EventTrace> pending, Collection<EventTrace> queue);
-	}
-
-	private static void warnException(Logger log, Throwable t, String msg, Object... args) {
+	static void warnException(Logger log, Throwable t, String msg, Object... args) {
 		log.warn(msg, args);
 		log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
 		if(log.isDebugEnabled()) {
@@ -345,5 +340,10 @@ public final class EventTraceScheduledDispatcher {
 				log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
 			}
 		}
+	}
+
+	static interface QueueConsumer {
+
+		Collection<EventTrace> accept(List<EventTrace> traces, List<EventTrace> pending, Collection<EventTrace> queue);
 	}
 }

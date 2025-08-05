@@ -26,7 +26,7 @@ public class FlywayModuleConfiguration {
     	log.debug("loading 'flywayConfigurationCustomizer' bean ..");
     	return conf-> {
     		var ds = conf.getDataSource();
-    		if(ds.getClass() != DataSourceWrapper.class) {
+    		if(ds.getClass() != DataSourceWrapper.class) { //flyway may use the default datasource if its own is not set 
 		    	log.info("wrapping flyway DataSource '{}' ..", ds.getClass());
     			conf.dataSource(new DataSourceWrapper(ds));
     		}

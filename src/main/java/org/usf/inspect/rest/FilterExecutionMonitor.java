@@ -102,6 +102,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 			throw e;
 		}
 		catch (Exception e) {//should never happen
+			context().reportError("unexpected exception", e);
 			throw new IllegalStateException(e); 
 		}
 	}
