@@ -34,9 +34,10 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 			case AbstractSession s-> {
 				if(s.wasCompleted()) {
 					printSession(s);
-					return;
 				}
-				sessions.put(s.getId(), s);
+				else {
+					sessions.put(s.getId(), s);
+				}
 			}
 			case AbstractRequest r-> appendTrace(requests, r.getSessionId(), r);
 			case AbstractStage s-> appendTrace(stages, s.getRequestId(), s);

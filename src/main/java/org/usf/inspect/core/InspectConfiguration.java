@@ -75,6 +75,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
 		if(appContext.containsBean("apiSessionFilter")) {
+	    	log.debug("loading 'FilterExecutionMonitor' interceptor ..");
 			var filter = (FilterExecutionMonitor) appContext.getBean("apiSessionFilter", FilterRegistrationBean.class).getFilter(); //see 
 			registry.addInterceptor(filter).order(HIGHEST_PRECEDENCE); //before other interceptors
 //				.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
@@ -101,18 +102,18 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
     			if(bean instanceof DataSource ds && bean.getClass() != DataSourceWrapper.class) {
-    		    	log.info("wrapping spring DataSource '{}' ..", bean.getClass());
+    		    	log.info("wrapping spring DataSource {}: {} ..", beanName, bean.getClass());
     				bean = new DataSourceWrapper(ds);
     			}
     			else if(!intecept && bean instanceof RestTemplate rt) {
-    		    	log.info("adding 'RestRequestInterceptor' on {}", bean.getClass());
+    		    	log.info("adding 'RestRequestInterceptor' on {}: {}", beanName, bean.getClass());
     				var arr = rt.getInterceptors();
     				arr.add(0, interceptor);
     				rt.setInterceptors(arr);
     				intecept = true; //only one time
     			}
     			else if(!intecept && bean instanceof RestTemplateBuilder builder) {
-    		    	log.info("adding 'RestRequestInterceptor' on {}", bean.getClass());
+    		    	log.info("adding 'RestRequestInterceptor' on {}: {}", beanName, bean.getClass());
     				builder.additionalInterceptors(interceptor); //order !
     				intecept = true; //only one time
     			}

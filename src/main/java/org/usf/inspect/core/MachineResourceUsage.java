@@ -32,7 +32,8 @@ public final class MachineResourceUsage implements EventTrace {
 		return new EventTraceFormatter()
 		.withCommand("METRIC")
 		.withInstant(instant)
-		.withMessageAsResource(format("heap: %d/%d | meta: %d/%d | disk:%d", usedHeap, commitedHeap, usedMeta, commitedMeta, usedDiskSpace))
+		.withMessageAsResource(format("heap: %d/%d | meta: %d/%d | disk:%d", 
+				usedHeap, commitedHeap, usedMeta, commitedMeta, usedDiskSpace))
 		.format();
 	}
 }
