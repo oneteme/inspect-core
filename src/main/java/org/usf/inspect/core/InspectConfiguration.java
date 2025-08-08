@@ -91,6 +91,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	log.debug("loading 'RestRequestInterceptor' bean ..");
         return new RestRequestInterceptor();
     }
+
+    @Bean
+    HandlerExceptionResolverMonitor exceptionResolverMonitor() {
+    	return new HandlerExceptionResolverMonitor();
+    }
     
     @Bean
     @DependsOn("inspectContext") //ensure inspectContext is loaded first

@@ -35,7 +35,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
-import org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController;
+import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
@@ -168,11 +168,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-		var c = excludeFilter.test(request);
-		if(c) {
-			System.err.println(request.getMethod() + " " + request.getServletPath());
-		}
-		return c;
+		return excludeFilter.test(request);
 	}
 
 	/**
@@ -180,8 +176,8 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	 */
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		var ses = (RestSession) request.getAttribute(CURRENT_SESSION); //avoid unfiltered request
-		if(nonNull(ses)) { 
+		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
+		if(nonNull(ses) && shouldIntercept(handler)) {  //avoid unfiltered request
 			var now = now();
 			try {
 				var beg = (Instant) request.getAttribute(STAGE_START);
@@ -197,8 +193,8 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-		var ses = (RestSession) request.getAttribute(CURRENT_SESSION); //avoid unfiltered request
-		if(nonNull(ses)) {
+		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
+		if(nonNull(ses) && shouldIntercept(handler)) { //avoid unfiltered request
 			var now = now();
 			try {
 				var beg = (Instant) request.getAttribute(STAGE_START);
@@ -213,8 +209,8 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-		var ses = (RestSession) request.getAttribute(CURRENT_SESSION); //avoid unfiltered request
-		if(nonNull(ses)) {
+		var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
+		if(nonNull(ses) && shouldIntercept(handler)) { //avoid unfiltered request 
 			var now = now();
 			try {
 				var beg = (Instant) request.getAttribute(STAGE_START);
@@ -224,7 +220,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 					ses.runSynchronized(()->{
 						ses.setName(name);
 						ses.setUser(userProvider.getUser(request, name));
-						if(nonNull(ex)) {// unhandled exception in @ControllerAdvice
+						if(nonNull(ex) && isNull(ses.getException())) {// unhandled exception in @ControllerAdvice
 							ses.setException(fromException(ex));
 						}
 					});
@@ -262,7 +258,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
     
     static boolean shouldIntercept(Object handler) {  //BasicErrorController 
 		return handler instanceof HandlerMethod mth && 
-				mth.getBeanType() == BasicErrorController.class;
+				!(mth.getBean() instanceof ErrorController);
 	}
     
 }

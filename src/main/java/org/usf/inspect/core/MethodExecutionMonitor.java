@@ -88,7 +88,8 @@ public class MethodExecutionMonitor implements Ordered {
     /**
 	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
 	 */
-    @Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
+    @Deprecated(forRemoval = true) //@see HandlerExceptionResolverMonitor
+    //@Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
     Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
 		var ses = requireCurrentSession(RestSession.class);
 		if(nonNull(ses) && nonNull(joinPoint.getArgs())) {
