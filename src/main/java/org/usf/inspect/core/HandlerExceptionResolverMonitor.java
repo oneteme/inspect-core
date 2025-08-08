@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
@@ -30,7 +31,7 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler,
 			Exception ex) {
 		var ses = requireCurrentSession(RestSession.class);
-		if(isNull(ses.getException())) {
+		if(nonNull(ses) && isNull(ses.getException())) { //unfiltred requests
 			ses.setException(fromException(ex));
 		}
 		return null;
