@@ -168,7 +168,11 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-		return excludeFilter.test(request);
+		var c = excludeFilter.test(request);
+		if(c) {
+			System.err.println(request.getMethod() + " " + request.getServletPath());
+		}
+		return c;
 	}
 
 	/**
@@ -176,16 +180,16 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	 */
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		if(!shouldIntercept(handler)) { //skip BasicErrorController
+		var ses = (RestSession) request.getAttribute(CURRENT_SESSION); //avoid unfiltered request
+		if(nonNull(ses)) { 
 			var now = now();
-			var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 			try {
 				var beg = (Instant) request.getAttribute(STAGE_START);
 				context().emitTrace(ses.createStage(PRE_PROCESS, beg, now, null));
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				context().reportEventHandleError(nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandleError(ses.getId(), t);
 			}
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -193,25 +197,25 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-		if(!shouldIntercept(handler)) { //skip BasicErrorController
+		var ses = (RestSession) request.getAttribute(CURRENT_SESSION); //avoid unfiltered request
+		if(nonNull(ses)) {
 			var now = now();
-			var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 			try {
 				var beg = (Instant) request.getAttribute(STAGE_START);
 				context().emitTrace(ses.createStage(PROCESS, beg, now, null));
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				context().reportEventHandleError(nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandleError(ses.getId(), t);
 			}
 		}
 	}
 
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-		if(!shouldIntercept(handler)) { //skip BasicErrorController
+		var ses = (RestSession) request.getAttribute(CURRENT_SESSION); //avoid unfiltered request
+		if(nonNull(ses)) {
 			var now = now();
-			var ses = (RestSession) request.getAttribute(CURRENT_SESSION);
 			try {
 				var beg = (Instant) request.getAttribute(STAGE_START);
 				context().emitTrace(ses.createStage(POST_PROCESS, beg, now, null));
@@ -227,7 +231,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				}
 			}
 			catch (Exception t) {
-				context().reportEventHandleError(nonNull(ses) ? ses.getId() : null, t);
+				context().reportEventHandleError(ses.getId(), t);
 			}
 		}
 	}
