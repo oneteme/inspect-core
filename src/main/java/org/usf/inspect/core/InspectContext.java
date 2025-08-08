@@ -144,15 +144,15 @@ public final class InspectContext {
     			provider.getName(), 
     			provider.getVersion(),
     			provider.getEnvironment(),
-				hostAddress(),
-				getProperty("os.name"), //version ? window 10 / Linux
-				"java/" + getProperty("java.version"),
-				getProperty("user.name"),
-				provider.getBranch(),
-				provider.getCommitHash(),
-				collectorID(),
-				provider.additionalProperties(),
-				conf);
+			hostAddress(),
+			getProperty("os.name"), //version ? window 10 / Linux
+			"java/" + getProperty("java.version"),
+			getProperty("user.name"),
+			provider.getBranch(),
+			provider.getCommitHash(),
+			collectorID(),
+			provider.additionalProperties(),
+			conf);
 	}
 
 	static String hostAddress() {
@@ -177,23 +177,23 @@ public final class InspectContext {
 
         SimpleModule module = new SimpleModule("inspect-core-module");
         module.registerSubtypes(
-			new NamedType(LogEntry.class, 				"log"),  
-			new NamedType(MachineResourceUsage.class, 	"rsrc-usg"),
-			new NamedType(MainSession.class,  			"main-ses"), 
-			new NamedType(RestSession.class,  			"rest-ses"), 
-			new NamedType(LocalRequest.class, 			"locl-req"), 
-			new NamedType(DatabaseRequest.class,		"jdbc-req"),
-			new NamedType(RestRequest.class,  			"http-req"), 
-			new NamedType(MailRequest.class,  			"mail-req"), 
-			new NamedType(DirectoryRequest.class,		"ldap-req"), 
-			new NamedType(FtpRequest.class,  			"ftp-req"),
-			new NamedType(DatabaseRequestStage.class,	"jdbc-stg"),
-			new NamedType(HttpRequestStage.class,  		"http-stg"), 
-			new NamedType(HttpSessionStage.class,  		"sess-stg"), 
-			new NamedType(MailRequestStage.class,  		"mail-stg"), 
+			new NamedType(LogEntry.class, 					"log"),  
+			new NamedType(MachineResourceUsage.class, 		"rsrc-usg"),
+			new NamedType(MainSession.class,  				"main-ses"), 
+			new NamedType(RestSession.class,  				"rest-ses"), 
+			new NamedType(LocalRequest.class, 				"locl-req"), 
+			new NamedType(DatabaseRequest.class,				"jdbc-req"),
+			new NamedType(RestRequest.class,  				"http-req"), 
+			new NamedType(MailRequest.class,  				"mail-req"), 
+			new NamedType(DirectoryRequest.class,			"ldap-req"), 
+			new NamedType(FtpRequest.class,  				"ftp-req"),
+			new NamedType(DatabaseRequestStage.class,		"jdbc-stg"),
+			new NamedType(HttpRequestStage.class,  			"http-stg"), 
+			new NamedType(HttpSessionStage.class,  			"sess-stg"), 
+			new NamedType(MailRequestStage.class,  			"mail-stg"), 
 			new NamedType(DirectoryRequestStage.class,		"ldap-stg"), 
-			new NamedType(FtpRequestStage.class,  		"ftp-stg"),
-			new NamedType(RestRemoteServerProperties.class, "rest-rmt"));
+			new NamedType(FtpRequestStage.class,  			"ftp-stg"),
+			new NamedType(RestRemoteServerProperties.class, 	"rest-rmt"));
 		mapper.registerModules(new JavaTimeModule(), module); 
 		return mapper;
 	}

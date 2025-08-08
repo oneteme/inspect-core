@@ -85,9 +85,14 @@ public final class EventTraceFormatter {
 	}
 	
 	public EventTraceFormatter withLocationAsResource(String classname, String methodName) {
-		this.resource = nonNull(classname) ? classname : "";
-		if(nonNull(methodName)) {
-			this.resource+= "." + methodName;
+		if(nonNull(classname) && nonNull(methodName)) {
+			this.resource = classname + "." + methodName;
+		}
+		else if(nonNull(classname)) {
+			this.resource = classname;
+		}
+		else if(nonNull(methodName)) {
+			this.resource = methodName;
 		}
 		return this;
 	}

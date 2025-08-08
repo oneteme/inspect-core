@@ -2,6 +2,8 @@ package org.usf.inspect.core;
 
 import static java.lang.String.format;
 
+import java.net.URI;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +14,12 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Assertions {
+	
+	public static void assertAbsolute(URI uri, String name) {
+		if(!uri.isAbsolute()) {
+			throw new IllegalArgumentException(format("%s=%s is not absolute", name, uri));
+		}
+	}
 	
 	public static int assertPositive(int v, String name) {
 		return assertGreaterOrEquals(v, 0, name);

@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.oneteme</groupId>
 	<artifactId>inspect-core</artifactId>
-	<version>1.1.0</version>
+	<version>1.1.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>inspect-core</name>
 	<description>INtegrated System Performance Evaluation and Communication Tracking core libray</description>
@@ -210,13 +210,6 @@
 			</build>
 		</profile>
 	</profiles>
-	<repositories>
-		<repository>
-			<id>ossrh</id>
-			<name>ossrh</name>
-			<url>https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots/</url>
-		</repository>
-	</repositories>
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
