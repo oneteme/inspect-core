@@ -14,7 +14,7 @@ import static org.usf.inspect.core.InspectContext.context;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 
@@ -56,7 +56,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	}
 
 	@Override
-	public Collection<EventTrace> dispatch(boolean complete, int attempts, int pending, EventTrace[] traces)  {
+	public List<EventTrace> dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces)  {
 		assertInstanceRegistred();
 		try {
 			var uri = fromUriString(properties.getTracesURI())
@@ -64,7 +64,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					.queryParam("pending", pending)
 					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
 					.buildAndExpand(instance.getId()).toUri();
-			template.put(uri, traces);
+			template.put(uri, traces.toArray(EventTrace[]::new)); //
 			return emptyList(); //no partial dispatch
 		}
 		catch (RestClientException e) { //server / client ?

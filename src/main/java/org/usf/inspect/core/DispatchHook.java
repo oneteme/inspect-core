@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.List;
+
 /**
  * 
  * @author u$f
@@ -13,7 +15,7 @@ public interface DispatchHook {
 	
 	default void onTracesEmit(EventTrace[] traces) {}
 	
-	default void onDispatch(boolean complete, EventTrace[] traces) {}
+	default void onDispatch(boolean complete, List<EventTrace> traces) {}
 	
 	default boolean onCapacityExceeded(EventTrace[] traces) { return false;}
 }

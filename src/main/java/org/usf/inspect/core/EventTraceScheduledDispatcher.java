@@ -231,12 +231,11 @@ public final class EventTraceScheduledDispatcher {
 	void dispatchQueue(DispatchState state) {
 		if(state.canPropagate()) {
 			dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (trc, pnd, que)->{
-				var arr = trc.toArray(EventTrace[]::new);
-				triggerHooks(h-> h.onDispatch(state.wasCompleted(), arr));
+				triggerHooks(h-> h.onDispatch(state.wasCompleted(), trc));
 				if(state.canDispatch()) {
-					log.debug("dispatching {}/{} traces ..", trc.size(), que.size());
+					log.debug("dispatching {} traces .., pending {} traces", trc.size(), pnd);
 					try {
-						var rjc = agent.dispatch(state.wasCompleted(), ++attempts, pnd, arr);
+						var rjc = agent.dispatch(state.wasCompleted(), ++attempts, pnd, trc);
 						if(attempts > 5) { //more than one attempt
 							log.info("successfully dispatched {} items after {} attempts", trc.size(), attempts);
 						}

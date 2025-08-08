@@ -3,7 +3,7 @@ package org.usf.inspect.core;
 import static java.util.Collections.emptyList;
 
 import java.io.File;
-import java.util.Collection;
+import java.util.List;
 
 /**
  * 
@@ -14,7 +14,7 @@ public interface DispatcherAgent {
 	
 	void dispatch(InstanceEnvironment instance); //callback ?
     
-	Collection<EventTrace> dispatch(boolean complete, int attempts, int pending, EventTrace[] traces);
+	List<EventTrace> dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces);
 
 	void dispatch(int attempts, File dumpFile);
 	
@@ -28,7 +28,7 @@ public interface DispatcherAgent {
 			}
 			
 			@Override
-			public Collection<EventTrace> dispatch(boolean complete, int attempts, int pending, EventTrace[] traces) {
+			public List<EventTrace> dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces) {
 				return emptyList();
 			}
 			

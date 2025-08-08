@@ -2,10 +2,10 @@ package org.usf.inspect.core;
 
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.time.Instant.now;
-import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.File;
 import java.lang.management.MemoryMXBean;
+import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,10 +35,10 @@ public final class MachineResourceMonitor implements DispatchHook {
 	}
 
 	@Override
-	public void onDispatch(boolean complete, EventTrace[] traces) {
+	public void onDispatch(boolean complete, List<EventTrace> traces) {
 		var heap = bean.getHeapMemoryUsage();
 		var meta = bean.getNonHeapMemoryUsage();
-		context().emitTrace(new MachineResourceUsage(now(),
+		traces.add(new MachineResourceUsage(now(), //silent add trace !emit
 				toMb(heap.getUsed()), 
 				toMb(heap.getCommitted()), 
 				toMb(meta.getUsed()), 
