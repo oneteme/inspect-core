@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@JsonIgnoreProperties("stageCounter")
 public abstract class AbstractRequest implements CompletableMetric {
 	
 	private String user;

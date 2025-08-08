@@ -64,7 +64,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					.queryParam("pending", pending)
 					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
 					.buildAndExpand(instance.getId()).toUri();
-			template.put(uri, traces.toArray(EventTrace[]::new)); //
+			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
 			return emptyList(); //no partial dispatch
 		}
 		catch (RestClientException e) { //server / client ?

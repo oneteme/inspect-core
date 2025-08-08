@@ -168,12 +168,13 @@ public final class InspectContext {
 		return "spring-collector/" //use getImplementationTitle
 				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
 	}
-	
+		
 	static ObjectMapper createObjectMapper() {
 		var mapper = new ObjectMapper();
 		mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required, read only
 		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-		//mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
+//		mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
+//		mapper.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
 
         SimpleModule module = new SimpleModule("inspect-core-module");
         module.registerSubtypes(
@@ -182,7 +183,7 @@ public final class InspectContext {
 			new NamedType(MainSession.class,  				"main-ses"), 
 			new NamedType(RestSession.class,  				"rest-ses"), 
 			new NamedType(LocalRequest.class, 				"locl-req"), 
-			new NamedType(DatabaseRequest.class,				"jdbc-req"),
+			new NamedType(DatabaseRequest.class,			"jdbc-req"),
 			new NamedType(RestRequest.class,  				"http-req"), 
 			new NamedType(MailRequest.class,  				"mail-req"), 
 			new NamedType(DirectoryRequest.class,			"ldap-req"), 
@@ -193,7 +194,7 @@ public final class InspectContext {
 			new NamedType(MailRequestStage.class,  			"mail-stg"), 
 			new NamedType(DirectoryRequestStage.class,		"ldap-stg"), 
 			new NamedType(FtpRequestStage.class,  			"ftp-stg"),
-			new NamedType(RestRemoteServerProperties.class, 	"rest-rmt"));
+			new NamedType(RestRemoteServerProperties.class, "rest-rmt"));
 		mapper.registerModules(new JavaTimeModule(), module); 
 		return mapper;
 	}
