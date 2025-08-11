@@ -1,35 +1,28 @@
 package org.usf.inspect.core;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Stream.empty;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.stream.Stream;
-
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 
 /**
  * @author u$f
  */
-@AllArgsConstructor(access = AccessLevel.PACKAGE)
 public final class ConcurrentLinkedSetQueue<T> {
 
 	private final Object mutex = new Object();
-	private LinkedHashSet<T> queue;
-
-	public ConcurrentLinkedSetQueue() {
-		this(new LinkedHashSet<>());
-	}
+	LinkedHashSet<T> queue = new LinkedHashSet<>();
 
 	/**
 	 * Adds an item to the queue, overwriting existing items (more recent).
 	 */
 	public int add(T o) { //return size, reduce sync call
 		synchronized(mutex){
-			queue.add(o);
+			queue.remove(o);
+			queue.add(o); 
 			return queue.size();
 		}
 	}
@@ -39,6 +32,7 @@ public final class ConcurrentLinkedSetQueue<T> {
 	 */
 	public int addAll(Collection<T> arr){ //return size, reduce sync call
 		synchronized(mutex){
+			queue.removeAll(arr);
 			queue.addAll(arr); //add or overwrite items (update)
 			return queue.size();
 		}
@@ -49,8 +43,7 @@ public final class ConcurrentLinkedSetQueue<T> {
 	 */
 	public int addAll(T[] arr){  //return size, reduce sync call
 		synchronized(mutex){
-			Collections.addAll(queue, arr);
-			return queue.size();
+			return addAll(asList(arr));
 		}
 	}
 
@@ -60,9 +53,7 @@ public final class ConcurrentLinkedSetQueue<T> {
 	 */
 	public void requeueAll(Collection<T> arr){
 		synchronized(mutex){
-			var set = new LinkedHashSet<>(arr);
-			set.addAll(queue); //add or overwrite items (update)
-			queue = set;
+			queue.addAll(arr); //!overwrite items (update)
 		}
 	}
 
