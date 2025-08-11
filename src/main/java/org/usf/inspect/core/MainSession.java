@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Getter;
@@ -17,14 +18,22 @@ public class MainSession extends AbstractSession {
 	
 	@Delegate
 	@JsonIgnore
-	private final LocalRequest local = new LocalRequest(); //!exception
+	private final LocalRequest local; //!exception
 //	inherits String type //@see MainSessionType
+
+	@JsonCreator 
+	public MainSession() {
+		this.local = new LocalRequest();
+	}
+
+	MainSession(MainSession ses) {
+		super(ses);
+		this.local = new LocalRequest(ses.local);
+	}
 	
 	@Override
 	public MainSession copy() {
-		var ses = new MainSession();
-		local.copyIn(ses.local);
-		return ses;
+		return new MainSession(this);
 	}
 	
 	@Override

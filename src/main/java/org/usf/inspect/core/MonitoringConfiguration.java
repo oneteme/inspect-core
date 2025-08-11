@@ -17,7 +17,7 @@ public final class MonitoringConfiguration {
 	private HttpRouteMonitoringProperties httpRoute = new HttpRouteMonitoringProperties(); //replace restSession
 	//v1.1
 	private ResourceMonitoringProperties resources = new ResourceMonitoringProperties();
-	private ExceptionConfiguration exception = new ExceptionConfiguration();
+	private ExceptionMonitoringConfiguration exception = new ExceptionMonitoringConfiguration();
 	
 	void validate() {
 		httpRoute.validate();

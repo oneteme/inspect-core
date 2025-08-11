@@ -4,6 +4,8 @@ import java.time.Instant;
 
 import org.usf.inspect.jdbc.JDBCAction;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -28,6 +30,22 @@ public class DatabaseRequest extends AbstractRequest {
 	private boolean failed;
 	private String command;
 	//java-collector
+
+	@JsonCreator public DatabaseRequest() { }
+
+	DatabaseRequest(DatabaseRequest req) {
+		super(req);
+		this.scheme = req.scheme;
+		this.host = req.host;
+		this.port = req.port;
+		this.name = req.name;
+		this.schema = req.schema;
+		this.driverVersion = req.driverVersion;
+		this.productName = req.productName;
+		this.productVersion = req.productVersion;
+		this.failed = req.failed;
+		this.command = req.command;
+	}
 	
 	public DatabaseRequestStage createStage(JDBCAction type, Instant start, Instant end, Throwable t, long[] count) {
 		var stg = createStage(type, start, end, t, DatabaseRequestStage::new);
@@ -37,23 +55,7 @@ public class DatabaseRequest extends AbstractRequest {
 
 	@Override
 	public DatabaseRequest copy() {
-		var req = new DatabaseRequest();
-		req.setId(getId());
-		req.setStart(getStart());
-		req.setEnd(getEnd());
-		req.setUser(getUser());
-		req.setThreadName(getThreadName());
-		req.setSessionId(getSessionId());
-		req.setScheme(scheme);
-		req.setHost(host);
-		req.setPort(port);
-		req.setName(name);
-		req.setSchema(schema);
-		req.setDriverVersion(driverVersion);
-		req.setProductName(productName);
-		req.setProductVersion(productVersion);
-		req.setFailed(failed);
-		return req;
+		return new DatabaseRequest(this);
 	}
 	
 	@Override

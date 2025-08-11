@@ -6,6 +6,8 @@ import static org.usf.inspect.core.InspectContext.context;
 import java.net.URI;
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -37,6 +39,26 @@ public class RestRequest extends AbstractRequest { //APiRequest
 	// => in/out Content [type, size, encoding]
 	//rest-collector
 	
+	@JsonCreator public RestRequest() { }
+
+	public RestRequest(RestRequest req) {
+		super(req);
+		this.protocol = req.protocol;
+		this.host = req.host;
+		this.port = req.port;
+		this.method = req.method;
+		this.path = req.path;
+		this.query = req.query;
+		this.contentType = req.contentType;
+		this.authScheme = req.authScheme;
+		this.status = req.status;
+		this.inDataSize = req.inDataSize;
+		this.outDataSize = req.outDataSize;
+		this.inContentEncoding = req.inContentEncoding;
+		this.outContentEncoding = req.outContentEncoding;
+		this.bodyContent = req.bodyContent;
+	}
+	
 	public HttpRequestStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
 		return createStage(type, start, end, t, HttpRequestStage::new);
 	}
@@ -51,32 +73,7 @@ public class RestRequest extends AbstractRequest { //APiRequest
 
 	@Override
 	public RestRequest copy() {
-		var req = new RestRequest();
-		copyIn(req);
-		return req;
-	}
-	
-	void copyIn(RestRequest req) {
-		req.setId(getId());
-		req.setStart(getStart());
-		req.setEnd(getEnd());
-		req.setUser(getUser());
-		req.setThreadName(getThreadName());
-		req.setSessionId(getSessionId());
-		req.setProtocol(protocol);
-		req.setHost(host);
-		req.setPort(port);
-		req.setMethod(method);
-		req.setPath(path);
-		req.setQuery(query);
-		req.setContentType(contentType);
-		req.setAuthScheme(authScheme);
-		req.setStatus(status);
-		req.setInDataSize(inDataSize);
-		req.setOutDataSize(outDataSize);
-		req.setInContentEncoding(inContentEncoding);
-		req.setOutContentEncoding(outContentEncoding);
-		req.setBodyContent(bodyContent);
+		return new RestRequest(this);
 	}
 	
 	public void assertRemoteID(String id) {

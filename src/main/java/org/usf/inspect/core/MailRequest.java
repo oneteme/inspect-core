@@ -7,6 +7,8 @@ import java.util.List;
 
 import org.usf.inspect.mail.MailAction;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +28,17 @@ public class MailRequest extends AbstractRequest {
 	//v1.1
 	private boolean failed;
 	//mail-collector
+
+	@JsonCreator public MailRequest() { }
+
+	MailRequest(MailRequest req) {
+		super(req);
+		this.protocol = req.protocol;
+		this.host = req.host;
+		this.port = req.port;
+		this.mails = req.mails;
+		this.failed = req.failed;
+	}
 	
 	public MailRequestStage createStage(MailAction type, Instant start, Instant end, Throwable thrw) {
 		return createStage(type, start, end, thrw, MailRequestStage::new);
@@ -33,19 +46,7 @@ public class MailRequest extends AbstractRequest {
 
 	@Override
 	public MailRequest copy() {
-		var req = new MailRequest();
-		req.setId(getId());
-		req.setStart(getStart());
-		req.setEnd(getEnd());
-		req.setUser(getUser());
-		req.setThreadName(getThreadName());
-		req.setSessionId(getSessionId());
-		req.setProtocol(protocol);
-		req.setHost(host);
-		req.setPort(port);
-		req.setMails(mails);
-		req.setFailed(failed);
-		return req;
+		return new MailRequest(this);
 	}
 	
 	@Override

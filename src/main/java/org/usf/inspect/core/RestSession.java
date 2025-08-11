@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Getter;
@@ -19,26 +20,34 @@ public class RestSession extends AbstractSession {
 
 	@Delegate
 	@JsonIgnore
-	private final RestRequest rest = new RestRequest();
+	private final RestRequest rest;
 	private String name; //api name
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
 	//v1.1
 	private ExceptionInfo exception;
 
-	@Override
-	public RestSession copy() {
-		var ses = new RestSession();
-		rest.copyIn(ses.rest);
-		ses.setName(name);
-		ses.setUserAgent(userAgent);
-		ses.setCacheControl(cacheControl);
-		ses.setException(exception);
-		return ses;
+	@JsonCreator 
+	public RestSession() {
+		this.rest = new RestRequest();
+	}
+
+	RestSession(RestSession ses) {
+		super(ses);
+		this.rest = new RestRequest(ses.rest);
+		this.name = ses.name;
+		this.userAgent = ses.userAgent;
+		this.cacheControl = ses.cacheControl;
+		this.exception = ses.exception;
 	}
 	
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
 		return rest.createStage(type, start, end, t, HttpSessionStage::new);
+	}
+
+	@Override
+	public RestSession copy() {
+		return new RestSession(this);
 	}
 	
 	@Override

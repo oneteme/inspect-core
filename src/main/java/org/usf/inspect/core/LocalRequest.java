@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,24 +19,19 @@ public class LocalRequest extends AbstractRequest { //TODO extends RequestStage
 	private String location; //class, URL
 	private ExceptionInfo exception; 
 	
-	@Override
-	public LocalRequest copy() {
-		var req = new LocalRequest();
-		copyIn(req);
-		return req;
+	@JsonCreator public LocalRequest() { }
+
+	LocalRequest(LocalRequest req) {
+		super(req);
+		this.name = req.name;
+		this.type = req.type;
+		this.location = req.location;
+		this.exception = req.exception;
 	}
 	
-	void copyIn(LocalRequest req) {
-		req.setId(getId());
-		req.setStart(getStart());
-		req.setEnd(getEnd());
-		req.setUser(getUser());
-		req.setThreadName(getThreadName());
-		req.setSessionId(getSessionId());
-		req.setName(name);
-		req.setType(type);
-		req.setLocation(location);
-		req.setException(exception);
+	@Override
+	public LocalRequest copy() {
+		return new LocalRequest(this);
 	}
 
 	@Override

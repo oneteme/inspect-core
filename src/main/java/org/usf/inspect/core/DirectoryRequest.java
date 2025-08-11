@@ -4,6 +4,8 @@ import java.time.Instant;
 
 import org.usf.inspect.dir.DirAction;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,6 +23,16 @@ public class DirectoryRequest extends AbstractRequest {
 	private int port; // positive number, -1 otherwise
 	//v1.1
 	private boolean failed;
+
+	@JsonCreator public DirectoryRequest() { }
+
+	DirectoryRequest(DirectoryRequest req) {
+		super(req);
+		this.protocol = req.protocol;
+		this.host = req.host;
+		this.port = req.port;
+		this.failed = req.failed;
+	}
 	
 	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, Throwable t, String... args) {
 		var stg = createStage(type, start, end, t, DirectoryRequestStage::new);
@@ -30,18 +42,7 @@ public class DirectoryRequest extends AbstractRequest {
 
 	@Override
 	public DirectoryRequest copy() {
-		var req = new DirectoryRequest();
-		req.setId(getId());
-		req.setStart(getStart());
-		req.setEnd(getEnd());
-		req.setUser(getUser());
-		req.setThreadName(getThreadName());
-		req.setSessionId(getSessionId());
-		req.setProtocol(protocol);
-		req.setHost(host);
-		req.setPort(port);
-		req.setFailed(failed);
-		return req;
+		return new DirectoryRequest(this);
 	}
 	
 	@Override

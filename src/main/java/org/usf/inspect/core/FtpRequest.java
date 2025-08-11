@@ -4,6 +4,8 @@ import java.time.Instant;
 
 import org.usf.inspect.ftp.FtpAction;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 /**
@@ -23,6 +25,18 @@ public class FtpRequest extends AbstractRequest {
 	//v1.1
 	private boolean failed;
 	//ftp-collector
+
+	@JsonCreator() public FtpRequest() { }
+
+	FtpRequest(FtpRequest req) {
+		super(req);
+		this.protocol = req.protocol;
+		this.host = req.host;
+		this.port = req.port;
+		this.serverVersion = req.serverVersion;
+		this.clientVersion = req.clientVersion;
+		this.failed = req.failed;
+	}
 	
 	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, Throwable t, String... args) {
 		var stg = createStage(type, start, end, t, FtpRequestStage::new);
@@ -32,20 +46,7 @@ public class FtpRequest extends AbstractRequest {
 	
 	@Override
 	public FtpRequest copy() {
-		var req = new FtpRequest();
-		req.setId(getId());
-		req.setStart(getStart());
-		req.setEnd(getEnd());
-		req.setUser(getUser());
-		req.setThreadName(getThreadName());
-		req.setSessionId(getSessionId());
-		req.setHost(host);
-		req.setPort(port);
-		req.setProtocol(protocol);
-		req.setServerVersion(serverVersion);
-		req.setClientVersion(clientVersion);
-		req.setFailed(failed);
-		return req;
+		return new FtpRequest(this);
 	}
 	
 	@Override

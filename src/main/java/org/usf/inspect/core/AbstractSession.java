@@ -6,6 +6,7 @@ import static org.usf.inspect.core.InspectContext.context;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
@@ -24,6 +25,12 @@ public abstract class AbstractSession implements Session {
 	private final AtomicInteger threads = new AtomicInteger();
 	private int requestsMask; //TD -1 if absent
 	private String instanceId; //server usage 
+	
+	@JsonCreator AbstractSession() { }
+
+	AbstractSession(AbstractSession req) {
+		this.requestsMask = req.requestsMask;
+	}
 	
 	@Override
 	public void lock(){ //must be called before session end

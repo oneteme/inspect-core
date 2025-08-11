@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -20,6 +21,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@NoArgsConstructor
 @JsonIgnoreProperties("stageCounter")
 public abstract class AbstractRequest implements CompletableMetric {
 	
@@ -33,6 +35,15 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private String id;
 	@JsonIgnore
 	private final AtomicInteger stageCounter = new AtomicInteger();
+	
+	AbstractRequest(AbstractRequest req) {
+		this.user = req.user;
+		this.start = req.start;
+		this.end = req.end;
+		this.threadName = req.threadName;
+		this.sessionId = req.sessionId;
+		this.id = req.id;
+	}
 	
 	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Throwable t, Supplier<T> supp) {
 		var stg = supp.get();

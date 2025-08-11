@@ -18,12 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
  *
  */
 public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver, Ordered {
-
-	@Override
-	public int getOrder() {
-		return HIGHEST_PRECEDENCE;
-	}
-
+	
 	/**
 	 * @return {@code null} for default processing in the resolution chain
 	 */
@@ -37,4 +32,8 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 		return null;
 	}
 
+	@Override
+	public int getOrder() {
+		return HIGHEST_PRECEDENCE;
+	}
 }

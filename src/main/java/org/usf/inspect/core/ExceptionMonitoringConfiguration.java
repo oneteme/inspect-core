@@ -11,7 +11,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @RequiredArgsConstructor
-public final class ExceptionConfiguration {
+public final class ExceptionMonitoringConfiguration {
 	
 	private int maxStackTraceRows = 5; // max rows in stack trace per exception, -1 means no limit
 	private int maxCauseDepth = -1; // max depth of cause chain, -1 means no limit
