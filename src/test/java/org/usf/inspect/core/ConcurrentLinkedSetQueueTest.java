@@ -74,7 +74,7 @@ class ConcurrentLinkedSetQueueTest {
 	}
 	
 	@ParameterizedTest
-	@CsvSource({"0, 3","-1, 3","2, 1","3, 0","10, 0"})
+	@CsvSource({"0, 3", "-1, 3", "2, 1", "3, 0", "10, 0"})
 	void testRemoveFrom(int n, int size) {
 		queue.add(new Dummy(123, "v1")); 
 		queue.add(new Dummy(231, "v1"));

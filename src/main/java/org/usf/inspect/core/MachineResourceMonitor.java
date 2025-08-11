@@ -5,7 +5,7 @@ import static java.time.Instant.now;
 
 import java.io.File;
 import java.lang.management.MemoryMXBean;
-import java.util.List;
+import java.util.Collection;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,7 +35,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 	}
 
 	@Override
-	public void onDispatch(boolean complete, List<EventTrace> traces) {
+	public void onDispatch(boolean complete, Collection<EventTrace> traces) {
 		var heap = bean.getHeapMemoryUsage();
 		var meta = bean.getNonHeapMemoryUsage();
 		traces.add(new MachineResourceUsage(now(), //silent add trace !emit

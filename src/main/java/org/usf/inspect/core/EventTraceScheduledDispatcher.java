@@ -6,14 +6,17 @@ import static java.time.Instant.MIN;
 import static java.time.Instant.now;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
+import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.BasicDispatchState.DISPATCH;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,9 +91,9 @@ public final class EventTraceScheduledDispatcher {
 		return false;
 	}
 
-	public boolean emitAll(EventTrace[] traces) { //server usage
+	public boolean emitAll(Collection<EventTrace> traces) { //server usage
 		if(atomicState.get().canEmit()) {
-			triggerHooks(h-> h.onTracesEmit(traces));
+			triggerHooks(h-> h.onTracesEmit(unmodifiableCollection(traces)));
 			dispatchIfCapacityExceeded(queue.addAll(traces));
 			return true;
 		}
@@ -260,12 +263,14 @@ public final class EventTraceScheduledDispatcher {
 		var trc = queue.pop(); //read only
 		try {
 			var edt = new ArrayList<>(trc);
-			var pnd = extractPendingTrace(edt, delay); // 0: takes all, -1: completed only, 
-			var rjc = cons.accept(edt, pnd.size(), trc);
+			var mrk = delay < 0 ? MIN : now().minusSeconds(delay);
+			var kpt = new LinkedHashSet<EventTrace>();
+			var pnd = extractPendingTrace(edt, mrk, kpt); // 0: takes all, -1: completed only, 
+			var rjc = cons.accept(edt, pnd, trc); //may contains traces copy
 			if(nonNull(rjc)) {
-				pnd.addAll(rjc);
+				kpt.addAll(rjc);
 			}
-			trc = pnd; // requeue pending & rejected traces
+			trc = kpt; // requeue kept & rejected traces
 		}
 		catch (OutOfMemoryError e) {
 			trc = emptyList(); //do not add items back to the queue, may release memory
@@ -279,29 +284,25 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 
-	List<EventTrace> extractPendingTrace(List<EventTrace> queue, int delay) {
-		var arr = new ArrayList<EventTrace>();
-		if(delay != 0) { //else keep all traces
-			var mark = delay > -1 ? now().minusSeconds(delay) : MIN;
-			if(!queue.isEmpty()){
-				for(var it=queue.listIterator(); it.hasNext();) {
-					if(it.next() instanceof CompletableMetric mtr) {
-						mtr.runSynchronizedIfNotComplete(()-> {
-							if(mtr.getStart().isBefore(mark)) {
-								it.set(mtr.copy()); //send copy, avoid dispatch same reference
-								log.trace("completable trace pending since {}, dequeued: {}", mtr.getStart(),  mtr);
-							}
-							else {
-								arr.add(mtr);
-								it.remove();
-								log.trace("completable trace pending since {}, kept in queue: {}", mtr.getStart(),  mtr);
-							}
-						});
+	int extractPendingTrace(List<EventTrace> queue, Instant mark, Collection<EventTrace> kept) {
+		var n = new int[1];
+		for(var it=queue.listIterator(); it.hasNext();) {
+			if(it.next() instanceof CompletableMetric mtr) {
+				mtr.runSynchronizedIfNotComplete(()-> {
+					n[0]++;
+					if(mtr.getStart().isBefore(mark)) {
+						it.set(mtr.copy()); //send copy, avoid dispatch same reference
+						log.trace("completable trace pending since {}, dequeued: {}", mtr.getStart(),  mtr);
 					}
-				}
+					else {
+						kept.add(mtr);
+						it.remove();
+						log.trace("completable trace pending since {}, kept in queue: {}", mtr.getStart(),  mtr);
+					}
+				});
 			}
 		}
-		return arr;
+		return n[0];
 	}
 
 	public DispatchState getState() {
