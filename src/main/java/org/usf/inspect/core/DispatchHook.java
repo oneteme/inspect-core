@@ -17,5 +17,5 @@ public interface DispatchHook {
 	
 	default void onDispatch(boolean complete, Collection<EventTrace> traces) {}
 	
-	default boolean onCapacityExceeded(EventTrace[] traces) { return false;}
+	default boolean onCapacityExceeded(boolean complete, QueueResolver resolver) { return false;}
 }

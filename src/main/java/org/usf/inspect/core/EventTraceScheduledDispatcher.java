@@ -2,8 +2,6 @@ package org.usf.inspect.core;
 
 import static java.lang.Runtime.getRuntime;
 import static java.lang.String.format;
-import static java.time.Instant.MIN;
-import static java.time.Instant.now;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.unmodifiableCollection;
@@ -13,10 +11,8 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.BasicDispatchState.DISPATCH;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,8 +43,8 @@ public final class EventTraceScheduledDispatcher {
 	private final ConcurrentLinkedSetQueue<EventTrace> queue;
 	private int attempts;
 
-	public EventTraceScheduledDispatcher(TracingProperties prop, SchedulingProperties schd, DispatcherAgent agent) {
-		this(prop, schd, agent, emptyList());
+	public EventTraceScheduledDispatcher(TracingProperties propr, SchedulingProperties schd, DispatcherAgent agent) {
+		this(propr, schd, agent, emptyList());
 	}
 
 	public EventTraceScheduledDispatcher(TracingProperties propr, SchedulingProperties schd, DispatcherAgent agent, List<DispatchHook> hooks) {
@@ -141,8 +137,9 @@ public final class EventTraceScheduledDispatcher {
 	}
 
 	void safeDispatch(DispatchState state) {
+		var resolver = new QueueResolver(propr.getQueueCapacity(), propr.isModifiable(), queue);
 		try {
-			dispatchQueue(state);
+			dispatchQueue(state, resolver);
 		}
 		catch (Exception e) {
 			warnException(log, e, "dispatch queue error");
@@ -150,7 +147,7 @@ public final class EventTraceScheduledDispatcher {
 		if(queue.size() > propr.getQueueCapacity()) {
 	        log.debug("queue capacity exceeded", state);
 			try {
-				propagateQueue(state);
+				propagateQueue(state, resolver);
 			}
 			catch (Exception e) {
 				warnException(log, e, "propagate queue error");
@@ -183,75 +180,42 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 
-	void propagateQueue(DispatchState state){
+	void propagateQueue(DispatchState state, QueueResolver resolver){
 		if(state.canPropagate()) {
-			dequeue(state.wasCompleted() ? 0 : -1, (trc, pnd, que)->{
-				var arr = trc.toArray(EventTrace[]::new);
-				for(var h : hooks) {
-					try {
-						if(h.onCapacityExceeded(arr)) {
-							return emptyList(); 
-						}
-					}
-					catch (Exception e) { //catch exception => next hook
-						warnException(log, e, "failed to execute hook '{}'", h.getClass().getSimpleName());
+			for(var h : hooks) {
+				try {
+					if(h.onCapacityExceeded(state.wasCompleted(), resolver)) {
+						break; 
 					}
 				}
-				tryRemoveMinorTraces(que); //change on queue
-				return que;
-			});
-		}
-	}
-	
-	void tryRemoveMinorTraces(Collection<EventTrace> queue) {
-		var size = queue.size(); // 1- remove all non complete traces
-		if(size > propr.getQueueCapacity()) {
-			for(var it=queue.iterator(); it.hasNext();) { 
-				var t = it.next();
-				if(t instanceof CompletableMetric cm) {
-					cm.runSynchronizedIfNotComplete(it::remove);  
-				}
-			} 
-			log.debug("{} non-complete traces were deleted", size-queue.size());
-			size = queue.size(); // 2- remove resource usage 
-			if(size > propr.getQueueCapacity()) {
-				queue.removeIf(t-> t instanceof MachineResourceUsage);
-				log.debug("{} resource usage traces were deleted", size-queue.size());
-				size = queue.size(); // 3- remove all stages
-				if(size > propr.getQueueCapacity()) {
-					queue.removeIf(t-> t instanceof AbstractStage);
-					log.debug("{} stage traces were deleted", size-queue.size());
-					size = queue.size(); // 4- remove all logs
-					if(size > propr.getQueueCapacity()) {
-						queue.removeIf(t-> t instanceof LogEntry);
-						log.debug("{} log traces were deleted", size-queue.size());
-					}
+				catch (Exception e) { //catch exception => next hook
+					warnException(log, e, "failed to execute hook '{}'", h.getClass().getSimpleName());
 				}
 			}
 		}
 	}
-
-	void dispatchQueue(DispatchState state) {
+	
+	void dispatchQueue(DispatchState state, QueueResolver resolver) {
 		if(state.canPropagate()) {
-			dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (trc, pnd, que)->{
-				triggerHooks(h-> h.onDispatch(state.wasCompleted(), trc));
+			resolver.dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (q, n)->{
+				triggerHooks(h-> h.onDispatch(state.wasCompleted(), q));
+				var traces = q;
 				if(state.canDispatch()) {
-					log.debug("dispatching {} traces .., pending {} traces", trc.size(), pnd);
+					log.debug("dispatching {} traces .., pending {} traces", traces.size(), n);
 					try {
-						var rjc = agent.dispatch(state.wasCompleted(), ++attempts, pnd, trc);
+						traces = agent.dispatch(state.wasCompleted(), ++attempts, n, traces);
 						if(attempts > 5) { //more than one attempt
-							log.info("successfully dispatched {} items after {} attempts", trc.size(), attempts);
+							log.info("successfully dispatched {} items after {} attempts", traces.size(), attempts);
 						}
 						attempts=0;
-						return rjc; //requeue pending traces
 					} catch (Exception e) {
-						throw new DispatchException(format("failed to dispatch %d traces", trc.size()), e); //do not log exception stack trace
+						throw new DispatchException(format("failed to dispatch %d traces", traces.size()), e); //do not log exception stack trace
 					}
 				}
 				else {
 					log.warn("cannot dispatch traces as the dispatcher state is {}", state);
 				}
-				return que;
+				return traces;
 			});
 		}
 		else {
@@ -259,50 +223,8 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 
-	void dequeue(int delay, QueueConsumer cons) {
-		var trc = queue.pop(); //read only
-		try {
-			var edt = new ArrayList<>(trc);
-			var mrk = delay < 0 ? MIN : now().minusSeconds(delay);
-			var kpt = new LinkedHashSet<EventTrace>();
-			var pnd = extractPendingTrace(edt, mrk, kpt); // 0: takes all, -1: completed only, 
-			var rjc = cons.accept(edt, pnd, trc); //may contains traces copy
-			if(nonNull(rjc)) {
-				kpt.addAll(rjc);
-			}
-			trc = kpt; // requeue kept & rejected traces
-		}
-		catch (OutOfMemoryError e) {
-			trc = emptyList(); //do not add items back to the queue, may release memory
-			log.error("out of memory error while queue processing, {} traces will be aborted", trc.size());
-			throw e;
-		}
-		finally {
-			if(!trc.isEmpty()) {
-				queue.requeueAll(trc); //go back to the queue (preserve order)
-			}
-		}
-	}
-
-	int extractPendingTrace(List<EventTrace> queue, Instant mark, Collection<EventTrace> kept) {
-		var n = new int[1];
-		for(var it=queue.listIterator(); it.hasNext();) {
-			if(it.next() instanceof CompletableMetric mtr) {
-				mtr.runSynchronizedIfNotComplete(()-> {
-					n[0]++;
-					if(mtr.getStart().isBefore(mark)) {
-						it.set(mtr.copy()); //send copy, avoid dispatch same reference
-						log.trace("completable trace pending since {}, dequeued: {}", mtr.getStart(),  mtr);
-					}
-					else {
-						kept.add(mtr);
-						it.remove();
-						log.trace("completable trace pending since {}, kept in queue: {}", mtr.getStart(),  mtr);
-					}
-				});
-			}
-		}
-		return n[0];
+	public Stream<EventTrace> peek() {
+		return queue.peek();
 	}
 
 	public DispatchState getState() {
@@ -318,10 +240,6 @@ public final class EventTraceScheduledDispatcher {
 		log.info("shutting down the scheduler service...");
 		executor.shutdown();
 		synchronizedDispatch(false, true);
-	}
-
-	public Stream<EventTrace> peek() {
-		return queue.peek();
 	}
 
 	void triggerHooks(Consumer<DispatchHook> post){
@@ -351,10 +269,5 @@ public final class EventTraceScheduledDispatcher {
 				log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
 			}
 		}
-	}
-
-	static interface QueueConsumer {
-
-		Collection<EventTrace> accept(List<EventTrace> traces, int pending, Collection<EventTrace> queue);
 	}
 }

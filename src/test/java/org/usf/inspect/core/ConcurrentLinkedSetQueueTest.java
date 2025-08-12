@@ -42,13 +42,8 @@ class ConcurrentLinkedSetQueueTest {
 	}
 
 	@Test
-	void testAddAll_array() {
-		testQueue(true, arr-> queue.addAll(arr));
-	}
-
-	@Test
-	void testRequeueAll() {
-		testQueue(false, arr-> queue.requeueAll(asList(arr)));
+	void testAdd_not_overwirte() {
+		testQueue(false, arr-> queue.addAll(false, asList(arr)));
 	}
 
 	@Test

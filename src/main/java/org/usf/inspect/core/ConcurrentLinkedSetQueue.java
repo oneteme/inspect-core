@@ -1,11 +1,11 @@
 package org.usf.inspect.core;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Stream.empty;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -15,52 +15,38 @@ public final class ConcurrentLinkedSetQueue<T> {
 
 	private final Object mutex = new Object();
 	LinkedHashSet<T> queue = new LinkedHashSet<>();
-
-	/**
-	 * Adds an item to the queue, overwriting existing items (more recent).
-	 */
+	
 	public int add(T o) { //return size, reduce sync call
+		return add(true, o);
+	}
+
+	public int add(boolean overwrite, T o) { //return size, reduce sync call
 		synchronized(mutex){
-			queue.remove(o);
+			if(overwrite) {
+				queue.remove(o);
+			}
 			queue.add(o); 
 			return queue.size();
 		}
 	}
 
-	/**
-	 * Adds all items to the queue, overwriting existing items (more recent).
-	 */
 	public int addAll(Collection<T> arr){ //return size, reduce sync call
+		return addAll(true, arr);
+	}
+
+	public int addAll(boolean overwrite, Collection<T> arr){
 		synchronized(mutex){
-			queue.removeAll(arr);
-			queue.addAll(arr); //add or overwrite items (update)
-			return queue.size();
+			synchronized(mutex){
+				if(overwrite) {
+					queue.removeAll(arr); // in order to add them even if exists
+				}
+				queue.addAll(arr); 
+				return queue.size();
+			}
 		}
 	}
 
-	/**
-	 * Adds all items to the queue, overwriting existing items (more recent).
-	 */
-	public int addAll(T[] arr){  //return size, reduce sync call
-		synchronized(mutex){
-			return addAll(asList(arr));
-		}
-	}
-
-	/**
-	 * Prepends items to the queue, preserving their order.
-	 * If an item already exists in the queue, the existing (more recent) version is kept and the one from {@code arr} is ignored.
-	 */
-	public void requeueAll(Collection<T> arr){
-		synchronized(mutex){
-			queue.addAll(arr); //!overwrite items (update)
-		}
-	}
-
-	/**
-	 * Pops all items from the queue, clearing it.
-	 */
-	public Collection<T> pop() {
+	public Set<T> pop() {
 		synchronized(mutex){
 			if(queue.isEmpty()) {
 				return emptySet();

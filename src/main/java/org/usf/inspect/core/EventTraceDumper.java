@@ -4,15 +4,18 @@ import static java.lang.Integer.parseInt;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.move;
+import static java.util.Collections.emptyList;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -21,25 +24,36 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-@RequiredArgsConstructor
 public final class EventTraceDumper implements DispatchHook {
 	
 	private final Path baseDir;
-	private final ObjectMapper mapper;
+	private final ObjectWriter writer;
 	
+	public EventTraceDumper(Path baseDir, ObjectMapper mapper) {
+		this.baseDir = baseDir;
+		this.writer = mapper.writerFor(new TypeReference<Collection<EventTrace>>() {});
+	}
+
 	@Override
-	public boolean onCapacityExceeded(EventTrace[] traces) {
+	public boolean onCapacityExceeded(boolean complete, QueueResolver resolver) { 
+		resolver.dequeue(complete ? 0 : -1, (trc, pnd)->{
+			emitDispatchFileTask(writeTraces(trc));
+			return emptyList();
+		});
+		return true;
+	}
+	
+	File writeTraces(Collection<EventTrace> traces) {
 		var fn = "dump_" + currentTimeMillis() + ".json";
 		var f = baseDir.resolve(fn).toFile(); //can write !?
 		try {
-			mapper.writeValue(f, traces);
-			log.debug("{} traces was dumped in '{}' file", traces.length, fn);
+			writer.writeValue(f, traces);
+			log.debug("{} traces was dumped in '{}' file", traces.size(), fn);
 		}
 		catch (IOException e) {
 			throw new DispatchException("creating traces dump file '" + fn + "' error", e);
 		}
-		emitDispatchFileTask(f);
-		return true;
+		return f;
 	}
 	
 	static void emitDispatchFileTask(File f) {

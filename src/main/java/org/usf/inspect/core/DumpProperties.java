@@ -20,7 +20,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-public class DumpProperties {
+public final class DumpProperties {
 
 	private boolean enabled;
 	private Path location = Path.of(getProperty("java.io.tmpdir")); // dump folder
