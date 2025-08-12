@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 public final class EventTracePurger implements DispatchHook {
 	
 	@Override
-	public boolean onCapacityExceeded(boolean complete, QueueResolver resolver) {
+	public boolean onCapacityExceeded(boolean complete, EventTraceQueueManager resolver) {
 		resolver.dequeue(q-> deleteTraces(q, resolver.getQueueCapacity()));
 		return true;
 	}

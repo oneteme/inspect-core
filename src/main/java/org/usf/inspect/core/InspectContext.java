@@ -207,17 +207,9 @@ public final class InspectContext {
 		conf.setEnabled(false);
 		conf.setDebugMode(false);
 		conf.getTracing().setRemote(null); //avoid remote dispatching
-		//conf.getScheduling().setDelay(0); //avoid scheduling
 		conf.getMonitoring().getResources().setEnabled(false); //avoid resource monitoring
 		conf.getMonitoring().getException().setMaxStackTraceRows(0); //avoid memory leak
 		conf.getMonitoring().getException().setMaxCauseDepth(0); //avoid memory leak
 		return conf;
-	}
-
-	static Thread daemonThread(Runnable r) {
-		var thread = new Thread(r, "inspect-dispatcher");
- 		thread.setDaemon(true);
- 		thread.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception", e));
-		return thread;
 	}
 }

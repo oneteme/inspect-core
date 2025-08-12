@@ -1,5 +1,7 @@
 package org.usf.inspect.dir;
 
+import static org.usf.inspect.core.BeanUtils.logWrappingBean;
+
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -9,14 +11,11 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.ldap.core.ContextSource;
 import org.usf.inspect.rest.RestRequestInterceptor;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @Configuration
 @ConditionalOnClass(name="org.springframework.ldap.core.ContextSource")
 @ConditionalOnProperty(prefix = "inspect.collector", name = "enabled", havingValue = "true")
@@ -29,7 +28,7 @@ public class DirectoryModuleConfiguration {
 			@Override
 			public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
 				if(bean instanceof ContextSource cs && bean.getClass() != ContextSourceWrapper.class) {
-					log.debug("wrapping ContextSource {}: {} bean ..", beanName, bean);
+					logWrappingBean(beanName, bean.getClass());
 					bean = new ContextSourceWrapper(cs);
 				}
 				return bean;

@@ -1,6 +1,8 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.BeanUtils.logWrappingBean;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
 import java.util.concurrent.Callable;
@@ -92,7 +94,11 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		return fn.apply(command);
     }
     
-	public static ExecutorServiceWrapper wrap(@NonNull ExecutorService es) {
-		return new ExecutorServiceWrapper(es);
+	public static ExecutorService wrap(@NonNull ExecutorService es) {
+		if(context().getConfiguration().isEnabled()){
+			logWrappingBean("executorService", es.getClass());
+			return new ExecutorServiceWrapper(es);
+		}
+		return es;
 	}
 }

@@ -23,6 +23,6 @@ public class SchedulingProperties {
 	private Duration interval = ofSeconds(60);
 
 	void validate() {
-		assertBetween(interval, ofSeconds(10), ofHours(1), "interval");
+//		assertBetween(interval, ofSeconds(10), ofHours(1), "interval");
 	}
 }

@@ -1,7 +1,8 @@
 package org.usf.inspect.core;
 
 import static java.util.Arrays.stream;
-import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
 import java.util.Collection;
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 
- * @author u$f
+ * @sauthor u$f
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -28,12 +29,15 @@ public final class StreamProxy {
 	}
 
 	public static <T> Stream<T> parallel(Stream<T> stream) {
-		var ses = requireCurrentSession();
-    	return isNull(ses)
-    			? stream.parallel()
-    			: stream.parallel().map(c-> {
+		if(context().getConfiguration().isEnabled()){
+			var ses = requireCurrentSession();
+			if(nonNull(ses)) {
+				return stream.parallel().map(c-> {
         			ses.updateContext();
         			return c;
         		});
+			}
+		}
+    	return stream;
 	}
 }

@@ -3,6 +3,9 @@ package org.usf.inspect.core;
 import static java.lang.String.format;
 import static java.time.Instant.ofEpochMilli;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
+import static org.usf.inspect.core.BeanUtils.logLoadingBean;
+import static org.usf.inspect.core.BeanUtils.logRegistringBean;
+import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.InspectContext.initializeInspectContext;
 
@@ -64,6 +67,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean //important! name == apiSessionFilter
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     FilterRegistrationBean<Filter> apiSessionFilter(HttpUserProvider userProvider) {
+    	logRegistringBean("filterExecutionMonitor", FilterExecutionMonitor.class);
     	var conf = context().getConfiguration().getMonitoring().getHttpRoute();
     	var filter = new FilterExecutionMonitor(conf, userProvider);
     	var rb = new FilterRegistrationBean<Filter>(filter);
@@ -75,25 +79,26 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
 		if(appContext.containsBean("apiSessionFilter")) {
-	    	log.debug("loading 'FilterExecutionMonitor' interceptor ..");
+	    	logRegistringBean("handlerInterceptor", FilterExecutionMonitor.class);
 			var filter = (FilterExecutionMonitor) appContext.getBean("apiSessionFilter", FilterRegistrationBean.class).getFilter(); //see 
 			registry.addInterceptor(filter).order(HIGHEST_PRECEDENCE); //before other interceptors
 //				.excludePathPatterns(config.getTrack().getRestSession().excludedPaths())
 		}
 		else {
-			context().reportError("cannot find 'apiSessionFilter' bean, check your configuration, rest session tracking will not work correctly");
+			context().reportError("cannot find 'apiSessionFilter' bean, check your configuration");
 		}
     }
     
     @Bean //important! name == restRequestInterceptor
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     RestRequestInterceptor restRequestInterceptor() {
-    	log.debug("loading 'RestRequestInterceptor' bean ..");
+    	logRegistringBean("restRequestInterceptor", RestRequestInterceptor.class);
         return new RestRequestInterceptor();
     }
 
     @Bean
     HandlerExceptionResolverMonitor exceptionResolverMonitor() {
+    	logRegistringBean("exceptionResolverMonitor", HandlerExceptionResolverMonitor.class);
     	return new HandlerExceptionResolverMonitor();
     }
     
@@ -107,18 +112,16 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     		@Override
     		public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
     			if(bean instanceof DataSource ds && bean.getClass() != DataSourceWrapper.class) {
-    		    	log.info("wrapping spring DataSource {}: {} ..", beanName, bean.getClass());
+    				logWrappingBean(beanName, bean.getClass());
     				bean = new DataSourceWrapper(ds);
     			}
     			else if(!intecept && bean instanceof RestTemplate rt) {
-    		    	log.info("adding 'RestRequestInterceptor' on {}: {}", beanName, bean.getClass());
     				var arr = rt.getInterceptors();
     				arr.add(0, interceptor);
     				rt.setInterceptors(arr);
     				intecept = true; //only one time
     			}
     			else if(!intecept && bean instanceof RestTemplateBuilder builder) {
-    		    	log.info("adding 'RestRequestInterceptor' on {}: {}", beanName, bean.getClass());
     				builder.additionalInterceptors(interceptor); //order !
     				intecept = true; //only one time
     			}
@@ -134,7 +137,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean // Cacheable, TraceableStage, ControllerAdvice
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
-    	log.debug("loading 'MethodExecutionMonitorAspect' bean ..");
+    	logRegistringBean("methodExecutionMonitor", MethodExecutionMonitor.class);
     	return new MethodExecutionMonitor(aspectUser);
     }
 
@@ -150,21 +153,21 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean
     @ConditionalOnMissingBean
     HttpUserProvider httpUserProvider() {
-    	log.debug("loading 'HttpUserProvider' bean ..");
+    	logLoadingBean("httpUserProvider", HttpUserProvider.class);
     	return new HttpUserProvider() {};
     }
 
     @Bean
     @ConditionalOnMissingBean
     AspectUserProvider aspectUserProvider() {
-    	log.debug("loading 'AspectUserProvider' bean ..");
+    	logLoadingBean("aspectUserProvider", AspectUserProvider.class);
     	return new AspectUserProvider() {};
     }
 
     @Bean
     @ConditionalOnMissingBean
     ApplicationPropertiesProvider applicationPropertiesProvider(Environment env) {
-    	log.debug("loading 'ApplicationPropertiesProvider' bean ..");
+    	logLoadingBean("applicationPropertiesProvider", ApplicationPropertiesProvider.class);
     	return new DefaultApplicationPropertiesProvider(env);
     }
     
@@ -172,7 +175,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Primary
     @ConfigurationProperties(prefix = "inspect.collector")
     InspectCollectorConfiguration inspectConfigurationProperties(Optional<RemoteServerProperties> dispatching) {
-    	log.debug("loading 'InspectConfigurationProperties' bean ..");
+    	logLoadingBean("inspectConfigurationProperties", InspectCollectorConfiguration.class);
     	var conf = new InspectCollectorConfiguration();
     	if(dispatching.isPresent()) {
     		conf.getTracing().setRemote(dispatching.get()); //spring will never call this setter
@@ -187,8 +190,8 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Primary
     @ConfigurationProperties(prefix = "inspect.collector.tracing.remote")
     @ConditionalOnProperty(prefix = "inspect.collector.tracing.remote", name = "mode")
-    RemoteServerProperties dispatchingProperties(@Value("${inspect.collector.tracing.remote.mode}") DispatchMode mode) {
-    	log.debug("loading 'DispatchingProperties' bean ..");
+    RemoteServerProperties remoteServerProperties(@Value("${inspect.collector.tracing.remote.mode}") DispatchMode mode) {
+    	logLoadingBean("remoteServerProperties", RemoteServerProperties.class);
     	return switch (mode) {
 		case REST -> new RestRemoteServerProperties();
 		default -> throw new UnsupportedOperationException(format("dispatching type '%s' is not supported, ", mode));

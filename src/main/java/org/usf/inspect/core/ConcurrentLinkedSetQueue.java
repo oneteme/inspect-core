@@ -17,10 +17,10 @@ public final class ConcurrentLinkedSetQueue<T> {
 	LinkedHashSet<T> queue = new LinkedHashSet<>();
 	
 	public int add(T o) { //return size, reduce sync call
-		return add(true, o);
+		return add(o, true);
 	}
 
-	public int add(boolean overwrite, T o) { //return size, reduce sync call
+	public int add(T o, boolean overwrite) { //return size, reduce sync call
 		synchronized(mutex){
 			if(overwrite) {
 				queue.remove(o);
@@ -31,10 +31,10 @@ public final class ConcurrentLinkedSetQueue<T> {
 	}
 
 	public int addAll(Collection<T> arr){ //return size, reduce sync call
-		return addAll(true, arr);
+		return addAll(arr, true);
 	}
 
-	public int addAll(boolean overwrite, Collection<T> arr){
+	public int addAll(Collection<T> arr, boolean overwrite){
 		synchronized(mutex){
 			synchronized(mutex){
 				if(overwrite) {

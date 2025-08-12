@@ -43,7 +43,7 @@ class ConcurrentLinkedSetQueueTest {
 
 	@Test
 	void testAdd_not_overwirte() {
-		testQueue(false, arr-> queue.addAll(false, asList(arr)));
+		testQueue(false, arr-> queue.addAll(asList(arr), false));
 	}
 
 	@Test

@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RequiredArgsConstructor
-public final class QueueResolver {
+public final class EventTraceQueueManager {
 
 	@Getter
 	private final int queueCapacity;
@@ -35,7 +35,7 @@ public final class QueueResolver {
 			var mdf = new ArrayList<>(q);
 			var mrk = delay < 0 ? MIN : now().minusSeconds(delay);
 			var kpt = new LinkedHashSet<EventTrace>();
-			var pnd = extractPendingTrace(mdf, mrk, kpt); // 0: takes all, -1: completed only, 
+			var pnd = extractPendingTraces(mdf, mrk, kpt); // 0: takes all, -1: completed only, 
 			var rtr = cons.accept(mdf, pnd); //may contains traces copy
 			if(nonNull(rtr)) {
 				kpt.addAll(rtr);
@@ -56,12 +56,12 @@ public final class QueueResolver {
 		}
 		finally {
 			if(nonNull(set) && !set.isEmpty()) {
-				queue.addAll(false, set); //go back to the queue (!overwriting)
+				queue.addAll(set, false); //go back to the queue (!overwriting)
 			}
 		}
 	}
 
-	int extractPendingTrace(List<EventTrace> queue, Instant mark, Collection<EventTrace> kept) {
+	int extractPendingTraces(List<EventTrace> queue, Instant mark, Collection<EventTrace> kept) {
 		var n = new int[1];
 		for(var it=queue.listIterator(); it.hasNext();) {
 			if(it.next() instanceof CompletableMetric mtr) {

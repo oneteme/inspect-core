@@ -30,9 +30,9 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private Instant end;
 	private String threadName;
 	//v1.1
+	private String id;
 	private String sessionId;
 	private String instanceId; //server usage 
-	private String id;
 	@JsonIgnore
 	private final AtomicInteger stageCounter = new AtomicInteger();
 	
@@ -41,8 +41,9 @@ public abstract class AbstractRequest implements CompletableMetric {
 		this.start = req.start;
 		this.end = req.end;
 		this.threadName = req.threadName;
-		this.sessionId = req.sessionId;
 		this.id = req.id;
+		this.sessionId = req.sessionId;
+		this.instanceId = req.instanceId;
 	}
 	
 	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Throwable t, Supplier<T> supp) {

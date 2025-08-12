@@ -1,6 +1,7 @@
 package org.usf.inspect.ftp;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
@@ -293,7 +294,11 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		};
 	}
 	
-	public static final ChannelSftpWrapper wrap(ChannelSftp channel) {
-		return new ChannelSftpWrapper(channel);
+	public static final ChannelSftp wrap(ChannelSftp channel) {
+		if(context().getConfiguration().isEnabled()){
+			logWrappingBean("contextSource", channel.getClass());
+			return new ChannelSftpWrapper(channel);
+		}
+		return channel;
 	}
 }

@@ -137,7 +137,7 @@ public final class EventTraceScheduledDispatcher {
 	}
 
 	void safeDispatch(DispatchState state) {
-		var resolver = new QueueResolver(propr.getQueueCapacity(), propr.isModifiable(), queue);
+		var resolver = new EventTraceQueueManager(propr.getQueueCapacity(), propr.isModifiable(), queue);
 		try {
 			dispatchQueue(state, resolver);
 		}
@@ -180,7 +180,7 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 
-	void propagateQueue(DispatchState state, QueueResolver resolver){
+	void propagateQueue(DispatchState state, EventTraceQueueManager resolver){
 		if(state.canPropagate()) {
 			for(var h : hooks) {
 				try {
@@ -195,7 +195,7 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 	
-	void dispatchQueue(DispatchState state, QueueResolver resolver) {
+	void dispatchQueue(DispatchState state, EventTraceQueueManager resolver) {
 		if(state.canPropagate()) {
 			resolver.dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (q, n)->{
 				triggerHooks(h-> h.onDispatch(state.wasCompleted(), q));
@@ -239,7 +239,14 @@ public final class EventTraceScheduledDispatcher {
 		atomicState.getAndUpdate(DispatchState::complete);
 		log.info("shutting down the scheduler service...");
 		executor.shutdown();
-		synchronizedDispatch(false, true);
+		try {
+			executor.awaitTermination(5, SECONDS);
+		} catch (InterruptedException e) {
+			log.warn("interrupted while waiting for executor termination", e);
+		}
+		finally {
+			synchronizedDispatch(false, true);
+		}
 	}
 
 	void triggerHooks(Consumer<DispatchHook> post){

@@ -1,5 +1,8 @@
 package org.usf.inspect.dir;
 
+import static org.usf.inspect.core.BeanUtils.logWrappingBean;
+import static org.usf.inspect.core.InspectContext.context;
+
 import javax.naming.directory.DirContext;
 
 import org.springframework.ldap.NamingException;
@@ -32,7 +35,11 @@ public final class ContextSourceWrapper implements ContextSource {
 		return new DirContextWrapper(()-> contextSource.getContext(principal, credentials));
 	}
 	
-	public static ContextSourceWrapper wrap(ContextSource contextSource) {
-		return new ContextSourceWrapper(contextSource);
+	public static ContextSource wrap(ContextSource ctx) {
+		if(context().getConfiguration().isEnabled()){
+			logWrappingBean("contextSource", ctx.getClass());
+			return new ContextSourceWrapper(ctx);
+		}
+		return ctx;
 	}
 }

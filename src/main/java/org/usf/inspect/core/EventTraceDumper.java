@@ -35,7 +35,7 @@ public final class EventTraceDumper implements DispatchHook {
 	}
 
 	@Override
-	public boolean onCapacityExceeded(boolean complete, QueueResolver resolver) { 
+	public boolean onCapacityExceeded(boolean complete, EventTraceQueueManager resolver) { 
 		resolver.dequeue(complete ? 0 : -1, (trc, pnd)->{
 			emitDispatchFileTask(writeTraces(trc));
 			return emptyList();

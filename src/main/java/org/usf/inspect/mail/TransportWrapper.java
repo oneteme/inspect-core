@@ -2,6 +2,7 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
@@ -119,13 +120,16 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 			: Stream.of(address).map(Address::toString).toArray(String[]::new);
 	}
 	
-	public static TransportWrapper wrap(Transport trsp) {
-		return new TransportWrapper(trsp);
-	}
-	
 	static <T> void acceptIfNonNull(T o, Consumer<T> cons) {
 		if(nonNull(o)) {
 			cons.accept(o);
 		}
+	}
+	
+	public static TransportWrapper wrap(Transport trsp) {
+		if(context().getConfiguration().isEnabled()){
+			logWrappingBean("transport", trsp.getClass());
+		}
+		return new TransportWrapper(trsp); //cannot implement or extends Transport
 	}
 }
