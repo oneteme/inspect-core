@@ -48,11 +48,11 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
     }
 
 	@Override
-	public void onDispatch(boolean complete, Collection<EventTrace> traces)  {
-		if(complete) {
-			log.warn("unfinished tasks {}", sessions.size());
-			sessions.values().forEach(this::printSession);
-		}
+	public void postDispatch(Collection<EventTrace> traces, Collection<EventTrace> returned)  {
+//		if(complete) {
+//			log.warn("unfinished tasks {}", sessions.size());
+//			sessions.values().forEach(this::printSession);
+//		}
 	}
 	
 	synchronized void printSession(AbstractSession ses) {

@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class LocalRequest extends AbstractRequest { //TODO extends RequestStage
+public class LocalRequest extends AbstractRequest {
 
 	private String name; //method, title
 	private String type;

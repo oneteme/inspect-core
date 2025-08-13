@@ -53,7 +53,7 @@ public final class EventTraceScheduledDispatcher {
 		this.hooks = unmodifiableList(hooks);
 		this.queue = new ConcurrentLinkedSetQueue<>();
 		this.tasks = synchronizedList(new ArrayList<>());
-		var delay = schd.getInterval().getSeconds();
+		var delay  = schd.getInterval().getSeconds();
 		this.executor.scheduleWithFixedDelay(()-> synchronizedDispatch(false, false), delay, delay, SECONDS);
 		getRuntime().addShutdownHook(new Thread(this::complete, "shutdown-hook"));
 	}
@@ -153,7 +153,7 @@ public final class EventTraceScheduledDispatcher {
 				warnException(log, e, "propagate queue error");
 			}
 			finally {
-				int n = queue.removeFrom(propr.getQueueCapacity()+1);
+				int n = queue.removeFrom(propr.getQueueCapacity());
 				log.warn("{} last traces were deleted", n);
 			}
 		}
@@ -165,17 +165,31 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 	
-	void dispatchTasks(DispatchState state) {
-		if(state.canDispatch() && !tasks.isEmpty()) {
-			var arr = tasks.toArray(DispatchTask[]::new);
-			for(var t : arr) { // iterator is not synchronized @see SynchronizedCollection.iterator
-				try {
-					t.dispatch(agent);
-					tasks.remove(t);
-				}
-				catch (Exception e) { //catch exception => next task
-					warnException(log, e, "failed to execute task '{}'", t.getClass().getSimpleName());
-				}
+	void dispatchQueue(DispatchState state, EventTraceQueueManager resolver) {
+		if(state.canPropagate()) {
+			triggerHooks(DispatchHook::preDispatch);
+			if(state.canDispatch()) {
+				resolver.dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (q, n)->{
+					var traces = q;
+					log.debug("dispatching {} traces .., pending {} traces", traces.size(), n);
+					try {
+						traces = agent.dispatch(state.wasCompleted(), ++attempts, n, traces);
+						if(attempts > 5) { //more than one attempt
+							log.info("successfully dispatched {} items after {} attempts", traces.size(), attempts);
+						}
+						attempts=0;
+					} catch (Exception e) {
+						throw new DispatchException(format("failed to dispatch %d traces", traces.size()), e);
+					}
+					finally {
+						var arr = traces;
+						triggerHooks(h-> h.postDispatch(q, arr));
+					}
+					return traces;
+				});
+			}
+			else {
+				triggerHooks(h-> h.postDispatch(emptyList(), emptyList())); 
 			}
 		}
 	}
@@ -195,34 +209,21 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 	
-	void dispatchQueue(DispatchState state, EventTraceQueueManager resolver) {
-		if(state.canPropagate()) {
-			resolver.dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (q, n)->{
-				triggerHooks(h-> h.onDispatch(state.wasCompleted(), q));
-				var traces = q;
-				if(state.canDispatch()) {
-					log.debug("dispatching {} traces .., pending {} traces", traces.size(), n);
-					try {
-						traces = agent.dispatch(state.wasCompleted(), ++attempts, n, traces);
-						if(attempts > 5) { //more than one attempt
-							log.info("successfully dispatched {} items after {} attempts", traces.size(), attempts);
-						}
-						attempts=0;
-					} catch (Exception e) {
-						throw new DispatchException(format("failed to dispatch %d traces", traces.size()), e); //do not log exception stack trace
-					}
+	void dispatchTasks(DispatchState state) {
+		if(state.canDispatch() && !tasks.isEmpty()) {
+			var arr = tasks.toArray(DispatchTask[]::new);
+			for(var t : arr) { // iterator is not synchronized @see SynchronizedCollection#iterator
+				try {
+					t.dispatch(agent);
+					tasks.remove(t);
 				}
-				else {
-					log.warn("cannot dispatch traces as the dispatcher state is {}", state);
+				catch (Exception e) { //catch exception => next task
+					warnException(log, e, "failed to execute task '{}'", t.getClass().getSimpleName());
 				}
-				return traces;
-			});
-		}
-		else {
-			log.warn("cannot propargate traces as the dispatcher state is {}", state);
+			}
 		}
 	}
-
+	
 	public Stream<EventTrace> peek() {
 		return queue.peek();
 	}
@@ -245,7 +246,7 @@ public final class EventTraceScheduledDispatcher {
 			log.warn("interrupted while waiting for executor termination", e);
 		}
 		finally {
-			synchronizedDispatch(false, true);
+			synchronizedDispatch(false, true); //run it on shutdown-hook thread
 		}
 	}
 
@@ -254,7 +255,7 @@ public final class EventTraceScheduledDispatcher {
 			try {
 				post.accept(h);
 			}
-			catch (Exception e) {
+			catch (Exception e) { //catch exception => next hook
 				warnException(log, e, "failed to execute hook '{}'", h.getClass().getSimpleName());
 			}
 		}

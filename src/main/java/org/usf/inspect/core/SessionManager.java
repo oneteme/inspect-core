@@ -129,7 +129,7 @@ public final class SessionManager {
 	}
 	
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
-		var loc = stackLocation();
+		var loc = callerLocation();
 		return call(fn, asynclocalRequestListener(EXEC, ()-> loc, ()-> name));
 	}
 	
@@ -143,8 +143,8 @@ public final class SessionManager {
         	req.setName(nameSupp.get());
         	req.setLocation(locationSupp.get());
     	}
-    	catch (Exception t) {
-    		context().reportEventHandleError(req.getId(), t);
+    	catch (Exception e) {
+    		context().reportEventHandleError(req.getId(), e);
 		}
 		context().emitTrace(req);
 		return (s,e,o,t)->{
@@ -158,7 +158,7 @@ public final class SessionManager {
 		};
 	}
 	
-	private static String stackLocation() {
+	private static String callerLocation() {
 		return outerStackTraceElement()
 				.map(StackTraceElement::getClassName)
 				.orElse(null);

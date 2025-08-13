@@ -5,18 +5,19 @@ import static java.util.regex.Pattern.DOTALL;
 import static java.util.regex.Pattern.MULTILINE;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
-import static org.usf.inspect.core.Helper.log;
 
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
+@Slf4j
 public enum SqlCommand {
 	
 	CREATE, DROP, ALTER, TRUNCATE, //DDL

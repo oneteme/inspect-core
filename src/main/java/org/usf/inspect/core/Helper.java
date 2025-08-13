@@ -4,14 +4,10 @@ import static java.lang.Thread.currentThread;
 import static java.lang.reflect.Array.getLength;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
-import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import org.slf4j.Logger;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -24,23 +20,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Helper {
 	
-	private static final String ROOT_PACKAGE;
-	
-	public static final Logger log;
-
-	static {
-		var p = Helper.class.getPackageName();
-		ROOT_PACKAGE = p; //root
-		log = getLogger(ROOT_PACKAGE + ".collector");
-	}
+	private static final String ROOT_PACKAGE = Helper.class.getPackageName();
 	
 	public static String threadName() {
 		return currentThread().getName();
-	}
-	
-	public static String extractAuthScheme(List<String> authHeaders) { //nullable
-		return nonNull(authHeaders) && authHeaders.size() == 1 //require one header
-				? extractAuthScheme(authHeaders.get(0)) : null;
 	}
 	
 	public static String extractAuthScheme(String authHeader) { //nullable

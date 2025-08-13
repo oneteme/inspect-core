@@ -24,7 +24,7 @@ import lombok.experimental.Delegate;
 public final class ExecutorServiceWrapper implements ExecutorService {
 	
 	@Delegate
-	private final ExecutorService es;  //Future::cancel !?
+	private final ExecutorService es;
 	
 	@Override
 	public <T> Future<T> submit(Callable<T> task) {
@@ -56,13 +56,13 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			    	try {
 				    	command.run();
 			    	}
-			    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
+			    	finally {// session cleanup is guaranteed even if the task is cancelled / interrupted.
 						session.unlock();
 						session.releaseContext();
 			    	}
 				});
 			}
-			catch (Exception e) {  //@see Executor::execute
+			catch (Exception e) { 
 				session.unlock();
 				throw e;
 			}
@@ -86,7 +86,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 			    	}
 				});
 			}
-			catch (Exception e) {  //@see Executor::execute
+			catch (Exception e) {
 				session.unlock();
 				throw e;
 			}

@@ -40,12 +40,8 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	public void validate() {
 		assertAbsolute(host, "host");
 		var base = host.resolve("/").toString(); // append '/' if not present
-		if(isNull(instanceURI)) {
-			instanceURI = base + INSTANCE_DEFAULT_URI;
-		}
-		if(isNull(tracesURI)) {
-			tracesURI = base + TRACES_DEFAULT_URI;
-		}
+		instanceURI = base + (isNull(instanceURI) ? INSTANCE_DEFAULT_URI : instanceURI);
+		tracesURI = base + (isNull(tracesURI) ? TRACES_DEFAULT_URI : tracesURI);
 		assertPositive(compressMinSize, "compress-min-size");
 		assertBetween(retentionMaxAge, ofDays(1), ofDays(365), "retention-max-age");
 	}

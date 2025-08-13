@@ -39,8 +39,7 @@ public class MethodExecutionMonitor implements Ordered {
 	 
     @Around("@annotation(TraceableStage)")
     Object aroundTraceable(ProceedingJoinPoint point) throws Throwable {
-		var session = currentSession();
-    	return isNull(session) 
+    	return isNull(currentSession()) 
     			? aroundBatch(point) 
     			: aroundStage(point);
     }

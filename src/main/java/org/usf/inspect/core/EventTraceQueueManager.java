@@ -30,12 +30,12 @@ public final class EventTraceQueueManager {
 	private final boolean modifiable;
 	private final ConcurrentLinkedSetQueue<EventTrace> queue;
 
-	public void dequeue(int delay, QueueConsumer cons) {
+	public void dequeue(int delay, QueueConsumer cons) { // 0: takes all, -1: completed only, 
 		dequeue(q->{
 			var mdf = new ArrayList<>(q);
 			var mrk = delay < 0 ? MIN : now().minusSeconds(delay);
 			var kpt = new LinkedHashSet<EventTrace>();
-			var pnd = extractPendingTraces(mdf, mrk, kpt); // 0: takes all, -1: completed only, 
+			var pnd = extractPendingTraces(mdf, mrk, kpt);
 			var rtr = cons.accept(mdf, pnd); //may contains traces copy
 			if(nonNull(rtr)) {
 				kpt.addAll(rtr);
@@ -66,7 +66,7 @@ public final class EventTraceQueueManager {
 		for(var it=queue.listIterator(); it.hasNext();) {
 			if(it.next() instanceof CompletableMetric mtr) {
 				mtr.runSynchronizedIfNotComplete(()-> {
-					n[0]++;
+					++n[0];
 					if(mtr.getStart().isBefore(mark)) {
 						if(modifiable) {  //send copy, avoid dispatch same reference
 							it.set(mtr.copy());

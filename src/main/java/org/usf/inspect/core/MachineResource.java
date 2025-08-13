@@ -18,5 +18,4 @@ public class MachineResource {
 	private final int maxMeta;
 	private final int diskTotalSpace;
 	//threads, CPU, .. ?
-	
 }

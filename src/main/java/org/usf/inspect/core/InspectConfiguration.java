@@ -58,6 +58,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	@Primary
 	@Bean("inspectContext")
 	InspectContext inspectContext(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+		logLoadingBean("inspectContext", InspectContext.class);
 		var start = ofEpochMilli(appContext.getStartupDate());
 		initializeInspectContext(start, conf.validate(), provider); 
 		context().traceStartupSession(start); //start session after context is initialized

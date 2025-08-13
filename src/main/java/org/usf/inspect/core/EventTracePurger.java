@@ -18,32 +18,32 @@ public final class EventTracePurger implements DispatchHook {
 		return true;
 	}
 
-	Collection<EventTrace> deleteTraces(Collection<EventTrace> q, int maxCapacity) {
-		var size = q.size(); // 1- remove all non complete traces
+	Collection<EventTrace> deleteTraces(Collection<EventTrace> traces, int maxCapacity) {
+		var size = traces.size(); // 1- remove all non complete traces
 		if(size > maxCapacity) {
-			for(var it=q.iterator(); it.hasNext();) { 
+			for(var it=traces.iterator(); it.hasNext();) { 
 				var t = it.next();
 				if(t instanceof CompletableMetric cm) {
 					cm.runSynchronizedIfNotComplete(it::remove);  
 				}
 			} 
-			log.debug("{} non-complete traces were deleted", size-q.size());
-			size = q.size(); // 2- remove resource usage 
+			log.warn("{} non-complete traces were deleted", size-traces.size());
+			size = traces.size(); // 2- remove resource usage 
 			if(size > maxCapacity) {
-				q.removeIf(t-> t instanceof MachineResourceUsage);
-				log.debug("{} resource usage traces were deleted", size-q.size());
-				size = q.size(); // 3- remove all stages
+				traces.removeIf(t-> t instanceof MachineResourceUsage);
+				log.warn("{} resource usage traces were deleted", size-traces.size());
+				size = traces.size(); // 3- remove all stages
 				if(size > maxCapacity) {
-					q.removeIf(t-> t instanceof AbstractStage);
-					log.debug("{} stage traces were deleted", size-q.size());
-					size = q.size(); // 4- remove all logs
+					traces.removeIf(t-> t instanceof AbstractStage);
+					log.warn("{} stage traces were deleted", size-traces.size());
+					size = traces.size(); // 4- remove all logs
 					if(size > maxCapacity) {
-						q.removeIf(t-> t instanceof LogEntry);
-						log.debug("{} log traces were deleted", size-q.size());
+						traces.removeIf(t-> t instanceof LogEntry);
+						log.warn("{} log traces were deleted", size-traces.size());
 					}
 				}
 			}
 		}
-		return q;
+		return traces;
 	}
 }

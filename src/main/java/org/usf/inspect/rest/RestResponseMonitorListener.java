@@ -7,7 +7,6 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
@@ -21,6 +20,7 @@ import java.util.List;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.usf.inspect.core.Helper;
 import org.usf.inspect.core.RestRequest;
 
 interface RestResponseMonitorListener {
@@ -82,4 +82,10 @@ interface RestResponseMonitorListener {
     static <T> T getFirstOrNull(List<T> list) {
     	return isNull(list) || list.isEmpty() ? null : list.get(0);
     }
+
+	
+	public static String extractAuthScheme(List<String> authHeaders) { //nullable
+		return nonNull(authHeaders) && authHeaders.size() == 1 //require one header
+				? Helper.extractAuthScheme(authHeaders.get(0)) : null;
+	}
 }
