@@ -6,6 +6,7 @@ import static java.net.InetAddress.getLocalHost;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
+import static org.usf.inspect.core.BasicDispatchState.DISABLE;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
@@ -206,6 +207,7 @@ public final class InspectContext {
 		var conf = new InspectCollectorConfiguration();
 		conf.setEnabled(false);
 		conf.setDebugMode(false);
+		conf.getScheduling().setState(DISABLE);
 		conf.getTracing().setRemote(null); //avoid remote dispatching
 		conf.getMonitoring().getResources().setEnabled(false); //avoid resource monitoring
 		conf.getMonitoring().getException().setMaxStackTraceRows(0); //avoid memory leak

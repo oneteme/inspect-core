@@ -54,7 +54,7 @@ public final class SessionManager {
 		}
 		return null;
 	}
-	
+
 	public static Session requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
@@ -66,17 +66,17 @@ public final class SessionManager {
 		}
 		return ses;
 	}
-	
+
 	public static Session currentSession() {
 		var ses = localTrace.get();
 		return nonNull(ses) ? ses : startupSession; // priority
 	}
-	
+
 	public static void emitSessionStart(Session session) {
 		context().emitTrace(session);
 		setCurrentSession(session);
 	}
-	
+
 	static void setCurrentSession(Session ses) {
 		var prv = localTrace.get();
 		if(prv != ses) {
@@ -88,12 +88,12 @@ public final class SessionManager {
 			}
 		}// else do nothing, already set
 	}
-		
+
 	public static void emitSessionEnd(Session session) {
 		context().emitTrace(session);
 		releaseSession(session);
 	}
-	
+
 	static void releaseSession(Session ses) {
 		var prv = localTrace.get();
 		if(prv == ses) {
@@ -103,7 +103,7 @@ public final class SessionManager {
 			reportSessionConflict(prv.getId(), ses.getId());
 		}
 	}
-	
+
 	public static void emitStartupSession(MainSession session) {
 		context().emitTrace(session);
 		if(isNull(startupSession)) {
@@ -113,7 +113,7 @@ public final class SessionManager {
 			reportSessionConflict(startupSession.getId(), session.getId());
 		}
 	}
-	
+
 	public static void emitStartupSesionEnd(MainSession session) {
 		context().emitTrace(startupSession);
 		if(startupSession == session) {
@@ -127,29 +127,29 @@ public final class SessionManager {
 	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
 		trackCallble(name, fn);
 	}
-	
+
 	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
 		var loc = callerLocation();
 		return call(fn, asynclocalRequestListener(EXEC, ()-> loc, ()-> name));
 	}
-	
+
 	static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
 		var now = now();
 		var req = createLocalRequest();
-    	try {
-        	req.setStart(now);
-        	req.setThreadName(threadName());
+		try {
+			req.setStart(now);
+			req.setThreadName(threadName());
 			req.setType(type.name());
-        	req.setName(nameSupp.get());
-        	req.setLocation(locationSupp.get());
-    	}
-    	catch (Exception e) {
-    		context().reportEventHandleError(req.getId(), e);
+			req.setName(nameSupp.get());
+			req.setLocation(locationSupp.get());
+		}
+		catch (Exception e) {
+			context().reportEventHandleError(req.getId(), e);
 		}
 		context().emitTrace(req);
 		return (s,e,o,t)->{
 			req.runSynchronized(()-> {
-	    		if(nonNull(t)) {
+				if(nonNull(t)) {
 					req.setException(fromException(t));
 				}
 				req.setEnd(e);
@@ -157,42 +157,42 @@ public final class SessionManager {
 			context().emitTrace(req);
 		};
 	}
-	
+
 	private static String callerLocation() {
 		return outerStackTraceElement()
 				.map(StackTraceElement::getClassName)
 				.orElse(null);
 	}
-	
+
 	public static RestSession createRestSession() {
 		return createRestSession(nextId());
 	}
-	
+
 	public static RestSession createRestSession(String uuid) {
 		var session = new RestSession();
 		session.setId(uuid);
 		return session;
 	}
-	
+
 	public static MainSession createStartupSession() {
 		return createMainSession(STARTUP);
 	}
-	
+
 	public static MainSession createBatchSession() {
 		return createMainSession(BATCH);
 	}
-	
+
 	static MainSession createMainSession(MainSessionType type) {
 		var ses = new MainSession();
 		ses.setId(nextId());
 		ses.setType(type.name());
 		return ses;
 	}
-	
+
 	public static RestRequest createHttpRequest() {
 		return traceableRequest(REST, new RestRequest());
 	}
-	
+
 	public static DatabaseRequest createDatabaseRequest() {
 		return traceableRequest(JDBC, new DatabaseRequest());
 	}
@@ -200,11 +200,11 @@ public final class SessionManager {
 	public static FtpRequest createFtpRequest() {
 		return traceableRequest(FTP, new FtpRequest());
 	}
-	
+
 	public static MailRequest createMailRequest() {
 		return traceableRequest(SMTP, new MailRequest());
 	}
-	
+
 	public static DirectoryRequest createNamingRequest() {
 		return traceableRequest(LDAP, new DirectoryRequest());
 	}
@@ -212,7 +212,7 @@ public final class SessionManager {
 	public static LocalRequest createLocalRequest() {
 		return traceableRequest(LOCAL, new LocalRequest());
 	}
-	
+
 	static <T extends AbstractRequest> T traceableRequest(RequestMask mask, T req) {
 		req.setId(nextId());
 		var ses = requireCurrentSession();
@@ -222,7 +222,7 @@ public final class SessionManager {
 		}
 		return req;
 	}
-	
+
 	public static void emitInfo(String msg) {
 		emitLog(INFO, msg);
 	}
@@ -230,11 +230,11 @@ public final class SessionManager {
 	public static void emitWarn(String msg) {
 		emitLog(WARN, msg);
 	}
-	
+
 	public static void emitError(String msg) {
 		emitLog(ERROR, msg);
 	}
-	
+
 	private static void emitLog(Level lvl, String msg) {
 		var log = logEntry(lvl, msg);
 		var ses = requireCurrentSession();
@@ -243,11 +243,11 @@ public final class SessionManager {
 		}
 		context().emitTrace(log);
 	}
-	
+
 	public static String nextId() {
 		return randomUUID().toString();
 	}
-	
+
 	static void reportSessionConflict(String prev, String next) {
 		context().reportError(format("session conflict detected : previous=%s, next=%s", prev, next));
 	}

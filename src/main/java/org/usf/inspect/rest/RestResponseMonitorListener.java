@@ -47,7 +47,7 @@ interface RestResponseMonitorListener {
 	}
 
 	static void afterResponse(RestRequest req, Instant start, Instant end, int status, HttpHeaders headers, Throwable thrw) {
-    	context().emitTrace(req.createStage(PROCESS, start, end, thrw)); //same thread
+    		context().emitTrace(req.createStage(PROCESS, start, end, thrw)); //same thread
 		req.runSynchronized(()->{
     		if(nonNull(headers)) { //response
         		req.setThreadName(threadName()); //deferred thread

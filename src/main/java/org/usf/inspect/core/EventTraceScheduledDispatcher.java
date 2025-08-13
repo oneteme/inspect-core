@@ -9,7 +9,6 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.usf.inspect.core.BasicDispatchState.DISPATCH;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 public final class EventTraceScheduledDispatcher {
 
 	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(EventTraceScheduledDispatcher::daemonThread);
-	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISPATCH);
 	private final AtomicBoolean atomicRunning = new AtomicBoolean(false);
 
 	private final TracingProperties propr;
@@ -41,6 +39,7 @@ public final class EventTraceScheduledDispatcher {
 	private final List<DispatchHook> hooks;
 	private final List<DispatchTask> tasks;
 	private final ConcurrentLinkedSetQueue<EventTrace> queue;
+	private final AtomicReference<DispatchState> atomicState;
 	private int attempts;
 
 	public EventTraceScheduledDispatcher(TracingProperties propr, SchedulingProperties schd, DispatcherAgent agent) {
@@ -55,6 +54,7 @@ public final class EventTraceScheduledDispatcher {
 		this.tasks = synchronizedList(new ArrayList<>());
 		var delay  = schd.getInterval().getSeconds();
 		this.executor.scheduleWithFixedDelay(()-> synchronizedDispatch(false, false), delay, delay, SECONDS);
+		this.atomicState = new AtomicReference<>(schd.getState());
 		getRuntime().addShutdownHook(new Thread(this::complete, "shutdown-hook"));
 	}
 
@@ -72,10 +72,7 @@ public final class EventTraceScheduledDispatcher {
 	}
 
 	public boolean emit(DispatchTask task) {
-		if(atomicState.get().canEmit()) {
-			return tasks.add(task);
-		}
-		return false;
+		return atomicState.get().canEmit() && tasks.add(task);
 	}
 
 	public boolean emit(EventTrace trace) {
@@ -106,10 +103,10 @@ public final class EventTraceScheduledDispatcher {
 		if(!atomicRunning.compareAndExchange(false, true) || complete) { //complete => force dispatch, deferred => after trace emit
 			var state = atomicState.get();
 			if(deferred) {
-				log.trace("deferred dispatching traces ..");
 				executor.submit(()-> {
+					log.trace("deferred dispatching traces ..");
 					try {
-						safeDispatch(state); 
+						dispatchAll(state); 
 					}
 					catch (Throwable e) {
 						warnException(log, e, "dispatch traces error");
@@ -123,7 +120,7 @@ public final class EventTraceScheduledDispatcher {
 			else {
 				log.trace("scheduled dispatching traces ..");
 				try {
-					safeDispatch(state);
+					dispatchAll(state);
 				}
 				catch (Throwable e) { //catch throwable to avoid stop scheduler
 					warnException(log, e, "dispatch traces error"); 
@@ -136,32 +133,23 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 
-	void safeDispatch(DispatchState state) {
+	void dispatchAll(DispatchState state) {
 		var resolver = new EventTraceQueueManager(propr.getQueueCapacity(), propr.isModifiable(), queue);
 		try {
 			dispatchQueue(state, resolver);
 		}
-		catch (Exception e) {
-			warnException(log, e, "dispatch queue error");
-		}
-		if(queue.size() > propr.getQueueCapacity()) {
-	        log.debug("queue capacity exceeded", state);
-			try {
-				propagateQueue(state, resolver);
+		finally {
+			if(queue.size() > propr.getQueueCapacity()) {
+		        log.debug("queue capacity exceeded", state);
+				try {
+					propagateQueue(state, resolver); //try store/reduce traces
+				}
+				finally {
+					int n = queue.removeFrom(propr.getQueueCapacity());
+					log.warn("{} last traces were deleted", n);
+				}
 			}
-			catch (Exception e) {
-				warnException(log, e, "propagate queue error");
-			}
-			finally {
-				int n = queue.removeFrom(propr.getQueueCapacity());
-				log.warn("{} last traces were deleted", n);
-			}
-		}
-		try {
 			dispatchTasks(state);
-		}
-		catch (Exception e) {
-			warnException(log, e, "dispatch tasks error");
 		}
 	}
 	

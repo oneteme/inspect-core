@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.nonNull;
+
 import java.time.Instant;
 
 import org.usf.inspect.jdbc.JDBCAction;
@@ -60,11 +62,12 @@ public class DatabaseRequest extends AbstractRequest {
 	
 	@Override
 	public String toString() {
+		var prod = nonNull(productName) ? productName.toLowerCase() : null;
 		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withCommand(command)
 		.withUser(getUser())
-		.withUrlAsResource("jdbc:"+productName.toLowerCase(), host, port, name, null)
+		.withUrlAsResource("jdbc:"+prod, host, port, name, null)
 		.withPeriod(getStart(), getEnd())
 		.format();
 	}
