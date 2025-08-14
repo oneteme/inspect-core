@@ -125,7 +125,6 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	 * @deprecated  This method will be deleted in the future.
 	 */
 	@Override
-	@Deprecated
 	public InputStream get(String src, SftpProgressMonitor monitor, int mode) throws SftpException {
 		return call(()-> channel.get(src, monitor, mode), sftpStageListener(GET, src));
 	}

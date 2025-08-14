@@ -9,5 +9,6 @@ public enum MainSessionType {
 
 	VIEW,
 	BATCH,
-	STARTUP;
+	STARTUP,
+	TEST;
 }

@@ -10,13 +10,13 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
 import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
+import static org.usf.inspect.core.MainSessionType.TEST;
 import static org.usf.inspect.core.RequestMask.FTP;
 import static org.usf.inspect.core.RequestMask.JDBC;
 import static org.usf.inspect.core.RequestMask.LDAP;
@@ -124,13 +124,13 @@ public final class SessionManager {
 		}
 	}
 
-	public static <E extends Throwable> void trackRunnable(String name, SafeRunnable<E> fn) throws E {
-		trackCallble(name, fn);
+	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
+		trackCallble(type, name, fn);
 	}
 
-	public static <T, E extends Throwable> T trackCallble(String name, SafeCallable<T,E> fn) throws E {
+	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		var loc = callerLocation();
-		return call(fn, asynclocalRequestListener(EXEC, ()-> loc, ()-> name));
+		return call(fn, asynclocalRequestListener(type, ()-> loc, ()-> name));
 	}
 
 	static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
@@ -182,6 +182,10 @@ public final class SessionManager {
 		return createMainSession(BATCH);
 	}
 
+	public static MainSession createTestSession() {
+		return createMainSession(TEST);
+	}
+	
 	static MainSession createMainSession(MainSessionType type) {
 		var ses = new MainSession();
 		ses.setId(nextId());
