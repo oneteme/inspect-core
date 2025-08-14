@@ -20,13 +20,15 @@ import jakarta.servlet.http.HttpServletResponse;
 public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver, Ordered {
 	
 	/**
+	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
+	 * 
 	 * @return {@code null} for default processing in the resolution chain
 	 */
 	@Override
 	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler,
 			Exception ex) {
 		var ses = requireCurrentSession(RestSession.class);
-		if(nonNull(ses) && isNull(ses.getException())) { //unfiltred requests
+		if(nonNull(ses) && isNull(ses.getException())) { //non filtered requests
 			ses.setException(fromException(ex));
 		}
 		return null;

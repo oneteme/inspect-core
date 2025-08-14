@@ -83,6 +83,10 @@ public final class EventTraceQueueManager {
 		}
 		return n[0];
 	}
+	
+	public boolean isQueueCapacityExceeded() {
+		return queue.size() > queueCapacity;
+	}
 
 	static interface QueueConsumer {
 	

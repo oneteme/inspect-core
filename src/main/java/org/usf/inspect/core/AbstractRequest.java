@@ -58,14 +58,4 @@ public abstract class AbstractRequest implements CompletableMetric {
 		stg.setOrder(stageCounter.getAndIncrement());
 		return stg;
 	}
-
-	@Override
-	public boolean equals(Object obj) {
-		return CompletableMetric.areEquals(this, obj);
-	}
-	
-	@Override
-	public int hashCode() {
-		return CompletableMetric.hashCodeOf(this);
-	}
 }

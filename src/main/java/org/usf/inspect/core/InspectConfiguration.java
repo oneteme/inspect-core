@@ -126,11 +126,8 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     				builder.additionalInterceptors(interceptor); //order !
     				intecept = true; //only one time
     			}
-//    			else if(bean instanceof TaskExecutorBuilder teb) { //check that
-//    				bean = teb.taskDecorator(ExecutorServiceWrapper::aroundRunnable);
-//    			}
-//    			System.err.println(beanName + " " + bean.getClass());
-	            return bean; //instance of RestTemplate => addInterceptor !!??
+//    			TaskExecutorBuilder => TaskExecutorBuilder#taskDecorator(ExecutorServiceWrapper::aroundRunnable)
+	            return bean;
     		}
 		};
     }

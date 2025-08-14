@@ -13,37 +13,35 @@ import lombok.extern.slf4j.Slf4j;
 public final class EventTracePurger implements DispatchHook {
 	
 	@Override
-	public boolean onCapacityExceeded(boolean complete, EventTraceQueueManager resolver) {
-		resolver.dequeue(q-> deleteTraces(q, resolver.getQueueCapacity()));
-		return true;
+	public void postDispatch(boolean complete, EventTraceQueueManager manager) {
+		if(manager.isQueueCapacityExceeded()) {
+			manager.dequeue(q-> deleteTraces(q, manager.getQueueCapacity()));
+		}
 	}
 
 	Collection<EventTrace> deleteTraces(Collection<EventTrace> traces, int maxCapacity) {
-		var size = traces.size(); // 1- remove all non complete traces
-		if(size > maxCapacity) {
-			for(var it=traces.iterator(); it.hasNext();) { 
-				var t = it.next();
-				if(t instanceof CompletableMetric cm) {
-					cm.runSynchronizedIfNotComplete(it::remove);  
-				}
-			} 
-			log.warn("{} non-complete traces were deleted", size-traces.size());
-			size = traces.size(); // 2- remove resource usage 
-			if(size > maxCapacity) {
-				traces.removeIf(t-> t instanceof MachineResourceUsage);
-				log.warn("{} resource usage traces were deleted", size-traces.size());
-				size = traces.size(); // 3- remove all stages
-				if(size > maxCapacity) {
-					traces.removeIf(t-> t instanceof AbstractStage);
-					log.warn("{} stage traces were deleted", size-traces.size());
-					size = traces.size(); // 4- remove all logs
-					if(size > maxCapacity) {
-						traces.removeIf(t-> t instanceof LogEntry);
-						log.warn("{} log traces were deleted", size-traces.size());
-					}
-				}
+		log.debug("queue.size = {} > queue.capacity = {}", traces.size(), maxCapacity);
+		for(var it=traces.iterator(); it.hasNext();) { 
+			if(it.next() instanceof CompletableMetric cm) {
+				cm.runSynchronizedIfNotComplete(it::remove);  
 			}
 		}
+		deletedTracesByType(traces, maxCapacity, MachineResourceUsage.class, AbstractStage.class, LogEntry.class);
 		return traces;
+	}
+	
+	void deletedTracesByType(Collection<EventTrace> traces, int maxCapacity, Class<?>... types) {
+		for(var t : types) {
+			var pre = traces.size();
+			if(pre > maxCapacity) {
+				traces.removeIf(t::isInstance);
+				if(pre > traces.size()) {
+					log.warn("{} {} traces were deleted", pre - traces.size(), t.getSimpleName());
+				}
+			}
+			else {
+				break;
+			}
+		}
 	}
 }

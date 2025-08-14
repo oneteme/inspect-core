@@ -15,7 +15,6 @@ import static org.usf.inspect.core.SessionManager.createBatchSession;
 import static org.usf.inspect.core.SessionManager.currentSession;
 import static org.usf.inspect.core.SessionManager.emitSessionEnd;
 import static org.usf.inspect.core.SessionManager.emitSessionStart;
-import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -84,24 +83,6 @@ public class MethodExecutionMonitor implements Ordered {
 		return call(point::proceed, asynclocalRequestListener(CACHE, 
 				sgn::getDeclaringTypeName,
 				()-> getCacheableName(sgn)));
-	}
-
-	/**
-	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
-	 */
-	@Deprecated(forRemoval = true) //@see HandlerExceptionResolverMonitor
-	//@Around("within(@org.springframework.web.bind.annotation.ControllerAdvice *)")
-	Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
-		var ses = requireCurrentSession(RestSession.class);
-		if(nonNull(ses) && nonNull(joinPoint.getArgs())) {
-			for(var arg : joinPoint.getArgs()) {
-				if(arg instanceof Throwable t) {
-					ses.runSynchronized(()-> ses.setException(fromException(t)));
-					break;
-				}
-			}
-		}
-		return joinPoint.proceed();
 	}
 
 	@Override

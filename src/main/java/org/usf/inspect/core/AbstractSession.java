@@ -56,14 +56,4 @@ public abstract class AbstractSession implements Session {
 	public void updateRequestsMask(RequestMask mask) {
 		this.requestsMask |= mask.getValue();
 	}
-	
-	@Override
-	public boolean equals(Object obj) {
-		return CompletableMetric.areEquals(this, obj);
-	}
-	
-	@Override
-	public int hashCode() {
-		return CompletableMetric.hashCodeOf(this);
-	}
 }

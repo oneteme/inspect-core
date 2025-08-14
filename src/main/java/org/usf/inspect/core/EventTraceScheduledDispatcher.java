@@ -114,7 +114,6 @@ public final class EventTraceScheduledDispatcher {
 					finally {
 						atomicRunning.set(false);
 					}
-					log.trace("deferred dispatch end");
 				});
 			}
 			else {
@@ -128,7 +127,6 @@ public final class EventTraceScheduledDispatcher {
 				finally {
 					atomicRunning.set(false);
 				}
-				log.trace("scheduled dispatch end");
 			}
 		}
 	}
@@ -136,64 +134,41 @@ public final class EventTraceScheduledDispatcher {
 	void dispatchAll(DispatchState state) {
 		var resolver = new EventTraceQueueManager(propr.getQueueCapacity(), propr.isModifiable(), queue);
 		try {
-			dispatchQueue(state, resolver);
+			if(state.canPropagate()) {
+				triggerHooks(DispatchHook::preDispatch);
+				try {
+					dispatchQueue(state, resolver);
+				}
+				finally {
+					triggerHooks(h-> h.postDispatch(state.wasCompleted(), resolver));
+				}
+			}
 		}
 		finally {
 			if(queue.size() > propr.getQueueCapacity()) {
-		        log.debug("queue capacity exceeded", state);
-				try {
-					propagateQueue(state, resolver); //try store/reduce traces
-				}
-				finally {
-					int n = queue.removeFrom(propr.getQueueCapacity());
-					log.warn("{} last traces were deleted", n);
-				}
+				int n = queue.removeFrom(propr.getQueueCapacity());
+				log.warn("{} last traces were deleted", n);
 			}
 			dispatchTasks(state);
 		}
 	}
 	
 	void dispatchQueue(DispatchState state, EventTraceQueueManager resolver) {
-		if(state.canPropagate()) {
-			triggerHooks(DispatchHook::preDispatch);
-			if(state.canDispatch()) {
-				resolver.dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (q, n)->{
-					var traces = q;
-					log.debug("dispatching {} traces .., pending {} traces", traces.size(), n);
-					try {
-						traces = agent.dispatch(state.wasCompleted(), ++attempts, n, traces);
-						if(attempts > 5) { //more than one attempt
-							log.info("successfully dispatched {} items after {} attempts", traces.size(), attempts);
-						}
-						attempts=0;
-					} catch (Exception e) {
-						throw new DispatchException(format("failed to dispatch %d traces", traces.size()), e);
-					}
-					finally {
-						var arr = traces;
-						triggerHooks(h-> h.postDispatch(q, arr));
-					}
-					return traces;
-				});
-			}
-			else {
-				triggerHooks(h-> h.postDispatch(emptyList(), emptyList())); 
-			}
-		}
-	}
-
-	void propagateQueue(DispatchState state, EventTraceQueueManager resolver){
-		if(state.canPropagate()) {
-			for(var h : hooks) {
+		if(state.canDispatch()) {
+			resolver.dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (q, n)->{
+				var traces = q;
+				log.debug("dispatching {} traces .., pending {} traces", traces.size(), n);
 				try {
-					if(h.onCapacityExceeded(state.wasCompleted(), resolver)) {
-						break; 
+					traces = agent.dispatch(state.wasCompleted(), ++attempts, n, traces);
+					if(attempts > 5) { //more than one attempt
+						log.info("successfully dispatched {} items after {} attempts", traces.size(), attempts);
 					}
+					attempts=0;
+				} catch (Exception e) {
+					throw new DispatchException(format("failed to dispatch %d traces", traces.size()), e);
 				}
-				catch (Exception e) { //catch exception => next hook
-					warnException(log, e, "failed to execute hook '{}'", h.getClass().getSimpleName());
-				}
-			}
+				return traces;
+			});
 		}
 	}
 	
@@ -230,7 +205,7 @@ public final class EventTraceScheduledDispatcher {
 		executor.shutdown();
 		try {
 			executor.awaitTermination(5, SECONDS);
-		} catch (InterruptedException e) {
+		} catch (InterruptedException e) { // shutting down host
 			log.warn("interrupted while waiting for executor termination", e);
 		}
 		finally {

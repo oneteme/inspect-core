@@ -54,4 +54,14 @@ public class DirectoryRequest extends AbstractRequest {
 		.withPeriod(getStart(), getEnd())
 		.format();
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return CompletableMetric.areEquals(this, obj);
+	}
+	
+	@Override
+	public int hashCode() {
+		return CompletableMetric.hashCodeOf(this);
+	}
 }

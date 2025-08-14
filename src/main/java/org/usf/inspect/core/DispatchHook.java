@@ -17,7 +17,5 @@ public interface DispatchHook {
 	
 	default void preDispatch() {}
 	
-	default void postDispatch(Collection<EventTrace> traces, Collection<EventTrace> returned) {}
-	
-	default boolean onCapacityExceeded(boolean complete, EventTraceQueueManager resolver) { return false;}
+	default void postDispatch(boolean complete, EventTraceQueueManager resolver) {}
 }

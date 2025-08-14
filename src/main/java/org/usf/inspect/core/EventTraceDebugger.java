@@ -4,7 +4,6 @@ import static java.util.Collections.synchronizedMap;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.nonNull;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -47,14 +46,6 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 		}
     }
 
-	@Override
-	public void postDispatch(Collection<EventTrace> traces, Collection<EventTrace> returned)  {
-//		if(complete) {
-//			log.warn("unfinished tasks {}", sessions.size());
-//			sessions.values().forEach(this::printSession);
-//		}
-	}
-	
 	synchronized void printSession(AbstractSession ses) {
 		sessions.remove(ses.getId());
 		log.debug(">{}",ses);

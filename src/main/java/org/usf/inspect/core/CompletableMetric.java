@@ -26,14 +26,12 @@ public interface CompletableMetric extends Metric {
 		}
 	}
 	
-	default boolean runSynchronizedIfNotComplete(Runnable r) {
+	default void runSynchronizedIfNotComplete(Runnable r) {
 		synchronized (this) {
 			if(!wasCompleted()) {
 				r.run();
-				return true;
 			}
 		}
-		return false;
 	}
 
 	static boolean areEquals(CompletableMetric o1, Object o2) {

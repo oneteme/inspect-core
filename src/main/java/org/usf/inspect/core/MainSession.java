@@ -40,4 +40,14 @@ public class MainSession extends AbstractSession {
 	public String toString() {
 		return local.toString();
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		return CompletableMetric.areEquals(this, obj);
+	}
+	
+	@Override
+	public int hashCode() {
+		return CompletableMetric.hashCodeOf(this);
+	}
 }

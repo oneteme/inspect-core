@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.String.join;
 import static java.util.Collections.emptyMap;
-import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 
 import java.util.Map;
 
@@ -49,7 +49,7 @@ public final class DefaultApplicationPropertiesProvider implements ApplicationPr
 	@Override
 	public String getEnvironment() {
 		var envs = env.getActiveProfiles();
-		return isNull(envs) ? null : join(",", envs);
+		return nonNull(envs) ? join(",", envs) : null;
 	}
 	
 	@Override
