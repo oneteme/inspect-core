@@ -2,9 +2,11 @@ package org.usf.inspect.rest;
 
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
+import static org.springframework.web.reactive.function.client.ClientRequest.from;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
 import static org.usf.inspect.rest.RestResponseMonitorListener.afterResponse;
 import static org.usf.inspect.rest.RestResponseMonitorListener.emitRestRequest;
 import static org.usf.inspect.rest.RestResponseMonitorListener.responseContentReadListener;
@@ -33,30 +35,31 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {
 		var req = emitRestRequest(request.method(), request.url(), request.headers());
-		return call(()-> exc.exchange(request), preRequestListener(request, req))
+		var mofiableReq = from(request).header(TRACE_HEADER, req.getId()).build(); //request.headers = ReadOnlyHttpHeaders
+		return call(()-> exc.exchange(mofiableReq), preRequestListener(req))
 		.map(res->{
 			var trck = new DataBufferMonitor(responseContentReadListener(req));
 			return res.mutate().body(f-> trck.track(f, res.statusCode().isError())).build();
 		})
-		.doOnNext(r-> traceHttpResponse(request, r, req, null))
-		.doOnError(e-> traceHttpResponse(request, null, req, e)) //DnsNameResolverTimeoutException 
-		.doOnCancel(()-> traceHttpResponse(request, null, req, new CancellationException("cancelled")));
+		.doOnNext(r-> traceHttpResponse(r, req, null))
+		.doOnError(e-> traceHttpResponse(null, req, e)) //DnsNameResolverTimeoutException 
+		.doOnCancel(()-> traceHttpResponse(null, req, new CancellationException("cancelled")));
     }
 		
-    ExecutionMonitorListener<Mono<ClientResponse>> preRequestListener(ClientRequest request, RestRequest req) {
+    ExecutionMonitorListener<Mono<ClientResponse>> preRequestListener(RestRequest req) {
     	return (s,e,m,t)->{
 			context().emitTrace(req.createStage(PRE_PROCESS, s, e, t));
     		if(nonNull(t)) {
 				req.runSynchronized(()-> req.setEnd(e));
 				context().emitTrace(req);
     		}
-			request.attributes().put(STAGE_START, e);
+			req.getAttributes().put(STAGE_START, e);
 		};
     }
     
-    private void traceHttpResponse(ClientRequest request, ClientResponse response, RestRequest req, Throwable thrw) {
+    private void traceHttpResponse(ClientResponse response, RestRequest req, Throwable thrw) {
     	var now = now();
-    	var beg = (Instant) request.attribute(STAGE_START).orElse(now);
+    	var beg = (Instant) req.attribute(STAGE_START).orElse(now);
     	if(nonNull(response)) {
         	afterResponse(req, beg, now, response.statusCode().value(), response.headers().asHttpHeaders(), thrw);
 		}

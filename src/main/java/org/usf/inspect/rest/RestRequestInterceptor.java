@@ -2,6 +2,7 @@ package org.usf.inspect.rest;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
 import static org.usf.inspect.rest.RestResponseMonitorListener.afterResponse;
 import static org.usf.inspect.rest.RestResponseMonitorListener.emitRestRequest;
 import static org.usf.inspect.rest.RestResponseMonitorListener.responseContentReadListener;
@@ -28,6 +29,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		var req = emitRestRequest(request.getMethod(), request.getURI(), request.getHeaders());
+		request.getHeaders().add(TRACE_HEADER, req.getId());
 		var res = call(()-> execution.execute(request, body), httpResponseListener(req));
 		return new ClientHttpResponseWrapper(res, responseContentReadListener(req));
 	}

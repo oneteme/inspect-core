@@ -52,8 +52,8 @@ class JdbcURLDecoderTest {
 	
 	@ParameterizedTest
 	@CsvSource(nullValues="", value={
-		"jdbc:h2:mem:testdb,h2,,,testdb",
-		"jdbc:h2:file:/path/to/database,h2,,,/path/to/database",
+		"jdbc:h2:mem:testdb,h2,mem,,testdb",
+		"jdbc:h2:file:/path/to/database,h2,file,,/path/to/database",
 	})
 	void testDecode_h2(String origin, String db, String host, String port, String name) {
 		assertURLDecode(origin, db, host, port, name);

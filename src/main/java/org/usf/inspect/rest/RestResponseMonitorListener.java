@@ -1,5 +1,6 @@
 package org.usf.inspect.rest;
 
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
@@ -24,14 +25,14 @@ import org.usf.inspect.core.Helper;
 import org.usf.inspect.core.RestRequest;
 
 interface RestResponseMonitorListener {
-	
+
 	void handle(Instant start, Instant end, long size, byte[] res, Throwable t);
-	
+
 	static RestRequest emitRestRequest(HttpMethod mth, URI url, HttpHeaders headers) {
 		var req = createHttpRequest();
 		try {
 			req.setStart(now());
-    		req.setThreadName(threadName());
+			req.setThreadName(threadName());
 			req.setMethod(mth.name());
 			req.setURI(url);
 			req.setAuthScheme(extractAuthScheme(headers.get(AUTHORIZATION)));
@@ -41,30 +42,29 @@ interface RestResponseMonitorListener {
 		} catch (Exception e) {
 			context().reportEventHandleError(req.getId(), e);
 		}
-		headers.add(TRACE_HEADER, req.getId());
 		context().emitTrace(req); //finally
 		return req;
 	}
 
 	static void afterResponse(RestRequest req, Instant start, Instant end, int status, HttpHeaders headers, Throwable thrw) {
-    		context().emitTrace(req.createStage(PROCESS, start, end, thrw)); //same thread
+		context().emitTrace(req.createStage(PROCESS, start, end, thrw)); //same thread
 		req.runSynchronized(()->{
-    		if(nonNull(headers)) { //response
-        		req.setThreadName(threadName()); //deferred thread
-    			req.setStatus(status);
-    			req.setContentType(headers.getFirst(CONTENT_TYPE));
-    			req.setInContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-    		}
-    		if(nonNull(thrw)) {
-    			req.setEnd(end);
-    			context().emitTrace(req);
-    		}
-    	});
+			if(nonNull(headers)) { //response
+				req.setThreadName(threadName()); //deferred thread
+				req.setStatus(status);
+				req.setContentType(headers.getFirst(CONTENT_TYPE));
+				req.setInContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+			}
+			if(nonNull(thrw)) {
+				req.setEnd(end);
+				context().emitTrace(req);
+			}
+		});
 		if(nonNull(headers)) {
-			req.assertRemoteID(headers.getFirst(TRACE_HEADER));
+			assertSameID(req.getId(), headers.getFirst(TRACE_HEADER));
 		}
 	}
-	
+
 	static RestResponseMonitorListener responseContentReadListener(RestRequest req){
 		return (s,e,n,b,t)-> {
 			context().emitTrace(req.createStage(POST_PROCESS, s, e, t)); 
@@ -78,14 +78,19 @@ interface RestResponseMonitorListener {
 			context().emitTrace(req);
 		};
 	}
-    
-    static <T> T getFirstOrNull(List<T> list) {
-    	return isNull(list) || list.isEmpty() ? null : list.get(0);
-    }
 
-	
+	static <T> T getFirstOrNull(List<T> list) {
+		return isNull(list) || list.isEmpty() ? null : list.get(0);
+	}
+
 	public static String extractAuthScheme(List<String> authHeaders) { //nullable
 		return nonNull(authHeaders) && authHeaders.size() == 1 //require one header
 				? Helper.extractAuthScheme(authHeaders.get(0)) : null;
+	}
+
+	static void assertSameID(String requestID, String sessionID) {
+		if(nonNull(sessionID) && !sessionID.equals(requestID)) {
+			context().reportError(format("req.id='%s' <> ses.id='%s'", requestID, sessionID));
+		}
 	}
 }

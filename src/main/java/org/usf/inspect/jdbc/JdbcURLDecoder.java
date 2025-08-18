@@ -20,7 +20,7 @@ public final class JdbcURLDecoder {
 	private static final Pattern STP2 = compile("^//([\\w-\\.]+)(:\\d+)?[,;/]?");
 	private static final Pattern STP3 = compile("^(\\w+)([,;\\?].+)?$"); //mysql|postgresql|db2|mariadb
 	private static final Pattern STP4 = compile("^.*database(?:Name)?=(\\w+)", CASE_INSENSITIVE); //teradata|sqlserver
-	private static final Pattern STP5 = compile("^(?:file|mem):([\\w-\\.\\/]+)", CASE_INSENSITIVE);//H2 mem|file
+	private static final Pattern STP5 = compile("^(file|mem):([\\w-\\.\\/]+)", CASE_INSENSITIVE);//H2 mem|file
 
 	public static String[] decode(String url) {
 		var m = STP1.matcher(url);
@@ -48,10 +48,12 @@ public final class JdbcURLDecoder {
 				}
 			}
 			else { //h2
-				arr.add(null); //no host
-				arr.add(null); //no port
 				m2 = STP5.matcher(url).region(m.end(), url.length());
-				arr.add(m2.find() ? m2.group(1) : null);
+				if(m2.find()) {
+					arr.add(m2.group(1));
+					arr.add(null); //no port
+					arr.add(m2.group(2));
+				}
 			}
 			return arr.toArray(String[]::new);
 		}

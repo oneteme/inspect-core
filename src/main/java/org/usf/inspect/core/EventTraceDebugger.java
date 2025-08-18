@@ -41,7 +41,7 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 			}
 			case AbstractRequest r-> appendTrace(requests, r.getSessionId(), r);
 			case AbstractStage s-> appendTrace(stages, s.getRequestId(), s);
-			case LogEntry e when nonNull(e.getSessionId()) -> appendTrace(logs, e.getSessionId(), e);
+			case LogEntry e -> appendTrace(logs, e.getSessionId(), e);
 			default-> log.debug(">{}", t);
 		}
     }
@@ -77,8 +77,8 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 				return v;
 			});
 		}
-		else { 
-			new Exception("no active session/request " + element).printStackTrace();
+		else if(element instanceof LogEntry) {
+			new Exception().printStackTrace();
 		}
 	}
 }

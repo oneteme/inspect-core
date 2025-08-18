@@ -49,7 +49,6 @@ public class MethodExecutionMonitor implements Ordered {
 		var ses = createBatchSession();
 		try {
 			ses.setStart(now);
-			ses.setType(BATCH.name());
 			ses.setThreadName(threadName());        
 			var sgn = (MethodSignature)point.getSignature();
 			ses.setName(getTraceableName(sgn));
