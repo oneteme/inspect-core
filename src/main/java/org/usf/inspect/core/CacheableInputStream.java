@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.lang.Math.min;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +26,7 @@ public final class CacheableInputStream extends InputStream {
 	@Delegate
 	private final InputStream in;
 	private final OutputStream out;
-	private long length;
+	private int length;
  
 	public CacheableInputStream(InputStream in, boolean cache) {
 		this.in = in;
@@ -34,90 +36,67 @@ public final class CacheableInputStream extends InputStream {
 	@Override
 	public int read() throws IOException {
 		var b = in.read();
-		if(b > -1) {
-			var v = assertNextLength(1);
-			if(v > 0) {
-				out.write(b);
-			}
-			++length;
-		}
+		cacheByte(b);
 		return b;
 	}
 	
 	@Override
 	public int read(byte[] b) throws IOException {
 		var n = in.read(b);
-		if(n > -1) {
-			var v = assertNextLength(n);
-			if(v > 0) {
-				out.write(b, 0, v);
-			}
-			length += n;
-		}
+		cacheBytes(b, 0, n);
 		return n;
 	}
 	
 	@Override
 	public int read(byte[] b, int off, int len) throws IOException {
 		var n = in.read(b, off, len);
-		if(n > -1) {
-			var v = assertNextLength(len - off);
-			if(v > 0) {
-				out.write(b, 0, v);
-			}
-			length += n;
-		}
+		cacheBytes(b, off, n);
 		return n;
-	}
-	
-	@Override
-	public byte[] readAllBytes() throws IOException {
-		var arr = in.readAllBytes();
-		if(arr.length > 0) {
-			var v = assertNextLength(arr.length);
-			if(v > 0) {
-				out.write(arr, 0, v);
-			}
-			length += arr.length;
-		}
-		return arr;
-	}
-	
-	@Override
-	public byte[] readNBytes(int len) throws IOException {
-		var arr = in.readNBytes(len);
-		if(arr.length > 0) {
-			var v = assertNextLength(arr.length);
-			if(v > 0) {
-				out.write(arr, 0, v);
-			}
-			length += arr.length;
-		}
-		return arr;
 	}
 	
 	@Override
 	public int readNBytes(byte[] b, int off, int len) throws IOException {
 		var n = in.readNBytes(b, off, len);
-		if(n > 0) {
-			var v = assertNextLength(n);
-			if(v > 0) {
-				out.write(b, off, v);
-			}
-			length += n;
-		}
+		cacheBytes(b, off, n);
 		return n;
 	}
 	
-	int assertNextLength(int n) {
-		if(length >= MAX_SIZE) { // avoid overflow
-			return 0;
+	@Override
+	public byte[] readAllBytes() throws IOException {
+		var b = in.readAllBytes();
+		cacheBytes(b, 0, b.length);
+		return b;
+	}
+	
+	@Override
+	public byte[] readNBytes(int len) throws IOException {
+		var b = in.readNBytes(len);
+		cacheBytes(b, 0, b.length);
+		return b;
+	}
+	
+	void cacheBytes(byte[] b, int off, int len) throws IOException {
+		if(len > 0) {
+			var v = remainingCacheCapacity(len);
+			if(v > 0) {
+				out.write(b, off, v);
+			}
+			length += len;
 		}
-		var size = length + n;
-		if(size > MAX_SIZE) {
-			return MAX_SIZE - (int)length; // return remaining size
+	}
+	
+	void cacheByte(int b) throws IOException {
+		if(b > -1) {
+			var v = remainingCacheCapacity(1);
+			if(v > 0) {
+				out.write(b);
+			}
+			++length;
 		}
-		return n;
+	}
+	
+	int remainingCacheCapacity(int n) {
+		return length < MAX_SIZE ? min(n, MAX_SIZE-length) : 0; // return remaining size
 	}
 	
 	@Override

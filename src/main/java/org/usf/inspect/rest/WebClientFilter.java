@@ -33,13 +33,12 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 	private static final String STAGE_START = WebClientFilter.class.getName() + ".stageStart";
 	
 	@Override
-	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {
+	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {//request.headers is ReadOnlyHttpHeaders
 		var req = emitRestRequest(request.method(), request.url(), request.headers());
-		var mofiableReq = from(request).header(TRACE_HEADER, req.getId()).build(); //request.headers = ReadOnlyHttpHeaders
-		return call(()-> exc.exchange(mofiableReq), preRequestListener(req))
+		return call(()-> exc.exchange(from(request).header(TRACE_HEADER, req.getId()).build()), preRequestListener(req))
 		.map(res->{
-			var trck = new DataBufferMonitor(responseContentReadListener(req));
-			return res.mutate().body(f-> trck.track(f, res.statusCode().isError())).build();
+			var mnt = new DataBufferMonitor(responseContentReadListener(req));
+			return res.mutate().body(f-> mnt.track(f, res.statusCode().isError())).build();
 		})
 		.doOnNext(r-> traceHttpResponse(r, req, null))
 		.doOnError(e-> traceHttpResponse(null, req, e)) //DnsNameResolverTimeoutException 

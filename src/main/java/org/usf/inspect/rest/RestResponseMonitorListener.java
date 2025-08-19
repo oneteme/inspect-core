@@ -42,27 +42,27 @@ interface RestResponseMonitorListener {
 		} catch (Exception e) {
 			context().reportEventHandleError(req.getId(), e);
 		}
-		context().emitTrace(req); //finally
+		finally {
+			context().emitTrace(req);
+		}
 		return req;
 	}
 
 	static void afterResponse(RestRequest req, Instant start, Instant end, int status, HttpHeaders headers, Throwable thrw) {
 		context().emitTrace(req.createStage(PROCESS, start, end, thrw)); //same thread
 		req.runSynchronized(()->{
+			req.setThreadName(threadName()); //deferred thread
+			req.setStatus(status);
 			if(nonNull(headers)) { //response
-				req.setThreadName(threadName()); //deferred thread
-				req.setStatus(status);
 				req.setContentType(headers.getFirst(CONTENT_TYPE));
 				req.setInContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+				assertSameID(req.getId(), headers.getFirst(TRACE_HEADER));
 			}
-			if(nonNull(thrw)) {
+			if(nonNull(thrw)) { //thrw -> stage
 				req.setEnd(end);
 				context().emitTrace(req);
 			}
 		});
-		if(nonNull(headers)) {
-			assertSameID(req.getId(), headers.getFirst(TRACE_HEADER));
-		}
 	}
 
 	static RestResponseMonitorListener responseContentReadListener(RestRequest req){
