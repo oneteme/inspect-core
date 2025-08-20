@@ -132,7 +132,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		};
     }
     
-    @Bean // Cacheable, TraceableStage, ControllerAdvice
+    @Bean // Cacheable, Traceable
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
     	logRegistringBean("methodExecutionMonitor", MethodExecutionMonitor.class);
@@ -143,7 +143,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	public void onApplicationEvent(SpringApplicationEvent e) {
 		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 			context().traceStartupSession(ofEpochMilli(e.getTimestamp()), 
-					e.getSpringApplication().getMainApplicationClass().getName(), 
+					e.getSpringApplication().getMainApplicationClass().getName(), "main", 
 					e instanceof ApplicationFailedEvent f ? f.getException() : null);
 		}
 	}

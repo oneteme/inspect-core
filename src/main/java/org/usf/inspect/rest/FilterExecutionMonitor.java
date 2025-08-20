@@ -16,6 +16,7 @@ import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.DEFERRED;
@@ -24,8 +25,7 @@ import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createRestSession;
-import static org.usf.inspect.core.SessionManager.emitSessionEnd;
-import static org.usf.inspect.core.SessionManager.emitSessionStart;
+import static org.usf.inspect.core.SessionManager.emitSession;
 
 import java.io.IOException;
 import java.net.URI;
@@ -126,10 +126,12 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 			catch (Exception t) {
 				context().reportEventHandleError(ses.getId(), t);
 			}
-			res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
-			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
-			req.setAttribute(CURRENT_SESSION, ses);
-			emitSessionStart(ses);
+			finally {
+				emitSession(ses);
+				res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
+				res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
+				req.setAttribute(CURRENT_SESSION, ses);
+			}
 		}
 		else {
 			ses.updateContext(); //deferred execution
@@ -154,13 +156,13 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 					}
 					ses.setEnd(e);  //IO | CancellationException | ServletException => no ErrorHandler
 				});
-				emitSessionEnd(ses); //emit session & clean context
+				emitSession(ses); //emit session & clean context
 			}
 			else {
 				context().emitTrace(ses.createStage(DEFERRED, s, e, t));
 				if(nonNull(t)) {
 					ses.runSynchronized(()-> ses.setEnd(e));
-					emitSessionEnd(ses); //emit session & clean context
+					emitSession(ses); //emit session & clean context
 				}
 			}
 		};
@@ -235,8 +237,10 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 	private String resolveEndpointName(HandlerMethod mth, HttpServletRequest req) {
 		if(nonNull(mth)) {
 			var ant = mth.getMethodAnnotation(TraceableStage.class);
-			if(nonNull(ant)) {
-				return ant.value().isEmpty() ? null : ant.value();
+			if(nonNull(ant) && !ant.name().isEmpty()) {
+				return evalExpression(ant.name(), 
+						mth.getBean(), mth.getBeanType(), 
+						new String[] {"request"}, new Object[] {req}).toString();
 			}
 		}
 		return defaultEndpointName(req);

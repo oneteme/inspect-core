@@ -12,9 +12,7 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.ANNOTATION_TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface TraceableStage { 
+public @interface TraceableStage {
 
-	String value() default ""; // stage name
-
-	//boolean enabled() default true
+	String name() default "";
 }

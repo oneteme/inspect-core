@@ -5,16 +5,16 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.LocalRequest.formatLocation;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.SessionManager.asynclocalRequestListener;
 import static org.usf.inspect.core.SessionManager.createBatchSession;
 import static org.usf.inspect.core.SessionManager.currentSession;
-import static org.usf.inspect.core.SessionManager.emitSessionEnd;
-import static org.usf.inspect.core.SessionManager.emitSessionStart;
+import static org.usf.inspect.core.SessionManager.emitSession;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -50,14 +50,13 @@ public class MethodExecutionMonitor implements Ordered {
 		try {
 			ses.setStart(now);
 			ses.setThreadName(threadName());        
-			var sgn = (MethodSignature)point.getSignature();
-			ses.setName(getTraceableName(sgn));
-			ses.setLocation(sgn.getDeclaringTypeName());
+			ses.setName(resolveStageName(point));
+			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
 		} catch (Exception t) {
 			context().reportEventHandleError(ses.getId(), t);
 		}
-		emitSessionStart(ses);
+		emitSession(ses);
 		return call(point::proceed, (s,e,o,t)-> {
 			ses.runSynchronized(()-> {
 				if(nonNull(t)) {
@@ -65,23 +64,21 @@ public class MethodExecutionMonitor implements Ordered {
 				}
 				ses.setEnd(e);
 			});
-			emitSessionEnd(ses);
+			emitSession(ses);
 		});
 	}
 
 	Object aroundStage(ProceedingJoinPoint point) throws Throwable {
-		var sgn = (MethodSignature)point.getSignature();
 		return call(point::proceed, asynclocalRequestListener(EXEC, 
-				sgn::getDeclaringTypeName,
-				()-> getTraceableName(sgn)));
+				()-> locationFrom(point),
+				()-> resolveStageName(point)));
 	}
 
 	@Around("@annotation(org.springframework.cache.annotation.Cacheable)")
 	Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
-		var sgn = (MethodSignature)point.getSignature();
 		return call(point::proceed, asynclocalRequestListener(CACHE, 
-				sgn::getDeclaringTypeName,
-				()-> getCacheableName(sgn)));
+				()-> locationFrom(point),
+				()-> getCacheableName(point)));
 	}
 
 	@Override
@@ -89,13 +86,24 @@ public class MethodExecutionMonitor implements Ordered {
 		return HIGHEST_PRECEDENCE;
 	}
 
-	static String getTraceableName(MethodSignature sgn) {
-		var ant = sgn.getMethod().getAnnotation(TraceableStage.class);
-		return ant.value().isEmpty() ? sgn.getName() : ant.value();
-	}
-
-	static String getCacheableName(MethodSignature sgn) {
+	static String getCacheableName(ProceedingJoinPoint point) {
+		var sgn = (MethodSignature)point.getSignature();
 		var ant = sgn.getMethod().getAnnotation(Cacheable.class);
 		return ant.key().isEmpty() ? sgn.getName() : ant.key();
+	}
+	
+	static String resolveStageName(ProceedingJoinPoint point) {
+		var sgn = (MethodSignature)point.getSignature();
+		var ant = sgn.getMethod().getAnnotation(TraceableStage.class);
+		return ant.name().isEmpty()
+			? sgn.getName()
+			: evalExpression(ant.name(), 
+					point.getThis(), sgn.getDeclaringType(),  
+		        		sgn.getParameterNames(), point.getArgs()).toString();
+	}
+
+	static String locationFrom(ProceedingJoinPoint point) {
+		var sgn = point.getSignature();
+		return formatLocation(sgn.getDeclaringTypeName(), sgn.getName());
 	}
 }

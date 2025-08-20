@@ -29,6 +29,10 @@ public class LocalRequest extends AbstractRequest {
 		this.exception = req.exception;
 	}
 	
+	public void setLocation(String className, String methodName) {
+		this.location = formatLocation(className, methodName);
+	}
+	
 	@Override
 	public LocalRequest copy() {
 		return new LocalRequest(this);
@@ -54,5 +58,9 @@ public class LocalRequest extends AbstractRequest {
 	@Override
 	public int hashCode() {
 		return CompletableMetric.hashCodeOf(this);
+	}
+
+	public static String formatLocation(String className, String methodName) {
+		return className + '.' + methodName + "()";
 	}
 }

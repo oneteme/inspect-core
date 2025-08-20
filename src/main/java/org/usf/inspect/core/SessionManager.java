@@ -10,6 +10,7 @@ import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.LocalRequest.formatLocation;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
@@ -72,56 +73,60 @@ public final class SessionManager {
 		return nonNull(ses) ? ses : startupSession; // priority
 	}
 
-	public static void emitSessionStart(Session session) {
-		context().emitTrace(session);
-		setCurrentSession(session);
-	}
-
-	static void setCurrentSession(Session ses) {
-		var prv = localTrace.get();
-		if(prv != ses) {
-			if(isNull(prv) || prv.wasCompleted()) {
-				localTrace.set(ses);
+	public static void emitSession(Session session) {
+		session.runSynchronized(()->{
+			if(nonNull(session.getEnd())){
+				releaseSession(session);
 			}
 			else {
-				reportSessionConflict(prv.getId(), ses.getId());
+				setCurrentSession(session);
 			}
-		}// else do nothing, already set
-	}
-
-	public static void emitSessionEnd(Session session) {
+		});
 		context().emitTrace(session);
-		releaseSession(session);
 	}
-
-	static void releaseSession(Session ses) {
+	
+	static void setCurrentSession(Session session) {
 		var prv = localTrace.get();
-		if(prv == ses) {
+		if(prv != session) {
+			if(isNull(prv) || prv.wasCompleted()) {
+				localTrace.set(session);
+			}
+			else {
+				reportSessionConflict(prv.getId(), session.getId());
+			}
+		}
+	}
+	
+	static void releaseSession(Session session) {
+		var prv = localTrace.get();
+		if(prv == session) {
 			localTrace.remove();
 		}
 		else {
-			reportSessionConflict(prv.getId(), ses.getId());
+			reportSessionConflict(prv.getId(), session.getId());
 		}
 	}
 
 	public static void emitStartupSession(MainSession session) {
+		session.runSynchronized(()->{
+			if(nonNull(session.getEnd())){
+				if(startupSession == session) {
+					startupSession = null;
+				}
+				else {
+					reportSessionConflict(startupSession.getId(), session.getId());
+				}
+			}
+			else {
+				if(isNull(startupSession)) {
+					startupSession = session;
+				}
+				else {
+					reportSessionConflict(startupSession.getId(), session.getId());
+				}
+			}
+		});
 		context().emitTrace(session);
-		if(isNull(startupSession)) {
-			startupSession = session;
-		}
-		else {
-			reportSessionConflict(startupSession.getId(), session.getId());
-		}
-	}
-
-	public static void emitStartupSesionEnd(MainSession session) {
-		context().emitTrace(startupSession);
-		if(startupSession == session) {
-			startupSession = null;
-		}
-		else {
-			reportSessionConflict(startupSession.getId(), session.getId());
-		}
 	}
 
 	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
@@ -129,8 +134,10 @@ public final class SessionManager {
 	}
 
 	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
-		var loc = callerLocation();
-		return call(fn, asynclocalRequestListener(type, ()-> loc, ()-> name));
+		var ste = outerStackTraceElement();
+		return call(fn, asynclocalRequestListener(type, 
+				()-> ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse("?"), 
+				()-> nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse("?")));
 	}
 
 	static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
@@ -156,12 +163,6 @@ public final class SessionManager {
 			});
 			context().emitTrace(req);
 		};
-	}
-
-	private static String callerLocation() {
-		return outerStackTraceElement()
-				.map(StackTraceElement::getClassName)
-				.orElse(null);
 	}
 
 	public static RestSession createRestSession() {

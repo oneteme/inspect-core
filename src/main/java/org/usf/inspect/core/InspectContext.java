@@ -16,7 +16,6 @@ import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionManager.createStartupSession;
-import static org.usf.inspect.core.SessionManager.emitStartupSesionEnd;
 import static org.usf.inspect.core.SessionManager.emitStartupSession;
 import static org.usf.inspect.core.SessionManager.nextId;
 
@@ -91,24 +90,38 @@ public final class InspectContext {
 
 	void traceStartupSession(Instant instant) {
 		var ses = createStartupSession();
-		ses.setType(STARTUP.name());
-		ses.setName("main");
-		ses.setStart(instant);
-		ses.setThreadName(threadName());
-		emitStartupSession(ses);
-		this.session = ses;
+		try {
+			ses.setType(STARTUP.name());
+			ses.setName("main");
+			ses.setStart(instant);
+			ses.setThreadName(threadName());
+		}
+		catch (Exception t) {
+			context().reportEventHandleError(ses.getId(), t);
+		}
+		finally {
+			emitStartupSession(ses);
+			this.session = ses;
+		}
 	}
 
-	void traceStartupSession(Instant instant, String clazz, Throwable t) {
-		session.runSynchronized(()-> {
-			session.setLocation(clazz);
-			if(nonNull(t)) {  //nullable
-				session.setException(fromException(t));
-			}
-			session.setEnd(instant);
-		});
-		emitStartupSesionEnd(session);
-		this.session = null; //prevent further usage
+	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
+		try {
+			session.runSynchronized(()-> {
+				session.setLocation(className, methodName);
+				if(nonNull(thrw)) {  //nullable
+					session.setException(fromException(thrw));
+				}
+				session.setEnd(instant);
+			});
+		}
+		catch (Exception e) {
+			context().reportEventHandleError(session.getId(), e);
+		}
+		finally {
+			emitStartupSession(session);
+			this.session = null; //prevent further usage
+		}
 	}
 
 	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {

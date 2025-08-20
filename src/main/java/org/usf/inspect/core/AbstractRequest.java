@@ -28,10 +28,10 @@ import lombok.Setter;
 @JsonIgnoreProperties({"stageCounter", "attributes"})
 public abstract class AbstractRequest implements CompletableMetric {
 	
-	private String user;
 	private Instant start;
 	private Instant end;
 	private String threadName;
+	private String user;
 	//v1.1
 	private String id;
 	private String sessionId;
