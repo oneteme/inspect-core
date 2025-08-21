@@ -102,7 +102,7 @@ public final class SessionManager {
 		if(prv == session) {
 			localTrace.remove();
 		}
-		else {
+		else if(nonNull(prv)) {
 			reportSessionConflict(prv.getId(), session.getId());
 		}
 	}
@@ -113,7 +113,7 @@ public final class SessionManager {
 				if(startupSession == session) {
 					startupSession = null;
 				}
-				else {
+				else if(nonNull(startupSession)) {
 					reportSessionConflict(startupSession.getId(), session.getId());
 				}
 			}
