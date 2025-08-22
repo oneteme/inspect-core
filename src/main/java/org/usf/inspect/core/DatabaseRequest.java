@@ -67,7 +67,7 @@ public class DatabaseRequest extends AbstractRequest {
 		.withThread(getThreadName())
 		.withCommand(command)
 		.withUser(getUser())
-		.withUrlAsResource("jdbc:"+prod, host, port, name, null)
+		.withUrlAsTopic("jdbc:"+prod, host, port, name, null)
 		.withPeriod(getStart(), getEnd())
 		.format();
 	}

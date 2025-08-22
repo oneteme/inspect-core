@@ -32,7 +32,7 @@ public final class LogEntry implements EventTrace {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withCommand(level.name())
-		.withMessageAsResource(message)
+		.withMessageAsTopic(message)
 		.withInstant(instant)
 		.format();
 	}

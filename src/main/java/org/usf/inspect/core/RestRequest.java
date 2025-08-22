@@ -79,7 +79,7 @@ public class RestRequest extends AbstractRequest { //APiRequest
 		.withThread(getThreadName())
 		.withCommand(method)
 		.withUser(getUser())
-		.withUrlAsResource(protocol, host, port, path, query)
+		.withUrlAsTopic(protocol, host, port, path, query)
 		.withStatus(status+"")
 		.withResult(bodyContent)
 		.withPeriod(getStart(), getEnd())

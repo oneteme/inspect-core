@@ -44,7 +44,7 @@ public class LocalRequest extends AbstractRequest {
 		.withThread(getThreadName())
 		.withCommand(type)
 		.withUser(getUser())
-		.withLocationAsResource(location, name)
+		.withLocationAsTopic(location, name)
 		.withResult(exception)
 		.withPeriod(getStart(), getEnd())
 		.format();

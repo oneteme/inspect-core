@@ -55,7 +55,7 @@ public class MailRequest extends AbstractRequest {
 		.withThread(getThreadName())
 		.withCommand("SEND")
 		.withUser(getUser())
-		.withUrlAsResource(protocol, host, port, null, null)
+		.withUrlAsTopic(protocol, host, port, null, null)
 		.withPeriod(getStart(), getEnd())
 		.withResult(nonNull(mails) ? mails.size() + "mails" : null)
 		.format();

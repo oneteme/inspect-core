@@ -25,7 +25,7 @@ public final class DatabaseRequestStage extends AbstractStage {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withCommand(getName())
-		.withArgsAsResource(commands)
+		.withArgsAsTopic(commands)
 		.withPeriod(getStart(), getEnd())
 		.withResult(nonNull(count) ? Arrays.toString(count) : getException())
 		.format();

@@ -50,7 +50,7 @@ public class DirectoryRequest extends AbstractRequest {
 		return new EventTraceFormatter()
 		.withThread(getThreadName())
 		.withUser(getUser())
-		.withUrlAsResource(protocol, host, port, null, null)
+		.withUrlAsTopic(protocol, host, port, null, null)
 		.withPeriod(getStart(), getEnd())
 		.format();
 	}

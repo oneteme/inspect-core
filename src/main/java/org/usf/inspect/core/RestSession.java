@@ -56,7 +56,7 @@ public class RestSession extends AbstractSession {
 		.withThread(getThreadName())
 		.withCommand(getMethod())
 		.withUser(getUser())
-		.withUrlAsResource(getProtocol(), getHost(), getPort(), getPath(), getQuery())
+		.withUrlAsTopic(getProtocol(), getHost(), getPort(), getPath(), getQuery())
 		.withStatus(getStatus()+"")
 		.withResult(exception)
 		.withPeriod(getStart(), getEnd())

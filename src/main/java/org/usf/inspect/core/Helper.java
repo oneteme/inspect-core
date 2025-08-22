@@ -63,7 +63,7 @@ public final class Helper {
 		if(exp.contains("#")) {
 			try {
 				var ctx = new StandardEvaluationContext(root);
-				ctx.setVariable(clazz.getSimpleName(), clazz); //root => spring proxy
+				ctx.setVariable(clazz.getSimpleName(), clazz); //static fields/methods
 				if(nonNull(params) && nonNull(args)) {
 					var n = min(params.length, args.length);
 					for(int i=0; i<n; i++) {

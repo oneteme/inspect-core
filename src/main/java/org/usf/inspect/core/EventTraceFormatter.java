@@ -60,7 +60,7 @@ public final class EventTraceFormatter {
 		this.user = user;
 		return this;
 	}
-	public EventTraceFormatter withUrlAsResource(String protocol, String host, int port, String path, String query) {
+	public EventTraceFormatter withUrlAsTopic(String protocol, String host, int port, String path, String query) {
 		var sb = new StringBuilder();
 		if(nonNull(protocol)) {
 			sb.append(protocol + "://");
@@ -84,17 +84,17 @@ public final class EventTraceFormatter {
 		return this;
 	}
 	
-	public EventTraceFormatter withLocationAsResource(String location, String name) {
+	public EventTraceFormatter withLocationAsTopic(String location, String name) {
 		this.resource = nonNull(name) ? name : location;
 		return this;
 	}
 	
-	public EventTraceFormatter withMessageAsResource(String message) {
+	public EventTraceFormatter withMessageAsTopic(String message) {
 		this.resource = message;
 		return this;
 	}
 	
-	public EventTraceFormatter withArgsAsResource(Object[] args) {
+	public EventTraceFormatter withArgsAsTopic(Object[] args) {
 		if(nonNull(args)) {
 			this.resource = Stream.of(args)
 			.map(c-> nonNull(c) ? c.toString() : "?")

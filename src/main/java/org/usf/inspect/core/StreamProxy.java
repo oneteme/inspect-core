@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StreamProxy {
 
-    @SafeVarargs
+	@SafeVarargs
 	public static <T> Stream<T> parallelStream(T... array) {
 		return parallel(stream(array));
 	}
@@ -33,11 +33,11 @@ public final class StreamProxy {
 			var ses = requireCurrentSession();
 			if(nonNull(ses)) {
 				return stream.parallel().map(c-> {
-        			ses.updateContext();
-        			return c;
-        		});
+					ses.updateContext();
+					return c;
+				});
 			}
 		}
-    	return stream;
+		return stream;
 	}
 }
