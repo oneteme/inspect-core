@@ -5,7 +5,6 @@ import static java.lang.Thread.currentThread;
 import static java.lang.reflect.Array.getLength;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
-import static org.usf.inspect.core.InspectContext.context;
 
 import java.util.Collection;
 import java.util.Map;
@@ -61,20 +60,15 @@ public final class Helper {
 	//e.g. batch name (arg param)
 	public static Object evalExpression(String exp, Object root, Class<?> clazz, String[] params, Object[] args) {
 		if(exp.contains("#")) {
-			try {
-				var ctx = new StandardEvaluationContext(root);
-				ctx.setVariable(clazz.getSimpleName(), clazz); //static fields/methods
-				if(nonNull(params) && nonNull(args)) {
-					var n = min(params.length, args.length);
-					for(int i=0; i<n; i++) {
-						ctx.setVariable(params[i], args[i]);
-					}
-				}				
-		        return new SpelExpressionParser().parseExpression(exp).getValue(ctx);
-			}
-			catch (Exception t) {
-				context().reportError("cannot eval expression=" + exp, t);
-			}
+			var ctx = new StandardEvaluationContext(root);
+			ctx.setVariable(clazz.getSimpleName(), clazz); //static fields/methods
+			if(nonNull(params) && nonNull(args)) {
+				var n = min(params.length, args.length);
+				for(int i=0; i<n; i++) {
+					ctx.setVariable(params[i], args[i]);
+				}
+			}				
+	        return new SpelExpressionParser().parseExpression(exp).getValue(ctx);
 		}
 		return exp;
 	}

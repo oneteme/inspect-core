@@ -51,7 +51,7 @@ public final class SessionManager {
 			return clazz.cast(ses);
 		}
 		if(nonNull(ses)) {
-			context().reportError("unexpected session type: " + ses.getId());
+			context().reportEventHandleError("unexpected session type: ", ses, null);
 		}
 		return null;
 	}
@@ -59,10 +59,10 @@ public final class SessionManager {
 	public static Session requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
-			context().reportError("no current session found");
+			context().reportEventHandleError("no current session found", null, null);
 		}
 		else if(ses.wasCompleted()) {
-			context().reportError("current session was already completed: " + ses.getId());
+			context().reportEventHandleError("current session was already completed", ses, null);
 			ses = null;
 		}
 		return ses;
@@ -71,18 +71,6 @@ public final class SessionManager {
 	public static Session currentSession() {
 		var ses = localTrace.get();
 		return nonNull(ses) ? ses : startupSession; // priority
-	}
-
-	public static void emitSession(Session session) {
-		session.runSynchronized(()->{
-			if(nonNull(session.getEnd())){
-				releaseSession(session);
-			}
-			else {
-				setCurrentSession(session);
-			}
-		});
-		context().emitTrace(session);
 	}
 	
 	static void setCurrentSession(Session session) {
@@ -151,9 +139,11 @@ public final class SessionManager {
 			req.setLocation(locationSupp.get());
 		}
 		catch (Exception e) {
-			context().reportEventHandleError(req.getId(), e);
+			context().reportEventHandleError("SessionManager.asynclocalRequestListener", req, e);
 		}
-		context().emitTrace(req);
+		finally {
+			context().emitTrace(req);
+		}
 		return (s,e,o,t)->{
 			req.runSynchronized(()-> {
 				if(nonNull(t)) {
@@ -161,7 +151,7 @@ public final class SessionManager {
 				}
 				req.setEnd(e);
 			});
-			context().emitTrace(req);
+			return req;
 		};
 	}
 
@@ -254,6 +244,6 @@ public final class SessionManager {
 	}
 
 	static void reportSessionConflict(String prev, String next) {
-		context().reportError(format("session conflict detected : previous=%s, next=%s", prev, next));
+		context().reportError(format("session conflict : previous=%s, next=%s", prev, next));
 	}
 }

@@ -1,5 +1,6 @@
 package org.usf.inspect.jdbc;
 
+import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.jdbc.JDBCAction.CATALOG;
 import static org.usf.inspect.jdbc.JDBCAction.COLUMN;
 import static org.usf.inspect.jdbc.JDBCAction.DRIVER;
@@ -7,6 +8,7 @@ import static org.usf.inspect.jdbc.JDBCAction.KEYS;
 import static org.usf.inspect.jdbc.JDBCAction.PRODUCT;
 import static org.usf.inspect.jdbc.JDBCAction.SCHEMA;
 import static org.usf.inspect.jdbc.JDBCAction.TABLE;
+import static org.usf.inspect.jdbc.SqlCommand.REFLECT;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -16,85 +18,90 @@ import java.sql.SQLException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @RequiredArgsConstructor
 public final class DatabaseMetaDataWrapper implements DatabaseMetaData {
 	
 	@Delegate
 	private final DatabaseMetaData meta;
-	private final DatabaseRequestMonitor tracer;
+	private final DatabaseRequestMonitor monitor;
 	
 	@Override
 	public Connection getConnection() throws SQLException {
-		return new ConnectionWrapper(meta.getConnection(), tracer); //same tracer !?
+		return new ConnectionWrapper(meta.getConnection(), monitor); //same tracer !?
 	}
 	
 	@Override
 	public String getDatabaseProductName() throws SQLException {
-		return tracer.metaInfo(PRODUCT, meta::getDatabaseProductName);
+		return call(meta::getDatabaseProductName, monitor.stageHandler(PRODUCT, REFLECT));
 	}
 	
 	@Override
 	public String getDatabaseProductVersion() throws SQLException {
-		return tracer.metaInfo(PRODUCT, meta::getDatabaseProductVersion);
+		return call(meta::getDatabaseProductVersion, monitor.stageHandler(PRODUCT, REFLECT));
 	}
 	
 	@Override
 	public String getDriverName() throws SQLException {
-		return tracer.metaInfo(DRIVER, meta::getDriverName);
+		return call(meta::getDriverName, monitor.stageHandler(DRIVER, REFLECT));
 	}
 	
 	@Override
 	public String getDriverVersion() throws SQLException {
-		return tracer.metaInfo(DRIVER, meta::getDriverVersion);
+		return call(meta::getDriverVersion, monitor.stageHandler(DRIVER, REFLECT));
 	}
 	
 	@Override
 	public ResultSet getCatalogs() throws SQLException {
-		return tracer.metaData(CATALOG, meta::getCatalogs);
+		return new ResultSetWrapper(call(meta::getCatalogs, monitor.stageHandler(CATALOG, REFLECT)), monitor);
 	}
 	
 	@Override
 	public ResultSet getSchemas() throws SQLException {
-		return tracer.metaData(SCHEMA, meta::getSchemas);
+		return new ResultSetWrapper(call(meta::getSchemas, monitor.stageHandler(SCHEMA, REFLECT)), monitor);
 	}
 	
 	@Override
 	public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
-		return tracer.metaData(SCHEMA, ()-> meta.getSchemas(catalog, schemaPattern));
+		return new ResultSetWrapper(call(()-> meta.getSchemas(catalog, schemaPattern), monitor.stageHandler(SCHEMA, REFLECT)), monitor);
 	}
 
 	@Override
 	public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
-		return tracer.metaData(TABLE, ()-> meta.getTables(catalog, schemaPattern, tableNamePattern, types));
+		return new ResultSetWrapper(call(()-> meta.getTables(catalog, schemaPattern, tableNamePattern, types), monitor.stageHandler(TABLE, REFLECT)), monitor);
 	}
 	
 	@Override
 	public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-		return tracer.metaData(TABLE, ()-> meta.getTablePrivileges(catalog, schemaPattern, tableNamePattern));
+		return new ResultSetWrapper(call(()-> meta.getTablePrivileges(catalog, schemaPattern, tableNamePattern), monitor.stageHandler(TABLE, REFLECT)), monitor);
 	}
 	
 	@Override
 	public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-		return tracer.metaData(COLUMN, ()-> meta.getColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern));
+		return new ResultSetWrapper(call(()-> meta.getColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern), monitor.stageHandler(COLUMN, REFLECT)), monitor);
 	}
 	
 	@Override
 	public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
-		return tracer.metaData(COLUMN, ()-> meta.getColumnPrivileges(catalog, schema, table, columnNamePattern));
+		return new ResultSetWrapper(call(()-> meta.getColumnPrivileges(catalog, schema, table, columnNamePattern), monitor.stageHandler(COLUMN, REFLECT)), monitor);
 	}
 	
 	@Override
 	public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
-		return tracer.metaData(KEYS, ()-> meta.getPrimaryKeys(catalog, schema, table));
+		return new ResultSetWrapper(call(()-> meta.getPrimaryKeys(catalog, schema, table), monitor.stageHandler(KEYS, REFLECT)), monitor);
 	}
 	
 	@Override
 	public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-		return tracer.metaData(KEYS, ()-> meta.getImportedKeys(catalog, schema, table));
+		return new ResultSetWrapper(call(()-> meta.getImportedKeys(catalog, schema, table), monitor.stageHandler(KEYS, REFLECT)), monitor);
 	}
 	
 	@Override
 	public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
-		return tracer.metaData(KEYS, ()-> meta.getExportedKeys(catalog, schema, table));
+		return new ResultSetWrapper(call(()-> meta.getExportedKeys(catalog, schema, table), monitor.stageHandler(KEYS, REFLECT)), monitor);
 	}
 }

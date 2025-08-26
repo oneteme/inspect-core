@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -14,7 +15,6 @@ import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionManager.asynclocalRequestListener;
 import static org.usf.inspect.core.SessionManager.createBatchSession;
 import static org.usf.inspect.core.SessionManager.currentSession;
-import static org.usf.inspect.core.SessionManager.emitSession;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -45,18 +45,17 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
-		var now = now();
-		var ses = createBatchSession();
+		var ses = createBatchSession().updateContext();
 		try {
-			ses.setStart(now);
+			ses.setStart(now());
 			ses.setThreadName(threadName());        
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
 		} catch (Exception t) {
-			context().reportEventHandleError(ses.getId(), t);
+			context().reportEventHandleError("MethodExecutionMonitor.aroundBatch", ses, t);
 		}
-		emitSession(ses);
+		context().emitTrace(ses);
 		return call(point::proceed, (s,e,o,t)-> {
 			ses.runSynchronized(()-> {
 				if(nonNull(t)) {
@@ -64,7 +63,7 @@ public class MethodExecutionMonitor implements Ordered {
 				}
 				ses.setEnd(e);
 			});
-			emitSession(ses);
+			return ses.releaseContext();
 		});
 	}
 
@@ -95,11 +94,17 @@ public class MethodExecutionMonitor implements Ordered {
 	static String resolveStageName(ProceedingJoinPoint point) {
 		var sgn = (MethodSignature)point.getSignature();
 		var ant = sgn.getMethod().getAnnotation(TraceableStage.class);
-		return ant.name().isEmpty()
-			? sgn.getName()
-			: evalExpression(ant.name(), 
-					point.getThis(), sgn.getDeclaringType(),  
+		if(!ant.name().isEmpty()) {
+			try {
+				return evalExpression(ant.name(), point.getThis(), sgn.getDeclaringType(),  
 		        		sgn.getParameterNames(), point.getArgs()).toString();
+			}
+			catch (Exception e) {
+				context().reportEventHandleError(format("eval expression '%s' on %s.%s", 
+						ant.name(), sgn.getDeclaringType().getSimpleName(), sgn.getName()), currentSession(), e);
+			}
+		}
+		return sgn.getName();
 	}
 
 	static String locationFrom(ProceedingJoinPoint point) {

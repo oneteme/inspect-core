@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.nonNull;
+
 import java.time.Instant;
 
 import org.usf.inspect.ftp.FtpAction;
@@ -39,6 +41,9 @@ public class FtpRequest extends AbstractRequest {
 	}
 	
 	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, Throwable t, String... args) {
+		if(nonNull(t)) {
+			runSynchronized(()-> failed = true);
+		}
 		var stg = createStage(type, start, end, t, FtpRequestStage::new);
 		stg.setArgs(args);
 		return stg;

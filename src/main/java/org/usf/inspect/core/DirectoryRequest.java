@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.nonNull;
+
 import java.time.Instant;
 
 import org.usf.inspect.dir.DirAction;
@@ -35,6 +37,9 @@ public class DirectoryRequest extends AbstractRequest {
 	}
 	
 	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, Throwable t, String... args) {
+		if(nonNull(t)) {
+			runSynchronized(()-> failed = true);
+		}
 		var stg = createStage(type, start, end, t, DirectoryRequestStage::new);
 		stg.setArgs(args);
 		return stg;

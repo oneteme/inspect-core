@@ -7,7 +7,6 @@ import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createTestSession;
-import static org.usf.inspect.core.SessionManager.emitSession;
 
 import java.util.Optional;
 
@@ -18,6 +17,11 @@ import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.TestWatcher;
 import org.opentest4j.TestSkippedException;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 public final class JunitTestMonitor implements BeforeEachCallback, AfterEachCallback, TestWatcher {
 
 	private static final Namespace NAMESPACE = create(JunitTestMonitor.class.getName());
@@ -25,20 +29,19 @@ public final class JunitTestMonitor implements BeforeEachCallback, AfterEachCall
 
 	@Override
 	public void beforeEach(ExtensionContext context) throws Exception {
-		var now = now();
-		var main = createTestSession();
+		var main = createTestSession().updateContext();
 		try {
-			main.setStart(now);
+			main.setStart(now());
 			main.setName(context.getDisplayName());
 			main.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			main.setThreadName(threadName());
 			context.getStore(NAMESPACE).put(SESSION_KEY, main);
 		}
 		catch (Exception e) {
-			context().reportEventHandleError(main.getId(), e);
+			context().reportEventHandleError("JunitTestMonitor.beforeEach", main, e);
 		}
 		finally {
-			emitSession(main);
+			context().emitTrace(main);
 		}
 	}
 
@@ -56,10 +59,10 @@ public final class JunitTestMonitor implements BeforeEachCallback, AfterEachCall
 				});
 			}
 			catch (Exception e) {
-				context().reportEventHandleError(main.getId(), e);
+				context().reportEventHandleError("JunitTestMonitor.afterEach", main, e);
 			}
 			finally {
-				emitSession(main);
+				context().emitTrace(main.releaseContext());
 			}
 		}
 	}
@@ -77,10 +80,10 @@ public final class JunitTestMonitor implements BeforeEachCallback, AfterEachCall
 			main.setEnd(now);
 		}
 		catch (Exception e) {
-			context().reportEventHandleError(main.getId(), e);
+			context().reportEventHandleError("JunitTestMonitor.testDisabled", main, e);
 		}
 		finally {
-			emitSession(main);
+			context().emitTrace(main);
 		}
 	}
 }

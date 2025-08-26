@@ -1,6 +1,7 @@
 package org.usf.inspect.jdbc;
 
 import static java.time.Instant.now;
+import static org.usf.inspect.core.ExecutionMonitor.exec;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,7 +20,7 @@ public final class ResultSetWrapper implements ResultSet {
 
 	@Delegate
 	private final ResultSet rs;
-	private final DatabaseRequestMonitor tracer;
+	private final DatabaseRequestMonitor monitor;
 	private final Instant start = now();
 	private int rows;
 
@@ -76,6 +77,6 @@ public final class ResultSetWrapper implements ResultSet {
 	
 	@Override
 	public void close() throws SQLException {
-		tracer.fetch(start, rs::close, rows);
+		exec(rs::close, monitor.fetch(start, rows));
 	}
 }

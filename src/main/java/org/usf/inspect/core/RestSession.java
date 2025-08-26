@@ -49,6 +49,18 @@ public class RestSession extends AbstractSession {
 	public RestSession copy() {
 		return new RestSession(this);
 	}
+
+	@Override
+	public RestSession updateContext() {
+		super.updateContext();
+		return this;
+	}
+	
+	@Override
+	public RestSession releaseContext() {
+		 super.releaseContext();
+		 return this;
+	}
 	
 	@Override
 	public String toString() {

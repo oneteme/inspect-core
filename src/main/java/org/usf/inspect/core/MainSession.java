@@ -37,6 +37,18 @@ public class MainSession extends AbstractSession {
 	}
 	
 	@Override
+	public MainSession updateContext() {
+		super.updateContext();
+		return this;
+	}
+	
+	@Override
+	public MainSession releaseContext() {
+		 super.releaseContext();
+		 return this;
+	}
+	
+	@Override
 	public String toString() {
 		return local.toString();
 	}

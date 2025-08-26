@@ -24,9 +24,12 @@ import org.springframework.http.HttpMethod;
 import org.usf.inspect.core.Helper;
 import org.usf.inspect.core.RestRequest;
 
-interface RestResponseMonitorListener {
-
-	void handle(Instant start, Instant end, long size, byte[] res, Throwable t);
+/**
+ * 
+ * @author u$f
+ *
+ */
+interface RestResponseMonitor {
 
 	static RestRequest emitRestRequest(HttpMethod mth, URI url, HttpHeaders headers) {
 		var req = createHttpRequest();
@@ -40,7 +43,7 @@ interface RestResponseMonitorListener {
 			req.setOutContentEncoding(getFirstOrNull(headers.get(CONTENT_ENCODING))); 
 			//req.setUser(decode AUTHORIZATION)
 		} catch (Exception e) {
-			context().reportEventHandleError(req.getId(), e);
+			context().reportEventHandleError("RestResponseMonitor;emitRestRequest", req, e);
 		}
 		finally {
 			context().emitTrace(req);
@@ -65,7 +68,7 @@ interface RestResponseMonitorListener {
 		});
 	}
 
-	static RestResponseMonitorListener responseContentReadListener(RestRequest req){
+	static ContentReadMonitor responseContentReadListener(RestRequest req){
 		return (s,e,n,b,t)-> {
 			context().emitTrace(req.createStage(POST_PROCESS, s, e, t)); 
 			req.runSynchronized(()->{
@@ -90,7 +93,7 @@ interface RestResponseMonitorListener {
 
 	static void assertSameID(String requestID, String sessionID) {
 		if(nonNull(sessionID) && !sessionID.equals(requestID)) {
-			context().reportError(format("req.id='%s' <> ses.id='%s'", requestID, sessionID));
+			context().reportEventHandleError(format("mismatch req.id='%s' <> ses.id='%s'", requestID, sessionID), null, null);
 		}
 	}
 }

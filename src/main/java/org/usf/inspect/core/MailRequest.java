@@ -41,6 +41,9 @@ public class MailRequest extends AbstractRequest {
 	}
 	
 	public MailRequestStage createStage(MailAction type, Instant start, Instant end, Throwable thrw) {
+		if(nonNull(thrw)) {
+			runSynchronized(()-> failed = true);
+		}
 		return createStage(type, start, end, thrw, MailRequestStage::new);
 	}
 

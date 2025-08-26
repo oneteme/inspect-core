@@ -16,11 +16,13 @@ public interface Session extends CompletableMetric {
 	
 	void updateRequestsMask(RequestMask mask);
 	
-	default void updateContext() {
+	default Session updateContext() {
 		setCurrentSession(this);
+		return this;
 	}
 	
-	default void releaseContext() {
+	default Session releaseContext() {
 		releaseSession(this);
+		return this;
 	}
 }

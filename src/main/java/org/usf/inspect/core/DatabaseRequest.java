@@ -1,10 +1,13 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.jdbc.SqlCommand.SQL;
 
 import java.time.Instant;
 
 import org.usf.inspect.jdbc.JDBCAction;
+import org.usf.inspect.jdbc.SqlCommand;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -49,10 +52,22 @@ public class DatabaseRequest extends AbstractRequest {
 		this.command = req.command;
 	}
 	
-	public DatabaseRequestStage createStage(JDBCAction type, Instant start, Instant end, Throwable t, long[] count) {
-		var stg = createStage(type, start, end, t, DatabaseRequestStage::new);
+	public DatabaseRequestStage createStage(JDBCAction type, Instant start, Instant end, Throwable thrw, long[] count) {
+		if(nonNull(thrw)) {
+			runSynchronized(()-> failed = true);
+		}
+		var stg = createStage(type, start, end, thrw, DatabaseRequestStage::new);
 		stg.setCount(count);
 		return stg;
+	}
+	
+	public void appendCommand(SqlCommand cmd) {
+		if(isNull(command)) {
+			command = isNull(cmd) ? "?" : cmd.name();
+		}
+		else if(isNull(cmd) || !command.equals(cmd.name())){
+			command = SQL.name(); //multiple
+		}
 	}
 
 	@Override

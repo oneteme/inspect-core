@@ -133,7 +133,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					body = baos.toByteArray();
 				}
 				catch (Exception e) {/*do not throw exception */
-					context().reportError("request body compression error", e);
+					context().reportError("RestDispatcherAgent.bodyCompressionInterceptor", e);
 				}
 			}
 			return exec.execute(req, body);

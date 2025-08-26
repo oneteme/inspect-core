@@ -27,7 +27,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 
 	@Delegate
 	private final ClientHttpResponse cr;
-	private final RestResponseMonitorListener handler;
+	private final ContentReadMonitor monitor;
 	private CacheableInputStream pipe;
 	private Instant start;
 		
@@ -48,17 +48,17 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 		finally {
 			var end = now();
 			try {
-				if(nonNull(handler)) { //unread body 
+				if(nonNull(monitor)) { //unread body 
 					if(nonNull(pipe)) {
-						handler.handle(start, end, pipe.getDataLength(), pipe.getData(), null); //data can be null if status=2xx
+						monitor.handle(start, end, pipe.getDataLength(), pipe.getData(), null); //data can be null if status=2xx
 					}
 					else { //start = end
-						handler.handle(end, end, -1, null, null);
+						monitor.handle(end, end, -1, null, null);
 					}
 				}
 			}
 			catch (Exception e) {
-				context().reportError("HttpResponse handle error", e);
+				context().reportEventHandleError("ClientHttpResponseWrapper.close", null, e);
 			}
 		}
 	}

@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
@@ -35,11 +36,22 @@ public final class ExecutionMonitor {
 		}
 		finally {
 			var e = now();
+			EventTrace trace = null;
 			try {
-				listener.handle(s, e, o, t);
+				trace = listener.handle(s, e, o, t);
 			}
 			catch (Throwable ex) {// do not throw exception
-			    context().reportEventHandleError("?", ex);
+			    context().reportEventHandleError("ExecutionMonitor.call", null, ex);
+			}
+			finally {
+				if(nonNull(trace)) {
+					try {
+						context().emitTrace(trace);
+					}
+					catch (Throwable ex) {// do not throw exception
+					    context().reportEventHandleError("emitTrace", trace, ex);
+					}
+				}
 			}
 		}
 	}
@@ -47,6 +59,6 @@ public final class ExecutionMonitor {
 	@FunctionalInterface
 	public static interface ExecutionMonitorListener<T> {
 		
-		void handle(Instant start, Instant end, T o, Throwable t) throws Exception;
+		EventTrace handle(Instant start, Instant end, T o, Throwable t) throws Exception;
 	}
 }

@@ -26,7 +26,8 @@ public enum SqlCommand {
 	SELECT, //DQL
 	//TCL 
 	CALL, SET, //OTHER
-	SQL; //multiple command
+	SQL, //multiple command
+	REFLECT;
 	
 	public static final Pattern PATTERN =
 			compile(Stream.of(values())

@@ -1,5 +1,9 @@
 package org.usf.inspect.jdbc;
 
+import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.jdbc.JDBCAction.METADATA;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -25,31 +29,31 @@ public final class PreparedStatementWrapper extends StatementWrapper implements 
 
 	@Override
 	public void addBatch() throws SQLException {
-		tracer.addBatch(null, ps::addBatch);
+		exec(ps::addBatch, monitor.addBatchStageHandler(null));
 	}
 	
 	@Override
 	public boolean execute() throws SQLException {
-		return tracer.execute(null, ps::execute);
+		return call(ps::execute, monitor.executeStageHandler(null));
 	}
 	
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		return tracer.executeQuery(null, ps::executeQuery);
+		return new ResultSetWrapper(call(ps::executeQuery, monitor.executeQueryStageHandler(null)), monitor);
 	}
 	
 	@Override
 	public int executeUpdate() throws SQLException {
-		return tracer.executeUpdate(null, ps::executeUpdate);
+		return call(ps::executeUpdate, monitor.executeUpdateStageHandler(null));
 	}
 	
 	@Override
 	public long executeLargeUpdate() throws SQLException {
-		return tracer.executeLargeUpdate(null, ps::executeLargeUpdate);
+		return call(ps::executeLargeUpdate, monitor.executeLargeUpdateStageHandler(null));
 	}
 	
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
-		return tracer.resultSetMetadata(ps::getMetaData);
+		return call(ps::getMetaData, monitor.stageHandler(METADATA));
 	}
 }

@@ -1,20 +1,11 @@
 package org.usf.inspect.dir;
 
-import static java.net.URI.create;
-import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.SessionManager.createNamingRequest;
 import static org.usf.inspect.dir.DirAction.ATTRIB;
-import static org.usf.inspect.dir.DirAction.CONNECTION;
-import static org.usf.inspect.dir.DirAction.DISCONNECTION;
 import static org.usf.inspect.dir.DirAction.LIST;
 import static org.usf.inspect.dir.DirAction.LOOKUP;
 import static org.usf.inspect.dir.DirAction.SEARCH;
-
-import java.util.function.Function;
 
 import javax.naming.Name;
 import javax.naming.NameClassPair;
@@ -25,8 +16,6 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
-import org.usf.inspect.core.DirectoryRequest;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.SafeCallable;
 
 import lombok.RequiredArgsConstructor;
@@ -42,145 +31,95 @@ public class DirContextWrapper implements DirContext {
 	
 	@Delegate
 	private final DirContext ctx;
-	private DirectoryRequest req;
+	private DirectoryRequestMonitor monitor;
 	
 	public DirContextWrapper(SafeCallable<DirContext, RuntimeException> fn) {
-		this.ctx = call(fn, ldapRequestListener());
+		monitor = new DirectoryRequestMonitor();
+		this.ctx = call(fn, monitor::handleConnection);
 	}
 
 	@Override
 	public Object lookup(Name name) throws NamingException {
-		return call(()-> ctx.lookup(name), ldapStageListener(LOOKUP, name.toString()));
+		return call(()-> ctx.lookup(name), monitor.stageHandler(LOOKUP, name.toString()));
 	}
 
 	@Override
 	public Object lookup(String name) throws NamingException {
-		return call(()-> ctx.lookup(name), ldapStageListener(LOOKUP, name));
+		return call(()-> ctx.lookup(name), monitor.stageHandler(LOOKUP, name));
 	}
 	
 	@Override
 	public NamingEnumeration<NameClassPair> list(Name name) throws NamingException {
-		return call(()-> ctx.list(name), ldapStageListener(LIST, name.toString()));
+		return call(()-> ctx.list(name), monitor.stageHandler(LIST, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<NameClassPair> list(String name) throws NamingException {
-		return call(()-> ctx.list(name), ldapStageListener(LIST, name));
+		return call(()-> ctx.list(name), monitor.stageHandler(LIST, name));
 	}
 
 	@Override
 	public Attributes getAttributes(Name name) throws NamingException {
-		return call(()-> ctx.getAttributes(name), ldapStageListener(ATTRIB, name.toString()));
+		return call(()-> ctx.getAttributes(name), monitor.stageHandler(ATTRIB, name.toString()));
 	}
 
 	@Override
 	public Attributes getAttributes(String name) throws NamingException {
-		return call(()-> ctx.getAttributes(name), ldapStageListener(ATTRIB, name));
+		return call(()-> ctx.getAttributes(name), monitor.stageHandler(ATTRIB, name));
 	}
 
 	@Override
 	public Attributes getAttributes(Name name, String[] attrIds) throws NamingException {
-		return call(()-> ctx.getAttributes(name, attrIds), ldapStageListener(ATTRIB, name.toString()));
+		return call(()-> ctx.getAttributes(name, attrIds), monitor.stageHandler(ATTRIB, name.toString()));
 	}
 
 	@Override
 	public Attributes getAttributes(String name, String[] attrIds) throws NamingException {
-		return call(()-> ctx.getAttributes(name, attrIds), ldapStageListener(ATTRIB, name));
+		return call(()-> ctx.getAttributes(name, attrIds), monitor.stageHandler(ATTRIB, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, Attributes matchingAttributes, String[] attributesToReturn) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), ldapStageListener(SEARCH, name.toString()));
+		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), monitor.stageHandler(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, Attributes matchingAttributes, String[] attributesToReturn) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), ldapStageListener(SEARCH, name));
+		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), monitor.stageHandler(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, Attributes matchingAttributes) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes), ldapStageListener(SEARCH, name.toString()));
+		return call(()-> ctx.search(name, matchingAttributes), monitor.stageHandler(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, Attributes matchingAttributes) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes), ldapStageListener(SEARCH, name));
+		return call(()-> ctx.search(name, matchingAttributes), monitor.stageHandler(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, String filter, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filter, cons), ldapStageListener(SEARCH, name.toString()));
+		return call(()-> ctx.search(name, filter, cons), monitor.stageHandler(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, String filter, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filter, cons), ldapStageListener(SEARCH, name));
+		return call(()-> ctx.search(name, filter, cons), monitor.stageHandler(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, String filterExpr, Object[] filterArgs, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filterExpr, cons), ldapStageListener(SEARCH, name.toString()));
+		return call(()-> ctx.search(name, filterExpr, cons), monitor.stageHandler(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, String filterExpr, Object[] filterArgs, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filterExpr, cons), ldapStageListener(SEARCH, name));
+		return call(()-> ctx.search(name, filterExpr, cons), monitor.stageHandler(SEARCH, name));
 	}
 	
 	@Override
 	public void close() throws NamingException {
-		exec(ctx::close, (s,e,o,t)-> {
-			context().emitTrace(req.createStage(DISCONNECTION, s, e, t));
-			req.runSynchronized(()-> {
-				if(nonNull(t)) {
-					req.setFailed(true);
-				}
-				req.setEnd(e);
-			});
-			context().emitTrace(req);
-		});
-	}
-
-	<T> ExecutionMonitorListener<T> ldapStageListener(DirAction action, String... args) {
-		return (s,e,o,t)-> {
-			context().emitTrace(req.createStage(action, s, e, t, args));
-			if(nonNull(t)) {
-				req.runSynchronized(()-> req.setFailed(true));
-			}
-		};
-	}
-	
-	//dummy spring org.springframework.ldap.NamingException
-	ExecutionMonitorListener<DirContext> ldapRequestListener() {
-		req = createNamingRequest();
-		return (s,e,o,t)->{
-			req.setThreadName(threadName());
-			req.setStart(s);
-			if(nonNull(t)) { //if connection error
-				req.setFailed(true);
-				req.setEnd(e);
-			}
-			var url = getEnvironmentVariable(o, PROVIDER_URL, v-> create(v.toString()));  //broke context dependency
- 			if(nonNull(url)) {
- 				req.setProtocol(url.getScheme());
- 				req.setHost(url.getHost());
- 				req.setPort(url.getPort());
- 			}
- 			var user = getEnvironmentVariable(o, SECURITY_PRINCIPAL, Object::toString); //broke context dependency
- 			if(nonNull(user)) {
- 				req.setUser(user);
- 			}
- 			context().emitTrace(req);
- 			context().emitTrace(req.createStage(CONNECTION, s, e, t));
-		};
-	}
-	
-	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {
-		var env = o.getEnvironment();
-		if(nonNull(env) && env.containsKey(key)) {
-			return fn.apply(env.get(key));
-		}
-		return null;
+		exec(ctx::close, monitor::handleDisconnection);
 	}
 }

@@ -63,8 +63,8 @@ public final class InspectContext {
 		return configuration;
 	}
 
-	public void reportEventHandleError(String id, Throwable t) {
-		reportError("event handle error, id=" + id, t);
+	public void reportEventHandleError(String action, EventTrace trace, Throwable thrw) {
+		reportError(action + " : " + trace, thrw);
 	}
 
 	public void reportError(String msg, Throwable thrw) { //stack trace ??
@@ -97,7 +97,7 @@ public final class InspectContext {
 			ses.setThreadName(threadName());
 		}
 		catch (Exception t) {
-			context().reportEventHandleError(ses.getId(), t);
+			context().reportEventHandleError("InspectContext.traceStartupSession", ses, t);
 		}
 		finally {
 			emitStartupSession(ses);
@@ -116,7 +116,7 @@ public final class InspectContext {
 			});
 		}
 		catch (Exception e) {
-			context().reportEventHandleError(session.getId(), e);
+			context().reportEventHandleError("InspectContext.traceStartupSession", session, e);
 		}
 		finally {
 			emitStartupSession(session);

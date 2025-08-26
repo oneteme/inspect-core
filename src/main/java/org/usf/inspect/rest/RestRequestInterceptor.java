@@ -3,9 +3,9 @@ package org.usf.inspect.rest;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
-import static org.usf.inspect.rest.RestResponseMonitorListener.afterResponse;
-import static org.usf.inspect.rest.RestResponseMonitorListener.emitRestRequest;
-import static org.usf.inspect.rest.RestResponseMonitorListener.responseContentReadListener;
+import static org.usf.inspect.rest.RestResponseMonitor.afterResponse;
+import static org.usf.inspect.rest.RestResponseMonitor.emitRestRequest;
+import static org.usf.inspect.rest.RestResponseMonitor.responseContentReadListener;
 
 import java.io.IOException;
 
@@ -42,7 +42,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 			else {
 				afterResponse(req, s, e, 0, null, t);
 			}
+			return null;
 		};
 	}
 }
-

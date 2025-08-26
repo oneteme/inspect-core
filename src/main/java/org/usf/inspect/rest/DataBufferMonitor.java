@@ -6,6 +6,7 @@ import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -23,14 +24,16 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 final class DataBufferMonitor {
 	
-	private final RestResponseMonitorListener listener;
+	private final ContentReadMonitor monitor;
+	private final AtomicBoolean done = new AtomicBoolean(false);
 
 	private byte[] bytes;
 	private long size;
 	private Instant start;
 	private Throwable throwable;
 	
-	Flux<DataBuffer> track(Flux<DataBuffer> flux, boolean readContent) {
+	
+	Flux<DataBuffer> handle(Flux<DataBuffer> flux, boolean readContent) {
 		start = now();
 		return flux.map(db-> {
 			try {
@@ -42,13 +45,17 @@ final class DataBufferMonitor {
 				}
 			}
 			catch (Exception e) {
-				context().reportError("DataBuffer handle error", e);
+				context().reportEventHandleError("DataBufferMonitor.handle", null, e);
 			}
 			return db; //maybe consumed
 		})
 		.doOnNext(db-> size+= db.readableByteCount())
     	.doOnError(e-> throwable = e)
     	.doOnCancel(()-> throwable = new CancellationException("cancelled"))
-    	.doFinally(v-> listener.handle(start, now(), size, bytes, throwable));
+    	.doFinally(v-> { //called 2 times
+    		if(done.compareAndSet(false, true)) {
+    			monitor.handle(start, now(), size, bytes, throwable);
+    		}
+    	});
 	}
 }

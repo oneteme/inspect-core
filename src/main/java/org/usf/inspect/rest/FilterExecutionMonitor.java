@@ -1,11 +1,13 @@
 package org.usf.inspect.rest;
 
+import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.net.URI.create;
 import static java.time.Instant.now;
 import static java.util.Arrays.stream;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
@@ -24,8 +26,7 @@ import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.SessionManager.createRestSession;
-import static org.usf.inspect.core.SessionManager.emitSession;
+import static org.usf.inspect.core.SessionManager.currentSession;
 
 import java.io.IOException;
 import java.net.URI;
@@ -45,6 +46,7 @@ import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
 import org.usf.inspect.core.HttpRouteMonitoringProperties;
 import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.RestSession;
+import org.usf.inspect.core.SessionManager;
 import org.usf.inspect.core.TraceableStage;
 
 import jakarta.servlet.FilterChain;
@@ -102,7 +104,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 			throw e;
 		}
 		catch (Exception e) {//should never happen
-			context().reportError("unexpected exception", e);
+			context().reportEventHandleError("FilterExecutionMonitor.doFilterInternal", null, e);
 			throw new IllegalStateException(e); 
 		}
 	}
@@ -111,8 +113,10 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		var start = now();
 		var ses = (RestSession) req.getAttribute(CURRENT_SESSION);
 		if(isNull(ses)) {
-			var reqID = req.getHeader(TRACE_HEADER);
-			ses = nonNull(reqID) ? createRestSession(reqID) :  createRestSession();
+			ses = ofNullable(req.getHeader(TRACE_HEADER))
+					.map(SessionManager::createRestSession)
+					.orElseGet(SessionManager::createRestSession)
+					.updateContext();
 			try {
 				ses.setStart(start);
 				ses.setThreadName(threadName());
@@ -124,10 +128,10 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				ses.setUserAgent(req.getHeader(USER_AGENT));
 			}
 			catch (Exception t) {
-				context().reportEventHandleError(ses.getId(), t);
+				context().reportEventHandleError("FilterExecutionMonitor.traceRestSession", ses, t);
 			}
 			finally {
-				emitSession(ses);
+				context().emitTrace(ses);
 				res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 				res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 				req.setAttribute(CURRENT_SESSION, ses);
@@ -156,14 +160,15 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 					}
 					ses.setEnd(e);  //IO | CancellationException | ServletException => no ErrorHandler
 				});
-				emitSession(ses); //emit session & clean context
+				return ses.releaseContext(); //emit session & clean context
 			}
 			else {
 				context().emitTrace(ses.createStage(DEFERRED, s, e, t));
 				if(nonNull(t)) {
 					ses.runSynchronized(()-> ses.setEnd(e));
-					emitSession(ses); //emit session & clean context
+					return ses.releaseContext(); //emit session & clean context
 				}
+				return null; //do not trace this
 			}
 		};
 	}
@@ -187,7 +192,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				context().reportEventHandleError(ses.getId(), t);
+				context().reportEventHandleError("FilterExecutionMonitor.preHandle", ses, t);
 			}
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -204,7 +209,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				context().reportEventHandleError(ses.getId(), t);
+				context().reportEventHandleError("FilterExecutionMonitor.postHandle", ses, t);
 			}
 		}
 	}
@@ -229,7 +234,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				}
 			}
 			catch (Exception t) {
-				context().reportEventHandleError(ses.getId(), t);
+				context().reportEventHandleError("FilterExecutionMonitor.afterCompletion", ses, t);
 			}
 		}
 	}
@@ -238,9 +243,15 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		if(nonNull(mth)) {
 			var ant = mth.getMethodAnnotation(TraceableStage.class);
 			if(nonNull(ant) && !ant.name().isEmpty()) {
-				return evalExpression(ant.name(), 
-						mth.getBean(), mth.getBeanType(), 
-						new String[] {"request"}, new Object[] {req}).toString();
+				try {
+					return evalExpression(ant.name(), 
+							mth.getBean(), mth.getBeanType(), 
+							new String[] {"request"}, new Object[] {req}).toString();
+				}
+				catch (Exception e) {
+					context().reportEventHandleError(format("eval expression '%s' on %s.%s", 
+							ant.name(), mth.getBeanType().getSimpleName(), mth.getMethod().getName()), currentSession(), e);
+				}
 			}
 		}
 		return defaultEndpointName(req);
@@ -264,5 +275,4 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 		return handler instanceof HandlerMethod mth && 
 				!(mth.getBean() instanceof ErrorController);
 	}
-    
 }

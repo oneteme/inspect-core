@@ -23,7 +23,7 @@ import lombok.Setter;
 public abstract class AbstractSession implements Session {
 
 	private final AtomicInteger threads = new AtomicInteger();
-	private int requestsMask; //TD -1 if absent
+	private int requestsMask;
 	private String instanceId; //server usage 
 	
 	@JsonCreator AbstractSession() { }

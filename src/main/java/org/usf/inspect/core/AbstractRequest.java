@@ -51,6 +51,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 	}
 	
 	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Throwable t, Supplier<T> supp) {
+		assertNotComplete();
 		var stg = supp.get();
 		stg.setName(type.name());
 		stg.setStart(start);
