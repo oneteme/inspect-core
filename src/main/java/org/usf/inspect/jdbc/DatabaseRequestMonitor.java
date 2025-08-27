@@ -3,6 +3,7 @@ package org.usf.inspect.jdbc;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
@@ -175,7 +176,7 @@ final class DatabaseRequestMonitor {
 				}
 			}
 			catch (Exception e) {
-				context().reportEventHandleError("DatabaseRequestMonitor.updateStageRowsCount", req, e);
+				reportError("DatabaseRequestMonitor.updateStageRowsCount", req, e);
 			}
 		}
 	}

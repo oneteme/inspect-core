@@ -5,6 +5,8 @@ import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
+import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
@@ -51,7 +53,7 @@ public final class SessionManager {
 			return clazz.cast(ses);
 		}
 		if(nonNull(ses)) {
-			context().reportEventHandleError("unexpected session type: ", ses, null);
+			reportSessionProblem("unexpected session type", ses);
 		}
 		return null;
 	}
@@ -59,10 +61,10 @@ public final class SessionManager {
 	public static Session requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
-			context().reportEventHandleError("no current session found", null, null);
+			reportSessionProblem("no current session found", null);
 		}
 		else if(ses.wasCompleted()) {
-			context().reportEventHandleError("current session was already completed", ses, null);
+			reportSessionProblem("current session was already completed", ses);
 			ses = null;
 		}
 		return ses;
@@ -80,7 +82,7 @@ public final class SessionManager {
 				localTrace.set(session);
 			}
 			else {
-				reportSessionConflict(prv.getId(), session.getId());
+				reportSessionConflict("setCurrentSession", prv.getId(), session.getId());
 			}
 		}
 	}
@@ -91,30 +93,26 @@ public final class SessionManager {
 			localTrace.remove();
 		}
 		else if(nonNull(prv)) {
-			reportSessionConflict(prv.getId(), session.getId());
+			reportSessionConflict("releaseSession", prv.getId(), session.getId());
 		}
 	}
-
-	public static void emitStartupSession(MainSession session) {
-		session.runSynchronized(()->{
-			if(nonNull(session.getEnd())){
-				if(startupSession == session) {
-					startupSession = null;
-				}
-				else if(nonNull(startupSession)) {
-					reportSessionConflict(startupSession.getId(), session.getId());
-				}
-			}
-			else {
-				if(isNull(startupSession)) {
-					startupSession = session;
-				}
-				else {
-					reportSessionConflict(startupSession.getId(), session.getId());
-				}
-			}
-		});
-		context().emitTrace(session);
+	
+	static void setStartupSession(MainSession session) {
+		if(isNull(startupSession)) {
+			startupSession = session;
+		}
+		else {
+			reportSessionConflict("setStartupSession", startupSession.getId(), session.getId());
+		}
+	}
+	
+	static void releaseStartupSession(MainSession session) {
+		if(startupSession == session) {
+			startupSession = null;
+		}
+		else if(nonNull(startupSession)) {
+			reportSessionConflict("releaseStartupSession", startupSession.getId(), session.getId());
+		}
 	}
 
 	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
@@ -139,7 +137,7 @@ public final class SessionManager {
 			req.setLocation(locationSupp.get());
 		}
 		catch (Exception e) {
-			context().reportEventHandleError("SessionManager.asynclocalRequestListener", req, e);
+			reportError("SessionManager.asynclocalRequestListener", req, e);
 		}
 		finally {
 			context().emitTrace(req);
@@ -243,7 +241,11 @@ public final class SessionManager {
 		return randomUUID().toString();
 	}
 
-	static void reportSessionConflict(String prev, String next) {
-		context().reportError(format("session conflict : previous=%s, next=%s", prev, next));
+	static void reportSessionConflict(String action, String prev, String next) {
+		reporter().action(action).message(format("previous=%s, next=%s", prev, next));
+	}
+
+	static void reportSessionProblem(String msg, EventTrace trace) {
+		reporter().action("requireCurrentSession").message(msg).trace(trace).emit();
 	}
 }

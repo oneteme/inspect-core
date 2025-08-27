@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
 import static java.util.Objects.isNull;
@@ -9,14 +8,12 @@ import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BasicDispatchState.DISABLE;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.LogEntry.logEntry;
-import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionManager.createStartupSession;
-import static org.usf.inspect.core.SessionManager.emitStartupSession;
 import static org.usf.inspect.core.SessionManager.nextId;
 
 import java.net.UnknownHostException;
@@ -63,19 +60,6 @@ public final class InspectContext {
 		return configuration;
 	}
 
-	public void reportEventHandleError(String action, EventTrace trace, Throwable thrw) {
-		reportError(action + " : " + trace, thrw);
-	}
-
-	public void reportError(String msg, Throwable thrw) { //stack trace ??
-		msg += format(", cause=%s: %s", thrw.getClass().getSimpleName(), thrw.getMessage());
-		emitTrace(logEntry(ERROR, msg, thrw, configuration.isDebugMode() ? -1 : 0)); //takes no session id
-	}
-
-	public void reportError(String msg) {
-		emitTrace(logEntry(ERROR, msg, configuration.isDebugMode() ? -1 : 0)); //takes no session id 
-	}
-
 	public void emitTrace(EventTrace trace) {
 		if(nonNull(dispatcher)) {
 			dispatcher.emit(trace);
@@ -89,7 +73,7 @@ public final class InspectContext {
 	}
 
 	void traceStartupSession(Instant instant) {
-		var ses = createStartupSession();
+		var ses = createStartupSession().updateContext();
 		try {
 			ses.setType(STARTUP.name());
 			ses.setName("main");
@@ -97,10 +81,10 @@ public final class InspectContext {
 			ses.setThreadName(threadName());
 		}
 		catch (Exception t) {
-			context().reportEventHandleError("InspectContext.traceStartupSession", ses, t);
+			reportError("InspectContext.traceStartupSession", ses, t);
 		}
 		finally {
-			emitStartupSession(ses);
+			context().emitTrace(ses);
 			this.session = ses;
 		}
 	}
@@ -116,10 +100,10 @@ public final class InspectContext {
 			});
 		}
 		catch (Exception e) {
-			context().reportEventHandleError("InspectContext.traceStartupSession", session, e);
+			reportError("InspectContext.traceStartupSession", session, e);
 		}
 		finally {
-			emitStartupSession(session);
+			context().emitTrace(session.releaseContext());
 			this.session = null; //prevent further usage
 		}
 	}
@@ -200,7 +184,7 @@ public final class InspectContext {
 				new NamedType(MainSession.class,  				"main-ses"), 
 				new NamedType(RestSession.class,  				"rest-ses"), 
 				new NamedType(LocalRequest.class, 				"locl-req"), 
-				new NamedType(DatabaseRequest.class,				"jdbc-req"),
+				new NamedType(DatabaseRequest.class,			"jdbc-req"),
 				new NamedType(RestRequest.class,  				"http-req"), 
 				new NamedType(MailRequest.class,  				"mail-req"), 
 				new NamedType(DirectoryRequest.class,			"ldap-req"), 
@@ -211,7 +195,7 @@ public final class InspectContext {
 				new NamedType(MailRequestStage.class,  			"mail-stg"), 
 				new NamedType(DirectoryRequestStage.class,		"ldap-stg"), 
 				new NamedType(FtpRequestStage.class,  			"ftp-stg"),
-				new NamedType(RestRemoteServerProperties.class, 	"rest-rmt"));
+				new NamedType(RestRemoteServerProperties.class, "rest-rmt"));
 		mapper.registerModules(new JavaTimeModule(), module); 
 		return mapper;
 	}

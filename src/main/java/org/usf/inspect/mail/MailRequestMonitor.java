@@ -2,6 +2,7 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createMailRequest;
@@ -73,7 +74,7 @@ final class MailRequestMonitor {
 			mail.setSize(arg0.getSize());
 		}
 		catch (Exception e) {
-			context().reportEventHandleError("MailRequestMonitor.appendMail", req, e);
+			reportError("MailRequestMonitor.appendMail", req, e);
 		}
 		finally {
 			req.getMails().add(mail);

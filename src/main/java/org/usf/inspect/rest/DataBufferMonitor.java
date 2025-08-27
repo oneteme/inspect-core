@@ -2,7 +2,7 @@ package org.usf.inspect.rest;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 
 import java.time.Instant;
 import java.util.concurrent.CancellationException;
@@ -45,7 +45,7 @@ final class DataBufferMonitor {
 				}
 			}
 			catch (Exception e) {
-				context().reportEventHandleError("DataBufferMonitor.handle", null, e);
+				reportError("DataBufferMonitor.handle", null, e);
 			}
 			return db; //maybe consumed
 		})

@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
@@ -38,7 +39,7 @@ public final class JunitTestMonitor implements BeforeEachCallback, AfterEachCall
 			context.getStore(NAMESPACE).put(SESSION_KEY, main);
 		}
 		catch (Exception e) {
-			context().reportEventHandleError("JunitTestMonitor.beforeEach", main, e);
+			reportError("JunitTestMonitor.beforeEach", main, e);
 		}
 		finally {
 			context().emitTrace(main);
@@ -59,7 +60,7 @@ public final class JunitTestMonitor implements BeforeEachCallback, AfterEachCall
 				});
 			}
 			catch (Exception e) {
-				context().reportEventHandleError("JunitTestMonitor.afterEach", main, e);
+				reportError("JunitTestMonitor.afterEach", main, e);
 			}
 			finally {
 				context().emitTrace(main.releaseContext());
@@ -80,7 +81,7 @@ public final class JunitTestMonitor implements BeforeEachCallback, AfterEachCall
 			main.setEnd(now);
 		}
 		catch (Exception e) {
-			context().reportEventHandleError("JunitTestMonitor.testDisabled", main, e);
+			reportError("JunitTestMonitor.testDisabled", main, e);
 		}
 		finally {
 			context().emitTrace(main);

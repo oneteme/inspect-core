@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
@@ -41,7 +42,7 @@ public final class ExecutionMonitor {
 				trace = listener.handle(s, e, o, t);
 			}
 			catch (Throwable ex) {// do not throw exception
-			    context().reportEventHandleError("ExecutionMonitor.call", null, ex);
+				reporter().action("ExecutionMonitor.call").cause(ex).emit();
 			}
 			finally {
 				if(nonNull(trace)) {
@@ -49,7 +50,7 @@ public final class ExecutionMonitor {
 						context().emitTrace(trace);
 					}
 					catch (Throwable ex) {// do not throw exception
-					    context().reportEventHandleError("emitTrace", trace, ex);
+						reporter().action("emitTrace").cause(ex).emit();
 					}
 				}
 			}

@@ -3,7 +3,7 @@ package org.usf.inspect.rest;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,7 +58,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 				}
 			}
 			catch (Exception e) {
-				context().reportEventHandleError("ClientHttpResponseWrapper.close", null, e);
+				reportError("ClientHttpResponseWrapper.close", null, e);
 			}
 		}
 	}

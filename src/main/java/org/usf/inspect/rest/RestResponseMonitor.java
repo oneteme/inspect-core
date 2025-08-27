@@ -8,6 +8,8 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
@@ -43,7 +45,7 @@ interface RestResponseMonitor {
 			req.setOutContentEncoding(getFirstOrNull(headers.get(CONTENT_ENCODING))); 
 			//req.setUser(decode AUTHORIZATION)
 		} catch (Exception e) {
-			context().reportEventHandleError("RestResponseMonitor;emitRestRequest", req, e);
+			reportError("RestResponseMonitor.emitRestRequest", req, e);
 		}
 		finally {
 			context().emitTrace(req);
@@ -93,7 +95,8 @@ interface RestResponseMonitor {
 
 	static void assertSameID(String requestID, String sessionID) {
 		if(nonNull(sessionID) && !sessionID.equals(requestID)) {
-			context().reportEventHandleError(format("mismatch req.id='%s' <> ses.id='%s'", requestID, sessionID), null, null);
+			reporter(false).action("assertSameID")
+			.message(format("req.id='%s', ses.id='%s'", requestID, sessionID)).emit();
 		}
 	}
 }

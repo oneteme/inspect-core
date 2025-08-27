@@ -5,6 +5,7 @@ import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.move;
 import static java.util.Collections.emptyList;
+import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.File;
@@ -75,7 +76,10 @@ public final class EventTraceDumper implements DispatchHook {
 				}
 			}
 			else { //do not throw exception => end task
-				context().reportError("traces dump file '" + f.getName() + "' is not found"); 
+				reporter(false)
+				.action("EventTraceDumper.emitDispatchFileTask")
+				.message("traces dump file '" + f.getName() + "' is not found")
+				.emit();
 			}
 		});
 	}
@@ -98,7 +102,10 @@ public final class EventTraceDumper implements DispatchHook {
 			}
 		}
 		if(!done) {
-			context().reportError("cannot delete or rename file '" + file.getName() + "'"); 
+			reporter(false)
+			.action("EventTraceDumper.deleteFile")
+			.message("cannot delete or rename file '" + file.getName() + "'")
+			.emit();
 		}
 	}
 	

@@ -4,6 +4,8 @@ import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.evalExpression;
@@ -53,7 +55,7 @@ public class MethodExecutionMonitor implements Ordered {
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
 		} catch (Exception t) {
-			context().reportEventHandleError("MethodExecutionMonitor.aroundBatch", ses, t);
+			reportError("MethodExecutionMonitor.aroundBatch", ses, t);
 		}
 		context().emitTrace(ses);
 		return call(point::proceed, (s,e,o,t)-> {
@@ -100,8 +102,10 @@ public class MethodExecutionMonitor implements Ordered {
 		        		sgn.getParameterNames(), point.getArgs()).toString();
 			}
 			catch (Exception e) {
-				context().reportEventHandleError(format("eval expression '%s' on %s.%s", 
-						ant.name(), sgn.getDeclaringType().getSimpleName(), sgn.getName()), currentSession(), e);
+				reporter().action("resolveStageName")
+				.message(format("eval expression '%s' on %s.%s", 
+						ant.name(), sgn.getDeclaringType().getSimpleName(), sgn.getName()))
+				.cause(e).trace(currentSession()).emit();
 			}
 		}
 		return sgn.getName();

@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.ErrorReporter.reporter;
 
 import java.util.Objects;
 
@@ -37,7 +37,7 @@ public interface CompletableMetric extends Metric {
 
 	default void assertNotComplete(){
 		if(nonNull(getEnd())) {
-			context().reportEventHandleError("CompletableMetric.assertNotClosed", this, null);
+			reporter().action("CompletableMetric.assertNotClosed").trace(this).emit();
 		}
 	}
 

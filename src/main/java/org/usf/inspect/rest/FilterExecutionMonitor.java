@@ -16,6 +16,8 @@ import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
+import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
@@ -104,7 +106,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 			throw e;
 		}
 		catch (Exception e) {//should never happen
-			context().reportEventHandleError("FilterExecutionMonitor.doFilterInternal", null, e);
+			reportError("FilterExecutionMonitor.doFilterInternal", null, e);
 			throw new IllegalStateException(e); 
 		}
 	}
@@ -128,7 +130,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				ses.setUserAgent(req.getHeader(USER_AGENT));
 			}
 			catch (Exception t) {
-				context().reportEventHandleError("FilterExecutionMonitor.traceRestSession", ses, t);
+				reportError("FilterExecutionMonitor.traceRestSession", ses, t);
 			}
 			finally {
 				context().emitTrace(ses);
@@ -192,7 +194,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				context().reportEventHandleError("FilterExecutionMonitor.preHandle", ses, t);
+				reportError("FilterExecutionMonitor.preHandle", ses, t);
 			}
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -209,7 +211,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				request.setAttribute(STAGE_START, now);
 			}
 			catch (Exception t) {
-				context().reportEventHandleError("FilterExecutionMonitor.postHandle", ses, t);
+				reportError("FilterExecutionMonitor.postHandle", ses, t);
 			}
 		}
 	}
@@ -234,7 +236,7 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 				}
 			}
 			catch (Exception t) {
-				context().reportEventHandleError("FilterExecutionMonitor.afterCompletion", ses, t);
+				reportError("FilterExecutionMonitor.afterCompletion", ses, t);
 			}
 		}
 	}
@@ -249,8 +251,10 @@ public final class FilterExecutionMonitor extends OncePerRequestFilter implement
 							new String[] {"request"}, new Object[] {req}).toString();
 				}
 				catch (Exception e) {
-					context().reportEventHandleError(format("eval expression '%s' on %s.%s", 
-							ant.name(), mth.getBeanType().getSimpleName(), mth.getMethod().getName()), currentSession(), e);
+					reporter().action("resolveEndpointName")
+					.message(format("eval expression '%s' on %s.%s", 
+							ant.name(), mth.getBeanType().getSimpleName(), mth.getMethod().getName()))
+					.cause(e).trace(currentSession()).emit();
 				}
 			}
 		}
