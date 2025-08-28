@@ -15,7 +15,7 @@ import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createHttpRequest;
-import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
+import static org.usf.inspect.rest.HttpSessionFilter.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;

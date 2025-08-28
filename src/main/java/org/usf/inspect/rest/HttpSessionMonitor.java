@@ -1,0 +1,119 @@
+package org.usf.inspect.rest;
+
+import static java.net.URI.create;
+import static java.time.Instant.now;
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+import static java.util.Optional.ofNullable;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
+import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
+import static org.springframework.http.HttpHeaders.USER_AGENT;
+import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.Helper.extractAuthScheme;
+import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.InspectContext.context;
+
+import java.net.URI;
+import java.time.Instant;
+
+import org.usf.inspect.core.HttpAction;
+import org.usf.inspect.core.HttpUserProvider;
+import org.usf.inspect.core.RestSession;
+import org.usf.inspect.core.SessionManager;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.Getter;
+
+/**
+ * 
+ * @author u$f 
+ *
+ */
+public final class HttpSessionMonitor {
+	
+	@Getter
+	private final RestSession session;
+	private final HttpServletRequest req;
+	private Instant lastTimestamp;
+	
+	public HttpSessionMonitor(HttpServletRequest req, String id) {
+		this.req = req;
+		this.lastTimestamp = now();
+		this.session = ofNullable(id)
+				.map(SessionManager::createRestSession)
+				.orElseGet(SessionManager::createRestSession)
+				.updateContext();
+		try {
+			session.setStart(lastTimestamp);
+			session.setThreadName(threadName());
+			session.setMethod(req.getMethod());
+			session.setURI(fromRequest(req));
+			session.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
+			session.setInDataSize(req.getContentLength());
+			session.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
+			session.setUserAgent(req.getHeader(USER_AGENT));
+		}
+		catch (Exception t) {
+			reportError("HttpSessionMonitor.init", session, t);
+		}
+		finally {
+			context().emitTrace(session);
+		}
+	}
+
+	public void asyncStageHandler(HttpAction action) {
+		var now = now();
+		try {
+			context().emitTrace(session.createStage(action, lastTimestamp, now, null));
+		}
+		catch (Exception t) {
+			reportError("HttpSessionMonitor.stageHandler", session, t);
+		}
+		lastTimestamp = now;
+	}
+
+	public void handleAfterComplete(String name, HttpUserProvider userProvider, Throwable thrw){
+		try {
+			session.runSynchronized(()->{
+				session.setName(name);
+				session.setUser(userProvider.getUser(req, name));
+				if(nonNull(thrw) && isNull(session.getException())) {// unhandled exception in @ControllerAdvice
+					session.setException(fromException(thrw));
+				}
+			});
+		}
+		catch (Exception e) {
+			reportError("FilterExecutionMonitor.afterCompletion", session, e);
+		}
+	}
+	
+	public RestSession handleDisconnection(Instant end, HttpServletResponse response, Throwable thrw) {
+		try {
+			session.runSynchronized(()->{
+				if(nonNull(response)) {
+					session.setStatus(response.getStatus());
+					session.setOutDataSize(response.getBufferSize()); //!exact size
+					session.setOutContentEncoding(response.getHeader(CONTENT_ENCODING)); 
+					session.setCacheControl(response.getHeader(CACHE_CONTROL));
+					session.setContentType(response.getContentType());
+				}
+				if(nonNull(thrw) && isNull(session.getException())) { // see advise & interceptor
+					session.setException(fromException(thrw));
+				}
+				session.setEnd(end);  //IO | CancellationException | ServletException => no ErrorHandler
+			});
+		}
+		catch (Exception e) {
+			reportError("HttpSessionMonitor.handleDisconnection", session, e);
+		}
+		return session.releaseContext();
+	}
+
+    static URI fromRequest(HttpServletRequest req) {
+    	var c = req.getRequestURL().toString();
+        return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
+    }
+}

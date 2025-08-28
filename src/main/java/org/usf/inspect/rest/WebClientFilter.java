@@ -6,7 +6,7 @@ import static org.springframework.web.reactive.function.client.ClientRequest.fro
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.rest.FilterExecutionMonitor.TRACE_HEADER;
+import static org.usf.inspect.rest.HttpSessionFilter.TRACE_HEADER;
 import static org.usf.inspect.rest.RestResponseMonitor.afterResponse;
 import static org.usf.inspect.rest.RestResponseMonitor.emitRestRequest;
 import static org.usf.inspect.rest.RestResponseMonitor.responseContentReadListener;

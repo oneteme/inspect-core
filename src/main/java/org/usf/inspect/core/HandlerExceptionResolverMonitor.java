@@ -8,16 +8,21 @@ import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.ModelAndView;
+import org.usf.inspect.rest.RoutePredicate;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 
  * @author u$f
  *
  */
+@RequiredArgsConstructor
 public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver, Ordered {
+	
+	private final RoutePredicate routePredicate;
 	
 	/**
 	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
@@ -25,11 +30,12 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 	 * @return {@code null} for default processing in the resolution chain
 	 */
 	@Override
-	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler,
-			Exception ex) {
-		var ses = requireCurrentSession(RestSession.class);
-		if(nonNull(ses) && isNull(ses.getException())) { //non filtered requests
-			ses.setException(fromException(ex));
+	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+		if(routePredicate.accept(request)) {
+			var ses = requireCurrentSession(RestSession.class);
+			if(nonNull(ses) && isNull(ses.getException())) { //non filtered requests
+				ses.setException(fromException(ex));
+			}
 		}
 		return null;
 	}
