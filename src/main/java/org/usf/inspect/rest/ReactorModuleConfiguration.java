@@ -23,7 +23,7 @@ import org.springframework.context.annotation.DependsOn;
 public class ReactorModuleConfiguration {
 	
 	ReactorModuleConfiguration() {
-		onEachOperator("supervision-hook", p-> {
+		onEachOperator("inspect-hook", p-> {
 			var ses = requireCurrentSession();
 			return nonNull(ses) ? liftPublisher((scn,sub)-> new CoreSubscriberProxy<>(sub, ses)).apply(p) : p;
 		});

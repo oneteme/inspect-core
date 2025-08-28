@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.threadName;
@@ -14,7 +15,7 @@ import org.junit.runners.model.Statement;
  * @author u$f
  *
  */
-public final class JUnit4TestMonitor implements TestRule  {
+public final class JUnit4TestMonitor implements TestRule {
 
 	@Override
 	public Statement apply(Statement base, Description description) {
@@ -28,7 +29,9 @@ public final class JUnit4TestMonitor implements TestRule  {
         			main.setEnd(e);
         			main.setName(description.getDisplayName());
         			main.setLocation(description.getClassName(), description.getMethodName());
-        			main.setException(fromException(t));
+        			if(nonNull(t)) {
+        				main.setException(fromException(t));
+        			}
         			return main.releaseContext();
         		});
             }

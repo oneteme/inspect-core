@@ -32,9 +32,7 @@ public final class StackTraceRow {
 	}
 
 	public static StackTraceRow[] threadStackTraceRows(int maxRows) {
-		return maxRows > 0 
-				? excetionStackTraceRows(new Exception(), maxRows) //see Thread.getStackTrace
-				: null;
+		return excetionStackTraceRows(new Exception(), maxRows); //see Thread.getStackTrace
 	}
 	
 	public static StackTraceRow[] excetionStackTraceRows(Throwable thrw, int maxRows) {

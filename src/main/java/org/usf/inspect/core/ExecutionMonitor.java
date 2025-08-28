@@ -60,6 +60,6 @@ public final class ExecutionMonitor {
 	@FunctionalInterface
 	public static interface ExecutionMonitorListener<T> {
 		
-		EventTrace handle(Instant start, Instant end, T o, Throwable t) throws Exception;
+		EventTrace handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception;
 	}
 }

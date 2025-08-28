@@ -26,6 +26,7 @@ public class RestSession extends AbstractSession {
 	private String cacheControl; //max-age, no-cache
 	//v1.1
 	private ExceptionInfo exception;
+	//location: controllerClass.method
 
 	@JsonCreator 
 	public RestSession() {
