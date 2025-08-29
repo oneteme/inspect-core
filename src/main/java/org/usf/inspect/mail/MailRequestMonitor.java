@@ -4,7 +4,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createMailRequest;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
@@ -13,7 +12,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
-import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.Mail;
 import org.usf.inspect.core.MailRequest;
 
@@ -34,7 +33,7 @@ final class MailRequestMonitor {
 	private final Transport trsp;
 
 	public MailRequest handleConnection(Instant start, Instant end, Void v, Throwable thw) {
-		context().emitTrace(req.createStage(CONNECTION, start, end, thw));
+		req.createStage(CONNECTION, start, end, thw).emit();
 		req.setThreadName(threadName());
 		req.setStart(start);
 		if(nonNull(thw)) { // if connection error
@@ -54,12 +53,12 @@ final class MailRequestMonitor {
 	}
 
 	public MailRequest handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
-		context().emitTrace(req.createStage(DISCONNECTION, start, end, thw));
+		req.createStage(DISCONNECTION, start, end, thw).emit();
 		req.runSynchronized(()-> req.setEnd(end));
 		return req;
 	}
 	
-	<T> ExecutionMonitorListener<T> stageHandler(MailAction action) {
+	<T> ExecutionHandler<T> stageHandler(MailAction action) {
 		return (s,e,o,t)-> req.createStage(action, s, e, t);
 	}
 	

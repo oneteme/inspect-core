@@ -4,13 +4,11 @@ import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LocalRequest.formatLocation;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
@@ -47,17 +45,15 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
-		var ses = createBatchSession().updateContext();
-		try {
+		var ses = createBatchSession();
+		call(()->{
 			ses.setStart(now());
 			ses.setThreadName(threadName());        
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
-		} catch (Exception t) {
-			reportError("MethodExecutionMonitor.aroundBatch", ses, t);
-		}
-		context().emitTrace(ses);
+			return ses.updateContext();
+		});
 		return call(point::proceed, (s,e,o,t)-> {
 			ses.runSynchronized(()-> {
 				if(nonNull(t)) {

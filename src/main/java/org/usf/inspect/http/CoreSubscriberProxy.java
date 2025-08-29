@@ -1,4 +1,4 @@
-package org.usf.inspect.rest;
+package org.usf.inspect.http;
 
 import org.reactivestreams.Subscription;
 import org.usf.inspect.core.Session;
@@ -6,6 +6,11 @@ import org.usf.inspect.core.Session;
 import reactor.core.CoreSubscriber;
 import reactor.util.context.Context;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 public final class CoreSubscriberProxy<T> implements CoreSubscriber<T> {
 
 	private final CoreSubscriber<T> sub;
@@ -43,6 +48,16 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T> {
 	@Override
 	public Context currentContext() {
 		return sub.currentContext();
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		return sub.equals(obj);
+	}
+	
+	@Override
+	public int hashCode() {
+		return sub.hashCode();
 	}
 	
 	@Override

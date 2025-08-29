@@ -3,9 +3,9 @@ package org.usf.inspect.core;
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ErrorReporter.reporter;
-import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
+import java.util.concurrent.Callable;
 
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
@@ -20,11 +20,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExecutionMonitor {
 	
-	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionMonitorListener<? super Void> listener) throws E {
+	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionHandler<? super Void> listener) throws E {
 		call(fn, listener);
 	}
 
-	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionMonitorListener<? super T> listener) throws E {
+	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionHandler<? super T> listener) throws E {
 		T o = null;
 		Throwable t = null;
 		var s = now();
@@ -36,29 +36,36 @@ public final class ExecutionMonitor {
 			throw e;
 		}
 		finally {
-			var e = now();
-			EventTrace trace = null;
-			try {
-				trace = listener.handle(s, e, o, t);
+			exec(listener, s, now(), o, t);
+		}
+	}
+	
+	public static <T> void exec(ExecutionHandler<T> handler, Instant start, Instant end, T obj, Throwable thrw) {
+		try {
+			var trace = handler.handle(start, end, obj, thrw);
+			if(nonNull(trace)) {
+				trace.emit();
 			}
-			catch (Throwable ex) {// do not throw exception
-				reporter().action("ExecutionMonitor.call").cause(ex).emit();
+		}
+		catch (Throwable ex) {// do not throw exception
+			reporter().action("EventTrace.handle").cause(ex).emit();
+		}
+	}
+	
+	public static void call(Callable<EventTrace> call)  {
+		try {
+			var trace = call.call();
+			if(nonNull(trace)) {
+				trace.emit();
 			}
-			finally {
-				if(nonNull(trace)) {
-					try {
-						context().emitTrace(trace);
-					}
-					catch (Throwable ex) {// do not throw exception
-						reporter().action("emitTrace").cause(ex).emit();
-					}
-				}
-			}
+		}
+		catch (Throwable ex) {// do not throw exception
+			reporter().action("EventTrace.call").cause(ex).emit();
 		}
 	}
 	
 	@FunctionalInterface
-	public static interface ExecutionMonitorListener<T> {
+	public static interface ExecutionHandler<T> {
 		
 		EventTrace handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception;
 	}

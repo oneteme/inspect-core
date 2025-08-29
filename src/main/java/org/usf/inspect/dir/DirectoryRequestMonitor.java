@@ -3,7 +3,6 @@ package org.usf.inspect.dir;
 import static java.net.URI.create;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createNamingRequest;
 import static org.usf.inspect.dir.DirAction.CONNECTION;
 import static org.usf.inspect.dir.DirAction.DISCONNECTION;
@@ -15,7 +14,7 @@ import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 
 import org.usf.inspect.core.DirectoryRequest;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,7 +29,7 @@ final class DirectoryRequestMonitor {
 	private final DirectoryRequest req = createNamingRequest();
 	
 	public DirectoryRequest handleConnection(Instant start, Instant end, DirContext dir, Throwable thw) throws NamingException {
-		context().emitTrace(req.createStage(CONNECTION, start, end, thw));
+		req.createStage(CONNECTION, start, end, thw).emit();
 		req.setThreadName(threadName());
 		req.setStart(start);
 		if(nonNull(thw)) { //if connection error
@@ -50,12 +49,12 @@ final class DirectoryRequestMonitor {
 	}
 
 	public DirectoryRequest handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
-		context().emitTrace(req.createStage(DISCONNECTION, start, end, thw));
+		req.createStage(DISCONNECTION, start, end, thw).emit();
 		req.runSynchronized(()-> req.setEnd(end));
 		return req;
 	}
 	
-	<T> ExecutionMonitorListener<T> stageHandler(DirAction action, String... args) {
+	<T> ExecutionHandler<T> stageHandler(DirAction action, String... args) {
 		return (s,e,o,t)-> req.createStage(action, s, e, t, args);
 	}
 

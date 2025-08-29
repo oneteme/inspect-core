@@ -1,4 +1,4 @@
-package org.usf.inspect.rest;
+package org.usf.inspect.http;
 
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
@@ -17,11 +17,11 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class RoutePredicate {
+public final class HttpRoutePredicate {
 	
 	private final Predicate<HttpServletRequest> predicate;
 	
-	public static RoutePredicate compile(HttpRouteMonitoringProperties config) {
+	public static HttpRoutePredicate compile(HttpRouteMonitoringProperties config) {
 		Predicate<HttpServletRequest> filter = req-> true;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
@@ -34,7 +34,7 @@ public final class RoutePredicate {
 				filter = filter.and(req-> stream(mArr).noneMatch(m-> m.equals(req.getMethod())));
 			}
 		}
-		return new RoutePredicate(filter);
+		return new HttpRoutePredicate(filter);
 	}
 
 	public boolean accept(HttpServletRequest t) {

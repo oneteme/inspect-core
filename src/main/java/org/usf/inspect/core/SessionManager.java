@@ -5,7 +5,6 @@ import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
-import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
@@ -29,7 +28,7 @@ import static org.usf.inspect.core.RequestMask.SMTP;
 
 import java.util.function.Supplier;
 
-import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.LogEntry.Level;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
@@ -53,7 +52,7 @@ public final class SessionManager {
 			return clazz.cast(ses);
 		}
 		if(nonNull(ses)) {
-			reportSessionProblem("unexpected session type", ses);
+			reportIllegalSessionState("unexpected session type", ses);
 		}
 		return null;
 	}
@@ -61,10 +60,10 @@ public final class SessionManager {
 	public static Session requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
-			reportSessionProblem("no current session found", null);
+			reportIllegalSessionState("no current session found", null);
 		}
 		else if(ses.wasCompleted()) {
-			reportSessionProblem("current session was already completed", ses);
+			reportIllegalSessionState("current session was already completed", ses);
 			ses = null;
 		}
 		return ses;
@@ -126,22 +125,17 @@ public final class SessionManager {
 				()-> nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse("?")));
 	}
 
-	static <T> ExecutionMonitorListener<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
+	static <T> ExecutionHandler<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
 		var now = now();
 		var req = createLocalRequest();
-		try {
+		call(()->{
 			req.setStart(now);
 			req.setThreadName(threadName());
 			req.setType(type.name());
 			req.setName(nameSupp.get());
 			req.setLocation(locationSupp.get());
-		}
-		catch (Exception e) {
-			reportError("SessionManager.asynclocalRequestListener", req, e);
-		}
-		finally {
-			context().emitTrace(req);
-		}
+			return req;
+		});
 		return (s,e,o,t)->{
 			req.runSynchronized(()-> {
 				if(nonNull(t)) {
@@ -229,7 +223,7 @@ public final class SessionManager {
 	}
 
 	private static void emitLog(Level lvl, String msg) {
-		var log = logEntry(lvl, msg);
+		var log = logEntry(lvl, msg, 0); // no stack
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
 			log.setSessionId(ses.getId());
@@ -245,7 +239,7 @@ public final class SessionManager {
 		reporter().action(action).message(format("previous=%s, next=%s", prev, next));
 	}
 
-	static void reportSessionProblem(String msg, EventTrace trace) {
-		reporter().action("requireCurrentSession").message(msg).trace(trace).emit();
+	static void reportIllegalSessionState(String msg, Session session) {
+		reporter().action("requireCurrentSession").message(msg).trace(session).emit();
 	}
 }

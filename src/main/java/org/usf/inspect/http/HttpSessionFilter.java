@@ -1,4 +1,4 @@
-package org.usf.inspect.rest;
+package org.usf.inspect.http;
 
 import static java.lang.String.format;
 import static java.lang.String.join;
@@ -12,11 +12,8 @@ import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
-import static org.usf.inspect.core.HttpAction.DEFERRED;
-import static org.usf.inspect.core.HttpAction.POST_PROCESS;
-import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
-import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.io.IOException;
 import java.util.Map;
@@ -28,7 +25,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.TraceableStage;
 
@@ -45,21 +42,14 @@ import jakarta.servlet.http.HttpServletResponse;
 public final class HttpSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 
 	static final String SESSION_MONITOR = HttpSessionFilter.class.getName() + ".monitor";
-	static final String TRACE_HEADER = "x-tracert"; //"x-inspect"
-
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 
-	private final RoutePredicate routePredicate;
+	private final HttpRoutePredicate routePredicate;
 	private final HttpUserProvider userProvider;
 
-	public HttpSessionFilter(RoutePredicate routePredicate, HttpUserProvider userProvider) {
+	public HttpSessionFilter(HttpRoutePredicate routePredicate, HttpUserProvider userProvider) {
 		this.routePredicate = routePredicate;
 		this.userProvider = userProvider;
-	}
-	
-	@Override
-	protected boolean shouldNotFilterAsyncDispatch() { //Callable | Differed | @Async
-		return false;
 	}
 	
 	@Override
@@ -67,13 +57,13 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		traceRestSession(req, res);
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
-			exec(()-> filterChain.doFilter(req, res), restSessionListener(req, res));	
+			exec(()-> filterChain.doFilter(req, res), filterHandler(req, res));	
 		}
 		catch (IOException | ServletException | RuntimeException e) {
 			throw e;
 		}
 		catch (Exception e) {//should never happen
-			reportError("FilterExecutionMonitor.doFilterInternal", null, e);
+			reportError("FilterExecutionMonitor.doFilterInternal", currentSession(), e);
 			throw new IllegalStateException(e); 
 		}
 	}
@@ -82,6 +72,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		var mnt = (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
 		if(isNull(mnt)) {
 			mnt = new HttpSessionMonitor(req, req.getHeader(TRACE_HEADER));
+			mnt.preFilter(); //called once
 			res.addHeader(TRACE_HEADER, mnt.getSession().getId()); //add headers before doFilter
 			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 			req.setAttribute(SESSION_MONITOR, mnt);
@@ -91,24 +82,14 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		}
 	}
 	
-	private ExecutionMonitorListener<Void> restSessionListener(HttpServletRequest request, HttpServletResponse response) {
+	private ExecutionHandler<Void> filterHandler(HttpServletRequest request, HttpServletResponse response) {
 		return (s,e,o,t)-> {
 			var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
 			if(nonNull(mnt)) {
-				if(!isAsyncStarted(request)) { //!Async || isAsyncDispatch
-					return mnt.handleDisconnection(e, response, t);
-				}
-				else {
-					mnt.asyncStageHandler(DEFERRED);
-					if(nonNull(t)) {
-						return mnt.handleDisconnection(e, response, t);
-					}
-				}
+				return mnt.postFilterHandler(isAsyncStarted(request), e, response, t);
 			}
-			else {
-				reporter().action("restSessionListener").message("HttpSessionMonitor is null").emit();
-			}
-			return null; //do not trace this
+			reporter().action("restSessionListener").message("HttpSessionMonitor is null").emit();
+			return null;
 		};
 	}
 
@@ -117,6 +98,11 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		return !routePredicate.accept(request);
 	}
 
+	@Override
+	protected boolean shouldNotFilterAsyncDispatch() { //Callable | Differed | @Async
+		return false;
+	}
+	
 	/**
 	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
 	 */
@@ -124,7 +110,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 		var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
 		if(nonNull(mnt) && shouldIntercept(handler)) {  //avoid unfiltered request
-			mnt.asyncStageHandler(PRE_PROCESS);
+			mnt.preProcess();
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
 	}
@@ -133,7 +119,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
 		var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
 		if(nonNull(mnt) && shouldIntercept(handler)) { //avoid unfiltered request
-			mnt.asyncStageHandler(PROCESS);
+			mnt.process();
 		}
 	}
 
@@ -141,8 +127,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 		var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
 		if(nonNull(mnt) && shouldIntercept(handler)) { //avoid unfiltered request 
-			mnt.asyncStageHandler(POST_PROCESS);
-			mnt.handleAfterComplete(resolveEndpointName(handler, request), userProvider, ex);
+			mnt.postProcess(resolveEndpointName(handler, request), userProvider, ex);
 		}
 	}
 	

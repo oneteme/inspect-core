@@ -4,9 +4,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -25,7 +22,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@JsonIgnoreProperties({"stageCounter", "attributes"})
+@JsonIgnoreProperties("stageCounter")
 public abstract class AbstractRequest implements CompletableMetric {
 	
 	private Instant start;
@@ -38,7 +35,6 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private String instanceId; //server usage 
 	@JsonIgnore
 	private final AtomicInteger stageCounter = new AtomicInteger();
-	private final Map<String, Object> attributes = new LinkedHashMap<>();
 	
 	AbstractRequest(AbstractRequest req) {
 		this.user = req.user;
@@ -62,13 +58,5 @@ public abstract class AbstractRequest implements CompletableMetric {
 		stg.setRequestId(id);
 		stg.setOrder(stageCounter.getAndIncrement());
 		return stg;
-	}
-	
-	public void attribute(String key, Object o) {
-		attributes.put(key, o);
-	}
-	
-	public Optional<Object> attribute(String key) {
-		return Optional.of(attributes.get(key));
 	}
 }

@@ -1,4 +1,4 @@
-package org.usf.inspect.rest;
+package org.usf.inspect.http;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;

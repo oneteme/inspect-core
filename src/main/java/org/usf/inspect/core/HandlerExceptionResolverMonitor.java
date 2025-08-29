@@ -8,7 +8,7 @@ import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.ModelAndView;
-import org.usf.inspect.rest.RoutePredicate;
+import org.usf.inspect.http.HttpRoutePredicate;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver, Ordered {
 	
-	private final RoutePredicate routePredicate;
+	private final HttpRoutePredicate routePredicate;
 	
 	/**
 	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).

@@ -3,14 +3,18 @@ package org.usf.inspect.jdbc;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
+import static org.usf.inspect.jdbc.JDBCAction.EXECUTE;
 import static org.usf.inspect.jdbc.JDBCAction.METADATA;
 import static org.usf.inspect.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.inspect.jdbc.JDBCAction.SAVEPOINT;
+import static org.usf.inspect.jdbc.JDBCAction.WARNING;
+import static org.usf.inspect.jdbc.SqlCommand.SET;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Savepoint;
 import java.sql.Statement;
 
@@ -105,6 +109,31 @@ public final class ConnectionWrapper implements Connection {
 	@Override
 	public DatabaseMetaData getMetaData() throws SQLException {
 		return new DatabaseMetaDataWrapper(call(cn::getMetaData, monitor.stageHandler(METADATA)), monitor);
+	}
+	
+	@Override
+	public void setCatalog(String catalog) throws SQLException {
+		 exec(()-> cn.setCatalog(catalog), monitor.stageHandler(EXECUTE, SET));
+	}
+	
+	@Override
+	public void setSchema(String schema) throws SQLException {
+		 exec(()-> cn.setSchema(schema), monitor.stageHandler(EXECUTE, SET));
+	}
+	
+	@Override
+	public void setTransactionIsolation(int level) throws SQLException {
+		 exec(()-> cn.setTransactionIsolation(level), monitor.stageHandler(EXECUTE, SET));
+	}
+	
+	@Override
+	public void setAutoCommit(boolean autoCommit) throws SQLException {
+		 exec(()-> cn.setAutoCommit(autoCommit), monitor.stageHandler(EXECUTE, SET));
+	}
+	
+	@Override
+	public SQLWarning getWarnings() throws SQLException {
+		 return call(cn::getWarnings, monitor.stageHandler(WARNING));
 	}
 	
 	@Override

@@ -1,8 +1,9 @@
-package org.usf.inspect.rest;
+package org.usf.inspect.http;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ExecutionMonitor.exec;
 
 import java.time.Instant;
 import java.util.concurrent.CancellationException;
@@ -10,6 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,16 +24,15 @@ import reactor.core.publisher.Flux;
  */
 @Slf4j
 @RequiredArgsConstructor
-final class DataBufferMonitor {
-	
-	private final ContentReadMonitor monitor;
+final class DataBufferMonitor implements ResponseContent {
+
+	private final ExecutionHandler<ResponseContent> monitor;
 	private final AtomicBoolean done = new AtomicBoolean(false);
 
 	private byte[] bytes;
 	private long size;
 	private Instant start;
 	private Throwable throwable;
-	
 	
 	Flux<DataBuffer> handle(Flux<DataBuffer> flux, boolean readContent) {
 		start = now();
@@ -54,8 +55,18 @@ final class DataBufferMonitor {
     	.doOnCancel(()-> throwable = new CancellationException("cancelled"))
     	.doFinally(v-> { //called 2 times
     		if(done.compareAndSet(false, true)) {
-    			monitor.handle(start, now(), size, bytes, throwable);
+    			exec(monitor, start, now(), this, throwable);
     		}
     	});
+	}
+	
+	@Override
+	public byte[] contentBytes() {
+		return bytes;
+	}
+	
+	@Override
+	public long contentSize() {
+		return size;
 	}
 }

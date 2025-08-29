@@ -8,8 +8,8 @@ import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BasicDispatchState.DISABLE;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
-import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
@@ -73,24 +73,19 @@ public final class InspectContext {
 	}
 
 	void traceStartupSession(Instant instant) {
-		var ses = createStartupSession().updateContext();
-		try {
+		var ses = createStartupSession();
+		call(()->{
 			ses.setType(STARTUP.name());
 			ses.setName("main");
 			ses.setStart(instant);
 			ses.setThreadName(threadName());
-		}
-		catch (Exception t) {
-			reportError("InspectContext.traceStartupSession", ses, t);
-		}
-		finally {
-			context().emitTrace(ses);
-			this.session = ses;
-		}
+			return ses.updateContext();
+		});
+		this.session = ses;
 	}
 
 	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
-		try {
+		call(()->{
 			session.runSynchronized(()-> {
 				session.setLocation(className, methodName);
 				if(nonNull(thrw)) {  //nullable
@@ -98,14 +93,8 @@ public final class InspectContext {
 				}
 				session.setEnd(instant);
 			});
-		}
-		catch (Exception e) {
-			reportError("InspectContext.traceStartupSession", session, e);
-		}
-		finally {
-			context().emitTrace(session.releaseContext());
-			this.session = null; //prevent further usage
-		}
+			return session.releaseContext();
+		});
 	}
 
 	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {

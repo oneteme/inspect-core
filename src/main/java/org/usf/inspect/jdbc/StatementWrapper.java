@@ -2,9 +2,11 @@ package org.usf.inspect.jdbc;
 
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.jdbc.JDBCAction.WARNING;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Statement;
 
 import lombok.RequiredArgsConstructor;
@@ -120,4 +122,10 @@ public class StatementWrapper implements Statement {
 		monitor.updateStageRowsCount(n);
 		return n;
 	}
+
+	@Override
+	public SQLWarning getWarnings() throws SQLException {
+		 return call(st::getWarnings, monitor.stageHandler(WARNING));
+	}
+	
 }

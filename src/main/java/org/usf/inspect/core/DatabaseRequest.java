@@ -61,7 +61,7 @@ public class DatabaseRequest extends AbstractRequest {
 		return stg;
 	}
 	
-	public void appendCommand(SqlCommand cmd) {
+	public void updateCommand(SqlCommand cmd) {
 		if(isNull(command)) {
 			command = isNull(cmd) ? "?" : cmd.name();
 		}

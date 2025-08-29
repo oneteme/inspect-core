@@ -37,10 +37,6 @@ public final class LogEntry implements EventTrace {
 		.format();
 	}
 	
-	public static LogEntry logEntry(Level lvl, String msg) {
-		return logEntry(lvl, msg, null, 0); // 0 => no stack	
-	}
-	
 	public static LogEntry logEntry(Level lvl, String msg, int maxStack) {
 		return logEntry(lvl, msg, null, maxStack);	
 	}

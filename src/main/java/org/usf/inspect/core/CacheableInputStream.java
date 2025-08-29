@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.usf.inspect.http.ResponseContent;
+
 import lombok.experimental.Delegate;
 
 /**
@@ -14,7 +16,7 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-public final class CacheableInputStream extends InputStream {
+public final class CacheableInputStream extends InputStream implements ResponseContent {
 	
 	static final OutputStream NO_OUT = new OutputStream() { //nullOutputStream may throws Exception
 		@Override
@@ -111,11 +113,11 @@ public final class CacheableInputStream extends InputStream {
 		}
 	}
 	
-	public long getDataLength(){
+	public long contentSize(){
 		return length;
 	}
 	
-	public byte[] getData() {
+	public byte[] contentBytes() {
 		return out instanceof ByteArrayOutputStream bos ? bos.toByteArray() : null;
 	}
 }

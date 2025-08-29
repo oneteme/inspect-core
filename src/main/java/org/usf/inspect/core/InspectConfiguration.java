@@ -8,7 +8,7 @@ import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.InspectContext.initializeInspectContext;
-import static org.usf.inspect.rest.RoutePredicate.compile;
+import static org.usf.inspect.http.HttpRoutePredicate.compile;
 
 import java.util.Optional;
 
@@ -35,10 +35,10 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.usf.inspect.http.HttpRoutePredicate;
+import org.usf.inspect.http.HttpSessionFilter;
+import org.usf.inspect.http.RestRequestInterceptor;
 import org.usf.inspect.jdbc.DataSourceWrapper;
-import org.usf.inspect.rest.RoutePredicate;
-import org.usf.inspect.rest.HttpSessionFilter;
-import org.usf.inspect.rest.RestRequestInterceptor;
 
 import jakarta.servlet.Filter;
 import lombok.RequiredArgsConstructor;
@@ -69,14 +69,14 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 	
     @Bean
     @DependsOn("inspectContext")
-	RoutePredicate routePredicate() {
-    	logRegistringBean("routePredicate", RoutePredicate.class);
-    	return compile(context().getConfiguration().getMonitoring().getHttpRoute());
+	HttpRoutePredicate routePredicate(InspectCollectorConfiguration conf) {
+    	logRegistringBean("routePredicate", HttpRoutePredicate.class);
+    	return compile(conf.getMonitoring().getHttpRoute());
 	}
 	
     @Bean //important! name == httpSessionFilter
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
-    FilterRegistrationBean<Filter> httpSessionFilter(HttpUserProvider userProvider, RoutePredicate routePredicate) {
+    FilterRegistrationBean<Filter> httpSessionFilter(HttpUserProvider userProvider, HttpRoutePredicate routePredicate) {
     	logRegistringBean("httpSessionFilter", HttpSessionFilter.class);
     	var filter = new HttpSessionFilter(routePredicate, userProvider);
     	var rb = new FilterRegistrationBean<Filter>(filter);
@@ -106,7 +106,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     }
 
     @Bean
-    HandlerExceptionResolverMonitor exceptionResolverMonitor(RoutePredicate routePredicate) {
+    HandlerExceptionResolverMonitor exceptionResolverMonitor(HttpRoutePredicate routePredicate) {
     	logRegistringBean("exceptionResolverMonitor", HandlerExceptionResolverMonitor.class);
     	return new HandlerExceptionResolverMonitor(routePredicate);
     }

@@ -6,7 +6,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
 import static org.usf.inspect.jdbc.JDBCAction.BATCH;
 import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
@@ -28,7 +27,7 @@ import java.util.stream.IntStream;
 
 import org.usf.inspect.core.DatabaseRequest;
 import org.usf.inspect.core.DatabaseRequestStage;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionMonitorListener;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 import lombok.RequiredArgsConstructor;
 
@@ -50,7 +49,7 @@ final class DatabaseRequestMonitor {
 	private DatabaseRequestStage lastBatch; // hold last batch stage
 	
 	public DatabaseRequest handleConnection(Instant start, Instant end, Connection cnx, Throwable thw) throws SQLException {
-		context().emitTrace(req.createStage(CONNECTION, start, end, thw, null));
+		req.createStage(CONNECTION, start, end, thw, null).emit();
 		req.setThreadName(threadName());
 		req.setStart(start);
 		if(nonNull(thw)) { //if connection error
@@ -73,7 +72,7 @@ final class DatabaseRequestMonitor {
 		return req;
 	}
 	
-	public ExecutionMonitorListener<Statement> statementStageHandler(String sql) {
+	public ExecutionHandler<Statement> statementStageHandler(String sql) {
 		return (s,e,o,t)-> {
 			commands = new ArrayList<>(1);
 			if(nonNull(sql)) {
@@ -84,7 +83,7 @@ final class DatabaseRequestMonitor {
 		};
 	}
 
-	public ExecutionMonitorListener<Void> addBatchStageHandler(String sql) {
+	public ExecutionHandler<Void> addBatchStageHandler(String sql) {
 		return (s,e,o,t)-> {
 			if(nonNull(sql)) { //statement
 				appendCommand(sql);
@@ -103,23 +102,23 @@ final class DatabaseRequestMonitor {
 		};
 	}
 	
-	public ExecutionMonitorListener<ResultSet> executeQueryStageHandler(String sql) {
+	public ExecutionHandler<ResultSet> executeQueryStageHandler(String sql) {
 		return executeStageHandler(sql, rs-> null); // no count 
 	}
 
-	public ExecutionMonitorListener<Boolean> executeStageHandler(String sql) {
+	public ExecutionHandler<Boolean> executeStageHandler(String sql) {
 		return executeStageHandler(sql, b-> null); //-1 if select, cannot call  getUpdateCount
 	}
 
-	public ExecutionMonitorListener<Integer> executeUpdateStageHandler(String sql) {
+	public ExecutionHandler<Integer> executeUpdateStageHandler(String sql) {
 		return executeStageHandler(sql, n-> new long[] {n});
 	}
 
-	public ExecutionMonitorListener<Long> executeLargeUpdateStageHandler(String sql) {
+	public ExecutionHandler<Long> executeLargeUpdateStageHandler(String sql) {
 		return executeStageHandler(sql, n-> new long[] {n});
 	}
 
-	public ExecutionMonitorListener<int[]> executeBatchStageHandler(){
+	public ExecutionHandler<int[]> executeBatchStageHandler(){
 		return executeStageHandler(null, arr-> {
 			if(arr.length > 1) { 
 				var i=0;
@@ -132,7 +131,7 @@ final class DatabaseRequestMonitor {
 		});
 	}
 
-	public ExecutionMonitorListener<long[]> executeLargeBatchStageHandler() {
+	public ExecutionHandler<long[]> executeLargeBatchStageHandler() {
 		return executeStageHandler(null, arr-> {
 			if(arr.length > 1) {
 				var i=0;
@@ -145,9 +144,9 @@ final class DatabaseRequestMonitor {
 		});
 	}
 
-	private <T> ExecutionMonitorListener<T> executeStageHandler(String sql, Function<T, long[]> countFn) {
+	private <T> ExecutionHandler<T> executeStageHandler(String sql, Function<T, long[]> countFn) {
 		if(nonNull(lastBatch)) { //batch & largeBatch
-			context().emitTrace(lastBatch); //wait for last addBatch
+			lastBatch.emit(); //wait for last addBatch
 			lastBatch = null;
 		}
 		return (s,e,o,t)-> {
@@ -163,7 +162,7 @@ final class DatabaseRequestMonitor {
 		};
 	}
 
-	public <T> ExecutionMonitorListener<T> fetch(Instant start, int n) {
+	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
 		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, new long[] {n}); //differed start 
 	}
 
@@ -182,24 +181,28 @@ final class DatabaseRequestMonitor {
 	}
 	
 	public DatabaseRequest handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
-		context().emitTrace(req.createStage(DISCONNECTION, start, end, t, null));
+		req.createStage(DISCONNECTION, start, end, t, null).emit();
 		req.runSynchronized(()-> req.setEnd(end));
 		return req;
 	}
 
-	public ExecutionMonitorListener<Object> stageHandler(JDBCAction action) {
+	public ExecutionHandler<Object> stageHandler(JDBCAction action) {
 		return (s,e,o,t)-> req.createStage(action, s, e, t, null);
 	}
 
-	public ExecutionMonitorListener<Object> stageHandler(JDBCAction action, SqlCommand cmd) {
-		req.appendCommand(cmd);
-		return (s,e,o,t)-> req.createStage(action, s, e, t, null);
+	public ExecutionHandler<Object> stageHandler(JDBCAction action, SqlCommand cmd) {
+		return (s,e,o,t)-> {
+			req.updateCommand(cmd);
+			var stg = req.createStage(action, s, e, t, null);
+			stg.setCommands(new SqlCommand[] {cmd});
+			return stg;
+		};
 	}
 
 	void appendCommand(String sql) {
 		var cmd = mainCommand(sql);
 		commands.add(cmd);
-		req.appendCommand(cmd);
+		req.updateCommand(cmd);
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

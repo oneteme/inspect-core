@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.ldap.core.ContextSource;
-import org.usf.inspect.rest.RestRequestInterceptor;
+import org.usf.inspect.http.RestRequestInterceptor;
 
 /**
  * 
