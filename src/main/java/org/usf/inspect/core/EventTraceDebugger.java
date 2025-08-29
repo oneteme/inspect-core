@@ -78,7 +78,7 @@ public final class EventTraceDebugger implements DispatchHook { //inspect.client
 			});
 		}
 		else if(element instanceof LogEntry) {
-			new Exception().printStackTrace();
+			new Exception(element.toString()).printStackTrace();
 		}
 	}
 }

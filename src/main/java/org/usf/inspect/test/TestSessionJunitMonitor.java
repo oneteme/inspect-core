@@ -11,7 +11,12 @@ import org.usf.inspect.core.MainSession;
 
 import lombok.Getter;
 
-public class TestSessionJunitMonitor {
+/**
+ * 
+ * @author u$f
+ *
+ */
+public final class TestSessionJunitMonitor {
 
 	@Getter
 	final MainSession main = createTestSession();

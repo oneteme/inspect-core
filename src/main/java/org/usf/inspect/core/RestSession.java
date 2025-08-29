@@ -1,5 +1,8 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.SessionManager.releaseSession;
+import static org.usf.inspect.core.SessionManager.setCurrentSession;
+
 import java.time.Instant;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -18,8 +21,8 @@ import lombok.experimental.Delegate;
 @Setter
 public class RestSession extends AbstractSession {
 
-	@Delegate
 	@JsonIgnore
+	@Delegate(excludes = EventTrace.class) //emit(this)
 	private final RestRequest rest;
 	private String name; //api name
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
@@ -41,7 +44,7 @@ public class RestSession extends AbstractSession {
 		this.cacheControl = ses.cacheControl;
 		this.exception = ses.exception;
 	}
-	
+
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
 		return rest.createStage(type, start, end, t, HttpSessionStage::new);
 	}
@@ -53,34 +56,34 @@ public class RestSession extends AbstractSession {
 
 	@Override
 	public RestSession updateContext() {
-		super.updateContext();
+		setCurrentSession(this);
 		return this;
 	}
-	
+
 	@Override
 	public RestSession releaseContext() {
-		 super.releaseContext();
-		 return this;
+		releaseSession(this);
+		return this;
 	}
-	
+
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()
-		.withThread(getThreadName())
-		.withCommand(getMethod())
-		.withUser(getUser())
-		.withUrlAsTopic(getProtocol(), getHost(), getPort(), getPath(), getQuery())
-		.withStatus(getStatus()+"")
-		.withResult(exception)
-		.withPeriod(getStart(), getEnd())
-		.format();
+				.withThread(getThreadName())
+				.withCommand(getMethod())
+				.withUser(getUser())
+				.withUrlAsTopic(getProtocol(), getHost(), getPort(), getPath(), getQuery())
+				.withStatus(getStatus()+"")
+				.withResult(exception)
+				.withPeriod(getStart(), getEnd())
+				.format();
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		return CompletableMetric.areEquals(this, obj);
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return CompletableMetric.hashCodeOf(this);

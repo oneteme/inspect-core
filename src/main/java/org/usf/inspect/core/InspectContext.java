@@ -15,6 +15,8 @@ import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionManager.createStartupSession;
 import static org.usf.inspect.core.SessionManager.nextId;
+import static org.usf.inspect.core.SessionManager.releaseSession;
+import static org.usf.inspect.core.SessionManager.setStartupSession;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -73,15 +75,14 @@ public final class InspectContext {
 	}
 
 	void traceStartupSession(Instant instant) {
-		var ses = createStartupSession();
+		session = createStartupSession();
 		call(()->{
-			ses.setType(STARTUP.name());
-			ses.setName("main");
-			ses.setStart(instant);
-			ses.setThreadName(threadName());
-			return ses.updateContext();
+			session.setType(STARTUP.name());
+			session.setName("main");
+			session.setStart(instant);
+			session.setThreadName(threadName());
+			return session.updateContext();
 		});
-		this.session = ses;
 	}
 
 	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
@@ -95,6 +96,7 @@ public final class InspectContext {
 			});
 			return session.releaseContext();
 		});
+		session = null;
 	}
 
 	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
