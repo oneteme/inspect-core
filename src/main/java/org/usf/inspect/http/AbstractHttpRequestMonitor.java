@@ -12,7 +12,6 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createHttpRequest;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
-import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
 
@@ -33,7 +32,7 @@ class AbstractHttpRequestMonitor {
 	@Getter
 	final RestRequest request = createHttpRequest();
 
-	RestRequest preProcessHandler(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) throws IOException {
+	RestRequest preProcessHandler(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
 		request.setStart(start);
 		request.setThreadName(threadName());
 		request.setMethod(method.name());
@@ -48,7 +47,7 @@ class AbstractHttpRequestMonitor {
 		return request;
 	}
 	
-	RestRequest postProcessHandler(Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) throws IOException {
+	RestRequest postProcessHandler(Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 		request.runSynchronized(()->{
 			request.setThreadName(threadName()); //deferred thread
 			if(nonNull(status)) {
@@ -82,9 +81,11 @@ class AbstractHttpRequestMonitor {
 
 	void assertSameID(String sessionID) {
 		if(nonNull(sessionID) && !sessionID.equals(request.getId())) {
-			reporter(false).action("assertSameID")
+			reporter(false)
+			.action("assertSameID")
 			.message(format("req.id='%s', ses.id='%s'", request.getId(), sessionID))
-			.trace(request).emit();
+			.trace(request)
+			.emit();
 		}
 	}
 }

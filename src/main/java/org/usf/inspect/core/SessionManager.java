@@ -236,7 +236,7 @@ public final class SessionManager {
 	}
 
 	static void reportSessionConflict(String action, String prev, String next) {
-		reporter().action(action).message(format("previous=%s, next=%s", prev, next));
+		reporter().action(action).message(format("previous=%s, next=%s", prev, next)).emit();
 	}
 
 	static void reportIllegalSessionState(String msg, Session session) {

@@ -8,6 +8,7 @@ import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BasicDispatchState.DISABLE;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.threadName;
@@ -84,17 +85,22 @@ public final class InspectContext {
 	}
 
 	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
-		call(()->{
-			session.runSynchronized(()-> {
-				session.setLocation(className, methodName);
-				if(nonNull(thrw)) {  //nullable
-					session.setException(fromException(thrw));
-				}
-				session.setEnd(instant);
+		if(nonNull(session)) {
+			call(()->{
+				session.runSynchronized(()-> {
+					session.setLocation(className, methodName);
+					if(nonNull(thrw)) {  //nullable
+						session.setException(fromException(thrw));
+					}
+					session.setEnd(instant);
+				});
+				return session.releaseContext();
 			});
-			return session.releaseContext();
-		});
-		session = null;
+			session = null;
+		}
+		else {
+			reportError("traceStartupSession", null, null);
+		}
 	}
 
 	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
