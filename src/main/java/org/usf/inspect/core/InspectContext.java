@@ -15,8 +15,6 @@ import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionManager.createStartupSession;
 import static org.usf.inspect.core.SessionManager.nextId;
-import static org.usf.inspect.core.SessionManager.releaseSession;
-import static org.usf.inspect.core.SessionManager.setStartupSession;
 
 import java.net.UnknownHostException;
 import java.time.Instant;

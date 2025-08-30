@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import static java.util.Objects.nonNull;
 
 import java.time.Instant;
-import java.util.List;
 
 import org.usf.inspect.mail.MailAction;
 
@@ -24,7 +23,6 @@ public class MailRequest extends AbstractRequest {
 	private String protocol; //smtp(s), imap, pop3
 	private String host;
 	private int port;
-	private List<Mail> mails;
 	//v1.1
 	private boolean failed;
 	//mail-collector
@@ -36,7 +34,6 @@ public class MailRequest extends AbstractRequest {
 		this.protocol = req.protocol;
 		this.host = req.host;
 		this.port = req.port;
-		this.mails = req.mails;
 		this.failed = req.failed;
 	}
 	
@@ -46,7 +43,7 @@ public class MailRequest extends AbstractRequest {
 		}
 		return createStage(type, start, end, thrw, MailRequestStage::new);
 	}
-
+	
 	@Override
 	public MailRequest copy() {
 		return new MailRequest(this);
@@ -60,7 +57,6 @@ public class MailRequest extends AbstractRequest {
 		.withUser(getUser())
 		.withUrlAsTopic(protocol, host, port, null, null)
 		.withPeriod(getStart(), getEnd())
-		.withResult(nonNull(mails) ? mails.size() + "mails" : null)
 		.format();
 	}
 	

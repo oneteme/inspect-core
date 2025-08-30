@@ -46,8 +46,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	}
 	
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
-		monitor.appendMail(arg0, arg1);
-		exec(()-> trsp.sendMessage(arg0, arg1), monitor.stageHandler(SEND));
+		exec(()-> trsp.sendMessage(arg0, arg1), monitor.stageHandler(SEND, arg0));
 	}
 
 	public void close() throws MessagingException {

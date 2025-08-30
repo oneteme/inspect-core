@@ -2,14 +2,12 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createMailRequest;
 import static org.usf.inspect.mail.MailAction.CONNECTION;
 import static org.usf.inspect.mail.MailAction.DISCONNECTION;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
@@ -39,9 +37,6 @@ final class MailRequestMonitor {
 		if(nonNull(thw)) { // if connection error
 			req.setEnd(end);
 		}
-		else {
-			req.setMails(new ArrayList<>(1));
-		}
 		var url = trsp.getURLName();
 		if(nonNull(url)) {
 			req.setProtocol(url.getProtocol());
@@ -58,26 +53,21 @@ final class MailRequestMonitor {
 		return req;
 	}
 	
-	<T> ExecutionHandler<T> stageHandler(MailAction action) {
-		return (s,e,o,t)-> req.createStage(action, s, e, t);
-	}
-	
-	void appendMail(Message arg0, Address[] arg1) {
-		var mail = new Mail(); // broke request Mail dependency !?
-		try {
-			mail.setSubject(arg0.getSubject());
-			mail.setFrom(toStringArray(arg0.getFrom()));
-			mail.setRecipients(toStringArray(arg0.getAllRecipients()));
-			mail.setReplyTo(toStringArray(arg0.getReplyTo()));
-			mail.setContentType(arg0.getContentType());
-			mail.setSize(arg0.getSize());
-		}
-		catch (Exception e) {
-			reportError("MailRequestMonitor.appendMail", req, e);
-		}
-		finally {
-			req.getMails().add(mail);
-		}
+	<T> ExecutionHandler<T> stageHandler(MailAction action, Message msg) {
+		return (s,e,o,t)-> {
+			var stg = req.createStage(action, s, e, t);
+			if(nonNull(msg)) {
+				var mail = new Mail();
+				mail.setSubject(msg.getSubject());
+				mail.setFrom(toStringArray(msg.getFrom()));
+				mail.setRecipients(toStringArray(msg.getAllRecipients()));
+				mail.setReplyTo(toStringArray(msg.getReplyTo()));
+				mail.setContentType(msg.getContentType());
+				mail.setSize(msg.getSize());
+				stg.setMail(mail);
+			}
+			return stg;
+		};
 	}
 	
 	private static String[] toStringArray(Address... address) {
