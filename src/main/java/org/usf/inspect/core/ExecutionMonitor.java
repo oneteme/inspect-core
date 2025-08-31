@@ -36,11 +36,11 @@ public final class ExecutionMonitor {
 			throw e;
 		}
 		finally {
-			exec(listener, s, now(), o, t);
+			trigger(listener, s, now(), o, t);
 		}
 	}
 	
-	public static <T> void exec(ExecutionHandler<T> handler, Instant start, Instant end, T obj, Throwable thrw) {
+	public static <T> void trigger(ExecutionHandler<T> handler, Instant start, Instant end, T obj, Throwable thrw) {
 		try {
 			var trace = handler.handle(start, end, obj, thrw);
 			if(nonNull(trace)) {

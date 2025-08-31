@@ -3,7 +3,7 @@ package org.usf.inspect.http;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static org.usf.inspect.core.ErrorReporter.reportError;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.ExecutionMonitor.trigger;
 
 import java.time.Instant;
 import java.util.concurrent.CancellationException;
@@ -55,7 +55,7 @@ final class DataBufferMonitor implements ResponseContent {
     	.doOnCancel(()-> throwable = new CancellationException("cancelled"))
     	.doFinally(v-> { //called 2 times
     		if(done.compareAndSet(false, true)) {
-    			exec(monitor, start, now(), this, throwable);
+    			trigger(monitor, start, now(), this, throwable);
     		}
     	});
 	}

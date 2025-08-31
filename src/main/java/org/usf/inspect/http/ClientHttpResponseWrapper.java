@@ -2,7 +2,7 @@ package org.usf.inspect.http;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.ExecutionMonitor.trigger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +51,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 			throw e;
 		}
 		finally {
-			exec(monitor, start, now(), pipe, t);
+			trigger(monitor, start, now(), pipe, t);
 		}
 	}
 }
