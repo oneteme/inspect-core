@@ -31,10 +31,10 @@ public class DirContextWrapper implements DirContext {
 	
 	@Delegate
 	private final DirContext ctx;
-	private DirectoryRequestMonitor monitor;
+	private final DirectoryRequestMonitor monitor;
 	
 	public DirContextWrapper(SafeCallable<DirContext, RuntimeException> fn) {
-		monitor = new DirectoryRequestMonitor();
+		this.monitor = new DirectoryRequestMonitor();
 		this.ctx = call(fn, monitor::handleConnection);
 	}
 

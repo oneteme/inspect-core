@@ -1,4 +1,4 @@
-package org.usf.inspect.core;
+package org.usf.inspect.http;
 
 import static java.lang.Math.min;
 
@@ -6,8 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import org.usf.inspect.http.ResponseContent;
 
 import lombok.experimental.Delegate;
 

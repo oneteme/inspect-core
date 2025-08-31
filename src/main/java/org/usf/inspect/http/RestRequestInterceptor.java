@@ -24,7 +24,7 @@ public final class RestRequestInterceptor implements ClientHttpRequestIntercepto
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		var mnt = new HttpRequestMonitor();
 		mnt.preProcess(request);
-		request.getHeaders().add(TRACE_HEADER, mnt.getRequest().getId());
+		request.getHeaders().set(TRACE_HEADER, mnt.getRequest().getId());
 		var res = call(()-> execution.execute(request, body), mnt::postProcessHandler);
 		return new ClientHttpResponseWrapper(res, mnt::completeHandler);
 	}
