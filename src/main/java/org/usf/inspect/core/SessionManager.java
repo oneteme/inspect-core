@@ -10,7 +10,6 @@ import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LocalRequest.formatLocation;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
@@ -228,7 +227,7 @@ public final class SessionManager {
 		if(nonNull(ses)) {
 			log.setSessionId(ses.getId());
 		}
-		context().emitTrace(log);
+		log.emit();
 	}
 
 	public static String nextId() {

@@ -101,7 +101,7 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     @Bean //important! name == restRequestInterceptor
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     RestRequestInterceptor restRequestInterceptor() {
-    	logRegistringBean("restRequestInterceptor", RestRequestInterceptor.class);
+    		logRegistringBean("restRequestInterceptor", RestRequestInterceptor.class);
         return new RestRequestInterceptor();
     }
 

@@ -82,7 +82,7 @@ public final class ConcurrentLinkedSetQueue<T> {
 			}
 			else if(n <= 0) { //avoid throwing exception
 				queue = new LinkedHashSet<>();
-			}// else do nothing
+			} // else do nothing
 			return size - queue.size();
 		}
 	}

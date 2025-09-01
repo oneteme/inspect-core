@@ -39,7 +39,7 @@ public final class ErrorReporter {
 	
 	public void emit() {
 		var stk = stack && context().getConfiguration().isDebugMode() ? -1 : 0;
-		context().emitTrace(logEntry(ERROR, toString(), stk));
+		logEntry(ERROR, toString(), stk).emit();
 	}
 	
 	@Override

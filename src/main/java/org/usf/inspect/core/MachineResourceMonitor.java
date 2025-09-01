@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.time.Instant.now;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.ExecutionMonitor.call;
 
 import java.io.File;
 import java.lang.management.MemoryMXBean;
@@ -24,26 +24,31 @@ public final class MachineResourceMonitor implements DispatchHook {
 
 	@Override
 	public void onInstanceEmit(InstanceEnvironment instance) {
-		var heap = bean.getHeapMemoryUsage();
-		var meta = bean.getNonHeapMemoryUsage();
-		instance.setResource(new MachineResource(
-				toMb(heap.getInit()), 
-				toMb(heap.getMax()), 
-				toMb(meta.getInit()), 
-				toMb(meta.getMax()),
-				toMb(file.getTotalSpace())));
+		call(()->{
+			var heap = bean.getHeapMemoryUsage();
+			var meta = bean.getNonHeapMemoryUsage();
+			instance.setResource(new MachineResource(
+					toMb(heap.getInit()), 
+					toMb(heap.getMax()), 
+					toMb(meta.getInit()), 
+					toMb(meta.getMax()),
+					toMb(file.getTotalSpace())));
+			return null;
+		});
 	}
 
 	@Override
 	public void preDispatch() {
-		var heap = bean.getHeapMemoryUsage();
-		var meta = bean.getNonHeapMemoryUsage();
-		context().emitTrace(new MachineResourceUsage(now(),
-				toMb(heap.getUsed()), 
-				toMb(heap.getCommitted()), 
-				toMb(meta.getUsed()), 
-				toMb(meta.getCommitted()),
-				toMb(file.getTotalSpace() - file.getUsableSpace()))); // used space
+		call(()->{
+			var heap = bean.getHeapMemoryUsage();
+			var meta = bean.getNonHeapMemoryUsage();
+			return new MachineResourceUsage(now(),
+					toMb(heap.getUsed()), 
+					toMb(heap.getCommitted()), 
+					toMb(meta.getUsed()), 
+					toMb(meta.getCommitted()),
+					toMb(file.getTotalSpace() - file.getUsableSpace())); // used space
+		});
 	}
 
 	static int toMb(long value) {

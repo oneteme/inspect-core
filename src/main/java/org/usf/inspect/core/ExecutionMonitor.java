@@ -20,11 +20,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExecutionMonitor {
 	
-	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionHandler<? super Void> listener) throws E {
-		call(fn, listener);
+	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionHandler<? super Void> handler) throws E {
+		call(fn, handler);
 	}
 
-	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionHandler<? super T> listener) throws E {
+	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionHandler<? super T> handler) throws E {
 		T o = null;
 		Throwable t = null;
 		var s = now();
@@ -36,7 +36,7 @@ public final class ExecutionMonitor {
 			throw e;
 		}
 		finally {
-			trigger(listener, s, now(), o, t);
+			trigger(handler, s, now(), o, t);
 		}
 	}
 	

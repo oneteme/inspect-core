@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public class MachineResource {
+public final class MachineResource {
 	
 	private final int minHeap;
 	private final int maxHeap;
