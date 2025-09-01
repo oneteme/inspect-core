@@ -68,7 +68,9 @@ class AbstractHttpRequestMonitor {
 	RestRequest completeHandler(Instant end, ResponseContent cnt, Throwable t){
 		request.runSynchronized(()->{
 			if(nonNull(cnt)) {
-				request.setBodyContent(new String(cnt.contentBytes(), UTF_8));
+				if(nonNull(cnt.contentBytes())) {
+					request.setBodyContent(new String(cnt.contentBytes(), UTF_8));
+				}
 				request.setInDataSize(cnt.contentSize());
 			}
 			else {
