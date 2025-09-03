@@ -1,5 +1,6 @@
 package org.usf.inspect.jdbc;
 
+import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.InspectContext.context;
@@ -9,16 +10,19 @@ import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
+import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@RequiredArgsConstructor
+@Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DataSourceWrapper implements DataSource {
 	
 	@Delegate
@@ -38,9 +42,18 @@ public final class DataSourceWrapper implements DataSource {
 	}
 	
 	public static DataSource wrap(@NonNull DataSource ds) {
+		return wrap(ds, null);
+	}
+	
+	public static DataSource wrap(@NonNull DataSource ds, String beanName) {
 		if(context().getConfiguration().isEnabled()){
-			logWrappingBean("dataSource", ds.getClass());
-			return new DataSourceWrapper(ds);
+			if(ds.getClass() != DataSourceWrapper.class) {
+				logWrappingBean(requireNonNullElse(beanName, "dataSource"), ds.getClass());
+				return new DataSourceWrapper(ds);
+			}
+			else {
+				log.warn("{}: {} is already wrapped", beanName, ds);
+			}
 		}
 		return ds;
 	}

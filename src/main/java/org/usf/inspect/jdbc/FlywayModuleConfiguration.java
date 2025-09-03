@@ -1,7 +1,6 @@
 package org.usf.inspect.jdbc;
 
-import static org.usf.inspect.core.BeanUtils.logLoadingBean;
-import static org.usf.inspect.core.BeanUtils.logWrappingBean;
+import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,13 +22,6 @@ public class FlywayModuleConfiguration {
     @Bean
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
-    	logLoadingBean("flywayConfigurationCustomizer", FlywayConfigurationCustomizer.class);
-    	return conf-> {
-    		var ds = conf.getDataSource();
-    		if(ds.getClass() != DataSourceWrapper.class) { //flyway may use the default datasource if its own is not set 
-				logWrappingBean("flywayDataSource", ds.getClass());
-    			conf.dataSource(new DataSourceWrapper(ds));
-    		}
-    	};
+    	return conf-> wrap(conf.getDataSource(), "flywayDataSource");
     }
 }

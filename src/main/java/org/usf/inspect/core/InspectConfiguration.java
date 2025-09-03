@@ -5,10 +5,10 @@ import static java.time.Instant.ofEpochMilli;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
-import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.InspectContext.initializeInspectContext;
 import static org.usf.inspect.http.HttpRoutePredicate.compile;
+import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
 import java.util.Optional;
 
@@ -37,7 +37,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.inspect.http.HttpRoutePredicate;
 import org.usf.inspect.http.HttpSessionFilter;
 import org.usf.inspect.http.RestRequestInterceptor;
-import org.usf.inspect.jdbc.DataSourceWrapper;
 
 import jakarta.servlet.Filter;
 import lombok.RequiredArgsConstructor;
@@ -97,7 +96,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		}
     }
     
-
     @Bean
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     RestTemplateCustomizer restTemplateCustomizer() {
@@ -112,7 +110,13 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	logRegistringBean("exceptionResolverMonitor", HandlerExceptionResolverMonitor.class);
     	return new HandlerExceptionResolverMonitor(routePredicate);
     }
-
+    
+    @Bean // Cacheable, Traceable
+    @DependsOn("inspectContext") //ensure inspectContext is loaded first
+    MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
+    	logRegistringBean("methodExecutionMonitor", MethodExecutionMonitor.class);
+    	return new MethodExecutionMonitor(aspectUser);
+    }
     
     @Bean
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
@@ -121,22 +125,11 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     		
     		@Override
     		public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-    			if(bean instanceof DataSource ds && bean.getClass() != DataSourceWrapper.class) {
-    				logWrappingBean(beanName, bean.getClass());
-    				bean = new DataSourceWrapper(ds);
-    			}
-	            return bean;
+	            return bean instanceof DataSource ds ? wrap(ds, beanName) :  bean;
     		}
 		};
     }
     
-    @Bean // Cacheable, Traceable
-    @DependsOn("inspectContext") //ensure inspectContext is loaded first
-    MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
-    	logRegistringBean("methodExecutionMonitor", MethodExecutionMonitor.class);
-    	return new MethodExecutionMonitor(aspectUser);
-    }
-
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent e) {
 		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {

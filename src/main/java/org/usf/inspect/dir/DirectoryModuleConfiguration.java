@@ -1,6 +1,6 @@
 package org.usf.inspect.dir;
 
-import static org.usf.inspect.core.BeanUtils.logWrappingBean;
+import static org.usf.inspect.dir.ContextSourceWrapper.wrap;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -28,11 +28,7 @@ public class DirectoryModuleConfiguration {
 		return new BeanPostProcessor() {
 			@Override
 			public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-				if(bean instanceof ContextSource cs && bean.getClass() != ContextSourceWrapper.class) {
-					logWrappingBean(beanName, bean.getClass());
-					bean = new ContextSourceWrapper(cs);
-				}
-				return bean;
+				return bean instanceof ContextSource cs ? wrap(cs) : bean;
 			}
 		};
 	}

@@ -1,5 +1,6 @@
 package org.usf.inspect.mail;
 
+import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.InspectContext.context;
@@ -52,10 +53,14 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	public void close() throws MessagingException {
 		exec(trsp::close, monitor::handleDisconnection);
 	}
-	
+
 	public static TransportWrapper wrap(Transport trsp) {
+		return wrap(trsp, null);
+	}
+	
+	public static TransportWrapper wrap(Transport trsp, String beanName) {
 		if(context().getConfiguration().isEnabled()){
-			logWrappingBean("transport", trsp.getClass());
+			logWrappingBean(requireNonNullElse(beanName, "transport"), trsp.getClass());
 		}
 		return new TransportWrapper(trsp); //cannot implement or extends Transport
 	}

@@ -1,5 +1,6 @@
 package org.usf.inspect.ftp;
 
+import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
@@ -26,12 +27,14 @@ import com.jcraft.jsch.SftpProgressMonitor;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
+@Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ChannelSftpWrapper extends ChannelSftp {
 	
@@ -244,11 +247,20 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	public void rmdir(String path) throws SftpException {
 		exec(()-> channel.rmdir(path), monitor.stageHandler(RM, path));
 	}
-
+	
 	public static final ChannelSftp wrap(ChannelSftp channel) {
+		return wrap(channel, null);
+	}
+
+	public static final ChannelSftp wrap(ChannelSftp channel, String beanName) {
 		if(context().getConfiguration().isEnabled()){
-			logWrappingBean("contextSource", channel.getClass());
-			return new ChannelSftpWrapper(channel);
+			if(channel.getClass() != ChannelSftp.class) {
+				logWrappingBean(requireNonNullElse(beanName, "channelSftp"), channel.getClass());
+				return new ChannelSftpWrapper(channel);
+			}
+			else { //will duplicate traces
+				log.warn("{}: {} is already wrapped", beanName, channel);
+			}
 		}
 		return channel;
 	}
