@@ -23,7 +23,7 @@ import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.event.SpringApplicationEvent;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
@@ -32,7 +32,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.inspect.http.HttpRoutePredicate;
@@ -98,11 +97,14 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		}
     }
     
-    @Bean //important! name == restRequestInterceptor
+
+    @Bean
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
-    RestRequestInterceptor restRequestInterceptor() {
-    		logRegistringBean("restRequestInterceptor", RestRequestInterceptor.class);
-        return new RestRequestInterceptor();
+    RestTemplateCustomizer restTemplateCustomizer() {
+    	return rt-> {
+			logRegistringBean("restRequestInterceptor", RestRequestInterceptor.class);
+			rt.getInterceptors().add(0, new RestRequestInterceptor());
+		};
     }
 
     @Bean
@@ -110,13 +112,12 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     	logRegistringBean("exceptionResolverMonitor", HandlerExceptionResolverMonitor.class);
     	return new HandlerExceptionResolverMonitor(routePredicate);
     }
+
     
     @Bean
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
-    BeanPostProcessor dataSourceWrapper(RestRequestInterceptor interceptor) {
+    BeanPostProcessor dataSourceWrapper() {
     	return new BeanPostProcessor() {
-    		
-    		private boolean intecept;
     		
     		@Override
     		public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
@@ -124,17 +125,6 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     				logWrappingBean(beanName, bean.getClass());
     				bean = new DataSourceWrapper(ds);
     			}
-    			else if(!intecept && bean instanceof RestTemplate rt) {
-    				var arr = rt.getInterceptors();
-    				arr.add(0, interceptor);
-    				rt.setInterceptors(arr);
-    				intecept = true; //only one time
-    			}
-    			else if(!intecept && bean instanceof RestTemplateBuilder builder) {
-    				builder.additionalInterceptors(interceptor); //order !
-    				intecept = true; //only one time
-    			}
-//    			TaskExecutorBuilder => TaskExecutorBuilder#taskDecorator(ExecutorServiceWrapper::aroundRunnable)
 	            return bean;
     		}
 		};
