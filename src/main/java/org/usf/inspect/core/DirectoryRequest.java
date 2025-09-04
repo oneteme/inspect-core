@@ -1,10 +1,9 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.CommandType.merge;
 
 import java.time.Instant;
-
-import org.usf.inspect.dir.DirAction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -36,11 +35,16 @@ public class DirectoryRequest extends AbstractRequest {
 		this.failed = req.failed;
 	}
 	
-	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, Throwable t, String... args) {
-		if(nonNull(t)) {
-			runSynchronized(()-> failed = true);
-		}
-		var stg = createStage(type, start, end, t, DirectoryRequestStage::new);
+	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, DirCommand cmd, Throwable thrw, String... args) {
+		runSynchronized(()->{ 
+			if(nonNull(cmd)) {
+				setCommand(merge(getCommand(), cmd.getType()));
+			}
+			if(nonNull(thrw)) {
+				failed = true; 
+			}
+		});
+		var stg = createStage(type, start, end, cmd, thrw, DirectoryRequestStage::new);
 		stg.setArgs(args);
 		return stg;
 	}
@@ -54,6 +58,7 @@ public class DirectoryRequest extends AbstractRequest {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withThread(getThreadName())
+		.withAction(getCommand())
 		.withUser(getUser())
 		.withUrlAsTopic(protocol, host, port, null, null)
 		.withPeriod(getStart(), getEnd())

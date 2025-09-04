@@ -3,30 +3,31 @@ package org.usf.inspect.jdbc;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.DatabaseAction.BATCH;
+import static org.usf.inspect.core.DatabaseAction.CONNECTION;
+import static org.usf.inspect.core.DatabaseAction.DISCONNECTION;
+import static org.usf.inspect.core.DatabaseAction.EXECUTE;
+import static org.usf.inspect.core.DatabaseAction.FETCH;
+import static org.usf.inspect.core.DatabaseAction.STATEMENT;
+import static org.usf.inspect.core.DatabaseCommand.SQL;
+import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
-import static org.usf.inspect.jdbc.JDBCAction.BATCH;
-import static org.usf.inspect.jdbc.JDBCAction.CONNECTION;
-import static org.usf.inspect.jdbc.JDBCAction.DISCONNECTION;
-import static org.usf.inspect.jdbc.JDBCAction.EXECUTE;
-import static org.usf.inspect.jdbc.JDBCAction.FETCH;
-import static org.usf.inspect.jdbc.JDBCAction.STATEMENT;
-import static org.usf.inspect.jdbc.SqlCommand.mainCommand;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
+import org.usf.inspect.core.DatabaseAction;
+import org.usf.inspect.core.DatabaseCommand;
 import org.usf.inspect.core.DatabaseRequest;
 import org.usf.inspect.core.DatabaseRequestStage;
+import org.usf.inspect.core.StageArgsHolder;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 import lombok.RequiredArgsConstructor;
@@ -42,11 +43,11 @@ final class DatabaseRequestMonitor {
 	private final ConnectionMetadataCache cache; //required
 	private final DatabaseRequest req = createDatabaseRequest();
 	
-	private List<SqlCommand> commands;
+	private DatabaseCommand mainCommand;
 	private boolean prepared;
 
+	private StageArgsHolder stageHolder = new StageArgsHolder();
 	private DatabaseRequestStage lastExec; // hold last exec stage
-	private DatabaseRequestStage lastBatch; // hold last batch stage
 	
 	public DatabaseRequest handleConnection(Instant start, Instant end, Connection cnx, Throwable thw) throws SQLException {
 		req.createStage(CONNECTION, start, end, thw, null).emit();
@@ -74,9 +75,9 @@ final class DatabaseRequestMonitor {
 	
 	public ExecutionHandler<Statement> statementStageHandler(String sql) {
 		return (s,e,o,t)-> {
-			commands = new ArrayList<>(1);
+			mainCommand = null; //rest
 			if(nonNull(sql)) {
-				appendCommand(sql);
+				mainCommand = parseCommand(sql);
 				prepared = true;
 			}
 			return req.createStage(STATEMENT, s, e, t, null); //sql.split.count ?
@@ -86,17 +87,18 @@ final class DatabaseRequestMonitor {
 	public ExecutionHandler<Void> addBatchStageHandler(String sql) {
 		return (s,e,o,t)-> {
 			if(nonNull(sql)) { //statement
-				appendCommand(sql);
+				mainCommand = mergeCommand(mainCommand, parseCommand(sql));
 			}
-			if(isNull(lastBatch)) { //safe++
-				lastBatch = req.createStage(BATCH, s, e, t, new long[]{1}); //submit on execute
+			if(stageHolder.getAction() != BATCH) { //safe++
+				stageHolder.set(BATCH, req.createStage(BATCH, s, e, t, null), new long[]{1});
 			}
 			else {
-				lastBatch.setEnd(e); //optim this
-				lastBatch.getCount()[0]++;
+				var stg = stageHolder.getStage();
+				stg.setEnd(e); //optim this
 				if(nonNull(t)) {
-					lastBatch.setException(mainCauseException(t)); //may overwrite previous
+					stg.setException(mainCauseException(t)); //may overwrite previous
 				}
+				stageHolder.getCount()[0]++;
 			}
 			return null; //do not emit trace here
 		};
@@ -145,39 +147,40 @@ final class DatabaseRequestMonitor {
 	}
 
 	private <T> ExecutionHandler<T> executeStageHandler(String sql, Function<T, long[]> countFn) {
-		if(nonNull(lastBatch)) { //batch & largeBatch
-			lastBatch.emit(); //wait for last addBatch
-			lastBatch = null;
+		if(stageHolder.getAction() == BATCH) { //batch & largeBatch
+			var stg = stageHolder.getStage();
+			stg.setCount(stageHolder.getCount());
+			stg.emit(); //wait for last addBatch
+			stageHolder.clear();
 		}
 		return (s,e,o,t)-> {
 			if(nonNull(sql)) { //statement
-				appendCommand(sql);
+				mainCommand = mergeCommand(mainCommand, parseCommand(sql));
 			}
-			lastExec = req.createStage(EXECUTE, s, e, t, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
-			lastExec.setCommands(commands.toArray(SqlCommand[]::new));
+			lastExec = req.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //multiple batch execution
-				commands = new ArrayList<>();
+				mainCommand = null;
 			}
 			return lastExec;
 		};
 	}
 
 	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
-		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, new long[] {n}); //differed start 
+		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, null, new long[] {n}); //differed start 
 	}
 
 	public void updateStageRowsCount(long rows) {
-		if(rows > -1) {
-			try { //safe
-				if(nonNull(lastExec)) {
-					var arr = lastExec.getCount();
-					lastExec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
-				}
-			}
-			catch (Exception e) {
-				reportError("DatabaseRequestMonitor.updateStageRowsCount", req, e);
-			}
-		}
+//		if(rows > -1) {
+//			try { //safe
+//				if(nonNull(count)) {
+//					var arr = lastExec.getCount();
+//					lastExec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
+//				}
+//			}
+//			catch (Exception e) {
+//				reportError("DatabaseRequestMonitor.updateStageRowsCount", req, e);
+//			}
+//		}
 	}
 	
 	public DatabaseRequest handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
@@ -186,23 +189,19 @@ final class DatabaseRequestMonitor {
 		return req;
 	}
 
-	public ExecutionHandler<Object> stageHandler(JDBCAction action) {
-		return (s,e,o,t)-> req.createStage(action, s, e, t, null);
+	public ExecutionHandler<Object> stageHandler(DatabaseAction action, String... args) {
+		return stageHandler(action, null, args);
 	}
 
-	public ExecutionHandler<Object> stageHandler(JDBCAction action, SqlCommand cmd) {
-		return (s,e,o,t)-> {
-			req.updateCommand(cmd);
-			var stg = req.createStage(action, s, e, t, null);
-			stg.setCommands(new SqlCommand[] {cmd});
-			return stg;
-		};
+	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
+		return (s,e,o,t)-> req.createStage(action, s, e, t, cmd, args);
 	}
 
-	void appendCommand(String sql) {
-		var cmd = mainCommand(sql);
-		commands.add(cmd);
-		req.updateCommand(cmd);
+	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
+		if(main == cmd || isNull(cmd)) {
+			return main;
+		}
+		return isNull(main) ? cmd : SQL;
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

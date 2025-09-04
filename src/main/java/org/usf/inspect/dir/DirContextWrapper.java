@@ -1,11 +1,11 @@
 package org.usf.inspect.dir;
 
+import static org.usf.inspect.core.DirCommand.ATTRIB;
+import static org.usf.inspect.core.DirCommand.LIST;
+import static org.usf.inspect.core.DirCommand.LOOKUP;
+import static org.usf.inspect.core.DirCommand.SEARCH;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.dir.DirAction.ATTRIB;
-import static org.usf.inspect.dir.DirAction.LIST;
-import static org.usf.inspect.dir.DirAction.LOOKUP;
-import static org.usf.inspect.dir.DirAction.SEARCH;
 
 import javax.naming.Name;
 import javax.naming.NameClassPair;
@@ -40,82 +40,82 @@ public class DirContextWrapper implements DirContext {
 
 	@Override
 	public Object lookup(Name name) throws NamingException {
-		return call(()-> ctx.lookup(name), monitor.stageHandler(LOOKUP, name.toString()));
+		return call(()-> ctx.lookup(name), monitor.executeStageHandler(LOOKUP, name.toString()));
 	}
 
 	@Override
 	public Object lookup(String name) throws NamingException {
-		return call(()-> ctx.lookup(name), monitor.stageHandler(LOOKUP, name));
+		return call(()-> ctx.lookup(name), monitor.executeStageHandler(LOOKUP, name));
 	}
 	
 	@Override
 	public NamingEnumeration<NameClassPair> list(Name name) throws NamingException {
-		return call(()-> ctx.list(name), monitor.stageHandler(LIST, name.toString()));
+		return call(()-> ctx.list(name), monitor.executeStageHandler(LIST, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<NameClassPair> list(String name) throws NamingException {
-		return call(()-> ctx.list(name), monitor.stageHandler(LIST, name));
+		return call(()-> ctx.list(name), monitor.executeStageHandler(LIST, name));
 	}
 
 	@Override
 	public Attributes getAttributes(Name name) throws NamingException {
-		return call(()-> ctx.getAttributes(name), monitor.stageHandler(ATTRIB, name.toString()));
+		return call(()-> ctx.getAttributes(name), monitor.executeStageHandler(ATTRIB, name.toString()));
 	}
 
 	@Override
 	public Attributes getAttributes(String name) throws NamingException {
-		return call(()-> ctx.getAttributes(name), monitor.stageHandler(ATTRIB, name));
+		return call(()-> ctx.getAttributes(name), monitor.executeStageHandler(ATTRIB, name));
 	}
 
 	@Override
 	public Attributes getAttributes(Name name, String[] attrIds) throws NamingException {
-		return call(()-> ctx.getAttributes(name, attrIds), monitor.stageHandler(ATTRIB, name.toString()));
+		return call(()-> ctx.getAttributes(name, attrIds), monitor.executeStageHandler(ATTRIB, name.toString()));
 	}
 
 	@Override
 	public Attributes getAttributes(String name, String[] attrIds) throws NamingException {
-		return call(()-> ctx.getAttributes(name, attrIds), monitor.stageHandler(ATTRIB, name));
+		return call(()-> ctx.getAttributes(name, attrIds), monitor.executeStageHandler(ATTRIB, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, Attributes matchingAttributes, String[] attributesToReturn) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), monitor.stageHandler(SEARCH, name.toString()));
+		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), monitor.executeStageHandler(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, Attributes matchingAttributes, String[] attributesToReturn) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), monitor.stageHandler(SEARCH, name));
+		return call(()-> ctx.search(name, matchingAttributes, attributesToReturn), monitor.executeStageHandler(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, Attributes matchingAttributes) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes), monitor.stageHandler(SEARCH, name.toString()));
+		return call(()-> ctx.search(name, matchingAttributes), monitor.executeStageHandler(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, Attributes matchingAttributes) throws NamingException {
-		return call(()-> ctx.search(name, matchingAttributes), monitor.stageHandler(SEARCH, name));
+		return call(()-> ctx.search(name, matchingAttributes), monitor.executeStageHandler(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, String filter, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filter, cons), monitor.stageHandler(SEARCH, name.toString()));
+		return call(()-> ctx.search(name, filter, cons), monitor.executeStageHandler(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, String filter, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filter, cons), monitor.stageHandler(SEARCH, name));
+		return call(()-> ctx.search(name, filter, cons), monitor.executeStageHandler(SEARCH, name));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(Name name, String filterExpr, Object[] filterArgs, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filterExpr, cons), monitor.stageHandler(SEARCH, name.toString()));
+		return call(()-> ctx.search(name, filterExpr, cons), monitor.executeStageHandler(SEARCH, name.toString()));
 	}
 
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, String filterExpr, Object[] filterArgs, SearchControls cons) throws NamingException {
-		return call(()-> ctx.search(name, filterExpr, cons), monitor.stageHandler(SEARCH, name));
+		return call(()-> ctx.search(name, filterExpr, cons), monitor.executeStageHandler(SEARCH, name));
 	}
 	
 	@Override

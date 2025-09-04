@@ -1,8 +1,8 @@
 package org.usf.inspect.jdbc;
 
+import static org.usf.inspect.core.DatabaseAction.METADATA;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.jdbc.JDBCAction.METADATA;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

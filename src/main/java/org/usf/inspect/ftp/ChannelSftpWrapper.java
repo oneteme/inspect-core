@@ -4,17 +4,17 @@ import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.FtpCommand.CD;
+import static org.usf.inspect.core.FtpCommand.CHGRP;
+import static org.usf.inspect.core.FtpCommand.CHMOD;
+import static org.usf.inspect.core.FtpCommand.CHOWN;
+import static org.usf.inspect.core.FtpCommand.GET;
+import static org.usf.inspect.core.FtpCommand.LS;
+import static org.usf.inspect.core.FtpCommand.MKDIR;
+import static org.usf.inspect.core.FtpCommand.PUT;
+import static org.usf.inspect.core.FtpCommand.RENAME;
+import static org.usf.inspect.core.FtpCommand.RM;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.ftp.FtpAction.CD;
-import static org.usf.inspect.ftp.FtpAction.CHGRP;
-import static org.usf.inspect.ftp.FtpAction.CHMOD;
-import static org.usf.inspect.ftp.FtpAction.CHOWN;
-import static org.usf.inspect.ftp.FtpAction.GET;
-import static org.usf.inspect.ftp.FtpAction.LS;
-import static org.usf.inspect.ftp.FtpAction.MKDIR;
-import static org.usf.inspect.ftp.FtpAction.PUT;
-import static org.usf.inspect.ftp.FtpAction.RENAME;
-import static org.usf.inspect.ftp.FtpAction.RM;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -72,42 +72,42 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	
 	@Override
 	public void get(String src, String dst) throws SftpException {
-		exec(()-> channel.get(src, dst), monitor.stageHandler(GET, src, dst));
+		exec(()-> channel.get(src, dst), monitor.executeStageHandler(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		exec(()-> channel.get(src, dst, monitor), this.monitor.stageHandler(GET, src, dst));
+		exec(()-> channel.get(src, dst, monitor), this.monitor.executeStageHandler(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		exec(()-> channel.get(src, dst, monitor, mode), this.monitor.stageHandler(GET, src, dst));
+		exec(()-> channel.get(src, dst, monitor, mode), this.monitor.executeStageHandler(GET, src, dst));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst) throws SftpException {
-		exec(()-> channel.get(src, dst), monitor.stageHandler(GET, src));
+		exec(()-> channel.get(src, dst), monitor.executeStageHandler(GET, src));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst, SftpProgressMonitor monitor) throws SftpException {
-		exec(()-> channel.get(src, dst, monitor), this.monitor.stageHandler(GET, src));
+		exec(()-> channel.get(src, dst, monitor), this.monitor.executeStageHandler(GET, src));
 	}
 
 	@Override
 	public void get(String src, OutputStream dst, SftpProgressMonitor monitor, int mode, long skip) throws SftpException {
-		exec(()-> channel.get(src, dst, monitor, mode, skip), this.monitor.stageHandler(GET, src));
+		exec(()-> channel.get(src, dst, monitor, mode, skip), this.monitor.executeStageHandler(GET, src));
 	}
 
 	@Override
 	public InputStream get(String src) throws SftpException {
-		return call(()-> channel.get(src), monitor.stageHandler(GET, src));
+		return call(()-> channel.get(src), monitor.executeStageHandler(GET, src));
 	}
 
 	@Override
 	public InputStream get(String src, SftpProgressMonitor monitor) throws SftpException {
-		return call(()-> channel.get(src, monitor), this.monitor.stageHandler(GET, src));
+		return call(()-> channel.get(src, monitor), this.monitor.executeStageHandler(GET, src));
 	}
 
 	/**
@@ -115,7 +115,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	 */
 	@Override
 	public InputStream get(String src, int mode) throws SftpException {
-		return call(()-> channel.get(src, mode), monitor.stageHandler(GET, src));
+		return call(()-> channel.get(src, mode), monitor.executeStageHandler(GET, src));
 	}
 
 	/**
@@ -123,129 +123,129 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	 */
 	@Override
 	public InputStream get(String src, SftpProgressMonitor monitor, int mode) throws SftpException {
-		return call(()-> channel.get(src, monitor, mode), this.monitor.stageHandler(GET, src));
+		return call(()-> channel.get(src, monitor, mode), this.monitor.executeStageHandler(GET, src));
 	}
 
 	@Override
 	public InputStream get(String src, SftpProgressMonitor monitor, long skip) throws SftpException {
-		return call(()-> channel.get(src, monitor, skip),this. monitor.stageHandler(GET, src));
+		return call(()-> channel.get(src, monitor, skip),this. monitor.executeStageHandler(GET, src));
 	}
 	
 	@Override
 	public Vector ls(String path) throws SftpException {
-		return call(()-> channel.ls(path), monitor.stageHandler(LS, path));
+		return call(()-> channel.ls(path), monitor.executeStageHandler(LS, path));
 	}
 	
 	@Override
 	public void ls(String path, LsEntrySelector selector) throws SftpException {
-		exec(()-> channel.ls(path, selector), monitor.stageHandler(LS, path));
+		exec(()-> channel.ls(path, selector), monitor.executeStageHandler(LS, path));
 	}
 	
 	/* write */
 
 	@Override
 	public void put(String src, String dst) throws SftpException {
-		exec(()-> channel.put(src, dst), monitor.stageHandler(PUT, src, dst));
+		exec(()-> channel.put(src, dst), monitor.executeStageHandler(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, int mode) throws SftpException {
-		exec(()-> channel.put(src, dst, mode), monitor.stageHandler(PUT, src, dst));
+		exec(()-> channel.put(src, dst, mode), monitor.executeStageHandler(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		exec(()-> channel.put(src, dst, monitor), this.monitor.stageHandler(PUT, src, dst));
+		exec(()-> channel.put(src, dst, monitor), this.monitor.executeStageHandler(PUT, src, dst));
 	}
 
 	@Override
 	public void put(String src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		exec(()-> channel.put(src, dst, monitor, mode), this.monitor.stageHandler(PUT, src, dst));
+		exec(()-> channel.put(src, dst, monitor, mode), this.monitor.executeStageHandler(PUT, src, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst) throws SftpException {
-		exec(()-> channel.put(src, dst), monitor.stageHandler(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst), monitor.executeStageHandler(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, int mode) throws SftpException {
-		exec(()-> channel.put(src, dst, mode), monitor.stageHandler(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, mode), monitor.executeStageHandler(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, SftpProgressMonitor monitor) throws SftpException {
-		exec(()-> channel.put(src, dst, monitor), this.monitor.stageHandler(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, monitor), this.monitor.executeStageHandler(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void put(InputStream src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		exec(()-> channel.put(src, dst, monitor, mode), this.monitor.stageHandler(PUT, BYTES, dst));
+		exec(()-> channel.put(src, dst, monitor, mode), this.monitor.executeStageHandler(PUT, BYTES, dst));
 	}
 
 	@Override
 	public void _put(InputStream src, String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		exec(()-> channel._put(src, dst, monitor, mode), this.monitor.stageHandler(PUT, BYTES, dst));
+		exec(()-> channel._put(src, dst, monitor, mode), this.monitor.executeStageHandler(PUT, BYTES, dst));
 	}
 
 	@Override
 	public OutputStream put(String dst) throws SftpException {
-		return call(()-> channel.put(dst), monitor.stageHandler(PUT, dst));
+		return call(()-> channel.put(dst), monitor.executeStageHandler(PUT, dst));
 	}
 
 	@Override
 	public OutputStream put(String dst, int mode) throws SftpException {
-		return call(()-> channel.put(dst, mode), monitor.stageHandler(PUT, dst));
+		return call(()-> channel.put(dst, mode), monitor.executeStageHandler(PUT, dst));
 	}
 
 	@Override
 	public OutputStream put(String dst, SftpProgressMonitor monitor, int mode) throws SftpException {
-		return call(()-> channel.put(dst, monitor, mode), this.monitor.stageHandler(PUT, dst));
+		return call(()-> channel.put(dst, monitor, mode), this.monitor.executeStageHandler(PUT, dst));
 	}
 
 	@Override
 	public OutputStream put(String dst, SftpProgressMonitor monitor, int mode, long offset) throws SftpException {
-		return call(()-> channel.put(dst, monitor, mode, offset), this.monitor.stageHandler(PUT, dst));
+		return call(()-> channel.put(dst, monitor, mode, offset), this.monitor.executeStageHandler(PUT, dst));
 	}
 
 	@Override
 	public void mkdir(String path) throws SftpException {
-		exec(()-> channel.mkdir(path), monitor.stageHandler(MKDIR, path));
+		exec(()-> channel.mkdir(path), monitor.executeStageHandler(MKDIR, path));
 	}
 	
 	@Override
 	public void rename(String oldpath, String newpath) throws SftpException {
-		exec(()-> channel.rename(oldpath, newpath), monitor.stageHandler(RENAME, oldpath, newpath));
+		exec(()-> channel.rename(oldpath, newpath), monitor.executeStageHandler(RENAME, oldpath, newpath));
 	}
 	
 	@Override
 	public void cd(String path) throws SftpException {
-		exec(()-> channel.cd(path), monitor.stageHandler(CD, path));
+		exec(()-> channel.cd(path), monitor.executeStageHandler(CD, path));
 	}
 	
 	@Override
 	public void chmod(int permissions, String path) throws SftpException {
-		exec(()-> channel.chmod(permissions, path), monitor.stageHandler(CHMOD, ""+permissions, path));
+		exec(()-> channel.chmod(permissions, path), monitor.executeStageHandler(CHMOD, ""+permissions, path));
 	}
 	
 	@Override
 	public void chown(int uid, String path) throws SftpException {
-		exec(()-> channel.chown(uid, path), monitor.stageHandler(CHOWN, ""+uid, path));
+		exec(()-> channel.chown(uid, path), monitor.executeStageHandler(CHOWN, ""+uid, path));
 	}
 
 	@Override
 	public void chgrp(int gid, String path) throws SftpException {
-		exec(()-> channel.chgrp(gid, path), monitor.stageHandler(CHGRP, ""+gid, path));
+		exec(()-> channel.chgrp(gid, path), monitor.executeStageHandler(CHGRP, ""+gid, path));
 	}
 	
 	@Override
 	public void rm(String path) throws SftpException {
-		exec(()-> channel.rm(path), monitor.stageHandler(RM, path));
+		exec(()-> channel.rm(path), monitor.executeStageHandler(RM, path));
 	}
 	
 	@Override
 	public void rmdir(String path) throws SftpException {
-		exec(()-> channel.rmdir(path), monitor.stageHandler(RM, path));
+		exec(()-> channel.rmdir(path), monitor.executeStageHandler(RM, path));
 	}
 	
 	public static final ChannelSftp wrap(ChannelSftp channel) {

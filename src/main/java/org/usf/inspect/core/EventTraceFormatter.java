@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 public final class EventTraceFormatter {
 
 	private String thread;
-	private String command; //method
+	private String action; //method
 	private String user;
 	private String resource;
 	private String status;
@@ -19,8 +19,8 @@ public final class EventTraceFormatter {
 	
 	public String format() {
 		var sb = new StringBuilder(); 
-		if(nonNull(command)) {
-			sb.append('['+ command + ']').append(" ");
+		if(nonNull(action)) {
+			sb.append('['+ action + ']').append(" ");
 		}
 		if(nonNull(user)) {
 			sb.append(user+"@");
@@ -51,8 +51,8 @@ public final class EventTraceFormatter {
 		return this;
 	}
 	
-	public EventTraceFormatter withCommand(String command) {
-		this.command = command;
+	public EventTraceFormatter withAction(String action) {
+		this.action = action;
 		return this;
 	}
 
@@ -94,9 +94,10 @@ public final class EventTraceFormatter {
 		return this;
 	}
 	
-	public EventTraceFormatter withArgsAsTopic(Object[] args) {
+	public EventTraceFormatter withArgsAsTopic(String command, Object[] args) {
+		this.resource = nonNull(command) ? command + " " : "";
 		if(nonNull(args)) {
-			this.resource = Stream.of(args)
+			this.resource += Stream.of(args)
 			.map(c-> nonNull(c) ? c.toString() : "?")
 			.collect(joining(", "));
 		}

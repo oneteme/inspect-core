@@ -31,6 +31,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private String user;
 	//v1.1
 	private String id;
+	private String command;
 	private String sessionId;
 	private String instanceId; //server usage 
 	@JsonIgnore
@@ -42,17 +43,21 @@ public abstract class AbstractRequest implements CompletableMetric {
 		this.end = req.end;
 		this.threadName = req.threadName;
 		this.id = req.id;
+		this.command = req.command;
 		this.sessionId = req.sessionId;
 		this.instanceId = req.instanceId;
 	}
 	
-	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Throwable t, Supplier<T> supp) {
+	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Enum<?> command, Throwable t, Supplier<T> supp) {
 		assertWasNotCompleted();
 		var ord = stageCounter.getAndIncrement();
 		var stg = supp.get();
 		stg.setName(type.name());
 		stg.setStart(start);
 		stg.setEnd(end);
+		if(nonNull(command)) {
+			stg.setCommand(command.name());
+		}
 		if(nonNull(t)) {
 			stg.setException(mainCauseException(t));
 		}

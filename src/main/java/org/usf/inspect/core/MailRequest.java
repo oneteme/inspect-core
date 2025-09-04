@@ -1,10 +1,9 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.CommandType.merge;
 
 import java.time.Instant;
-
-import org.usf.inspect.mail.MailAction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -37,11 +36,16 @@ public class MailRequest extends AbstractRequest {
 		this.failed = req.failed;
 	}
 	
-	public MailRequestStage createStage(MailAction type, Instant start, Instant end, Throwable thrw) {
-		if(nonNull(thrw)) {
-			runSynchronized(()-> failed = true);
-		}
-		return createStage(type, start, end, thrw, MailRequestStage::new);
+	public MailRequestStage createStage(MailAction action, Instant start, Instant end, MailCommand cmd, Throwable thrw) {
+		runSynchronized(()->{ 
+			if(nonNull(cmd)) {
+				setCommand(merge(getCommand(), cmd.getType()));
+			}
+			if(nonNull(thrw)) {
+				failed = true; 
+			}
+		});
+		return createStage(action, start, end, cmd, thrw, MailRequestStage::new);
 	}
 	
 	@Override
@@ -53,7 +57,7 @@ public class MailRequest extends AbstractRequest {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withThread(getThreadName())
-		.withCommand("SEND")
+		.withAction(getCommand())
 		.withUser(getUser())
 		.withUrlAsTopic(protocol, host, port, null, null)
 		.withPeriod(getStart(), getEnd())

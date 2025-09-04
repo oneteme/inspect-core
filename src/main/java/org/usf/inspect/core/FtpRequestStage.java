@@ -17,8 +17,8 @@ public final class FtpRequestStage extends AbstractStage {
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()
-		.withCommand(getName())
-		.withArgsAsTopic(args)
+		.withAction(getName())
+		.withArgsAsTopic(getCommand(), args)
 		.withPeriod(getStart(), getEnd())
 		.withResult(getException())
 		.format();

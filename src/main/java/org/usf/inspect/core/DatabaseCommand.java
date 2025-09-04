@@ -1,15 +1,23 @@
-package org.usf.inspect.jdbc;
+package org.usf.inspect.core;
 
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.DOTALL;
 import static java.util.regex.Pattern.MULTILINE;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
+import static org.usf.inspect.core.CommandType.EDIT;
+import static org.usf.inspect.core.CommandType.EMIT;
+import static org.usf.inspect.core.CommandType.READ;
+import static org.usf.inspect.core.CommandType.ROLE;
+import static org.usf.inspect.core.CommandType.SCRIPT;
+import static org.usf.inspect.core.CommandType.SETUP;
 
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -18,16 +26,19 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public enum SqlCommand {
+@Getter
+@RequiredArgsConstructor
+public enum DatabaseCommand {
 	
-	CREATE, DROP, ALTER, TRUNCATE, //DDL
-	GRANT, REVOKE, //DCL
-	INSERT, UPDATE, DELETE, //DML
-	SELECT, //DQL
+	CREATE(SETUP), DROP(SETUP), ALTER(SETUP), TRUNCATE(SETUP), //DDL
+	GRANT(ROLE), REVOKE(ROLE), //DCL
+	INSERT(EMIT), UPDATE(EDIT), DELETE(EDIT), //DML
+	SELECT(READ), //DQL
 	//TCL 
-	CALL, SET, //OTHER
-	SQL, //multiple command
-	EXPLORE;
+	SET(null), GET(null), //OTHER
+	CALL(SCRIPT), SQL(SCRIPT); //multiple command
+	
+	private final CommandType type;
 	
 	public static final Pattern PATTERN =
 			compile(Stream.of(values())
@@ -42,7 +53,7 @@ public enum SqlCommand {
 	public static final Pattern SQL_PATTERN = 
 			compile(".+;.*\\w+", DOTALL);
 
-	public static SqlCommand mainCommand(@NonNull String query){
+	public static DatabaseCommand parseCommand(@NonNull String query){
 		if(SQL_PATTERN.matcher(query).find()) { //multiple 
 			return SQL;
 		}

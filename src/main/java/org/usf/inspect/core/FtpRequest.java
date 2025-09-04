@@ -1,10 +1,9 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.CommandType.merge;
 
 import java.time.Instant;
-
-import org.usf.inspect.ftp.FtpAction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -40,11 +39,16 @@ public class FtpRequest extends AbstractRequest {
 		this.failed = req.failed;
 	}
 	
-	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, Throwable t, String... args) {
-		if(nonNull(t)) {
-			runSynchronized(()-> failed = true);
-		}
-		var stg = createStage(type, start, end, t, FtpRequestStage::new);
+	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, FtpCommand cmd, Throwable thrw, String... args) {
+		runSynchronized(()->{ 
+			if(nonNull(cmd)) {
+				setCommand(merge(getCommand(), cmd.getType()));
+			}
+			if(nonNull(thrw)) {
+				failed = true; 
+			}
+		});
+		var stg = createStage(type, start, end, cmd, thrw, FtpRequestStage::new);
 		stg.setArgs(args);
 		return stg;
 	}
@@ -58,6 +62,7 @@ public class FtpRequest extends AbstractRequest {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withThread(getThreadName())
+		.withAction(getCommand())
 		.withUser(getUser())
 		.withUrlAsTopic(protocol, host, port, null, null)
 		.withPeriod(getStart(), getEnd())

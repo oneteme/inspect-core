@@ -57,7 +57,7 @@ public class RestRequest extends AbstractRequest { //APiRequest
 	}
 	
 	public HttpRequestStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
-		return createStage(type, start, end, t, HttpRequestStage::new);
+		return createStage(type, start, end, null, t, HttpRequestStage::new);
 	}
 	
 	public void setURI(URI uri) {
@@ -77,7 +77,7 @@ public class RestRequest extends AbstractRequest { //APiRequest
 	public String toString() {
 		return new EventTraceFormatter()
 		.withThread(getThreadName())
-		.withCommand(method)
+		.withAction(method)
 		.withUser(getUser())
 		.withUrlAsTopic(protocol, host, port, path, query)
 		.withStatus(status+"")

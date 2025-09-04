@@ -30,7 +30,7 @@ public final class MachineResourceUsage implements EventTrace {
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()
-		.withCommand("METRIC")
+		.withAction("METRIC")
 		.withInstant(instant)
 		.withMessageAsTopic(format("heap: %d/%d | meta: %d/%d | disk:%d", 
 				usedHeap, commitedHeap, usedMeta, commitedMeta, usedDiskSpace))

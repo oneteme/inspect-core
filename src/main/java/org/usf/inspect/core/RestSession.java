@@ -46,7 +46,7 @@ public class RestSession extends AbstractSession {
 	}
 
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
-		return rest.createStage(type, start, end, t, HttpSessionStage::new);
+		return rest.createStage(type, start, end, null, t, HttpSessionStage::new);
 	}
 
 	@Override
@@ -70,7 +70,7 @@ public class RestSession extends AbstractSession {
 	public String toString() {
 		return new EventTraceFormatter()
 				.withThread(getThreadName())
-				.withCommand(getMethod())
+				.withAction(getMethod())
 				.withUser(getUser())
 				.withUrlAsTopic(getProtocol(), getHost(), getPort(), getPath(), getQuery())
 				.withStatus(getStatus()+"")

@@ -3,11 +3,12 @@ package org.usf.inspect.jdbc;
 import static java.lang.System.lineSeparator;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.usf.inspect.jdbc.SqlCommand.mainCommand;
+import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
+import org.usf.inspect.core.DatabaseCommand;
 
 //https://www.guru99.com/sql-commands-dbms-query.html
 
@@ -36,10 +37,10 @@ class SqlCommandTest {
 		"SQL,'DELETE FROM Students WHERE RollNo = 25; SELECT FirstName FROM Student  WHERE RollNo > 15;",
 		"SQL,'CREATE TABLE students;CREATE VIEW for_students;'",
 	})
-	void testMainCommand(SqlCommand cmd, String sql) {
-		assertEquals(cmd, mainCommand(sql));
-		assertEquals(cmd, mainCommand(sql.toLowerCase()));
-		assertEquals(cmd, mainCommand(indent(sql)));
+	void testMainCommand(DatabaseCommand cmd, String sql) {
+		assertEquals(cmd, parseCommand(sql));
+		assertEquals(cmd, parseCommand(sql.toLowerCase()));
+		assertEquals(cmd, parseCommand(indent(sql)));
 	}
 
 	@ParameterizedTest
@@ -49,13 +50,13 @@ class SqlCommandTest {
 		"'WITH avg_salary AS (SELECT AVG salary) AS moy FROM employees) SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'",
 	})
 	void testMainCommand_unknown(String sql) {
-		assertEquals(null, mainCommand(sql));
+		assertEquals(null, parseCommand(sql));
 	}
 
 	@ParameterizedTest
 	@NullSource
 	void testMainCommand_null(String sql) {
-		assertThrows(NullPointerException.class, ()-> mainCommand(sql));
+		assertThrows(NullPointerException.class, ()-> parseCommand(sql));
 	}
 	
 	static String indent(String s) {

@@ -1,13 +1,9 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.jdbc.SqlCommand.SQL;
+import static org.usf.inspect.core.CommandType.merge;
 
 import java.time.Instant;
-
-import org.usf.inspect.jdbc.JDBCAction;
-import org.usf.inspect.jdbc.SqlCommand;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -33,7 +29,6 @@ public class DatabaseRequest extends AbstractRequest {
 	private String productVersion;
 	//v1.1
 	private boolean failed;
-	private String command;
 	//java-collector
 
 	@JsonCreator public DatabaseRequest() { }
@@ -49,27 +44,28 @@ public class DatabaseRequest extends AbstractRequest {
 		this.productName = req.productName;
 		this.productVersion = req.productVersion;
 		this.failed = req.failed;
-		this.command = req.command;
 	}
 	
-	public DatabaseRequestStage createStage(JDBCAction type, Instant start, Instant end, Throwable thrw, long[] count) {
-		if(nonNull(thrw)) {
-			runSynchronized(()-> failed = true);
-		}
-		var stg = createStage(type, start, end, thrw, DatabaseRequestStage::new);
-		stg.setCount(count);
+	public DatabaseRequestStage createStage(DatabaseAction type, Instant start, Instant end, Throwable thrw, DatabaseCommand cmd, long[] count) {
+		var req = createStage(type, start, end, thrw, cmd);
+		req.setCount(count);
+		return req;
+	}
+		
+	public DatabaseRequestStage createStage(DatabaseAction type, Instant start, Instant end, Throwable thrw, DatabaseCommand cmd, String... args) {
+		runSynchronized(()->{ 
+			if(nonNull(cmd)) {
+				setCommand(merge(getCommand(), cmd.getType()));
+			}
+			if(nonNull(thrw)) {
+				failed = true; 
+			}
+		});
+		var stg = createStage(type, start, end, cmd, thrw, DatabaseRequestStage::new);
+		stg.setArgs(args);
 		return stg;
 	}
 	
-	public void updateCommand(SqlCommand cmd) {
-		if(isNull(command)) {
-			command = isNull(cmd) ? "?" : cmd.name();
-		}
-		else if(isNull(cmd) || !command.equals(cmd.name())){
-			command = SQL.name(); //multiple
-		}
-	}
-
 	@Override
 	public DatabaseRequest copy() {
 		return new DatabaseRequest(this);
@@ -80,7 +76,7 @@ public class DatabaseRequest extends AbstractRequest {
 		var prod = nonNull(productName) ? productName.toLowerCase() : null;
 		return new EventTraceFormatter()
 		.withThread(getThreadName())
-		.withCommand(command)
+		.withAction(getCommand())
 		.withUser(getUser())
 		.withUrlAsTopic("jdbc:"+prod, host, port, name, null)
 		.withPeriod(getStart(), getEnd())

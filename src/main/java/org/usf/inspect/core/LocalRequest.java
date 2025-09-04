@@ -42,7 +42,7 @@ public class LocalRequest extends AbstractRequest {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withThread(getThreadName())
-		.withCommand(type)
+		.withAction(type)
 		.withUser(getUser())
 		.withLocationAsTopic(location, name)
 		.withResult(exception)

@@ -1,13 +1,13 @@
 package org.usf.inspect.jdbc;
 
+import static org.usf.inspect.core.DatabaseAction.COMMIT;
+import static org.usf.inspect.core.DatabaseAction.EXECUTE;
+import static org.usf.inspect.core.DatabaseAction.METADATA;
+import static org.usf.inspect.core.DatabaseAction.ROLLBACK;
+import static org.usf.inspect.core.DatabaseAction.SAVEPOINT;
+import static org.usf.inspect.core.DatabaseCommand.SET;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.jdbc.JDBCAction.COMMIT;
-import static org.usf.inspect.jdbc.JDBCAction.EXECUTE;
-import static org.usf.inspect.jdbc.JDBCAction.METADATA;
-import static org.usf.inspect.jdbc.JDBCAction.ROLLBACK;
-import static org.usf.inspect.jdbc.JDBCAction.SAVEPOINT;
-import static org.usf.inspect.jdbc.SqlCommand.SET;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -111,17 +111,17 @@ public final class ConnectionWrapper implements Connection {
 	
 	@Override
 	public void setCatalog(String catalog) throws SQLException {
-		 exec(()-> cn.setCatalog(catalog), monitor.stageHandler(EXECUTE, SET));
+		 exec(()-> cn.setCatalog(catalog), monitor.stageHandler(EXECUTE, SET, "catalog="+catalog));
 	}
 	
 	@Override
 	public void setSchema(String schema) throws SQLException {
-		 exec(()-> cn.setSchema(schema), monitor.stageHandler(EXECUTE, SET));
+		 exec(()-> cn.setSchema(schema), monitor.stageHandler(EXECUTE, SET, "schema="+schema));
 	}
 	
 	@Override
 	public void setAutoCommit(boolean autoCommit) throws SQLException {
-		 exec(()-> cn.setAutoCommit(autoCommit), monitor.stageHandler(EXECUTE, SET));
+		 exec(()-> cn.setAutoCommit(autoCommit), monitor.stageHandler(EXECUTE, SET, "autoCommit="+autoCommit));
 	}
 	
 	@Override

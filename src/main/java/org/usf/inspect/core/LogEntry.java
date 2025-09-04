@@ -31,7 +31,7 @@ public final class LogEntry implements EventTrace {
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()
-		.withCommand(level.name())
+		.withAction(level.name())
 		.withMessageAsTopic(message)
 		.withInstant(instant)
 		.format();
