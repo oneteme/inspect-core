@@ -1,13 +1,10 @@
 package org.usf.inspect.jdbc;
 
 import static java.time.Instant.now;
-import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.jdbc.JDBCAction.WARNING;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.time.Instant;
 
 import lombok.RequiredArgsConstructor;
@@ -81,10 +78,5 @@ public final class ResultSetWrapper implements ResultSet {
 	@Override
 	public void close() throws SQLException {
 		exec(rs::close, monitor.fetch(start, rows));
-	}
-
-	@Override
-	public SQLWarning getWarnings() throws SQLException {
-		 return call(rs::getWarnings, monitor.stageHandler(WARNING));
 	}
 }

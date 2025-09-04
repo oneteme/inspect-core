@@ -7,14 +7,12 @@ import static org.usf.inspect.jdbc.JDBCAction.EXECUTE;
 import static org.usf.inspect.jdbc.JDBCAction.METADATA;
 import static org.usf.inspect.jdbc.JDBCAction.ROLLBACK;
 import static org.usf.inspect.jdbc.JDBCAction.SAVEPOINT;
-import static org.usf.inspect.jdbc.JDBCAction.WARNING;
 import static org.usf.inspect.jdbc.SqlCommand.SET;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.sql.Savepoint;
 import java.sql.Statement;
 
@@ -122,18 +120,8 @@ public final class ConnectionWrapper implements Connection {
 	}
 	
 	@Override
-	public void setTransactionIsolation(int level) throws SQLException {
-		 exec(()-> cn.setTransactionIsolation(level), monitor.stageHandler(EXECUTE, SET));
-	}
-	
-	@Override
 	public void setAutoCommit(boolean autoCommit) throws SQLException {
 		 exec(()-> cn.setAutoCommit(autoCommit), monitor.stageHandler(EXECUTE, SET));
-	}
-	
-	@Override
-	public SQLWarning getWarnings() throws SQLException {
-		 return call(cn::getWarnings, monitor.stageHandler(WARNING));
 	}
 	
 	@Override

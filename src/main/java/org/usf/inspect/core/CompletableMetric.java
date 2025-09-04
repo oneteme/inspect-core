@@ -35,9 +35,9 @@ public interface CompletableMetric extends Metric {
 		}
 	}
 
-	default void assertNotComplete(){
+	default void assertWasNotCompleted(){
 		if(nonNull(getEnd())) {
-			reporter().action("CompletableMetric.assertNotClosed").trace(this).emit();
+			reporter().action("assertWasNotCompleted").trace(this).emit();
 		}
 	}
 

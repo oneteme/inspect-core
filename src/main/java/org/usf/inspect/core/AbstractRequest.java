@@ -47,7 +47,8 @@ public abstract class AbstractRequest implements CompletableMetric {
 	}
 	
 	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Throwable t, Supplier<T> supp) {
-		assertNotComplete();
+		assertWasNotCompleted();
+		var ord = stageCounter.getAndIncrement();
 		var stg = supp.get();
 		stg.setName(type.name());
 		stg.setStart(start);
@@ -56,7 +57,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 			stg.setException(mainCauseException(t));
 		}
 		stg.setRequestId(id);
-		stg.setOrder(stageCounter.getAndIncrement());
+		stg.setOrder(ord);
 		return stg;
 	}
 }

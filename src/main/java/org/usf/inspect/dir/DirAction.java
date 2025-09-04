@@ -8,5 +8,5 @@ package org.usf.inspect.dir;
 public enum DirAction {
 
 	CONNECTION, DISCONNECTION,
-	LOOKUP, LIST, ATTRIB, SEARCH;
+	LOOKUP, LIST, ATTRIB, SEARCH; //READ
 }
