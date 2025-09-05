@@ -39,7 +39,7 @@ public class FtpRequest extends AbstractRequest {
 		this.failed = req.failed;
 	}
 	
-	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, FtpCommand cmd, Throwable thrw, String... args) {
+	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, Throwable thrw, FtpCommand cmd, String... args) {
 		runSynchronized(()->{ 
 			if(nonNull(cmd)) {
 				setCommand(merge(getCommand(), cmd.getType()));

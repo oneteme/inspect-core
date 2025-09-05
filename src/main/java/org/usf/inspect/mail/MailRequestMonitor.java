@@ -33,7 +33,7 @@ final class MailRequestMonitor {
 	private final Transport trsp;
 
 	public MailRequest handleConnection(Instant start, Instant end, Void v, Throwable thw) {
-		req.createStage(CONNECTION, start, end, null, thw).emit();
+		req.createStage(CONNECTION, start, end, thw, null).emit();
 		req.setThreadName(threadName());
 		req.setStart(start);
 		if(nonNull(thw)) { // if connection error
@@ -50,25 +50,24 @@ final class MailRequestMonitor {
 	}
 
 	public MailRequest handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
-		req.createStage(DISCONNECTION, start, end, null, thw).emit();
+		req.createStage(DISCONNECTION, start, end, thw, null).emit();
 		req.runSynchronized(()-> req.setEnd(end));
 		return req;
 	}
 	
 	<T> ExecutionHandler<T> executeStageHandler(MailCommand cmd, Message msg) {
 		return (s,e,o,t)-> {
-			var stg = req.createStage(EXECUTE, s, e, cmd, t);
+			Mail mail = null;
 			if(nonNull(msg)) {
-				var mail = new Mail();
+				mail = new Mail();
 				mail.setSubject(msg.getSubject());
 				mail.setFrom(toStringArray(msg.getFrom()));
 				mail.setRecipients(toStringArray(msg.getAllRecipients()));
 				mail.setReplyTo(toStringArray(msg.getReplyTo()));
 				mail.setContentType(msg.getContentType());
 				mail.setSize(msg.getSize());
-				stg.setMail(mail);
 			}
-			return stg;
+			return req.createStage(EXECUTE, s, e, t, cmd, mail);
 		};
 	}
 	

@@ -35,7 +35,7 @@ public class DirectoryRequest extends AbstractRequest {
 		this.failed = req.failed;
 	}
 	
-	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, DirCommand cmd, Throwable thrw, String... args) {
+	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, Throwable thrw, DirCommand cmd, String... args) {
 		runSynchronized(()->{ 
 			if(nonNull(cmd)) {
 				setCommand(merge(getCommand(), cmd.getType()));

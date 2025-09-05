@@ -87,7 +87,7 @@ final class DatabaseRequestMonitor {
 	public ExecutionHandler<Void> addBatchStageHandler(String sql) {
 		return (s,e,o,t)-> {
 			if(nonNull(sql)) { //statement
-				mainCommand = mergeCommand(mainCommand, parseCommand(sql));
+				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
 			}
 			if(stageHolder.getAction() != BATCH) { //safe++
 				stageHolder.set(BATCH, req.createStage(BATCH, s, e, t, null), new long[]{1});
@@ -155,7 +155,7 @@ final class DatabaseRequestMonitor {
 		}
 		return (s,e,o,t)-> {
 			if(nonNull(sql)) { //statement
-				mainCommand = mergeCommand(mainCommand, parseCommand(sql));
+				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
 			}
 			lastExec = req.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //multiple batch execution

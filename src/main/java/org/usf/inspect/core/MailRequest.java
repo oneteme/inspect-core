@@ -35,8 +35,14 @@ public class MailRequest extends AbstractRequest {
 		this.port = req.port;
 		this.failed = req.failed;
 	}
+
+	public MailRequestStage createStage(MailAction action, Instant start, Instant end, Throwable thrw, MailCommand cmd, Mail mail) {
+		var stg = createStage(action, start, end, thrw, cmd);
+		stg.setMail(mail);
+		return stg;
+	}
 	
-	public MailRequestStage createStage(MailAction action, Instant start, Instant end, MailCommand cmd, Throwable thrw) {
+	public MailRequestStage createStage(MailAction action, Instant start, Instant end, Throwable thrw, MailCommand cmd) {
 		runSynchronized(()->{ 
 			if(nonNull(cmd)) {
 				setCommand(merge(getCommand(), cmd.getType()));
