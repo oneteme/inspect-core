@@ -54,8 +54,6 @@ public enum DatabaseCommand {
 	public static final Pattern SQL_PATTERN = 
 			compile(".+;.*\\w+", DOTALL);
 
-
-
 	public static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
 		if(main == cmd || isNull(cmd)) {
 			return main;

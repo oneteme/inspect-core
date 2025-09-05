@@ -9,7 +9,6 @@ import static org.usf.inspect.core.DatabaseAction.DISCONNECTION;
 import static org.usf.inspect.core.DatabaseAction.EXECUTE;
 import static org.usf.inspect.core.DatabaseAction.FETCH;
 import static org.usf.inspect.core.DatabaseAction.STATEMENT;
-import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.mergeCommand;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ErrorReporter.reportError;
@@ -44,8 +43,8 @@ final class DatabaseRequestMonitor {
 	private final ConnectionMetadataCache cache; //required
 	private final DatabaseRequest req = createDatabaseRequest();
 	
-	private DatabaseCommand mainCommand;
 	private boolean prepared;
+	private DatabaseCommand mainCommand;
 	private DatabaseRequestStage lastStg; // hold last stage
 	
 	public DatabaseRequest handleConnection(Instant start, Instant end, Connection cnx, Throwable thw) throws SQLException {
@@ -150,7 +149,8 @@ final class DatabaseRequestMonitor {
 	
 	void emitBatchStage() { //wait for last addBatch
 		if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //batch & largeBatch
-			lastStg.emit(); 
+			lastStg.emit();
+			lastStg = null;
 		}
 		else {
 			reportError("DatabaseRequestMonitor.emitBatchStage", req, null);
@@ -170,22 +170,22 @@ final class DatabaseRequestMonitor {
 		};
 	}
 
-	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
-		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, null, new long[] {n}); //differed start 
+	public void updateStageRowsCount(long rows) {
+		if(rows > -1) {
+			try { //lastStg may be already sent !!
+				if(nonNull(lastStg) && EXECUTE.name().equals(lastStg.getName())) {
+					var arr = lastStg.getCount();
+					lastStg.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
+				}
+			}
+			catch (Exception e) {
+				reportError("DatabaseRequestMonitor.updateStageRowsCount", req, e);
+			}
+		}
 	}
 
-	public void updateStageRowsCount(long rows) {
-//		if(rows > -1) {
-//			try { //safe
-//				if(nonNull(count)) {
-//					var arr = lastExec.getCount();
-//					lastExec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
-//				}
-//			}
-//			catch (Exception e) {
-//				reportError("DatabaseRequestMonitor.updateStageRowsCount", req, e);
-//			}
-//		}
+	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
+		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, null, new long[] {n}); //differed start 
 	}
 	
 	public DatabaseRequest handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
