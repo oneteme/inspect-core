@@ -10,7 +10,9 @@ import static org.usf.inspect.core.DatabaseAction.EXECUTE;
 import static org.usf.inspect.core.DatabaseAction.FETCH;
 import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.SQL;
+import static org.usf.inspect.core.DatabaseCommand.mergeCommand;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
@@ -27,7 +29,6 @@ import org.usf.inspect.core.DatabaseAction;
 import org.usf.inspect.core.DatabaseCommand;
 import org.usf.inspect.core.DatabaseRequest;
 import org.usf.inspect.core.DatabaseRequestStage;
-import org.usf.inspect.core.StageArgsHolder;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 import lombok.RequiredArgsConstructor;
@@ -45,9 +46,7 @@ final class DatabaseRequestMonitor {
 	
 	private DatabaseCommand mainCommand;
 	private boolean prepared;
-
-	private StageArgsHolder stageHolder = new StageArgsHolder();
-	private DatabaseRequestStage lastExec; // hold last exec stage
+	private DatabaseRequestStage lastStg; // hold last stage
 	
 	public DatabaseRequest handleConnection(Instant start, Instant end, Connection cnx, Throwable thw) throws SQLException {
 		req.createStage(CONNECTION, start, end, thw, null).emit();
@@ -89,16 +88,17 @@ final class DatabaseRequestMonitor {
 			if(nonNull(sql)) { //statement
 				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
 			}
-			if(stageHolder.getAction() != BATCH) { //safe++
-				stageHolder.set(BATCH, req.createStage(BATCH, s, e, t, null), new long[]{1});
+			if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //safe++
+				if(nonNull(t)) {
+					lastStg.setException(mainCauseException(t)); //may overwrite previous
+				}
+				else {
+					lastStg.getCount()[0]++;
+				}
+				lastStg.setEnd(e); //optim this
 			}
 			else {
-				var stg = stageHolder.getStage();
-				stg.setEnd(e); //optim this
-				if(nonNull(t)) {
-					stg.setException(mainCauseException(t)); //may overwrite previous
-				}
-				stageHolder.getCount()[0]++;
+				lastStg = req.createStage(BATCH, s, e, t, null, new long[]{1});
 			}
 			return null; //do not emit trace here
 		};
@@ -121,6 +121,7 @@ final class DatabaseRequestMonitor {
 	}
 
 	public ExecutionHandler<int[]> executeBatchStageHandler(){
+		emitBatchStage(); //before batch execute
 		return executeStageHandler(null, arr-> {
 			if(arr.length > 1) { 
 				var i=0;
@@ -134,6 +135,7 @@ final class DatabaseRequestMonitor {
 	}
 
 	public ExecutionHandler<long[]> executeLargeBatchStageHandler() {
+		emitBatchStage(); //before batch execute
 		return executeStageHandler(null, arr-> {
 			if(arr.length > 1) {
 				var i=0;
@@ -145,23 +147,26 @@ final class DatabaseRequestMonitor {
 			return arr;
 		});
 	}
+	
+	void emitBatchStage() { //wait for last addBatch
+		if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //batch & largeBatch
+			lastStg.emit(); 
+		}
+		else {
+			reportError("DatabaseRequestMonitor.emitBatchStage", req, null);
+		}
+	}
 
 	private <T> ExecutionHandler<T> executeStageHandler(String sql, Function<T, long[]> countFn) {
-		if(stageHolder.getAction() == BATCH) { //batch & largeBatch
-			var stg = stageHolder.getStage();
-			stg.setCount(stageHolder.getCount());
-			stg.emit(); //wait for last addBatch
-			stageHolder.clear();
-		}
 		return (s,e,o,t)-> {
 			if(nonNull(sql)) { //statement
 				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
 			}
-			lastExec = req.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
-			if(!prepared) { //multiple batch execution
+			lastStg = req.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
-			return lastExec;
+			return lastStg;
 		};
 	}
 
@@ -195,13 +200,6 @@ final class DatabaseRequestMonitor {
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
 		return (s,e,o,t)-> req.createStage(action, s, e, t, cmd, args);
-	}
-
-	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
-		if(main == cmd || isNull(cmd)) {
-			return main;
-		}
-		return isNull(main) ? cmd : SQL;
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

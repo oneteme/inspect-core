@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.isNull;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.DOTALL;
 import static java.util.regex.Pattern.MULTILINE;
@@ -53,6 +54,15 @@ public enum DatabaseCommand {
 	public static final Pattern SQL_PATTERN = 
 			compile(".+;.*\\w+", DOTALL);
 
+
+
+	public static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
+		if(main == cmd || isNull(cmd)) {
+			return main;
+		}
+		return isNull(main) ? cmd : SQL;
+	}
+	
 	public static DatabaseCommand parseCommand(@NonNull String query){
 		if(SQL_PATTERN.matcher(query).find()) { //multiple 
 			return SQL;
