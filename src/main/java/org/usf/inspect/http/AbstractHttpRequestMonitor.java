@@ -56,7 +56,7 @@ class AbstractHttpRequestMonitor {
 			if(nonNull(headers)) { //response
 				request.setContentType(headers.getFirst(CONTENT_TYPE));
 				request.setInContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-				assertSameID(headers.getFirst(TRACE_HEADER));
+				request.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
 			}
 			if(nonNull(thrw)) { //thrw -> stage
 				request.setEnd(end);
@@ -81,13 +81,17 @@ class AbstractHttpRequestMonitor {
 		return request;
 	}
 
-	void assertSameID(String sessionID) {
-		if(nonNull(sessionID) && !sessionID.equals(request.getId())) {
+	boolean assertSameID(String sessionID) {
+		if(nonNull(sessionID)) {
+			if(sessionID.equals(request.getId())) {
+				return true;
+			}
 			reporter(false)
 			.action("assertSameID")
 			.message(format("req.id='%s', ses.id='%s'", request.getId(), sessionID))
 			.trace(request)
 			.emit();
 		}
+		return false;
 	}
 }

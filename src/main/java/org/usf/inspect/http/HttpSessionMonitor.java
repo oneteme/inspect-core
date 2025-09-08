@@ -4,7 +4,6 @@ import static java.net.URI.create;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
@@ -17,6 +16,7 @@ import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
+import static org.usf.inspect.core.SessionManager.createRestSession;
 
 import java.net.URI;
 import java.time.Instant;
@@ -25,7 +25,6 @@ import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionStage;
 import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.RestSession;
-import org.usf.inspect.core.SessionManager;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -45,9 +44,13 @@ public final class HttpSessionMonitor {
 	
 	public HttpSessionMonitor(HttpServletRequest req, String id) {
 		this.req = req;
-		this.session = ofNullable(id)
-				.map(SessionManager::createRestSession)
-				.orElseGet(SessionManager::createRestSession);
+		if(nonNull(id)) {
+			this.session = createRestSession(id);
+			this.session.setLinked(true);
+		}
+		else {
+			this.session = createRestSession();
+		}
 	}
 	
 	public void preFilter(){

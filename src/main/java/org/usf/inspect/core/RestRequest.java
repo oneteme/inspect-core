@@ -30,6 +30,7 @@ public class RestRequest extends AbstractRequest { //APiRequest
 	private long outDataSize; //in bytes, -1 unknown
 	private String inContentEncoding; //gzip, compress, identity,..
 	private String outContentEncoding; //gzip, compress, identity,..
+	private boolean linked;
 
 	//v1.1
 	private String bodyContent; //incoming content, //4xx, 5xx only
