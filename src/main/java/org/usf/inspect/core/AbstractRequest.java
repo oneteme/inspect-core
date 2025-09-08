@@ -38,10 +38,10 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private final AtomicInteger stageCounter = new AtomicInteger();
 	
 	AbstractRequest(AbstractRequest req) {
-		this.user = req.user;
 		this.start = req.start;
 		this.end = req.end;
 		this.threadName = req.threadName;
+		this.user = req.user;
 		this.id = req.id;
 		this.command = req.command;
 		this.sessionId = req.sessionId;
@@ -50,7 +50,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 	
 	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Enum<?> command, Throwable t, Supplier<T> supp) {
 		assertWasNotCompleted();
-		var ord = stageCounter.getAndIncrement();
+		var idx = stageCounter.getAndIncrement();
 		var stg = supp.get();
 		stg.setName(type.name());
 		stg.setStart(start);
@@ -62,7 +62,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 			stg.setException(mainCauseException(t));
 		}
 		stg.setRequestId(id);
-		stg.setOrder(ord);
+		stg.setOrder(idx);
 		return stg;
 	}
 }

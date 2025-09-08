@@ -1,10 +1,8 @@
 package org.usf.inspect.core;
 
-import static java.lang.String.format;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.evalExpression;
@@ -24,12 +22,14 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.Ordered;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
+@Slf4j
 @Aspect
 @RequiredArgsConstructor
 public class MethodExecutionMonitor implements Ordered {
@@ -98,10 +98,8 @@ public class MethodExecutionMonitor implements Ordered {
 		        		sgn.getParameterNames(), point.getArgs()).toString();
 			}
 			catch (Exception e) {
-				reporter().action("resolveStageName")
-				.message(format("eval expression '%s' on %s.%s", 
-						ant.name(), sgn.getDeclaringType().getSimpleName(), sgn.getName()))
-				.cause(e).trace(currentSession()).emit();
+				log.warn("cannot eval expression ='%s' on %s.%s", 
+						ant.name(), sgn.getDeclaringType().getSimpleName(), sgn.getName());
 			}
 		}
 		return sgn.getName();

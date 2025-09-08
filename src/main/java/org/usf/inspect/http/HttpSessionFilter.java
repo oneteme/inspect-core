@@ -1,6 +1,5 @@
 package org.usf.inspect.http;
 
-import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -9,7 +8,6 @@ import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.ErrorReporter.reportError;
-import static org.usf.inspect.core.ErrorReporter.reporter;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.SessionManager.currentSession;
@@ -33,12 +31,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f 
  *
  */
+@Slf4j
 public final class HttpSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 
 	static final String SESSION_MONITOR = HttpSessionFilter.class.getName() + ".monitor";
@@ -141,10 +141,8 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 							new String[] {"request"}, new Object[] {req}).toString();
 				}
 				catch (Exception e) {
-					reporter().action("resolveEndpointName")
-					.message(format("eval expression '%s' on %s.%s", 
-							ant.name(), mth.getBeanType().getSimpleName(), mth.getMethod().getName()))
-					.cause(e).trace(currentSession()).emit();
+					log.warn("cannot eval expression ='%s' on %s.%s", 
+							ant.name(), mth.getBeanType().getSimpleName(), mth.getMethod().getName());
 				}
 			}
 		}
