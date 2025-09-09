@@ -10,13 +10,13 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ErrorReporter {
-	
+
 	private final boolean stack;
 	private String action;
 	private String message;
 	private EventTrace trace;
 	private Throwable cause;
-	
+
 	public ErrorReporter action(String action) {
 		this.action = action;
 		return this;
@@ -36,12 +36,12 @@ public final class ErrorReporter {
 		this.cause = cause;
 		return this;
 	}
-	
+
 	public void emit() {
 		var stk = stack && context().getConfiguration().isDebugMode() ? -1 : 0;
 		logEntry(ERROR, toString(), stk).emit();
 	}
-	
+
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
@@ -64,12 +64,12 @@ public final class ErrorReporter {
 	public static ErrorReporter reporter(){
 		return new ErrorReporter(true);
 	}
-	
-	public static ErrorReporter reporter(boolean stack){
-		return new ErrorReporter(stack);
+
+	public static void reportError(String action, EventTrace trace, Throwable cause) {
+		new ErrorReporter(false).action(action).trace(trace).cause(cause).emit();
 	}
-    
-    public static void reportError(String action, EventTrace trace, Throwable cause) {
-		reporter(false).action(action).trace(trace).cause(cause).emit();
-    }
+
+	public static void reportMessage(String action, EventTrace trace, String message) {
+		new ErrorReporter(false).action(action).trace(trace).message(message).emit();
+	}
 }

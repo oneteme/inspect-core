@@ -12,6 +12,7 @@ import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.mergeCommand;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
@@ -153,7 +154,7 @@ final class DatabaseRequestMonitor {
 			lastStg = null;
 		}
 		else {
-			reportError("DatabaseRequestMonitor.emitBatchStage", req, null);
+			reportMessage("DatabaseRequestMonitor.emitBatchStage", req, null);
 		}
 	}
 

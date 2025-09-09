@@ -9,7 +9,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
-import static org.usf.inspect.core.ErrorReporter.reporter;
+import static org.usf.inspect.core.ErrorReporter.reportError;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -133,9 +133,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					body = baos.toByteArray();
 				}
 				catch (Exception e) {/*do not throw exception */
-					reporter(false)
-					.action("RestDispatcherAgent.bodyCompressionInterceptor")
-					.cause(e).emit();
+					reportError("RestDispatcherAgent.bodyCompressionInterceptor", null, e);
 				}
 			}
 			return exec.execute(req, body);

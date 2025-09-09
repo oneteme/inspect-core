@@ -26,7 +26,7 @@ public final class DatabaseMetaDataWrapper implements DatabaseMetaData {
 	
 	@Override
 	public Connection getConnection() throws SQLException {
-		return new ConnectionWrapper(meta.getConnection(), monitor); //same tracer !?
+		return new ConnectionWrapper(meta.getConnection(), monitor); //same monitor !?
 	}
 	
 	@Override

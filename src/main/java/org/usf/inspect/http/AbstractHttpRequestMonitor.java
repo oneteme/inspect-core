@@ -6,7 +6,7 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.ErrorReporter.reporter;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createHttpRequest;
@@ -86,11 +86,8 @@ class AbstractHttpRequestMonitor {
 			if(sessionID.equals(request.getId())) {
 				return true;
 			}
-			reporter(false)
-			.action("assertSameID")
-			.message(format("req.id='%s', ses.id='%s'", request.getId(), sessionID))
-			.trace(request)
-			.emit();
+			reportMessage("assertSameID", request, 
+					format("req.id='%s', ses.id='%s'", request.getId(), sessionID));
 		}
 		return false;
 	}
