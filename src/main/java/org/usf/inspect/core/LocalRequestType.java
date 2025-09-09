@@ -11,5 +11,4 @@ public enum LocalRequestType {
 	FILE, //read|write
 	CACHE, //put|get
 	EXEC //run 
-
 }
