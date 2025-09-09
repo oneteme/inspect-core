@@ -34,7 +34,7 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 		if(routePredicate.accept(request)) {
 			var ses = requireCurrentSession(RestSession.class);
 			if(nonNull(ses) && isNull(ses.getException())) { //non filtered requests
-				ses.setException(fromException(ex));
+				ses.runSynchronized(()-> ses.setException(fromException(ex)));
 			}
 		}
 		return null;
