@@ -33,6 +33,7 @@ public class RestRequest extends AbstractRequest { //APiRequest
 
 	//v1.1
 	private String bodyContent; //incoming content, //4xx, 5xx only
+	private boolean linked;
 	// => in/out Content [type, size, encoding]
 	//rest-collector
 	

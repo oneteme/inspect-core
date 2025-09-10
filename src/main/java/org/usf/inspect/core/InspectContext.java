@@ -5,10 +5,11 @@ import static java.net.InetAddress.getLocalHost;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
+import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 import static org.usf.inspect.core.BasicDispatchState.DISABLE;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
-import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.threadName;
@@ -52,7 +53,7 @@ public final class InspectContext {
 	public static InspectContext context() {
 		if(isNull(singleton)) {
 			singleton = new InspectContext(disabledConfiguration(), null);
-			log.warn("", new IllegalStateException("inspect context was not started"));
+			log.warn("inspect context was not started");
 		}
 		return singleton;
 	}
@@ -99,7 +100,7 @@ public final class InspectContext {
 			session = null;
 		}
 		else {
-			reportError("traceStartupSession", null, null);
+			reportMessage("traceStartupSession", null, "session is null");
 		}
 	}
 
@@ -166,14 +167,16 @@ public final class InspectContext {
 	}
 
 	static ObjectMapper createObjectMapper() {
-		var mapper = new ObjectMapper();
-		mapper.registerModule(new JavaTimeModule()); //new ParameterNamesModule() not required, read only
-		mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-		//		mapper.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
-		//		mapper.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
+		return json()
+				.modules(new JavaTimeModule(), inspectModule())
+				.build()
+				.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+		//		.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
+		//		.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
+	}
 
-		SimpleModule module = new SimpleModule("inspect-core-module");
-		module.registerSubtypes(
+	public static SimpleModule inspectModule() {
+		return new SimpleModule("inspect-core-module").registerSubtypes(
 				new NamedType(LogEntry.class, 					"log"),  
 				new NamedType(MachineResourceUsage.class, 		"rsrc-usg"),
 				new NamedType(MainSession.class,  				"main-ses"), 
@@ -191,8 +194,6 @@ public final class InspectContext {
 				new NamedType(DirectoryRequestStage.class,		"ldap-stg"), 
 				new NamedType(FtpRequestStage.class,  			"ftp-stg"),
 				new NamedType(RestRemoteServerProperties.class, "rest-rmt"));
-		mapper.registerModules(new JavaTimeModule(), module); 
-		return mapper;
 	}
 
 	static InspectCollectorConfiguration disabledConfiguration() {

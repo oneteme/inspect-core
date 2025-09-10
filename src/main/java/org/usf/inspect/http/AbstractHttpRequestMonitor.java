@@ -6,7 +6,7 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.ErrorReporter.reporter;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createHttpRequest;
@@ -56,7 +56,7 @@ class AbstractHttpRequestMonitor {
 			if(nonNull(headers)) { //response
 				request.setContentType(headers.getFirst(CONTENT_TYPE));
 				request.setInContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-				assertSameID(headers.getFirst(TRACE_HEADER));
+				request.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
 			}
 			if(nonNull(thrw)) { //thrw -> stage
 				request.setEnd(end);
@@ -81,13 +81,14 @@ class AbstractHttpRequestMonitor {
 		return request;
 	}
 
-	void assertSameID(String sessionID) {
-		if(nonNull(sessionID) && !sessionID.equals(request.getId())) {
-			reporter(false)
-			.action("assertSameID")
-			.message(format("req.id='%s', ses.id='%s'", request.getId(), sessionID))
-			.trace(request)
-			.emit();
+	boolean assertSameID(String sessionID) {
+		if(nonNull(sessionID)) {
+			if(sessionID.equals(request.getId())) {
+				return true;
+			}
+			reportMessage("assertSameID", request, 
+					format("req.id='%s', ses.id='%s'", request.getId(), sessionID));
 		}
+		return false;
 	}
 }

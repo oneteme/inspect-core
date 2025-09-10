@@ -47,8 +47,8 @@ public class MethodExecutionMonitor implements Ordered {
 	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
 		var ses = createBatchSession();
 		call(()->{
-			ses.setStart(now());
 			ses.setThreadName(threadName());        
+			ses.setStart(now());
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));

@@ -14,9 +14,9 @@ import lombok.Setter;
 @Setter
 public class LocalRequest extends AbstractRequest {
 
-	private String name; //method, title
+	private String name; //title, topic
 	private String type;
-	private String location; //class, URL
+	private String location; //class.method, URL
 	private ExceptionInfo exception; 
 	
 	@JsonCreator public LocalRequest() { }

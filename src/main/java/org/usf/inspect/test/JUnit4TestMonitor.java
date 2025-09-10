@@ -33,10 +33,12 @@ public final class JUnit4TestMonitor implements TestRule {
 					return main.updateContext();
 				});
 				exec(base::evaluate, (s,e,m,t)-> {
-					if(nonNull(t)) {
-						main.setException(fromException(t));
-					}
-					main.setEnd(e);
+					main.runSynchronized(()-> {
+						if(nonNull(t)) {
+							main.setException(fromException(t));
+						}
+						main.setEnd(e);
+					});
 					return main.releaseContext();
 				});
 			}

@@ -48,7 +48,7 @@ public final class ExecutionMonitor {
 			}
 		}
 		catch (Throwable ex) {// do not throw exception
-			reporter().action("EventTrace.handle").cause(ex).emit();
+			reporter().action("ExecutionMonitor.handle").cause(ex).emit();
 		}
 	}
 	
@@ -60,7 +60,7 @@ public final class ExecutionMonitor {
 			}
 		}
 		catch (Throwable ex) {// do not throw exception
-			reporter().action("EventTrace.call").cause(ex).emit();
+			reporter().action("ExecutionMonitor.call").cause(ex).emit();
 		}
 	}
 	

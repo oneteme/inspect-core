@@ -2,7 +2,7 @@ package org.usf.inspect.test;
 
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
-import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 
 import java.util.Optional;
 
@@ -36,7 +36,7 @@ public final class JunitTestWatcher implements BeforeEachCallback, AfterEachCall
 			mnt.postProcess(context);
 		}
 		else {
-			reportError("JunitTestWatcher.afterEach", null, null);
+			reportMessage("JunitTestWatcher.afterEach", null, "session is null");
 		}
 	}
 

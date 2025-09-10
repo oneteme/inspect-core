@@ -8,6 +8,7 @@ import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.SessionManager.currentSession;
@@ -88,7 +89,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 			if(nonNull(mnt)) {
 				return mnt.postFilterHandler(isAsyncStarted(request), e, response, t);
 			}
-			reportError("restSessionListener", null, null);
+			reportMessage("restSessionListener", null, null);
 			return null;
 		};
 	}

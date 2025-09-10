@@ -5,7 +5,6 @@ import static org.usf.inspect.core.ErrorReporter.reporter;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.Getter;
@@ -19,24 +18,22 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonIgnoreProperties("threads")
-public abstract class AbstractSession implements Session {
+public abstract class AbstractSession implements CompletableMetric {
 
 	private final AtomicInteger threads = new AtomicInteger();
 	private int requestsMask;
 	private String instanceId; //server usage 
-	
-	@JsonCreator AbstractSession() { }
+
+	AbstractSession() { }
 
 	AbstractSession(AbstractSession req) {
 		this.requestsMask = req.requestsMask;
 	}
-	
-	@Override
+
 	public void lock(){ //must be called before session end
 		threads.incrementAndGet();
 	}
 
-	@Override
 	public void unlock() {
 		threads.decrementAndGet();
 	}
@@ -50,9 +47,12 @@ public abstract class AbstractSession implements Session {
 		}
 		return c == 0 && nonNull(getEnd());
 	}
-	
-	@Override
+
 	public void updateRequestsMask(RequestMask mask) {
 		this.requestsMask |= mask.getValue();
 	}
+
+	public abstract AbstractSession updateContext();
+	
+	public abstract AbstractSession releaseContext();
 }

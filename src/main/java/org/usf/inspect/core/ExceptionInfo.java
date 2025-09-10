@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public class ExceptionInfo {
+public final class ExceptionInfo {
 	
 	private final String type; //className
 	private final String message;

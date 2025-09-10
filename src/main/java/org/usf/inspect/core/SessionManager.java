@@ -42,10 +42,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionManager {
 
-	private static final ThreadLocal<Session> localTrace = new InheritableThreadLocal<>();
+	private static final ThreadLocal<AbstractSession> localTrace = new InheritableThreadLocal<>();
 	private static MainSession startupSession; //avoid setting startup session on all thread local
 
-	public static <S extends Session> S requireCurrentSession(Class<S> clazz) {
+	public static <S extends AbstractSession> S requireCurrentSession(Class<S> clazz) {
 		var ses = requireCurrentSession();
 		if(clazz.isInstance(ses)) { //nullable
 			return clazz.cast(ses);
@@ -56,7 +56,7 @@ public final class SessionManager {
 		return null;
 	}
 
-	public static Session requireCurrentSession() {
+	public static AbstractSession requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
 			reportIllegalSessionState("no current session found", null);
@@ -68,12 +68,12 @@ public final class SessionManager {
 		return ses;
 	}
 
-	public static Session currentSession() {
+	public static AbstractSession currentSession() {
 		var ses = localTrace.get();
 		return nonNull(ses) ? ses : startupSession; // priority
 	}
 	
-	static void setCurrentSession(Session session) {
+	static void setCurrentSession(AbstractSession session) {
 		var prv = localTrace.get();
 		if(prv != session) {
 			if(isNull(prv) || prv.wasCompleted()) {
@@ -85,7 +85,7 @@ public final class SessionManager {
 		}
 	}
 	
-	static void releaseSession(Session session) {
+	static void releaseSession(AbstractSession session) {
 		var prv = localTrace.get();
 		if(prv == session) {
 			localTrace.remove();
@@ -238,7 +238,7 @@ public final class SessionManager {
 		reporter().action(action).message(format("previous=%s, next=%s", prev, next)).emit();
 	}
 
-	static void reportIllegalSessionState(String msg, Session session) {
+	static void reportIllegalSessionState(String msg, AbstractSession session) {
 		reporter().action("requireCurrentSession").message(msg).trace(session).emit();
 	}
 }
