@@ -41,12 +41,12 @@ public final class MachineResourceMonitor implements DispatchHook {
 	public void preDispatch() {
 		call(()->{
 			var heap = bean.getHeapMemoryUsage();
-			var meta = bean.getNonHeapMemoryUsage();
+//			var meta = bean.getNonHeapMemoryUsage();
 			return new MachineResourceUsage(now(),
 					toMb(heap.getUsed()), 
 					toMb(heap.getCommitted()), 
-					toMb(meta.getUsed()), 
-					toMb(meta.getCommitted()),
+//					toMb(meta.getUsed()), 
+//					toMb(meta.getCommitted()),
 					toMb(file.getTotalSpace() - file.getUsableSpace())); // used space
 		});
 	}

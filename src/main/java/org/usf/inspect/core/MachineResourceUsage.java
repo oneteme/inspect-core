@@ -21,8 +21,8 @@ public final class MachineResourceUsage implements EventTrace {
 	private final Instant instant;
 	private final int usedHeap; 
 	private final int commitedHeap;
-	private final int usedMeta;
-	private final int commitedMeta;
+//	private final int usedMeta;
+//	private final int commitedMeta;
 	private final int usedDiskSpace;
 	private String instanceId; //server usage 
 	//threads, CPU, disk ?
@@ -32,8 +32,8 @@ public final class MachineResourceUsage implements EventTrace {
 		return new EventTraceFormatter()
 		.withAction("METRIC")
 		.withInstant(instant)
-		.withMessageAsTopic(format("heap: %d/%d | meta: %d/%d | disk:%d", 
-				usedHeap, commitedHeap, usedMeta, commitedMeta, usedDiskSpace))
+		.withMessageAsTopic(format("heap: %d/%d | disk:%d", 
+				usedHeap, commitedHeap, usedDiskSpace))
 		.format();
 	}
 }
