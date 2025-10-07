@@ -36,13 +36,11 @@ public final class ConcurrentLinkedSetQueue<T> {
 
 	public int addAll(Collection<T> arr, boolean overwrite){
 		synchronized(mutex){
-			synchronized(mutex){
-				if(overwrite) {
-					queue.removeAll(arr); // in order to add them even if exists
-				}
-				queue.addAll(arr); 
-				return queue.size();
+			if(overwrite) {
+				queue.removeAll(arr); // in order to add them even if exists
 			}
+			queue.addAll(arr); 
+			return queue.size();
 		}
 	}
 

@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.lang.Math.min;
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
 import static java.util.Collections.emptyList;
@@ -22,6 +23,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -64,12 +66,42 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					.queryParam("pending", pending)
 					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
 					.buildAndExpand(instance.getId()).toUri();
-			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
-			return emptyList(); //no partial dispatch
+			if(complete || properties.getPacketSize() == 0 || traces.size() < properties.getPacketSize()) {
+				template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
+				return emptyList(); //no partial dispatch
+			}
+			return disptachSplitor(traces, attempts, pending);
 		}
 		catch (RestClientException e) { //server / client ?
-			throw new DispatchException("traces dispatch error", e);
+			if(shouldRetry(e)) {
+				throw new DispatchException("traces dispatch error", e);
+			} //else may be lost
+			return emptyList();
 		}
+	}
+	
+	List<EventTrace> disptachSplitor(List<EventTrace> traces, int attempts, int pending) {
+		int idx = 0;
+		while(idx < traces.size()) {
+			var sub = traces.subList(idx, min(idx+properties.getPacketSize(), traces.size()));
+			try {
+				var uri = fromUriString(properties.getTracesURI())
+						.queryParam("attempts", attempts)
+						.queryParam("pending", pending)
+						.buildAndExpand(instance.getId()).toUri();
+				template.put(uri, sub.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
+				idx += sub.size();
+				attempts = 1; pending = 0; //reset after first dispatch
+			}
+			catch (Exception e) {
+				if(idx > 0) {//partial dispatch
+					log.warn("partially dispatched {} trace, ex={}", idx, e.getMessage());
+					return traces.subList(idx, traces.size());
+				}
+				throw e;
+			}
+		}
+		return emptyList();
 	}
 
 	@Override
@@ -80,16 +112,18 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					.queryParam("attempts", attempts)
 					.queryParam("filename", dumpFile.getName())
 					.buildAndExpand(instance.getId()).toUri();
-			template.put(uri, mapper.readTree(dumpFile));
+			template.put(uri, mapper.readTree(dumpFile)); //use dispatch splitor
 		}
 		catch (RestClientException e) { //server / client ?
-			throw new DispatchException("dump file dispatch error", e);
+			if(shouldRetry(e)) {
+				throw new DispatchException("dump file dispatch error", e);
+			} //else may be lost
 		}
 		catch (IOException e) {
 			throw new DispatchException("dump file read error " + dumpFile, e);
 		}
 	}
-
+	
 	void assertInstanceRegistred() {
 		if(!registred) {
 			if(nonNull(instance)) {
@@ -106,6 +140,19 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 				throw new DispatchException("instance is null");
 			}
 		}
+	}
+
+	boolean shouldRetry(RestClientException e) {
+		if(e instanceof HttpServerErrorException rsp) {
+			try {
+				var resp = mapper.readValue(rsp.getResponseBodyAsByteArray(), TraceFail.class);
+				if(nonNull(resp) && resp.retry()) {
+					return true;
+				}
+			} catch (IOException ioe) {/*ignore this exception */}
+			return false;
+		}
+		return true;
 	}
 
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper) {
