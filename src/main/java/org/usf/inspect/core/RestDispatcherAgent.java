@@ -61,12 +61,12 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	public List<EventTrace> dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces)  {
 		assertInstanceRegistred();
 		try {
-			var uri = fromUriString(properties.getTracesURI())
-					.queryParam("attempts", attempts)
-					.queryParam("pending", pending)
-					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
-					.buildAndExpand(instance.getId()).toUri();
 			if(complete || properties.getPacketSize() == 0 || traces.size() < properties.getPacketSize()) {
+				var uri = fromUriString(properties.getTracesURI())
+						.queryParam("attempts", attempts)
+						.queryParam("pending", pending)
+						.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
+						.buildAndExpand(instance.getId()).toUri();
 				template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
 				return emptyList(); //no partial dispatch
 			}
@@ -95,7 +95,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 			}
 			catch (Exception e) {
 				if(idx > 0) {//partial dispatch
-					log.warn("partially dispatched {} trace, ex={}", idx, e.getMessage());
+					log.warn("partially dispatched {} traces, ex={}", idx, e.getMessage());
 					return traces.subList(idx, traces.size());
 				}
 				throw e;

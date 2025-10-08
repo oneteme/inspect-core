@@ -34,9 +34,9 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	private String instanceURI;
 	private String tracesURI;
 	private int compressMinSize = 0; // size in bytes, 0: no compression
-	private Duration retentionMaxAge = ofDays(30);
 	//v1.1
-	private int packetSize = 100_000;
+	private Duration retentionMaxAge = ofDays(30);
+	private int packetSize = 100;
 	
 	@Override
 	public void validate() {

@@ -9,7 +9,9 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 /**
+ * 
  * @author u$f
+ *
  */
 public final class ConcurrentLinkedSetQueue<T> {
 

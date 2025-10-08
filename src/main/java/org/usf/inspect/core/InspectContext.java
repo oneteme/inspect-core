@@ -168,14 +168,14 @@ public final class InspectContext {
 
 	static ObjectMapper createObjectMapper() {
 		return json()
-				.modules(new JavaTimeModule(), inspectModule())
+				.modules(new JavaTimeModule(), coreModule())
 				.build()
 				.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 		//		.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
 		//		.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
 	}
 
-	public static SimpleModule inspectModule() {
+	public static SimpleModule coreModule() {
 		return new SimpleModule("inspect-core-module").registerSubtypes(
 				new NamedType(LogEntry.class, 					"log"),  
 				new NamedType(MachineResourceUsage.class, 		"rsrc-usg"),
