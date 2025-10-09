@@ -36,7 +36,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	private int compressMinSize = 0; // size in bytes, 0: no compression
 	//v1.1
 	private Duration retentionMaxAge = ofDays(30);
-	private int packetSize = 100;
+	private int packetSize = 100_000;
 	
 	@Override
 	public void validate() {
@@ -45,7 +45,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 		instanceURI = base + (isNull(instanceURI) ? INSTANCE_DEFAULT_URI : instanceURI);
 		tracesURI = base + (isNull(tracesURI) ? TRACES_DEFAULT_URI : tracesURI);
 		assertPositive(compressMinSize, "compress-min-size");
-		assertBetween(retentionMaxAge, ofDays(1), ofDays(365), "retention-max-age");
 		assertPositive(packetSize, "packet-size");
+		assertBetween(retentionMaxAge, ofDays(1), ofDays(365), "retention-max-age");
 	}
 }

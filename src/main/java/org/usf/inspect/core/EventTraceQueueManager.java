@@ -30,10 +30,10 @@ public final class EventTraceQueueManager {
 	private final boolean modifiable;
 	private final ConcurrentLinkedSetQueue<EventTrace> queue;
 
-	public void dequeue(int delay, QueueConsumer cons) { // 0: takes all, -1: completed only, 
+	public void dequeue(int delay, QueueConsumer cons) {
 		dequeue(q->{
 			var mdf = new ArrayList<>(q);
-			var mrk = delay < 0 ? MIN : now().minusSeconds(delay);
+			var mrk = delay < 0 ? MIN : now().minusSeconds(delay);  // 0: takes all, -1: completed only, 
 			var kpt = new LinkedHashSet<EventTrace>();
 			var pnd = extractPendingTraces(mdf, mrk, kpt);
 			var rtr = cons.accept(mdf, pnd); //may contains traces copy
