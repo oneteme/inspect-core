@@ -23,7 +23,6 @@ import java.time.Instant;
 
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionStage;
-import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.RestSession;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,11 +38,9 @@ public final class HttpSessionMonitor {
 	
 	@Getter
 	private final RestSession session;
-	private final HttpServletRequest req;
 	private Instant lastTimestamp;
 	
-	public HttpSessionMonitor(HttpServletRequest req, String id) {
-		this.req = req;
+	public HttpSessionMonitor(String id) {
 		if(nonNull(id)) {
 			this.session = createRestSession(id);
 			this.session.setLinked(true);
@@ -53,7 +50,7 @@ public final class HttpSessionMonitor {
 		}
 	}
 	
-	public void preFilter(){
+	public void preFilter(HttpServletRequest req){
 		lastTimestamp = now();
 		call(()->{
 			session.setStart(lastTimestamp);
@@ -76,12 +73,12 @@ public final class HttpSessionMonitor {
 		call(()-> createStage(PROCESS, now()));
 	}
 
-	public void postProcess(String name, HttpUserProvider userProvider, Throwable thrw){
+	public void postProcess(String name, String user, Throwable thrw){
 		call(()-> {
 			createStage(POST_PROCESS, now()).emit();
 			session.runSynchronized(()->{
 				session.setName(name);
-				session.setUser(userProvider.getUser(req, name));
+				session.setUser(user);
 				if(nonNull(thrw) && isNull(session.getException())) {// unhandeled exception in @ControllerAdvice
 					session.setException(fromException(thrw));
 				}

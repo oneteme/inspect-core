@@ -72,8 +72,8 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	private void traceRestSession(HttpServletRequest req, HttpServletResponse res) {
 		var mnt = (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
 		if(isNull(mnt)) {
-			mnt = new HttpSessionMonitor(req, req.getHeader(TRACE_HEADER));
-			mnt.preFilter(); //called once
+			mnt = new HttpSessionMonitor(req.getHeader(TRACE_HEADER));
+			mnt.preFilter(req); //called once
 			res.addHeader(TRACE_HEADER, mnt.getSession().getId()); //add headers before doFilter
 			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 			req.setAttribute(SESSION_MONITOR, mnt);
@@ -128,7 +128,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 		var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
 		if(nonNull(mnt) && shouldIntercept(handler)) { //avoid unfiltered request 
-			mnt.postProcess(resolveEndpointName(handler, request), userProvider, ex);
+			var name = resolveEndpointName(handler, request);
+			var user = userProvider.getUser(request, name);
+			mnt.postProcess(name, user, ex);
 		}
 	}
 	

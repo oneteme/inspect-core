@@ -26,12 +26,12 @@ public final class MachineResourceMonitor implements DispatchHook {
 	public void onInstanceEmit(InstanceEnvironment instance) {
 		call(()->{
 			var heap = bean.getHeapMemoryUsage();
-			var meta = bean.getNonHeapMemoryUsage();
+//			var meta = bean.getNonHeapMemoryUsage()
 			instance.setResource(new MachineResource(
 					toMb(heap.getInit()), 
 					toMb(heap.getMax()), 
-					toMb(meta.getInit()), 
-					toMb(meta.getMax()),
+//					toMb(meta.getInit()), 
+//					toMb(meta.getMax()),
 					toMb(file.getTotalSpace())));
 			return null;
 		});
@@ -41,7 +41,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 	public void preDispatch() {
 		call(()->{
 			var heap = bean.getHeapMemoryUsage();
-//			var meta = bean.getNonHeapMemoryUsage();
+//			var meta = bean.getNonHeapMemoryUsage()
 			return new MachineResourceUsage(now(),
 					toMb(heap.getUsed()), 
 					toMb(heap.getCommitted()), 
