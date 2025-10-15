@@ -254,7 +254,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 
 	public static final ChannelSftp wrap(ChannelSftp channel, String beanName) {
 		if(context().getConfiguration().isEnabled()){
-			if(channel.getClass() != ChannelSftp.class) {
+			if(channel.getClass() != ChannelSftpWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "channelSftp"), channel.getClass());
 				return new ChannelSftpWrapper(channel);
 			}

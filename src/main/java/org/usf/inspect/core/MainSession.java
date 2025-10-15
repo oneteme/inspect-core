@@ -6,6 +6,8 @@ import static org.usf.inspect.core.SessionManager.releaseStartupSession;
 import static org.usf.inspect.core.SessionManager.setCurrentSession;
 import static org.usf.inspect.core.SessionManager.setStartupSession;
 
+import java.time.Instant;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -23,7 +25,7 @@ import lombok.experimental.Delegate;
 public class MainSession extends AbstractSession {
 
 	@JsonIgnore
-	@Delegate(excludes = EventTrace.class) //emit(this)
+	@Delegate(excludes = CompletableMetric.class) //emit(this) + AbstractSession.wasCompleted
 	private final LocalRequest local; //!exception
 	//	inherits String type //@see MainSessionType
 
@@ -77,5 +79,20 @@ public class MainSession extends AbstractSession {
 	@Override
 	public int hashCode() {
 		return CompletableMetric.hashCodeOf(this);
+	}
+
+	@Override
+	public String getId() {
+		return local.getId();
+	}
+
+	@Override
+	public Instant getStart() {
+		return local.getStart();
+	}
+
+	@Override
+	public Instant getEnd() {
+		return local.getEnd();
 	}
 }

@@ -22,7 +22,7 @@ import lombok.experimental.Delegate;
 public class RestSession extends AbstractSession {
 
 	@JsonIgnore
-	@Delegate(excludes = EventTrace.class) //emit(this)
+	@Delegate(excludes = CompletableMetric.class) //emit(this) + AbstractSession.wasCompleted
 	private final RestRequest rest;
 	private String name; //api name
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
@@ -87,5 +87,20 @@ public class RestSession extends AbstractSession {
 	@Override
 	public int hashCode() {
 		return CompletableMetric.hashCodeOf(this);
+	}
+
+	@Override
+	public String getId() {
+		return rest.getId();
+	}
+
+	@Override
+	public Instant getStart() {
+		return rest.getStart();
+	}
+
+	@Override
+	public Instant getEnd() {
+		return rest.getEnd();
 	}
 }
