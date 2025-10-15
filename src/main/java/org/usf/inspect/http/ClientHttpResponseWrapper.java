@@ -28,12 +28,11 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 	private final ClientHttpResponse cr;
 	private final ExecutionHandler<ResponseContent> monitor;
 	private CacheableInputStream pipe;
-	private Instant start;
-		
+	private Instant start = now();
+
 	@Override
 	public InputStream getBody() throws IOException {
 		if(isNull(pipe)) {
-			start = now();
 			pipe = new CacheableInputStream(cr.getBody(), getStatusCode().isError());
 		}
 		return pipe;
