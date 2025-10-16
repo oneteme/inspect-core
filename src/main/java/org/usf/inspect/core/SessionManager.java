@@ -98,7 +98,7 @@ public final class SessionManager {
 	static void releaseSession(AbstractSession session) {
 		var entry = localTrace.get();
 		if(nonNull(entry)) {
-			if(entry.getKey() == session) {
+			if(entry.getKey() == session && nonNull(entry.getKey().getEnd())) {
 				if(entry.getValue().decrementAndGet() == 0) {
 					localTrace.remove();
 				}
@@ -122,7 +122,7 @@ public final class SessionManager {
 	
 	static void releaseStartupSession(MainSession session) {
 		if(startupSession == session) {
-			if(threadName().equals(session.getThreadName()) && nonNull(session.getEnd())) { //reactor
+			if(nonNull(session.getEnd())) { //reactor
 				startupSession = null;
 			}
 		}

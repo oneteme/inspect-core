@@ -28,8 +28,6 @@ public abstract class AbstractSession implements CompletableMetric {
 		this.requestsMask |= mask.getValue();
 	}
 	
-	public abstract String getThreadName();
-
 	public abstract AbstractSession updateContext();
 	
 	public abstract AbstractSession releaseContext();
