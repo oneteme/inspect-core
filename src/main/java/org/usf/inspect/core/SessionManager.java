@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.String.format;
 import static java.time.Instant.now;
+import static java.util.Map.entry;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
@@ -25,6 +26,8 @@ import static org.usf.inspect.core.RequestMask.LOCAL;
 import static org.usf.inspect.core.RequestMask.REST;
 import static org.usf.inspect.core.RequestMask.SMTP;
 
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
@@ -42,7 +45,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionManager {
 
-	private static final ThreadLocal<AbstractSession> localTrace = new InheritableThreadLocal<>();
+	private static final ThreadLocal<Entry<AbstractSession, AtomicInteger>> localTrace = new InheritableThreadLocal<>();
 	private static MainSession startupSession; //avoid setting startup session on all thread local
 
 	public static <S extends AbstractSession> S requireCurrentSession(Class<S> clazz) {
@@ -69,31 +72,40 @@ public final class SessionManager {
 	}
 
 	public static AbstractSession currentSession() {
-		var ses = localTrace.get();
-		return nonNull(ses) ? ses : startupSession; // priority
+		var que = localTrace.get();
+		return nonNull(que) ? que.getKey() : startupSession; // priority
 	}
 	
 	static void setCurrentSession(AbstractSession session) {
-		var prv = localTrace.get();
-		if(prv != session) {
-			if(isNull(prv) || prv.wasCompleted()) {
-				localTrace.set(session);
+		var entry = localTrace.get();
+		if(isNull(entry)) {
+			localTrace.set(entry(session, new AtomicInteger(1)));
+		}
+		else {
+			var prv = entry.getKey();
+			if(prv == session) {
+				entry.getValue().incrementAndGet();
 			}
 			else {
-				reportSessionConflict("setCurrentSession", prv.getId(), session.getId());
+				if(!prv.wasCompleted()) {
+					reportSessionConflict("setCurrentSession", prv.getId(), session.getId());
+				}
+				localTrace.set(entry(session, new AtomicInteger(1)));
 			}
 		}
 	}
 	
 	static void releaseSession(AbstractSession session) {
-		var prv = localTrace.get();
-		if(prv == session) {
-			if(!threadName().equals(session.getThreadName()) || nonNull(session.getEnd())) { //reactor
-				localTrace.remove();
+		var entry = localTrace.get();
+		if(nonNull(entry)) {
+			if(entry.getKey() == session) {
+				if(entry.getValue().decrementAndGet() == 0) {
+					localTrace.remove();
+				}
 			}
-		}
-		else if(nonNull(prv)) {
-			reportSessionConflict("releaseSession", prv.getId(), session.getId());
+			else {
+				reportSessionConflict("releaseSession", entry.getKey().getId(), session.getId());
+			}
 		}
 	}
 	

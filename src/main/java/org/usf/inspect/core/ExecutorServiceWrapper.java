@@ -9,7 +9,6 @@ import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 
 import lombok.AccessLevel;
 import lombok.NonNull;
@@ -31,70 +30,48 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 	
 	@Override
 	public <T> Future<T> submit(Callable<T> task) {
-		return aroundCallable(task, es::submit);
+		return es.submit(aroundCallable(task));
 	}
 	
 	@Override
 	public Future<?> submit(Runnable task) {
-		return aroundRunnable(task, es::submit);
+		 return es.submit(aroundRunnable(task));
 	}
 	
 	@Override
 	public <T> Future<T> submit(Runnable task, T result) {
-		return aroundRunnable(task, c-> es.submit(c, result));
+		 return es.submit(aroundRunnable(task), result);
 	}
 	
 	@Override
 	public void execute(Runnable command) {
-		aroundRunnable(command, c-> {es.execute(c); return null;});
+		es.execute(aroundRunnable(command));
 	}
 	
-    private static <T> T aroundRunnable(Runnable command, Function<Runnable, T> fn) {
-    	var session = requireCurrentSession();
-		if(nonNull(session)) {
-			session.lock(); //important! sync lock !timeout 
-			try {
-				return fn.apply(()->{
-					session.updateContext();
-			    	try {
-				    	command.run();
-			    	}
-			    	finally {// session cleanup is guaranteed even if the task is cancelled / interrupted.
-						session.unlock();
-						session.releaseContext();
-			    	}
-				});
-			}
-			catch (Exception e) { 
-				session.unlock();
-				throw e;
-			}
-		}
-		return fn.apply(command);
+    private static Runnable aroundRunnable(Runnable command) {
+    	var ses = requireCurrentSession();
+		return nonNull(ses) ? ()->{
+			ses.updateContext();
+	    	try {
+		    	command.run();
+	    	}
+	    	finally {// session cleanup is guaranteed even if the task is cancelled / interrupted.
+				ses.releaseContext();
+	    	}
+		} : command;
     }
 
-    private static <T,V> V aroundCallable(Callable<T> command, Function<Callable<T>, V> fn) {
+    private static <T> Callable<T> aroundCallable(Callable<T> command) {
     	var session = requireCurrentSession();
-		if(nonNull(session)) {
-			session.lock(); //important! sync lock
-			try {
-				return fn.apply(()->{
-					session.updateContext();
-			    	try {
-			    		return command.call();
-			    	}
-			    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
-						session.unlock();
-						session.releaseContext();
-			    	}
-				});
-			}
-			catch (Exception e) {
-				session.unlock();
-				throw e;
-			}
-		}
-		return fn.apply(command);
+		return nonNull(session) ? ()->{
+			session.updateContext();
+	    	try {
+	    		return command.call();
+	    	}
+	    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
+				session.releaseContext();
+	    	}
+		} : command;
     }
 
 	public static ExecutorService wrap(@NonNull ExecutorService es) {

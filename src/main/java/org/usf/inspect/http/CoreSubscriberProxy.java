@@ -43,7 +43,12 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T> {
 	
 	void withContext(Runnable r) {
 		session.updateContext();
-		r.run(); //release ?
+		try {
+			r.run();
+		}
+		finally {
+			session.releaseContext();
+		}
 	}
 	
 	@Override
