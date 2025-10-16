@@ -51,6 +51,8 @@ public abstract class AbstractSession implements CompletableMetric {
 	public void updateRequestsMask(RequestMask mask) {
 		this.requestsMask |= mask.getValue();
 	}
+	
+	public abstract String getThreadName();
 
 	public abstract AbstractSession updateContext();
 	

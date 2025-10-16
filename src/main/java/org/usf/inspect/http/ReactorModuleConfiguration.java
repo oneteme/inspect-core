@@ -25,7 +25,7 @@ public class ReactorModuleConfiguration {
 	
 	ReactorModuleConfiguration() {
 		logRegistringBean("reactorHook", CoreSubscriberProxy.class);
-		onEachOperator("inspect-hook", p-> {
+		onEachOperator("inspect-reactor", p-> {
 			var ses = requireCurrentSession();
 			return nonNull(ses) ? liftPublisher((scn,sub)-> new CoreSubscriberProxy<>(sub, ses)).apply(p) : p;
 		});

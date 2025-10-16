@@ -36,7 +36,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	private final AspectUserProvider userProvider;
 
-	@Around("@annotation(TraceableStage)")
+	@Around("@annotation(TraceableStage)") //batch <> TraceableStage
 	Object aroundTraceable(ProceedingJoinPoint point) throws Throwable {
 		var ses = currentSession();
 		return isNull(ses) || ses.wasCompleted() 

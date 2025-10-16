@@ -88,7 +88,9 @@ public final class SessionManager {
 	static void releaseSession(AbstractSession session) {
 		var prv = localTrace.get();
 		if(prv == session) {
-			localTrace.remove();
+			if(!threadName().equals(session.getThreadName()) || nonNull(session.getEnd())) { //reactor
+				localTrace.remove();
+			}
 		}
 		else if(nonNull(prv)) {
 			reportSessionConflict("releaseSession", prv.getId(), session.getId());
@@ -96,17 +98,21 @@ public final class SessionManager {
 	}
 	
 	static void setStartupSession(MainSession session) {
-		if(isNull(startupSession)) {
-			startupSession = session;
-		}
-		else {
-			reportSessionConflict("setStartupSession", startupSession.getId(), session.getId());
+		if(startupSession != session) {
+			if(isNull(startupSession)) {
+				startupSession = session;
+			}
+			else {
+				reportSessionConflict("setStartupSession", startupSession.getId(), session.getId());
+			}
 		}
 	}
 	
 	static void releaseStartupSession(MainSession session) {
 		if(startupSession == session) {
-			startupSession = null;
+			if(threadName().equals(session.getThreadName()) && nonNull(session.getEnd())) { //reactor
+				startupSession = null;
+			}
 		}
 		else if(nonNull(startupSession)) {
 			reportSessionConflict("releaseStartupSession", startupSession.getId(), session.getId());

@@ -23,26 +23,27 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T> {
 
 	@Override
 	public void onNext(T t) {
-		session.updateContext();
-		sub.onNext(t);
+		withContext(()-> sub.onNext(t), "onNext");
 	}
 
 	@Override
-	public void onError(Throwable t) { //unlock
-		session.updateContext();
-		sub.onError(t);
+	public void onError(Throwable t) {
+		withContext(()-> sub.onError(t), "onError");
 	}
 
 	@Override
-	public void onComplete() { //unlock
-		session.updateContext();
-		sub.onComplete();				
+	public void onComplete() {
+		withContext(sub::onComplete,"onComplete");
 	}
 
 	@Override
 	public void onSubscribe(Subscription s) {
+		withContext(()-> sub.onSubscribe(s), "onSubscribe");
+	}
+	
+	void withContext(Runnable r, String name) {
 		session.updateContext();
-		sub.onSubscribe(s);
+		r.run(); //release ?
 	}
 	
 	@Override
