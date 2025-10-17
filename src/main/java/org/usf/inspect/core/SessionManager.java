@@ -64,16 +64,16 @@ public final class SessionManager {
 		if(isNull(ses)) {
 			reportIllegalSessionState("no current session found", null);
 		}
-		else if(ses.wasCompleted()) {
-			reportIllegalSessionState("current session was already completed", ses);
-			ses = null;
-		}
+//		else if(ses.wasCompleted()){ async session
+//			reportIllegalSessionState("current session was already completed", ses)
+//			ses = null;
+//		}
 		return ses;
 	}
 
 	public static AbstractSession currentSession() {
-		var que = localTrace.get();
-		return nonNull(que) ? que.getKey() : startupSession; // priority
+		var entry = localTrace.get();
+		return nonNull(entry) ? entry.getKey() : startupSession; // priority
 	}
 	
 	static void setCurrentSession(AbstractSession session) {
@@ -98,7 +98,7 @@ public final class SessionManager {
 	static void releaseSession(AbstractSession session) {
 		var entry = localTrace.get();
 		if(nonNull(entry)) {
-			if(entry.getKey() == session && nonNull(entry.getKey().getEnd())) {
+			if(entry.getKey() == session) {
 				if(entry.getValue().decrementAndGet() == 0) {
 					localTrace.remove();
 				}
@@ -106,6 +106,9 @@ public final class SessionManager {
 			else {
 				reportSessionConflict("releaseSession", entry.getKey().getId(), session.getId());
 			}
+		}
+		else {
+			reportIllegalSessionState("current session is null", session);
 		}
 	}
 	
@@ -128,6 +131,9 @@ public final class SessionManager {
 		}
 		else if(nonNull(startupSession)) {
 			reportSessionConflict("releaseStartupSession", startupSession.getId(), session.getId());
+		}
+		else {
+			reportIllegalSessionState("current session is null", session);
 		}
 	}
 
