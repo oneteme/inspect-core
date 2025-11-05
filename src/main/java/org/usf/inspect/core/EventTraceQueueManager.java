@@ -47,7 +47,7 @@ public final class EventTraceQueueManager {
 	public void dequeue(UnaryOperator<Collection<EventTrace>> op) {
 		Collection<EventTrace> set = queue.pop();
 		try {
-			set = op.apply(set);
+			set = op.apply(set); //partial queue consume
 		}
 		catch (OutOfMemoryError e) {
 			set = emptyList(); //do not add items back to the queue, may release memory
@@ -64,19 +64,19 @@ public final class EventTraceQueueManager {
 	int extractPendingTraces(List<EventTrace> queue, Instant mark, Collection<EventTrace> kept) {
 		var n = new int[1];
 		for(var it=queue.listIterator(); it.hasNext();) {
-			if(it.next() instanceof CompletableMetric mtr) {
-				mtr.runSynchronizedIfNotComplete(()-> {
+			if(it.next() instanceof CompletableMetric trc) {
+				trc.runSynchronizedIfNotComplete(()-> {
 					++n[0];
-					if(mtr.getStart().isBefore(mark)) {
-						if(modifiable) {  //send copy, avoid dispatch same reference
-							it.set(mtr.copy());
+					if(trc.getStart().isBefore(mark)) {
+						if(modifiable) {
+							it.set(trc.copy()); //create copy, avoid dispatch same reference
 						} //else keep original trace
-						log.trace("completable trace pending since {}, dequeued: {}", mtr.getStart(), mtr);
+						log.trace("completable trace pending since {}, dequeued: {}", trc.getStart(), trc);
 					}
 					else {
-						kept.add(mtr);
+						kept.add(trc);
 						it.remove();
-						log.trace("completable trace pending since {}, kept in queue: {}", mtr.getStart(), mtr);
+						log.trace("completable trace pending since {}, kept in queue: {}", trc.getStart(), trc);
 					}
 				});
 			}

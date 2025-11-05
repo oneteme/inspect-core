@@ -54,7 +54,7 @@ public final class SessionManager {
 			return clazz.cast(ses);
 		}
 		if(nonNull(ses)) {
-			reportIllegalSessionState("unexpected session type", ses);
+			reportIllegalSessionState("requireCurrentSession", "unexpected session type", ses);
 		}
 		return null;
 	}
@@ -62,7 +62,7 @@ public final class SessionManager {
 	public static AbstractSession requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
-			reportIllegalSessionState("no current session found", null);
+			reportNoActiveSession("requireCurrentSession", null);
 		}
 //		else if(ses.wasCompleted()){ async session
 //			reportIllegalSessionState("current session was already completed", ses)
@@ -108,7 +108,7 @@ public final class SessionManager {
 			}
 		}
 		else {
-			reportIllegalSessionState("current session is null", session);
+			reportNoActiveSession("releaseSession", session);
 		}
 	}
 	
@@ -133,7 +133,7 @@ public final class SessionManager {
 			reportSessionConflict("releaseStartupSession", startupSession.getId(), session.getId());
 		}
 		else {
-			reportIllegalSessionState("current session is null", session);
+			reportNoActiveSession("releaseStartupSession", session);
 		}
 	}
 
@@ -259,10 +259,14 @@ public final class SessionManager {
 	}
 
 	static void reportSessionConflict(String action, String prev, String next) {
-		reporter().action(action).message(format("previous=%s, next=%s", prev, next)).emit();
+		reporter().action(action).message(format("previous=%s, next=%s ~%s", prev, next, threadName())).emit();
 	}
 
-	static void reportIllegalSessionState(String msg, AbstractSession session) {
-		reporter().action("requireCurrentSession").message(msg).trace(session).emit();
+	static void reportNoActiveSession(String action, AbstractSession session) {
+		reporter().action(action).message("no active session ~" + threadName()).trace(session).emit();
+	}
+	
+	static void reportIllegalSessionState(String action, String msg, AbstractSession session) {
+		reporter().action(action).message(msg).trace(session).emit();
 	}
 }

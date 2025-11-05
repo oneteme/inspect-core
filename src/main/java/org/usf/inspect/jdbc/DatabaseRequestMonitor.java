@@ -91,6 +91,8 @@ final class DatabaseRequestMonitor {
 			if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //safe++
 				if(nonNull(t)) {
 					lastStg.setException(mainCauseException(t)); //may overwrite previous
+					lastStg.emit();
+					lastStg = null;
 				}
 				else {
 					lastStg.getCount()[0]++;
@@ -154,7 +156,7 @@ final class DatabaseRequestMonitor {
 			lastStg = null;
 		}
 		else {
-			reportMessage("DatabaseRequestMonitor.emitBatchStage", req, null);
+			reportMessage("empty batch or already traced", req, null);
 		}
 	}
 

@@ -4,7 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 import static reactor.core.publisher.Hooks.onEachOperator;
-import static reactor.core.publisher.Operators.liftPublisher;
+import static reactor.core.publisher.Operators.lift;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,10 +25,10 @@ public class ReactorModuleConfiguration {
 	
 	ReactorModuleConfiguration() {
 		logRegistringBean("reactorHook", CoreSubscriberProxy.class);
-		onEachOperator("inspect-reactor", p-> {
-			var ses = requireCurrentSession();
-			return nonNull(ses) ? liftPublisher((scn,sub)-> new CoreSubscriberProxy<>(sub, ses)).apply(p) : p;
-		});
+		onEachOperator("inspect-reactor", lift((scn,sub)-> {
+				var ses = requireCurrentSession();
+				return nonNull(ses) ? new CoreSubscriberProxy<>(sub, ses) : sub;
+			}));
 	}
 
     @Bean

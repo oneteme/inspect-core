@@ -27,7 +27,7 @@ public final class ConcurrentLinkedSetQueue<T> {
 			if(overwrite) {
 				queue.remove(o);
 			}
-			queue.add(o); 
+			queue.add(o);
 			return queue.size();
 		}
 	}
@@ -69,20 +69,20 @@ public final class ConcurrentLinkedSetQueue<T> {
 		}
 	}
 
-	public int removeFrom(int n) { 
+	public int removeFrom(int n) {
 		synchronized(mutex){ // queue.reversed().iterator : java21
 			var size = queue.size();
-			if(n > 0 && n < size) {
-				var it = queue.iterator(); //clear
+			if(n <= 0) { //avoid throwing exception
+				queue = new LinkedHashSet<>(); //clear
+			}
+			else if(n < size) {
+				var it = queue.iterator();
 				for(var i=0; i<n; i++, it.next());
 				while(it.hasNext()) {
 					it.next();
 					it.remove();
 				}
-			}
-			else if(n <= 0) { //avoid throwing exception
-				queue = new LinkedHashSet<>();
-			} // else do nothing
+			} //else 0 
 			return size - queue.size();
 		}
 	}
