@@ -89,7 +89,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 			if(nonNull(mnt)) {
 				mnt.postFilterHandler(isAsyncStarted(request), e, response, t);
 			}
-			reportMessage("restSessionListener", null, null);
+			else {
+				reportMessage("restSessionListener", null, null);
+			}
 		};
 	}
 

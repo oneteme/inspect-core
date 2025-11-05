@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.ldap.core.ContextSource;
-import org.usf.inspect.http.RestRequestInterceptor;
 
 /**
  * 
@@ -24,7 +23,7 @@ public class DirectoryModuleConfiguration {
 	
 	@Bean
 	@DependsOn("inspectContext") //ensure inspectContext is loaded first
-	BeanPostProcessor contextSourceWrapper(RestRequestInterceptor interceptor) {
+	BeanPostProcessor contextSourceWrapper() {
 		return new BeanPostProcessor() {
 			@Override
 			public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {

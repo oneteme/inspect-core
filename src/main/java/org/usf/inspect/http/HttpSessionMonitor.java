@@ -66,11 +66,11 @@ public final class HttpSessionMonitor {
 	}
 	
 	public void preProcess(){
-		call(()-> createStage(PRE_PROCESS, now()));
+		call(()-> createStage(PRE_PROCESS, now()).emit());
 	}
 	
 	public void process(){
-		call(()-> createStage(PROCESS, now()));
+		call(()-> createStage(PROCESS, now()).emit());
 	}
 
 	public void postProcess(String name, String user, Throwable thrw){
