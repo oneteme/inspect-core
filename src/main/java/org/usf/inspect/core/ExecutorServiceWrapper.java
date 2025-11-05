@@ -48,7 +48,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		es.execute(aroundRunnable(command));
 	}
 	
-    private static Runnable aroundRunnable(Runnable command) {
+    public static Runnable aroundRunnable(Runnable command) {
     	var ses = requireCurrentSession();
 		return nonNull(ses) ? ()->{
 			ses.updateContext();
@@ -61,7 +61,7 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 		} : command;
     }
 
-    private static <T> Callable<T> aroundCallable(Callable<T> command) {
+    public static <T> Callable<T> aroundCallable(Callable<T> command) {
     	var session = requireCurrentSession();
 		return nonNull(session) ? ()->{
 			session.updateContext();

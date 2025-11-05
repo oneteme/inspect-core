@@ -49,6 +49,7 @@ final class DatabaseRequestMonitor {
 	private DatabaseRequestStage lastStg; // hold last stage
 	
 	public void handleConnection(Instant start, Instant end, Connection cnx, Throwable thw) throws SQLException {
+		req.createStage(CONNECTION, start, end, thw, null).emit();
 		req.setThreadName(threadName());
 		req.setStart(start);
 		if(nonNull(thw)) { //if connection error
@@ -69,7 +70,6 @@ final class DatabaseRequestMonitor {
 			req.setDriverVersion(cache.getDriverVersion());
 		}
 		req.emit();
-		req.createStage(CONNECTION, start, end, thw, null).emit();
 	}
 	
 	public ExecutionHandler<Statement> statementStageHandler(String sql) {
