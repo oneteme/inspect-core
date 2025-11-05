@@ -31,11 +31,9 @@ final class DirectoryRequestMonitor {
 	private final DirectoryRequest req = createNamingRequest();
 	
 	public void handleConnection(Instant start, Instant end, DirContext dir, Throwable thw) throws NamingException {
+		req.createStage(CONNECTION, start, end, thw, null).emit(); //before end if thrw
 		req.setThreadName(threadName());
 		req.setStart(start);
-		if(nonNull(thw)) { //if connection error
-			req.setEnd(end);
-		}
 		var url = getEnvironmentVariable(dir, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
 		if(nonNull(url)) {
 			req.setProtocol(url.getScheme());
@@ -46,8 +44,10 @@ final class DirectoryRequestMonitor {
 		if(nonNull(user)) {
 			req.setUser(user);
 		}
+		if(nonNull(thw)) { //if connection error
+			req.setEnd(end);
+		}
 		req.emit();
-		req.createStage(CONNECTION, start, end, thw, null).emit();
 	}
 
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {

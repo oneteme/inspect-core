@@ -48,13 +48,10 @@ final class DatabaseRequestMonitor {
 	private DatabaseCommand mainCommand;
 	private DatabaseRequestStage lastStg; // hold last stage
 	
-	public void handleConnection(Instant start, Instant end, Connection cnx, Throwable thw) throws SQLException {
-		req.createStage(CONNECTION, start, end, thw, null).emit();
+	public void handleConnection(Instant start, Instant end, Connection cnx, Throwable thrw) throws SQLException {
+		req.createStage(CONNECTION, start, end, thrw, null).emit(); //before end if thrw
 		req.setThreadName(threadName());
 		req.setStart(start);
-		if(nonNull(thw)) { //if connection error
-			req.setEnd(end);
-		}
 		if(nonNull(cnx) && !cache.isPresent()) {
 			cache.update(cnx.getMetaData());
 		}
@@ -68,6 +65,9 @@ final class DatabaseRequestMonitor {
 			req.setProductName(cache.getProductName());
 			req.setProductVersion(cache.getProductVersion());
 			req.setDriverVersion(cache.getDriverVersion());
+		}
+		if(nonNull(thrw)) { //if connection error
+			req.setEnd(end);
 		}
 		req.emit();
 	}

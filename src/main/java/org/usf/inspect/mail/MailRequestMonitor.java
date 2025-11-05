@@ -33,10 +33,8 @@ final class MailRequestMonitor {
 	private final Transport trsp;
 
 	public void handleConnection(Instant start, Instant end, Void v, Throwable thw) {
+		req.createStage(CONNECTION, start, end, thw, null).emit(); //before end if thrw
 		req.setStart(start);
-		if(nonNull(thw)) { // if connection error
-			req.setEnd(end);
-		}
 		req.setThreadName(threadName());
 		var url = trsp.getURLName();
 		if(nonNull(url)) {
@@ -45,8 +43,10 @@ final class MailRequestMonitor {
 			req.setPort(url.getPort());
 			req.setUser(url.getUsername());
 		}
+		if(nonNull(thw)) { // if connection error
+			req.setEnd(end);
+		}
 		req.emit();
-		req.createStage(CONNECTION, start, end, thw, null).emit();
 	}
 
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
