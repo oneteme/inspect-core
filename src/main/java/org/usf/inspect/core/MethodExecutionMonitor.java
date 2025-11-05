@@ -52,7 +52,7 @@ public class MethodExecutionMonitor implements Ordered {
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
-			return ses.updateContext();
+			ses.updateContext().emit();
 		});
 		return call(point::proceed, (s,e,o,t)-> {
 			ses.runSynchronized(()-> {
@@ -61,7 +61,7 @@ public class MethodExecutionMonitor implements Ordered {
 				}
 				ses.setEnd(e);
 			});
-			return ses.releaseContext();
+			ses.releaseContext();
 		});
 	}
 

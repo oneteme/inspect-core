@@ -87,10 +87,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		return (s,e,o,t)-> {
 			var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
 			if(nonNull(mnt)) {
-				return mnt.postFilterHandler(isAsyncStarted(request), e, response, t);
+				mnt.postFilterHandler(isAsyncStarted(request), e, response, t);
 			}
 			reportMessage("restSessionListener", null, null);
-			return null;
 		};
 	}
 

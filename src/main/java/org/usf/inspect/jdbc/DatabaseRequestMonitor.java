@@ -48,8 +48,7 @@ final class DatabaseRequestMonitor {
 	private DatabaseCommand mainCommand;
 	private DatabaseRequestStage lastStg; // hold last stage
 	
-	public DatabaseRequest handleConnection(Instant start, Instant end, Connection cnx, Throwable thw) throws SQLException {
-		req.createStage(CONNECTION, start, end, thw, null).emit();
+	public void handleConnection(Instant start, Instant end, Connection cnx, Throwable thw) throws SQLException {
 		req.setThreadName(threadName());
 		req.setStart(start);
 		if(nonNull(thw)) { //if connection error
@@ -69,7 +68,8 @@ final class DatabaseRequestMonitor {
 			req.setProductVersion(cache.getProductVersion());
 			req.setDriverVersion(cache.getDriverVersion());
 		}
-		return req;
+		req.emit();
+		req.createStage(CONNECTION, start, end, thw, null).emit();
 	}
 	
 	public ExecutionHandler<Statement> statementStageHandler(String sql) {
@@ -79,7 +79,7 @@ final class DatabaseRequestMonitor {
 				mainCommand = parseCommand(sql);
 				prepared = true;
 			}
-			return req.createStage(STATEMENT, s, e, t, null); //sql.split.count ?
+			req.createStage(STATEMENT, s, e, t, null).emit(); //sql.split.count ?
 		};
 	}
 
@@ -102,7 +102,6 @@ final class DatabaseRequestMonitor {
 			else {
 				lastStg = req.createStage(BATCH, s, e, t, null, new long[]{1});
 			}
-			return null; //do not emit trace here
 		};
 	}
 	
@@ -169,7 +168,7 @@ final class DatabaseRequestMonitor {
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
-			return lastStg;
+			lastStg.emit();
 		};
 	}
 
@@ -191,10 +190,9 @@ final class DatabaseRequestMonitor {
 		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, null, new long[] {n}); //differed start 
 	}
 	
-	public DatabaseRequest handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
+	public void handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
 		req.createStage(DISCONNECTION, start, end, t, null).emit();
 		req.runSynchronized(()-> req.setEnd(end));
-		return req;
 	}
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, String... args) {
@@ -202,7 +200,7 @@ final class DatabaseRequestMonitor {
 	}
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return (s,e,o,t)-> req.createStage(action, s, e, t, cmd, args);
+		return (s,e,o,t)-> req.createStage(action, s, e, t, cmd, args).emit();
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

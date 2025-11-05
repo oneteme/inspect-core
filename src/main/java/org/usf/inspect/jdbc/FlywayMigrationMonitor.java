@@ -34,16 +34,13 @@ public final class FlywayMigrationMonitor {
 					? stream(fly.getConfiguration().getLocations()).map(Object::toString).collect(joining(","))
 					: formatLocation(Flyway.class.getName(), "migrate"));
 			req.setUser(fly.getConfiguration().getUser());
-			return req;
+			req.emit();
 		});
-		return (s,e,v,t)->{
-			req.runSynchronized(()-> {
+		return (s,e,v,t)-> req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setException(mainCauseException(t));
 				}
 				req.setEnd(now());
 			});
-			return req;
-		};
 	}
 }

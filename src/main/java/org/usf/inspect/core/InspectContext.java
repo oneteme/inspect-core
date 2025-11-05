@@ -74,14 +74,14 @@ public final class InspectContext {
 		}
 	}
 
-	void traceStartupSession(Instant instant) {
+	void traceStartupSession(Instant start) {
 		session = createStartupSession();
 		call(()->{
+			session.setStart(start);
+			session.setThreadName(threadName());
 			session.setType(STARTUP.name());
 			session.setName("main");
-			session.setStart(instant);
-			session.setThreadName(threadName());
-			return session.updateContext();
+			session.updateContext().emit();
 		});
 	}
 
@@ -95,7 +95,7 @@ public final class InspectContext {
 					}
 					session.setEnd(instant);
 				});
-				return session.releaseContext();
+				session.releaseContext();
 			});
 			session = null;
 		}

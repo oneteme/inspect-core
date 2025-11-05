@@ -14,7 +14,6 @@ import org.springframework.web.reactive.function.client.ClientResponse;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpRequestStage;
-import org.usf.inspect.core.RestRequest;
 
 /**
  * 
@@ -28,7 +27,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 	public ExecutionHandler<Object> preProcessHandler(ClientRequest req) {
 		return (s,e,o,t)-> {
 			createStage(PRE_PROCESS, s, e, t).emit(); //emit manually
-			return super.preProcessHandler(s, e, req.method(), req.url(), req.headers(), t);
+			super.preProcessHandler(s, e, req.method(), req.url(), req.headers(), t);
 		};
 	}
 
@@ -36,15 +35,18 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 		var now = now();
 		call(()->{
 			createStage(PROCESS, lastTimestamp, now, thrw).emit(); //emit manually
-			return nonNull(res)
-					? super.postProcessHandler(now, res.statusCode(), res.headers().asHttpHeaders(), thrw)
-					: super.postProcessHandler(now, null, null, thrw);
+			if(nonNull(res)) {
+				super.postProcessHandler(now, res.statusCode(), res.headers().asHttpHeaders(), thrw);
+			}
+			else {
+				super.postProcessHandler(now, null, null, thrw);
+			}
 		});
 	}
 	
-	public RestRequest completeHandler(Instant start, Instant end, ResponseContent cnt, Throwable t) {
+	public void completeHandler(Instant start, Instant end, ResponseContent cnt, Throwable t) {
 		createStage(POST_PROCESS, lastTimestamp, end, t).emit();
-		return super.completeHandler(end, cnt, t);
+		super.completeHandler(end, cnt, t);
 	}
 
 	HttpRequestStage createStage(HttpAction action, Instant start, Instant end, Throwable thrw) {

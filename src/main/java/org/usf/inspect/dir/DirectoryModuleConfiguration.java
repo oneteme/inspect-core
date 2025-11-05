@@ -28,7 +28,7 @@ public class DirectoryModuleConfiguration {
 		return new BeanPostProcessor() {
 			@Override
 			public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-				return bean instanceof ContextSource cs ? wrap(cs) : bean;
+				return bean instanceof ContextSource cs ? wrap(cs, beanName) : bean;
 			}
 		};
 	}

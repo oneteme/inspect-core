@@ -29,8 +29,7 @@ final class FtpRequestMonitor {
 	private final FtpRequest req = createFtpRequest();
 	private final ChannelSftp sftp;
 	
-	public FtpRequest handleConnection(Instant start, Instant end, Void v, Throwable thw) throws JSchException {
-		req.createStage(CONNECTION, start, end, thw, null).emit();
+	public void handleConnection(Instant start, Instant end, Void v, Throwable thw) throws JSchException {
 		req.setThreadName(threadName());
 		req.setStart(start);
 		if(nonNull(thw)) { //if connection error
@@ -45,16 +44,16 @@ final class FtpRequestMonitor {
 			req.setServerVersion(cs.getServerVersion());
 			req.setClientVersion(cs.getClientVersion());
 		}
-		return req;
+		req.emit();
+		req.createStage(CONNECTION, start, end, thw, null).emit();
 	}
 
-	public FtpRequest handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
+	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
 		req.createStage(DISCONNECTION, start, end, thw, null).emit();
 		req.runSynchronized(()-> req.setEnd(end));
-		return req;
 	}
 	
 	<T> ExecutionHandler<T> executeStageHandler(FtpCommand cmd, String... args) {
-		return (s,e,o,t)-> req.createStage(EXECUTE, s, e, t, cmd, args);
+		return (s,e,o,t)-> req.createStage(EXECUTE, s, e, t, cmd, args).emit();
 	}
 }

@@ -1,11 +1,9 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
-import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ErrorReporter.reporter;
 
 import java.time.Instant;
-import java.util.concurrent.Callable;
 
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
@@ -42,22 +40,16 @@ public final class ExecutionMonitor {
 	
 	public static <T> void trigger(ExecutionHandler<T> handler, Instant start, Instant end, T obj, Throwable thrw) {
 		try {
-			var trace = handler.handle(start, end, obj, thrw);
-			if(nonNull(trace)) {
-				trace.emit();
-			}
+			handler.handle(start, end, obj, thrw);
 		}
 		catch (Throwable ex) {// do not throw exception
 			reporter().action("ExecutionMonitor.handle").cause(ex).emit();
 		}
 	}
 	
-	public static void call(Callable<EventTrace> call)  {
+	public static void call(Runnable call)  {
 		try {
-			var trace = call.call();
-			if(nonNull(trace)) {
-				trace.emit();
-			}
+			call.run();
 		}
 		catch (Throwable ex) {// do not throw exception
 			reporter().action("ExecutionMonitor.call").cause(ex).emit();
@@ -67,6 +59,6 @@ public final class ExecutionMonitor {
 	@FunctionalInterface
 	public static interface ExecutionHandler<T> {
 		
-		EventTrace handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception;
+		void handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception;
 	}
 }

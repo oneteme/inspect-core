@@ -33,7 +33,6 @@ public final class MachineResourceMonitor implements DispatchHook {
 //					toMb(meta.getInit()), 
 //					toMb(meta.getMax()),
 					toMb(file.getTotalSpace())));
-			return null;
 		});
 	}
 
@@ -42,12 +41,12 @@ public final class MachineResourceMonitor implements DispatchHook {
 		call(()->{
 			var heap = bean.getHeapMemoryUsage();
 //			var meta = bean.getNonHeapMemoryUsage()
-			return new MachineResourceUsage(now(),
+			new MachineResourceUsage(now(),
 					toMb(heap.getUsed()), 
 					toMb(heap.getCommitted()), 
 //					toMb(meta.getUsed()), 
 //					toMb(meta.getCommitted()),
-					toMb(file.getTotalSpace() - file.getUsableSpace())); // used space
+					toMb(file.getTotalSpace() - file.getUsableSpace())).emit(); // used space
 		});
 	}
 

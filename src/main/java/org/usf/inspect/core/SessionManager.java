@@ -157,17 +157,14 @@ public final class SessionManager {
 			req.setType(type.name());
 			req.setName(nameSupp.get());
 			req.setLocation(locationSupp.get());
-			return req;
+			req.emit();
 		});
-		return (s,e,o,t)->{
-			req.runSynchronized(()-> {
+		return (s,e,o,t)-> req.runSynchronized(()-> {
 				if(nonNull(t)) {
 					req.setException(fromException(t));
 				}
 				req.setEnd(e);
 			});
-			return req;
-		};
 	}
 
 	public static RestSession createRestSession() {

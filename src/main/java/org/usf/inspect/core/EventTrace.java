@@ -24,5 +24,4 @@ public interface EventTrace {
 			reporter().action("EventTrace.emit").trace(this).cause(ex).emit();
 		}
 	}
-	
 }

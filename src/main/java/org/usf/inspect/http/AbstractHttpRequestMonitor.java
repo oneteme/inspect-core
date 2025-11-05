@@ -32,7 +32,7 @@ class AbstractHttpRequestMonitor {
 	@Getter
 	final RestRequest request = createHttpRequest();
 
-	RestRequest preProcessHandler(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
+	void preProcessHandler(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
 		request.setStart(start);
 		request.setThreadName(threadName());
 		request.setMethod(method.name());
@@ -44,10 +44,10 @@ class AbstractHttpRequestMonitor {
 		if(nonNull(thrw)) { //thrw -> stage
 			request.setEnd(end);
 		}
-		return request;
+		request.emit();
 	}
 	
-	RestRequest postProcessHandler(Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
+	void postProcessHandler(Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 		request.runSynchronized(()->{
 			request.setThreadName(threadName()); //deferred thread
 			if(nonNull(status)) {
@@ -62,10 +62,9 @@ class AbstractHttpRequestMonitor {
 				request.setEnd(end);
 			}
 		});
-		return nonNull(thrw) ? request : null;
 	}
 	
-	RestRequest completeHandler(Instant end, ResponseContent cnt, Throwable t){
+	void completeHandler(Instant end, ResponseContent cnt, Throwable t){
 		request.runSynchronized(()->{
 			if(nonNull(cnt)) {
 				if(nonNull(cnt.contentBytes())) {
@@ -78,7 +77,6 @@ class AbstractHttpRequestMonitor {
 			}
 			request.setEnd(end);
 		});
-		return request;
 	}
 
 	boolean assertSameID(String sessionID) {

@@ -34,13 +34,13 @@ public final class EventTraceQueueManager {
 		dequeue(q->{
 			var mdf = new ArrayList<>(q);
 			var mrk = delay < 0 ? MIN : now().minusSeconds(delay);  // 0: takes all, -1: completed only, 
-			var kpt = new LinkedHashSet<EventTrace>();
-			var pnd = extractPendingTraces(mdf, mrk, kpt);
+			var ltr = new LinkedHashSet<EventTrace>();
+			var pnd = extractPendingTraces(mdf, mrk, ltr);
 			var rtr = cons.accept(mdf, pnd); //may contains traces copy
 			if(nonNull(rtr)) {
-				kpt.addAll(rtr);
+				ltr.addAll(rtr);
 			}
-			return kpt; // requeue kept & returned traces
+			return ltr; // requeue kept & returned traces
 		});
 	}
 	
@@ -61,7 +61,7 @@ public final class EventTraceQueueManager {
 		}
 	}
 
-	int extractPendingTraces(List<EventTrace> queue, Instant mark, Collection<EventTrace> kept) {
+	int extractPendingTraces(List<EventTrace> queue, Instant mark, Collection<EventTrace> later) {
 		var n = new int[1];
 		for(var it=queue.listIterator(); it.hasNext();) {
 			if(it.next() instanceof CompletableMetric trc) {
@@ -70,12 +70,13 @@ public final class EventTraceQueueManager {
 					if(trc.getStart().isBefore(mark)) {
 						if(modifiable) {
 							it.set(trc.copy()); //create copy, avoid dispatch same reference
+							later.add(trc);
 						} //else keep original trace
 						log.trace("completable trace pending since {}, dequeued: {}", trc.getStart(), trc);
 					}
 					else {
-						kept.add(trc);
 						it.remove();
+						later.add(trc);
 						log.trace("completable trace pending since {}, kept in queue: {}", trc.getStart(), trc);
 					}
 				});

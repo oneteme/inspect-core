@@ -61,7 +61,7 @@ public final class HttpSessionMonitor {
 			session.setInDataSize(req.getContentLength());
 			session.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
 			session.setUserAgent(req.getHeader(USER_AGENT));
-			return session.updateContext();
+			session.updateContext().emit();
 		});
 	}
 	
@@ -83,7 +83,6 @@ public final class HttpSessionMonitor {
 					session.setException(fromException(thrw));
 				}
 			});
-			return null; //do not emit session
 		});
 	}
 	

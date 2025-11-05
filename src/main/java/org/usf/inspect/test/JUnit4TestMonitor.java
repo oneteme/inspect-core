@@ -25,12 +25,13 @@ public final class JUnit4TestMonitor implements TestRule {
 		return new Statement() {
 			@Override
 			public void evaluate() throws Throwable {
+				var now = now();
 				call(()->{
+					main.setStart(now);
 					main.setThreadName(threadName());
-					main.setStart(now());
 					main.setName(description.getDisplayName());
 					main.setLocation(description.getClassName(), description.getMethodName());
-					return main.updateContext();
+					main.updateContext().emit();
 				});
 				exec(base::evaluate, (s,e,m,t)-> {
 					main.runSynchronized(()-> {
@@ -39,7 +40,7 @@ public final class JUnit4TestMonitor implements TestRule {
 						}
 						main.setEnd(e);
 					});
-					return main.releaseContext();
+					main.releaseContext();
 				});
 			}
 		};

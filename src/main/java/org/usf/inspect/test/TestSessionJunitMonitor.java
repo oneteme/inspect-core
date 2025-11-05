@@ -22,12 +22,13 @@ public final class TestSessionJunitMonitor {
 	final MainSession main = createTestSession();
 	
 	public void preProcess(ExtensionContext context){
+		var now = now();
 		call(()->{
-			main.setStart(now());
+			main.setStart(now);
 			main.setThreadName(threadName());
 			main.setName(context.getDisplayName());
 			main.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
-			return main.updateContext();
+			main.updateContext().emit();
 		});
 	}
 	
@@ -40,7 +41,7 @@ public final class TestSessionJunitMonitor {
 					.ifPresent(main::setException);
 				main.setEnd(now);
 			});
-			return main.releaseContext();
+			main.releaseContext();
 		});
 	}
 }
