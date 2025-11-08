@@ -29,8 +29,8 @@ final class FtpRequestMonitor {
 	private final FtpRequest req = createFtpRequest();
 	private final ChannelSftp sftp;
 	
-	public void handleConnection(Instant start, Instant end, Void v, Throwable thw) throws JSchException {
-		req.createStage(CONNECTION, start, end, thw, null).emit(); //before end if thrw
+	public void handleConnection(Instant start, Instant end, Void v, Throwable thrw) throws JSchException {
+		req.createStage(CONNECTION, start, end, thrw, null).emit(); //before end if thrw
 		req.setThreadName(threadName());
 		req.setStart(start);
 		req.setProtocol("sftp");
@@ -42,7 +42,7 @@ final class FtpRequestMonitor {
 			req.setServerVersion(cs.getServerVersion());
 			req.setClientVersion(cs.getClientVersion());
 		}
-		if(nonNull(thw)) { //if connection error
+		if(nonNull(thrw)) { //if connection error
 			req.setEnd(end);
 		}
 		req.emit();

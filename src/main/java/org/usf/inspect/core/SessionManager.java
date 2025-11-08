@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.lang.String.format;
 import static java.time.Instant.now;
-import static java.util.Map.entry;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
@@ -26,8 +25,7 @@ import static org.usf.inspect.core.RequestMask.LOCAL;
 import static org.usf.inspect.core.RequestMask.REST;
 import static org.usf.inspect.core.RequestMask.SMTP;
 
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
@@ -45,8 +43,62 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionManager {
 
-	private static final ThreadLocal<Entry<AbstractSession, AtomicInteger>> localTrace = new InheritableThreadLocal<>();
+	private static final ThreadLocal<AbstractSession> localTrace = new InheritableThreadLocal<>();
 	private static MainSession startupSession; //avoid setting startup session on all thread local
+	
+    public static Runnable aroundRunnable(Runnable cmd) {
+    	var ses = requireCurrentSession();
+		return nonNull(ses) ? runWithContext(cmd, ses) : cmd;
+    }
+
+    public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
+    	var ses = requireCurrentSession();
+		return nonNull(ses) ? callWithContext(cmd, ses) : cmd;
+    }
+	
+	static Runnable runWithContext(Runnable cmd, AbstractSession session) {
+		return ()->{
+			var prv = currentSession();
+			if(prv != session) {
+				session.updateContext();
+			}
+			session.runSynchronized(session::lock);
+			try {
+				cmd.run();
+			}
+			finally {
+				if(prv != session) {
+					session.releaseContext();
+					if(nonNull(prv)) {
+						prv.updateContext();
+					}
+				}
+				session.runSynchronized(session::unlock);
+			}	
+		};
+	}
+	
+	static <T> Callable<T> callWithContext(Callable<T> cmd, AbstractSession session) {
+		return ()-> {
+			var prv = currentSession();
+			if(prv != session) {
+				session.updateContext();
+			}
+			session.runSynchronized(session::lock);
+			try {
+				return cmd.call();
+			}
+			finally {
+				if(prv != session) {
+					session.releaseContext();
+					if(nonNull(prv)) {
+						prv.updateContext();
+					}
+				}
+				session.runSynchronized(session::unlock);
+			}	
+		};
+	}
 
 	public static <S extends AbstractSession> S requireCurrentSession(Class<S> clazz) {
 		var ses = requireCurrentSession();
@@ -72,40 +124,24 @@ public final class SessionManager {
 	}
 
 	public static AbstractSession currentSession() {
-		var entry = localTrace.get();
-		return nonNull(entry) ? entry.getKey() : startupSession; // priority
+		var trc = localTrace.get();
+		return nonNull(trc) ? trc : startupSession; // priority
 	}
 	
 	static void setCurrentSession(AbstractSession session) {
-		var entry = localTrace.get();
-		if(isNull(entry)) {
-			localTrace.set(entry(session, new AtomicInteger(1)));
-		}
-		else {
-			var prv = entry.getKey();
-			if(prv == session) {
-				entry.getValue().incrementAndGet();
-			}
-			else {
-				if(!prv.wasCompleted()) {
-					reportSessionConflict("setCurrentSession", prv.getId(), session.getId());
-				}
-				localTrace.set(entry(session, new AtomicInteger(1)));
-			}
+		var prv = localTrace.get();
+		if(prv != session) {
+			localTrace.set(session);
 		}
 	}
 	
 	static void releaseSession(AbstractSession session) {
-		var entry = localTrace.get();
-		if(nonNull(entry)) {
-			if(entry.getKey() == session) {
-				if(entry.getValue().decrementAndGet() == 0) {
-					localTrace.remove();
-				}
-			}
-			else {
-				reportSessionConflict("releaseSession", entry.getKey().getId(), session.getId());
-			}
+		var prv = localTrace.get();
+		if(prv == session) {
+			localTrace.remove();
+		}
+		else if(nonNull(prv)) {
+			reportSessionConflict("releaseSession", prv.getId(), session.getId());
 		}
 		else {
 			reportNoActiveSession("releaseSession", session);
@@ -166,7 +202,7 @@ public final class SessionManager {
 				req.setEnd(e);
 			});
 	}
-
+	
 	public static RestSession createRestSession() {
 		return createRestSession(nextId());
 	}
@@ -256,14 +292,14 @@ public final class SessionManager {
 	}
 
 	static void reportSessionConflict(String action, String prev, String next) {
-		reporter().action(action).message(format("previous=%s, next=%s ~%s", prev, next, threadName())).emit();
+		reporter().action(action).message(format("previous=%s, next=%s", prev, next)).thread().emit();
 	}
 
 	static void reportNoActiveSession(String action, AbstractSession session) {
-		reporter().action(action).message("no active session ~" + threadName()).trace(session).emit();
+		reporter().action(action).message("no active session").trace(session).thread().emit();
 	}
 	
 	static void reportIllegalSessionState(String action, String msg, AbstractSession session) {
-		reporter().action(action).message(msg).trace(session).emit();
+		reporter().action(action).message(msg).trace(session).thread().emit();
 	}
 }

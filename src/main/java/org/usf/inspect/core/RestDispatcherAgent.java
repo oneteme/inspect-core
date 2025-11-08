@@ -15,6 +15,7 @@ import static org.usf.inspect.core.ErrorReporter.reportError;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
@@ -24,6 +25,7 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -152,17 +154,16 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 			} catch (IOException ioe) {/*ignore this exception */}
 			return false;
 		}
-		return true;
+		return !(e instanceof ResourceAccessException rae && rae.getCause() instanceof SocketTimeoutException); //avoid trace twice;
 	}
 
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper) {
 		var json = new MappingJackson2HttpMessageConverter(mapper);
 		var plain = new StringHttpMessageConverter(); //for instanceID
-		var timeout = ofSeconds(600); //wait for server startup 
 		var rt = new RestTemplateBuilder()
 				.messageConverters(json, plain) //minimum converters
-				.setConnectTimeout(timeout)
-				.setReadTimeout(timeout)
+				.setConnectTimeout(ofSeconds(30))
+				.setReadTimeout(ofSeconds(60))
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties));

@@ -20,7 +20,7 @@ import org.springframework.http.client.ClientHttpResponse;
 final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 	
 	public void preProcess(HttpRequest request) {
-		var start = now();
+		var start = now(); //no pre-process stage
 		call(()-> super.preProcessHandler(start, start, request.getMethod(), request.getURI(), request.getHeaders(), null));
 	}
 

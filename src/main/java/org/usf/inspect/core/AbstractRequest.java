@@ -22,7 +22,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@JsonIgnoreProperties("stageCounter")
+@JsonIgnoreProperties("stages")
 public abstract class AbstractRequest implements CompletableMetric {
 	
 	private Instant start;
@@ -35,7 +35,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 	private String sessionId;
 	private String instanceId; //server usage 
 	@JsonIgnore
-	private final AtomicInteger stageCounter = new AtomicInteger();
+	private final AtomicInteger stages = new AtomicInteger();
 	
 	AbstractRequest(AbstractRequest req) {
 		this.start = req.start;
@@ -50,7 +50,7 @@ public abstract class AbstractRequest implements CompletableMetric {
 	
 	<T extends AbstractStage> T createStage(Enum<?> type, Instant start, Instant end, Enum<?> command, Throwable t, Supplier<T> supp) {
 		assertWasNotCompleted();
-		var idx = stageCounter.getAndIncrement();
+		var idx = stages.getAndIncrement();
 		var stg = supp.get();
 		stg.setName(type.name());
 		stg.setStart(start);

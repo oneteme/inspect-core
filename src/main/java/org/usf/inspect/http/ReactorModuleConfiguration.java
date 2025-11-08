@@ -1,10 +1,7 @@
 package org.usf.inspect.http;
 
-import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
-import static org.usf.inspect.core.SessionManager.requireCurrentSession;
-import static reactor.core.publisher.Hooks.onEachOperator;
-import static reactor.core.publisher.Operators.lift;
+import static reactor.core.scheduler.Schedulers.onScheduleHook;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,6 +9,7 @@ import org.springframework.boot.web.reactive.function.client.WebClientCustomizer
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.usf.inspect.core.SessionManager;
 
 /**
  * 
@@ -23,12 +21,8 @@ import org.springframework.context.annotation.DependsOn;
 @ConditionalOnProperty(prefix = "inspect.collector", name = "enabled", havingValue = "true")
 public class ReactorModuleConfiguration {
 	
-	ReactorModuleConfiguration() {
-		logRegistringBean("reactorHook", CoreSubscriberProxy.class);
-		onEachOperator("inspect-reactor", lift((scn,sub)-> {
-				var ses = requireCurrentSession();
-				return nonNull(ses) ? new CoreSubscriberProxy<>(sub, ses) : sub;
-			}));
+	static {
+		onScheduleHook("inspect-hook", SessionManager::aroundRunnable);
 	}
 
     @Bean

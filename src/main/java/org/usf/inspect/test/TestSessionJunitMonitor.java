@@ -21,7 +21,7 @@ public final class TestSessionJunitMonitor {
 	@Getter
 	final MainSession main = createTestSession();
 	
-	public void preProcess(ExtensionContext context){
+	public TestSessionJunitMonitor preProcess(ExtensionContext context){
 		var now = now();
 		call(()->{
 			main.setStart(now);
@@ -30,9 +30,10 @@ public final class TestSessionJunitMonitor {
 			main.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			main.updateContext().emit();
 		});
+		return this;
 	}
 	
-	public void postProcess(ExtensionContext context){
+	public TestSessionJunitMonitor postProcess(ExtensionContext context){
 		var now = now();
 		call(()->{
 			main.runSynchronized(()->{
@@ -43,5 +44,6 @@ public final class TestSessionJunitMonitor {
 			});
 			main.releaseContext();
 		});
+		return this;
 	}
 }

@@ -47,9 +47,9 @@ public class DatabaseRequest extends AbstractRequest {
 	}
 	
 	public DatabaseRequestStage createStage(DatabaseAction type, Instant start, Instant end, Throwable thrw, DatabaseCommand cmd, long[] count) {
-		var req = createStage(type, start, end, thrw, cmd);
-		req.setCount(count);
-		return req;
+		var stg = createStage(type, start, end, thrw, cmd);
+		stg.setCount(count);
+		return stg;
 	}
 		
 	public DatabaseRequestStage createStage(DatabaseAction type, Instant start, Instant end, Throwable thrw, DatabaseCommand cmd, String... args) {

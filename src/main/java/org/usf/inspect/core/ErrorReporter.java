@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
@@ -8,12 +9,18 @@ import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ErrorReporter {
 
 	private final boolean stack;
 	private String action;
 	private String message;
+	private String thread;
 	private EventTrace trace;
 	private Throwable cause;
 
@@ -24,6 +31,11 @@ public final class ErrorReporter {
 
 	public ErrorReporter message(String message) {
 		this.message = message;
+		return this;
+	}
+
+	public ErrorReporter thread() {
+		this.thread = threadName();
 		return this;
 	}
 
@@ -51,6 +63,9 @@ public final class ErrorReporter {
 		if(nonNull(message)) {
 			sb.append(", message=").append(message);
 		}
+		if(nonNull(thread)) {
+			sb.append(", thread=").append(thread);
+		}
 		if(nonNull(trace)) {
 			sb.append(", trace=").append(trace);
 		}
@@ -66,10 +81,10 @@ public final class ErrorReporter {
 	}
 
 	public static void reportError(String action, EventTrace trace, Throwable cause) {
-		new ErrorReporter(false).action(action).trace(trace).cause(cause).emit();
+		new ErrorReporter(false).action(action).trace(trace).cause(cause).thread().emit();
 	}
 
 	public static void reportMessage(String action, EventTrace trace, String message) {
-		new ErrorReporter(false).action(action).trace(trace).message(message).emit();
+		new ErrorReporter(false).action(action).trace(trace).message(message).thread().emit();
 	}
 }

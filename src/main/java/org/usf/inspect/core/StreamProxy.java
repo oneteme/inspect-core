@@ -32,7 +32,7 @@ public final class StreamProxy {
 		if(context().getConfiguration().isEnabled()){
 			var ses = requireCurrentSession();
 			if(nonNull(ses)) {
-				return stream.parallel().map(c-> {
+				stream = stream.parallel().map(c-> {
 					ses.updateContext();
 					return c;
 				});

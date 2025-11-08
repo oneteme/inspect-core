@@ -70,7 +70,7 @@ public final class EventTraceQueueManager {
 					if(trc.getStart().isBefore(mark)) {
 						if(modifiable) {
 							it.set(trc.copy()); //create copy, avoid dispatch same reference
-							later.add(trc);
+							later.add(trc); //collector only !server
 						} //else keep original trace
 						log.trace("completable trace pending since {}, dequeued: {}", trc.getStart(), trc);
 					}

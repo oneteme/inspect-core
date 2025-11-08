@@ -78,17 +78,7 @@ public class RestSession extends AbstractSession {
 				.withPeriod(getStart(), getEnd())
 				.format();
 	}
-
-	@Override
-	public boolean equals(Object obj) {
-		return CompletableMetric.areEquals(this, obj);
-	}
-
-	@Override
-	public int hashCode() {
-		return CompletableMetric.hashCodeOf(this);
-	}
-
+	
 	@Override
 	public String getId() {
 		return rest.getId();
@@ -102,5 +92,15 @@ public class RestSession extends AbstractSession {
 	@Override
 	public Instant getEnd() {
 		return rest.getEnd();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return CompletableMetric.areEquals(this, obj);
+	}
+
+	@Override
+	public int hashCode() {
+		return CompletableMetric.hashCodeOf(this);
 	}
 }

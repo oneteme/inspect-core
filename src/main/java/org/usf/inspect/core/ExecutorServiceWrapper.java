@@ -1,10 +1,10 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.SessionManager.requireCurrentSession;
+import static org.usf.inspect.core.SessionManager.aroundCallable;
+import static org.usf.inspect.core.SessionManager.aroundRunnable;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -47,34 +47,8 @@ public final class ExecutorServiceWrapper implements ExecutorService {
 	public void execute(Runnable command) {
 		es.execute(aroundRunnable(command));
 	}
-	
-    public static Runnable aroundRunnable(Runnable command) {
-    	var ses = requireCurrentSession();
-		return nonNull(ses) ? ()->{
-			ses.updateContext();
-	    	try {
-		    	command.run();
-	    	}
-	    	finally {// session cleanup is guaranteed even if the task is cancelled / interrupted.
-				ses.releaseContext();
-	    	}
-		} : command;
-    }
 
-    public static <T> Callable<T> aroundCallable(Callable<T> command) {
-    	var session = requireCurrentSession();
-		return nonNull(session) ? ()->{
-			session.updateContext();
-	    	try {
-	    		return command.call();
-	    	}
-	    	finally {// session cleanup is guaranteed even if the task is cancelled/interrupted.
-				session.releaseContext();
-	    	}
-		} : command;
-    }
-
-	public static ExecutorService wrap(@NonNull ExecutorService es) {
+	public static ExecutorService wrap(ExecutorService es) {
 		return wrap(es, null);
 	}
     

@@ -34,15 +34,14 @@ final class DirectoryRequestMonitor {
 		req.createStage(CONNECTION, start, end, thw, null).emit(); //before end if thrw
 		req.setThreadName(threadName());
 		req.setStart(start);
-		var url = getEnvironmentVariable(dir, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
-		if(nonNull(url)) {
-			req.setProtocol(url.getScheme());
-			req.setHost(url.getHost());
-			req.setPort(url.getPort());
-		}
-		var user = getEnvironmentVariable(dir, "java.naming.security.principal", Object::toString); //broke context dependency
-		if(nonNull(user)) {
-			req.setUser(user);
+		if(nonNull(dir)) {
+			var url = getEnvironmentVariable(dir, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
+			if(nonNull(url)) {
+				req.setProtocol(url.getScheme());
+				req.setHost(url.getHost());
+				req.setPort(url.getPort());
+			}
+			req.setUser(getEnvironmentVariable(dir, "java.naming.security.principal", Object::toString));  //broke context dependency
 		}
 		if(nonNull(thw)) { //if connection error
 			req.setEnd(end);
