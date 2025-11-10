@@ -16,7 +16,6 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@JsonIgnoreProperties("threads")
 public abstract class AbstractSession implements CompletableMetric {
 	
 	private final AtomicInteger tasks;
