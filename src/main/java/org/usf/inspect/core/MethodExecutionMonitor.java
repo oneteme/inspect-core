@@ -10,9 +10,9 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LocalRequest.formatLocation;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.SessionManager.asynclocalRequestListener;
 import static org.usf.inspect.core.SessionManager.createBatchSession;
 import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.core.SessionManager.localRequestHandler;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -55,7 +55,8 @@ public class MethodExecutionMonitor implements Ordered {
 			ses.updateContext().emit();
 		});
 		return call(point::proceed, (s,e,o,t)-> {
-			ses.runSynchronized(()-> {
+			ses.runSynchronized(()-> { 
+				ses.setStart(s);
 				if(nonNull(t)) {
 					ses.setException(fromException(t));
 				}
@@ -66,16 +67,18 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundStage(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, asynclocalRequestListener(EXEC, 
+		return call(point::proceed, localRequestHandler(EXEC, 
+				()-> resolveStageName(point),
 				()-> locationFrom(point),
-				()-> resolveStageName(point)));
+				()-> null));
 	}
 
 	@Around("@annotation(org.springframework.cache.annotation.Cacheable)")
 	Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, asynclocalRequestListener(CACHE, 
+		return call(point::proceed, localRequestHandler(CACHE, 
+				()-> getCacheableName(point),
 				()-> locationFrom(point),
-				()-> getCacheableName(point)));
+				()-> null));
 	}
 
 	@Override

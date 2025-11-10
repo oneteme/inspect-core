@@ -25,9 +25,8 @@ public final class JUnit4TestMonitor implements TestRule {
 		return new Statement() {
 			@Override
 			public void evaluate() throws Throwable {
-				var now = now();
 				call(()->{
-					main.setStart(now);
+					main.setStart(now());
 					main.setThreadName(threadName());
 					main.setName(description.getDisplayName());
 					main.setLocation(description.getClassName(), description.getMethodName());
@@ -35,6 +34,7 @@ public final class JUnit4TestMonitor implements TestRule {
 				});
 				exec(base::evaluate, (s,e,m,t)-> {
 					main.runSynchronized(()-> {
+						main.setStart(s);
 						if(nonNull(t)) {
 							main.setException(fromException(t));
 						}

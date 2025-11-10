@@ -57,45 +57,45 @@ public final class SessionManager {
     }
 	
 	static Runnable runWithContext(Runnable cmd, AbstractSession session) {
+		session.runSynchronized(session::lock);
 		return ()->{
 			var prv = currentSession();
 			if(prv != session) {
 				session.updateContext();
 			}
-			session.runSynchronized(session::lock);
 			try {
 				cmd.run();
 			}
 			finally {
+				session.runSynchronized(session::unlock);
 				if(prv != session) {
 					session.releaseContext();
 					if(nonNull(prv)) {
 						prv.updateContext();
 					}
 				}
-				session.runSynchronized(session::unlock);
 			}	
 		};
 	}
 	
 	static <T> Callable<T> callWithContext(Callable<T> cmd, AbstractSession session) {
+		session.runSynchronized(session::lock);
 		return ()-> {
 			var prv = currentSession();
 			if(prv != session) {
 				session.updateContext();
 			}
-			session.runSynchronized(session::lock);
 			try {
 				return cmd.call();
 			}
 			finally {
+				session.runSynchronized(session::unlock);
 				if(prv != session) {
 					session.releaseContext();
 					if(nonNull(prv)) {
 						prv.updateContext();
 					}
 				}
-				session.runSynchronized(session::unlock);
 			}	
 		};
 	}
@@ -179,28 +179,30 @@ public final class SessionManager {
 
 	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		var ste = outerStackTraceElement();
-		return call(fn, asynclocalRequestListener(type, 
-				()-> ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse("?"), 
-				()-> nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse("?")));
+		return call(fn, localRequestHandler(type, 
+				()-> nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse(null),
+				()-> ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse(null), 
+				()-> null));
 	}
 
-	static <T> ExecutionHandler<T> asynclocalRequestListener(LocalRequestType type, Supplier<String> locationSupp, Supplier<String> nameSupp) {
-		var now = now();
+	public static <T> ExecutionHandler<T> localRequestHandler(LocalRequestType type, Supplier<String> nameSupp, Supplier<String> locationSupp, Supplier<String> userSupp) {
 		var req = createLocalRequest();
 		call(()->{
-			req.setStart(now);
+			req.setStart(now());
 			req.setThreadName(threadName());
 			req.setType(type.name());
 			req.setName(nameSupp.get());
 			req.setLocation(locationSupp.get());
+			req.setUser(userSupp.get());
 			req.emit();
 		});
 		return (s,e,o,t)-> req.runSynchronized(()-> {
-				if(nonNull(t)) {
-					req.setException(fromException(t));
-				}
-				req.setEnd(e);
-			});
+			req.setStart(s);
+			if(nonNull(t)) {
+				req.setException(fromException(t));
+			}
+			req.setEnd(e);
+		});
 	}
 	
 	public static RestSession createRestSession() {
