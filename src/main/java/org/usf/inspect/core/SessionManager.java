@@ -55,6 +55,11 @@ public final class SessionManager {
     	var ses = requireCurrentSession();
 		return nonNull(ses) ? callWithContext(cmd, ses) : cmd;
     }
+    
+    public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
+    	var ses = requireCurrentSession();
+		return nonNull(ses) ? supplyWithContext(cmd, ses) : cmd;
+    }
 	
 	static Runnable runWithContext(Runnable cmd, AbstractSession session) {
 		session.runSynchronized(session::lock);
@@ -99,6 +104,29 @@ public final class SessionManager {
 			}	
 		};
 	}
+	
+	static <T> Supplier<T> supplyWithContext(Supplier<T> cmd, AbstractSession session) {
+		session.runSynchronized(session::lock);
+		return ()-> {
+			var prv = currentSession();
+			if(prv != session) {
+				session.updateContext();
+			}
+			try {
+				return cmd.get();
+			}
+			finally {
+				session.runSynchronized(session::unlock);
+				if(prv != session) {
+					session.releaseContext();
+					if(nonNull(prv)) {
+						prv.updateContext();
+					}
+				}
+			}	
+		};
+	}
+	
 
 	public static <S extends AbstractSession> S requireCurrentSession(Class<S> clazz) {
 		var ses = requireCurrentSession();
@@ -116,10 +144,10 @@ public final class SessionManager {
 		if(isNull(ses)) {
 			reportNoActiveSession("requireCurrentSession", null);
 		}
-//		else if(ses.wasCompleted()){ async session
-//			reportIllegalSessionState("current session was already completed", ses)
-//			ses = null;
-//		}
+		else if(ses.wasCompleted()){
+			reportIllegalSessionState("requireCurrentSession", "current session was already completed", ses);
+			ses = null;
+		}
 		return ses;
 	}
 

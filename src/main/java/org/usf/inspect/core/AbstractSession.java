@@ -4,8 +4,6 @@ import static org.usf.inspect.core.ErrorReporter.reportMessage;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import lombok.Getter;
 import lombok.Setter;
 
