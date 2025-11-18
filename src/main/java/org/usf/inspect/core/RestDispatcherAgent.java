@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.lang.Math.min;
 import static java.time.Duration.ofSeconds;
 import static java.time.Instant.now;
 import static java.util.Collections.emptyList;
@@ -63,16 +62,13 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	public List<EventTrace> dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces)  {
 		assertInstanceRegistred();
 		try {
-			if(complete || properties.getPacketSize() == 0 || traces.size() < properties.getPacketSize()) {
-				var uri = fromUriString(properties.getTracesURI())
-						.queryParam("attempts", attempts)
-						.queryParam("pending", pending)
-						.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
-						.buildAndExpand(instance.getId()).toUri();
-				template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
-				return emptyList(); //no partial dispatch
-			}
-			return disptachSplitor(traces, attempts, pending);
+			var uri = fromUriString(properties.getTracesURI())
+					.queryParam("attempts", attempts)
+					.queryParam("pending", pending)
+					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
+					.buildAndExpand(instance.getId()).toUri();
+			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
+			return emptyList(); //no partial dispatch
 		}
 		catch (RestClientException e) { //server / client ?
 			if(shouldRetry(e)) {
@@ -82,30 +78,6 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 		}
 	}
 	
-	List<EventTrace> disptachSplitor(List<EventTrace> traces, int attempts, int pending) {
-		int idx = 0;
-		while(idx < traces.size()) {
-			var sub = traces.subList(idx, min(idx+properties.getPacketSize(), traces.size()));
-			try {
-				var uri = fromUriString(properties.getTracesURI())
-						.queryParam("attempts", attempts)
-						.queryParam("pending", pending)
-						.buildAndExpand(instance.getId()).toUri();
-				template.put(uri, sub.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
-				idx += sub.size();
-				attempts = 1; pending = 0; //reset after first dispatch
-			}
-			catch (Exception e) {
-				if(idx > 0) {//partial dispatch
-					log.warn("partially dispatched {} traces, ex={}", idx, e.getMessage());
-					return traces.subList(idx, traces.size());
-				}
-				throw e;
-			}
-		}
-		return emptyList();
-	}
-
 	@Override
 	public void dispatch(int attempts, File dumpFile) {
 		assertInstanceRegistred();
@@ -152,9 +124,15 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					return true;
 				}
 			} catch (IOException ioe) {/*ignore this exception */}
+			reportError("RestDispatcherAgent.shouldRetry", null, e);
 			return false;
 		}
-		return !(e instanceof ResourceAccessException rae && rae.getCause() instanceof SocketTimeoutException); //avoid trace twice;
+		else if(e instanceof ResourceAccessException rae && rae.getCause() instanceof SocketTimeoutException) {
+			reportError("RestDispatcherAgent.shouldRetry", null, e);
+			return false; //timeout should not be retried
+		}
+		log.warn("bad request : {}", e.getMessage());
+		return true;
 	}
 
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper) {

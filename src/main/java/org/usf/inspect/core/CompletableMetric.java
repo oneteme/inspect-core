@@ -22,13 +22,13 @@ public interface CompletableMetric extends Metric {
 	}
 	
 	default void runSynchronized(Runnable r) {
-		synchronized (this) {
+		synchronized(this) {
 			r.run();
 		}
 	}
 	
 	default void runSynchronizedIfNotComplete(Runnable r) {
-		synchronized (this) {
+		synchronized(this) {
 			if(!wasCompleted()) {
 				r.run();
 			}

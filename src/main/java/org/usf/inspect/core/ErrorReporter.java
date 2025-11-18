@@ -50,7 +50,7 @@ public final class ErrorReporter {
 	}
 
 	public void emit() {
-		var stk = stack && context().getConfiguration().isDebugMode() ? -1 : 0;
+		var stk = stack || context().getConfiguration().isDebugMode() ? -1 : 0;
 		logEntry(ERROR, toString(), stk).emit();
 	}
 
@@ -77,7 +77,7 @@ public final class ErrorReporter {
 	}
 
 	public static ErrorReporter reporter(){
-		return new ErrorReporter(true);
+		return new ErrorReporter(true).thread();
 	}
 
 	public static void reportError(String action, EventTrace trace, Throwable cause) {
