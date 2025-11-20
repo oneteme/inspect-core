@@ -48,86 +48,19 @@ public final class SessionManager {
 	
     public static Runnable aroundRunnable(Runnable cmd) {
     	var ses = requireCurrentSession();
-		return nonNull(ses) ? runWithContext(cmd, ses) : cmd;
+		return nonNull(ses) ? ses.createContext().aroundRunnable(cmd) : cmd;
     }
 
     public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
     	var ses = requireCurrentSession();
-		return nonNull(ses) ? callWithContext(cmd, ses) : cmd;
+		return nonNull(ses) ? ses.createContext().aroundCallable(cmd) : cmd;
     }
     
     public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
     	var ses = requireCurrentSession();
-		return nonNull(ses) ? supplyWithContext(cmd, ses) : cmd;
+		return nonNull(ses) ? ses.createContext().aroundSupplier(cmd) : cmd;
     }
 	
-	static Runnable runWithContext(Runnable cmd, AbstractSession session) {
-		session.runSynchronized(session::lock);
-		return ()->{
-			var prv = currentSession();
-			if(prv != session) {
-				session.updateContext();
-			}
-			try {
-				cmd.run();
-			}
-			finally {
-				session.runSynchronized(session::unlock);
-				if(prv != session) {
-					session.releaseContext();
-					if(nonNull(prv)) {
-						prv.updateContext();
-					}
-				}
-			}	
-		};
-	}
-	
-	static <T> Callable<T> callWithContext(Callable<T> cmd, AbstractSession session) {
-		session.runSynchronized(session::lock);
-		return ()-> {
-			var prv = currentSession();
-			if(prv != session) {
-				session.updateContext();
-			}
-			try {
-				return cmd.call();
-			}
-			finally {
-				session.runSynchronized(session::unlock);
-				if(prv != session) {
-					session.releaseContext();
-					if(nonNull(prv)) {
-						prv.updateContext();
-					}
-				}
-			}	
-		};
-	}
-	
-	static <T> Supplier<T> supplyWithContext(Supplier<T> cmd, AbstractSession session) {
-		session.runSynchronized(session::lock);
-		return ()-> {
-			var prv = currentSession();
-			if(prv != session) {
-				session.updateContext();
-			}
-			try {
-				return cmd.get();
-			}
-			finally {
-				session.runSynchronized(session::unlock);
-				if(prv != session) {
-					session.releaseContext();
-					if(nonNull(prv)) {
-						prv.updateContext();
-					}
-				}
-			}	
-		};
-	}
-	
-
 	public static <S extends AbstractSession> S requireCurrentSession(Class<S> clazz) {
 		var ses = requireCurrentSession();
 		if(clazz.isInstance(ses)) { //nullable

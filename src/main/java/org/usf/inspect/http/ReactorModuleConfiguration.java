@@ -1,7 +1,9 @@
 package org.usf.inspect.http;
 
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
+import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
 import static reactor.core.scheduler.Schedulers.onScheduleHook;
+import static reactor.core.scheduler.Schedulers.setExecutorServiceDecorator;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -10,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.usf.inspect.core.SessionManager;
+
 
 /**
  * 
@@ -22,7 +25,8 @@ import org.usf.inspect.core.SessionManager;
 public class ReactorModuleConfiguration {
 	
 	static {
-		onScheduleHook("inspect-hook", SessionManager::aroundRunnable);
+		setExecutorServiceDecorator("inspect-executor-decorator", (sc,es)-> wrap(es, "ReactorExecutorService"));
+		onScheduleHook("inspect-schedule-hook", SessionManager::aroundRunnable);
 	}
 
     @Bean
