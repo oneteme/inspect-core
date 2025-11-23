@@ -187,7 +187,7 @@ final class DatabaseRequestMonitor {
 	}
 
 	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
-		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, null, new long[] {n}); //differed start 
+		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, null, new long[] {n}).emit(); //differed start 
 	}
 	
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda

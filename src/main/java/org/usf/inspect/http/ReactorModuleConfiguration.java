@@ -26,7 +26,7 @@ public class ReactorModuleConfiguration {
 	
 	static {
 		setExecutorServiceDecorator("inspect-executor-decorator", (sc,es)-> wrap(es, "ReactorExecutorService"));
-		onScheduleHook("inspect-schedule-hook", SessionManager::aroundRunnable);
+		onScheduleHook("inspect-schedule-hook", SessionManager::aroundRunnable); //custom schedules
 	}
 
     @Bean

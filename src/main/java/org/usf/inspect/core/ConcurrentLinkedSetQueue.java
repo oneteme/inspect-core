@@ -69,6 +69,11 @@ public final class ConcurrentLinkedSetQueue<T> {
 		}
 	}
 
+	/**
+	 * Removes elements from the queue starting from index n.
+	 * @param n the starting index (0-based)
+	 * @return the number of removed elements
+	 */
 	public int removeFrom(int n) {
 		synchronized(mutex){ // queue.reversed().iterator : java21
 			var size = queue.size();
@@ -77,7 +82,7 @@ public final class ConcurrentLinkedSetQueue<T> {
 			}
 			else if(n < size) {
 				var it = queue.iterator();
-				for(var i=0; i<n; i++, it.next());
+				for(var i=0; i<n; i++, it.next());  // skip first n elements
 				while(it.hasNext()) {
 					it.next();
 					it.remove();

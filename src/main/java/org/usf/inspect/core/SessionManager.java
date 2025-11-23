@@ -48,18 +48,55 @@ public final class SessionManager {
 	
     public static Runnable aroundRunnable(Runnable cmd) {
     	var ses = requireCurrentSession();
-		return nonNull(ses) ? ses.createContext().aroundRunnable(cmd) : cmd;
+		if(nonNull(ses)) {
+			ses.threadCountUp();
+			return ()-> aroundRunnable(cmd::run, ses, ses::threadCountDown);
+		}
+		return cmd;
     }
-
+    
     public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
     	var ses = requireCurrentSession();
-		return nonNull(ses) ? ses.createContext().aroundCallable(cmd) : cmd;
+		if(nonNull(ses)) {
+			ses.threadCountUp();
+			return ()-> aroundCallable(cmd::call, ses, ses::threadCountDown);
+		}
+		return cmd;
     }
     
     public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
     	var ses = requireCurrentSession();
-		return nonNull(ses) ? ses.createContext().aroundSupplier(cmd) : cmd;
+    	if(nonNull(ses)) {
+			ses.threadCountUp();
+			return ()-> aroundCallable(cmd::get, ses, ses::threadCountDown);
+		}
+		return cmd;
     }
+
+    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSession session, Runnable callback) throws E {
+    	aroundCallable(task, session, callback);
+    }
+    
+    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSession session, Runnable callback) throws E {
+		var prv = currentSession();
+		if(prv != session) {
+			session.updateContext();
+		}
+		try {
+			return call.call();
+		}
+		finally {
+			if(prv != session) {
+				session.releaseContext();
+				if(nonNull(prv)) {
+					prv.updateContext();
+				}
+			}
+			if(nonNull(callback)) {
+				callback.run();
+			}
+		}	
+	}
 	
 	public static <S extends AbstractSession> S requireCurrentSession(Class<S> clazz) {
 		var ses = requireCurrentSession();
@@ -171,9 +208,9 @@ public final class SessionManager {
 	}
 
 	public static RestSession createRestSession(String uuid) {
-		var session = new RestSession();
-		session.setId(uuid);
-		return session;
+		var ses = new RestSession();
+		ses.setId(uuid);
+		return ses;
 	}
 
 	public static MainSession createStartupSession() {

@@ -1,11 +1,10 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.SessionManager.aroundCallable;
 import static org.usf.inspect.core.SessionManager.aroundRunnable;
-import static org.usf.inspect.core.SessionManager.requireCurrentSession;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -31,37 +30,22 @@ public class ExecutorServiceWrapper implements ExecutorService {
 	
 	@Override
 	public <T> Future<T> submit(Callable<T> task) {
-		var ses = requireCurrentSession();
-		if(nonNull(ses)) {
-			var ctx = ses.createContext();
-			return new FutureWrapper<>(es.submit(ctx.aroundCallable(task)), ctx::release);
-		}
-		return es.submit(task);
+		return es.submit(aroundCallable(task));
 	}
 	
 	@Override
 	public Future<?> submit(Runnable task) {
-		var ses = requireCurrentSession();
-		if(nonNull(ses)) {
-			var ctx = ses.createContext();
-			return new FutureWrapper<>(es.submit(ctx.aroundRunnable(task)), ctx::release);
-		}
-		return es.submit(task);
+		return es.submit(aroundRunnable(task));
 	}
 	
 	@Override
 	public <T> Future<T> submit(Runnable task, T result) {
-		var ses = requireCurrentSession();
-		if(nonNull(ses)) {
-			var ctx = ses.createContext();
-			return new FutureWrapper<>(es.submit(ctx.aroundRunnable(task), result), ctx::release);
-		}
-		return es.submit(task, result);
+		return es.submit(aroundRunnable(task), result);
 	}
 	
 	@Override
-	public void execute(Runnable command) {
-		es.execute(aroundRunnable(command));
+	public void execute(Runnable task) {
+		es.execute(aroundRunnable(task));
 	}
 
 	public static ExecutorService wrap(ExecutorService es) {

@@ -22,7 +22,7 @@ import lombok.experimental.Delegate;
 public class RestSession extends AbstractSession {
 
 	@JsonIgnore
-	@Delegate(excludes = CompletableMetric.class) //emit(this) + AbstractSession.wasCompleted
+	@Delegate(excludes = CompletableMetric.class) 
 	private final RestRequest rest;
 	private String name; //api name
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
