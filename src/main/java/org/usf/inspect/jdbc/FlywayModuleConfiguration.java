@@ -4,9 +4,9 @@ import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.core.LocalRequest.formatLocation;
+import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.SessionManager.localRequestHandler;
+import static org.usf.inspect.core.MethodExecutionMonitor.localRequestHandler;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
 import org.flywaydb.core.Flyway;

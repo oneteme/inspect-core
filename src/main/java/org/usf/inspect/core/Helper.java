@@ -72,4 +72,8 @@ public final class Helper {
 		}
 		return exp;
 	}
+
+	public static String formatLocation(String className, String methodName) {
+		return className + '.' + methodName + "()";
+	}
 }

@@ -12,6 +12,8 @@ import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.http.HttpSessionMonitor.currentHttpMonitor;
+import static org.usf.inspect.http.HttpSessionMonitor.requireHttpMonitor;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.io.IOException;
@@ -42,7 +44,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class HttpSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 
-	static final String SESSION_MONITOR = HttpSessionFilter.class.getName() + ".monitor";
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 
 	private final HttpRoutePredicate routePredicate;
@@ -70,13 +71,12 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
 	
 	private void traceRestSession(HttpServletRequest req, HttpServletResponse res) {
-		var mnt = (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
+		var mnt = currentHttpMonitor(req);
 		if(isNull(mnt)) {
 			mnt = new HttpSessionMonitor(req.getHeader(TRACE_HEADER));
 			mnt.preFilter(req); //called once
 			res.addHeader(TRACE_HEADER, mnt.getSession().getId()); //add headers before doFilter
 			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
-			req.setAttribute(SESSION_MONITOR, mnt);
 		}
 		else {
 			mnt.getSession().updateContext(); //deferred execution
@@ -85,7 +85,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	
 	private ExecutionHandler<Void> filterHandler(HttpServletRequest request, HttpServletResponse response) {
 		return (s,e,o,t)-> {
-			var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
+			var mnt = requireHttpMonitor(request);
 			if(nonNull(mnt)) {
 				mnt.postFilterHandler(isAsyncStarted(request), e, response, t);
 			}
@@ -110,7 +110,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	 */
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
+		var mnt = requireHttpMonitor(request);
 		if(nonNull(mnt) && shouldIntercept(handler)) {  //avoid unfiltered request
 			mnt.preProcess();
 		}
@@ -119,7 +119,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-		var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
+		var mnt = requireHttpMonitor(request);
 		if(nonNull(mnt) && shouldIntercept(handler)) { //avoid unfiltered request
 			mnt.process();
 		}
@@ -127,7 +127,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-		var mnt = (HttpSessionMonitor) request.getAttribute(SESSION_MONITOR);
+		var mnt = requireHttpMonitor(request);
 		if(nonNull(mnt) && shouldIntercept(handler)) { //avoid unfiltered request 
 			var name = resolveEndpointName(handler, request);
 			var user = userProvider.getUser(request, name);

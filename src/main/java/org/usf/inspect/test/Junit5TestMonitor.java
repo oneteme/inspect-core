@@ -20,9 +20,9 @@ import org.junit.jupiter.api.extension.TestWatcher;
  * @author u$f
  *
  */
-public final class JunitTestWatcher implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, TestWatcher, AfterAllCallback {
+public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, TestWatcher, AfterAllCallback {
 
-	private static final Namespace NAMESPACE = create(JunitTestWatcher.class.getName());
+	private static final Namespace NAMESPACE = create(Junit5TestMonitor.class.getName());
 	private static final String SESSION_KEY = "inspect-hook";
 	
 	@Override
@@ -31,8 +31,8 @@ public final class JunitTestWatcher implements BeforeAllCallback, BeforeEachCall
 	}
 
 	@Override
-	public void beforeEach(ExtensionContext context) throws Exception {
-		context.getStore(NAMESPACE).put(SESSION_KEY, new TestSessionJunitMonitor().preProcess(context));
+	public void beforeEach(ExtensionContext ctx) throws Exception {
+		ctx.getStore(NAMESPACE).put(SESSION_KEY, new TestSessionJunitMonitor().preProcess(ctx));
 	}
 
 	@Override

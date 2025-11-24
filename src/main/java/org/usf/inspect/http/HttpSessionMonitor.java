@@ -8,6 +8,7 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
@@ -36,6 +37,8 @@ import lombok.Getter;
  */
 public final class HttpSessionMonitor {
 	
+	static final String SESSION_MONITOR = HttpSessionMonitor.class.getName() + ".monitor";
+	
 	@Getter
 	private final RestSession session;
 	private Instant lastTimestamp;
@@ -63,6 +66,7 @@ public final class HttpSessionMonitor {
 			session.setUserAgent(req.getHeader(USER_AGENT));
 			session.updateContext().emit();
 		});
+		req.setAttribute(SESSION_MONITOR, this);
 	}
 	
 	public void preProcess(){
@@ -116,5 +120,17 @@ public final class HttpSessionMonitor {
     static URI fromRequest(HttpServletRequest req) {
     	var c = req.getRequestURL().toString();
         return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
+    }
+
+    public static HttpSessionMonitor currentHttpMonitor(HttpServletRequest req) {
+    	return (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
+    }
+    
+    public static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req) {
+    	var mnt = currentHttpMonitor(req);
+    	if(isNull(mnt)) {
+    		reportMessage("HttpSessionMonitor.requireMonitor", null, "no active HttpSession");
+    	}
+    	return mnt;
     }
 }

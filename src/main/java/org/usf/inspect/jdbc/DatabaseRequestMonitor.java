@@ -14,7 +14,6 @@ import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
 
 import java.sql.Connection;
@@ -27,7 +26,7 @@ import java.util.stream.IntStream;
 
 import org.usf.inspect.core.DatabaseAction;
 import org.usf.inspect.core.DatabaseCommand;
-import org.usf.inspect.core.DatabaseRequest;
+import org.usf.inspect.core.DatabaseRequestCallback;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
@@ -42,16 +41,14 @@ import lombok.RequiredArgsConstructor;
 final class DatabaseRequestMonitor {
 
 	private final ConnectionMetadataCache cache; //required
-	private final DatabaseRequest req = createDatabaseRequest();
-	
+
+	private DatabaseRequestCallback callback;
 	private boolean prepared;
 	private DatabaseCommand mainCommand;
 	private DatabaseRequestStage lastStg; // hold last stage
 	
 	public void handleConnection(Instant start, Instant end, Connection cnx, Throwable thrw) throws SQLException {
-		req.createStage(CONNECTION, start, end, thrw, null).emit(); //before end if thrw
-		req.setThreadName(threadName());
-		req.setStart(start);
+		var req = createDatabaseRequest(start);
 		if(nonNull(cnx) && !cache.isPresent()) {
 			cache.update(cnx.getMetaData());
 		}
@@ -66,10 +63,13 @@ final class DatabaseRequestMonitor {
 			req.setProductVersion(cache.getProductVersion());
 			req.setDriverVersion(cache.getDriverVersion());
 		}
-		if(nonNull(thrw)) { //if connection error
-			req.setEnd(end);
-		}
 		req.emit();
+		callback = req.createCallback();
+		callback.createStage(CONNECTION, start, end, thrw, null).emit(); //before end if thrw
+		if(nonNull(thrw)) { //if connection error
+			callback.setEnd(end);
+			callback.emit();
+		}
 	}
 	
 	public ExecutionHandler<Statement> statementStageHandler(String sql) {
@@ -79,7 +79,7 @@ final class DatabaseRequestMonitor {
 				mainCommand = parseCommand(sql);
 				prepared = true;
 			}
-			req.createStage(STATEMENT, s, e, t, null).emit(); //sql.split.count ?
+			callback.createStage(STATEMENT, s, e, t, null).emit(); //sql.split.count ?
 		};
 	}
 
@@ -100,7 +100,7 @@ final class DatabaseRequestMonitor {
 				lastStg.setEnd(e); //optim this
 			}
 			else {
-				lastStg = req.createStage(BATCH, s, e, t, null, new long[]{1});
+				lastStg = callback.createStage(BATCH, s, e, t, null, new long[]{1});
 			}
 		};
 	}
@@ -155,7 +155,7 @@ final class DatabaseRequestMonitor {
 			lastStg = null;
 		}
 		else {
-			reportMessage("empty batch or already traced", req, null);
+			reportMessage("empty batch or already traced", callback, null);
 		}
 	}
 
@@ -164,7 +164,7 @@ final class DatabaseRequestMonitor {
 			if(nonNull(sql)) { //statement
 				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
 			}
-			lastStg = req.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
@@ -181,18 +181,23 @@ final class DatabaseRequestMonitor {
 				}
 			}
 			catch (Exception e) {
-				reportError("DatabaseRequestMonitor.updateStageRowsCount", req, e);
+				reportError("DatabaseRequestMonitor.updateStageRowsCount", callback, e);
 			}
 		}
 	}
 
 	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
-		return (s,e,o,t)-> req.createStage(FETCH, start, e, t, null, new long[] {n}).emit(); //differed start 
+		return (s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n}).emit(); //differed start 
 	}
 	
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
-		req.createStage(DISCONNECTION, start, end, t, null).emit();
-		req.runSynchronized(()-> req.setEnd(end));
+		if(nonNull(callback)) {
+			callback.createStage(DISCONNECTION, start, end, t, null).emit();
+			if(callback.assertStillConnected()) {
+				callback.emit();
+				callback.setEnd(end);
+			}	
+		}
 	}
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, String... args) {
@@ -200,7 +205,12 @@ final class DatabaseRequestMonitor {
 	}
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return (s,e,o,t)-> req.createStage(action, s, e, t, cmd, args).emit();
+		return (s,e,o,t)-> {
+			if(nonNull(callback)) {
+				callback.assertStillConnected();
+				callback.createStage(action, s, e, t, cmd, args).emit();
+			}
+		};
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

@@ -1,14 +1,13 @@
-package org.usf.inspect.core;
+package org.usf.inspect.http;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.SessionManager.requireCurrentSession;
+import static org.usf.inspect.http.HttpSessionMonitor.requireHttpMonitor;
 
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.ModelAndView;
-import org.usf.inspect.http.HttpRoutePredicate;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,9 +31,12 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 	@Override
 	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
 		if(routePredicate.accept(request)) {
-			var ses = requireCurrentSession(RestSession.class);
-			if(nonNull(ses) && isNull(ses.getException())) { //non filtered requests
-				ses.runSynchronized(()-> ses.setException(fromException(ex)));
+			var mnt = requireHttpMonitor(request);
+			if(nonNull(mnt)) { //non filtered requests
+				var ses = mnt.getSession();
+				if(isNull(ses.getException())) {
+					ses.setException(fromException(ex));
+				}
 			}
 		}
 		return null;

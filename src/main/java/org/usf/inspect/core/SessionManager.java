@@ -1,16 +1,11 @@
 package org.usf.inspect.core;
 
 import static java.lang.String.format;
-import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.ErrorReporter.reporter;
-import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.LocalRequest.formatLocation;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
@@ -25,10 +20,10 @@ import static org.usf.inspect.core.RequestMask.LOCAL;
 import static org.usf.inspect.core.RequestMask.REST;
 import static org.usf.inspect.core.RequestMask.SMTP;
 
+import java.time.Instant;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.LogEntry.Level;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
@@ -43,8 +38,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionManager {
 
-	private static final ThreadLocal<AbstractSession> localTrace = new InheritableThreadLocal<>();
-	private static MainSession startupSession; //avoid setting startup session on all thread local
+	private static final ThreadLocal<AbstractSessionCallback> localTrace = new InheritableThreadLocal<>();
+	private static AbstractSessionCallback startupSession; //avoid setting startup session on all thread local
 	
     public static Runnable aroundRunnable(Runnable cmd) {
     	var ses = requireCurrentSession();
@@ -73,23 +68,23 @@ public final class SessionManager {
 		return cmd;
     }
 
-    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSession session, Runnable callback) throws E {
+    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSessionCallback session, Runnable callback) throws E {
     	aroundCallable(task, session, callback);
     }
     
-    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSession session, Runnable callback) throws E {
+    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSessionCallback session, Runnable callback) throws E {
 		var prv = currentSession();
 		if(prv != session) {
-			session.updateContext();
+			setCurrentSession(session);
 		}
 		try {
 			return call.call();
 		}
 		finally {
 			if(prv != session) {
-				session.releaseContext();
+				releaseSession(session);
 				if(nonNull(prv)) {
-					prv.updateContext();
+					setCurrentSession(prv);
 				}
 			}
 			if(nonNull(callback)) {
@@ -98,18 +93,7 @@ public final class SessionManager {
 		}	
 	}
 	
-	public static <S extends AbstractSession> S requireCurrentSession(Class<S> clazz) {
-		var ses = requireCurrentSession();
-		if(clazz.isInstance(ses)) { //nullable
-			return clazz.cast(ses);
-		}
-		if(nonNull(ses)) {
-			reportIllegalSessionState("requireCurrentSession", "unexpected session type", ses);
-		}
-		return null;
-	}
-
-	public static AbstractSession requireCurrentSession() {
+	public static AbstractSessionCallback requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
 			reportNoActiveSession("requireCurrentSession", null);
@@ -121,19 +105,19 @@ public final class SessionManager {
 		return ses;
 	}
 
-	public static AbstractSession currentSession() {
+	public static AbstractSessionCallback currentSession() {
 		var trc = localTrace.get();
 		return nonNull(trc) ? trc : startupSession; // priority
 	}
-	
-	static void setCurrentSession(AbstractSession session) {
+
+	public static void setCurrentSession(AbstractSessionCallback session) {
 		var prv = localTrace.get();
 		if(prv != session) {
 			localTrace.set(session);
 		}
 	}
 	
-	static void releaseSession(AbstractSession session) {
+	public static void releaseSession(AbstractSessionCallback session) {
 		var prv = localTrace.get();
 		if(prv == session) {
 			localTrace.remove();
@@ -146,7 +130,7 @@ public final class SessionManager {
 		}
 	}
 	
-	static void setStartupSession(MainSession session) {
+	static void setStartupSession(AbstractSessionCallback session) {
 		if(startupSession != session) {
 			if(isNull(startupSession)) {
 				startupSession = session;
@@ -157,7 +141,7 @@ public final class SessionManager {
 		}
 	}
 	
-	static void releaseStartupSession(MainSession session) {
+	static void releaseStartupSession(AbstractSessionCallback session) {
 		if(startupSession == session) {
 			if(nonNull(session.getEnd())) { //reactor
 				startupSession = null;
@@ -171,38 +155,6 @@ public final class SessionManager {
 		}
 	}
 
-	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
-		trackCallble(type, name, fn);
-	}
-
-	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
-		var ste = outerStackTraceElement();
-		return call(fn, localRequestHandler(type, 
-				()-> nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse(null),
-				()-> ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse(null), 
-				()-> null));
-	}
-
-	public static <T> ExecutionHandler<T> localRequestHandler(LocalRequestType type, Supplier<String> nameSupp, Supplier<String> locationSupp, Supplier<String> userSupp) {
-		var req = createLocalRequest();
-		call(()->{
-			req.setStart(now());
-			req.setThreadName(threadName());
-			req.setType(type.name());
-			req.setName(nameSupp.get());
-			req.setLocation(locationSupp.get());
-			req.setUser(userSupp.get());
-			req.emit();
-		});
-		return (s,e,o,t)-> req.runSynchronized(()-> {
-			req.setStart(s);
-			if(nonNull(t)) {
-				req.setException(fromException(t));
-			}
-			req.setEnd(e);
-		});
-	}
-	
 	public static RestSession createRestSession() {
 		return createRestSession(nextId());
 	}
@@ -220,7 +172,7 @@ public final class SessionManager {
 	public static MainSession createBatchSession() {
 		return createMainSession(BATCH);
 	}
-
+	
 	public static MainSession createTestSession() {
 		return createMainSession(TEST);
 	}
@@ -231,41 +183,56 @@ public final class SessionManager {
 		ses.setType(type.name());
 		return ses;
 	}
-
-	public static RestRequest createHttpRequest() {
-		return traceableRequest(REST, new RestRequest());
+	
+	public static MainSession2 createStartupSession(Instant start) {
+		return createMainSession(STARTUP, start);
 	}
 
-	public static DatabaseRequest createDatabaseRequest() {
-		return traceableRequest(JDBC, new DatabaseRequest());
+	public static MainSession2 createBatchSession(Instant start) {
+		return createMainSession(BATCH, start);
+	}
+	
+	public static MainSession2 createTestSession(Instant start) {
+		return createMainSession(TEST, start);
+	}
+	
+	static MainSession2 createMainSession(MainSessionType type, Instant start) {
+		return new MainSession2(nextId(), start, threadName(), type.name());
 	}
 
-	public static FtpRequest createFtpRequest() {
-		return traceableRequest(FTP, new FtpRequest());
+	public static LocalRequest2 createLocalRequest(Instant start) {
+		return new LocalRequest2(nextId(), requireSessionIdFor(LOCAL), start, threadName());
+	}
+	
+	public static DatabaseRequest2 createDatabaseRequest(Instant start) {
+		return new DatabaseRequest2(nextId(), requireSessionIdFor(JDBC), start, threadName());
+	}
+	
+	public static HttpRequest2 createHttpRequest(Instant start) {
+		return new HttpRequest2(nextId(), requireSessionIdFor(REST), start, threadName());
 	}
 
-	public static MailRequest createMailRequest() {
-		return traceableRequest(SMTP, new MailRequest());
+	public static FtpRequest2 createFtpRequest(Instant start) {
+		return new FtpRequest2(nextId(), requireSessionIdFor(FTP), start, threadName());
+	}
+	
+	public static MailRequest2 createMailRequest(Instant start) {
+		return new MailRequest2(nextId(), requireSessionIdFor(SMTP), start, threadName());
 	}
 
-	public static DirectoryRequest createNamingRequest() {
-		return traceableRequest(LDAP, new DirectoryRequest());
+	public static DirectoryRequest2 createNamingRequest(Instant start) {
+		return new DirectoryRequest2(nextId(), requireSessionIdFor(LDAP), start, threadName());
 	}
-
-	public static LocalRequest createLocalRequest() {
-		return traceableRequest(LOCAL, new LocalRequest());
-	}
-
-	static <T extends AbstractRequest> T traceableRequest(RequestMask mask, T req) {
-		req.setId(nextId());
+	
+	private static String requireSessionIdFor(RequestMask mask) {
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
-			req.setSessionId(ses.getId());
-			ses.updateRequestsMask(mask);
+			ses.updateMask(mask);
+			return ses.getId();
 		}
-		return req;
+		return null;
 	}
-
+	
 	public static void emitInfo(String msg) {
 		emitLog(INFO, msg);
 	}
@@ -295,11 +262,11 @@ public final class SessionManager {
 		reporter().action(action).message(format("previous=%s, next=%s", prev, next)).thread().emit();
 	}
 
-	static void reportNoActiveSession(String action, AbstractSession session) {
+	static void reportNoActiveSession(String action, AbstractSessionCallback session) {
 		reporter().action(action).message("no active session").trace(session).thread().emit();
 	}
 	
-	static void reportIllegalSessionState(String action, String msg, AbstractSession session) {
+	static void reportIllegalSessionState(String action, String msg, AbstractSessionCallback session) {
 		reporter().action(action).message(msg).trace(session).thread().emit();
 	}
 }

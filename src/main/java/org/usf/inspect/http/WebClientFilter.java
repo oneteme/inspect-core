@@ -23,7 +23,7 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {//request.headers is ReadOnlyHttpHeaders
 		var mnt = new HttpRequestAsyncMonitor();
-		return call(()-> exc.exchange(from(request).header(TRACE_HEADER, mnt.getRequest().getId()).build()), mnt.preProcessHandler(request))
+		return call(()-> exc.exchange(from(request).header(TRACE_HEADER, mnt.getId()).build()), mnt.preProcessHandler(request))
 				.map(res->{
 					var buff = new DataBufferMonitor(mnt::completeHandler);
 					return res.mutate().body(f-> buff.handle(f, res.statusCode().isError())).build();

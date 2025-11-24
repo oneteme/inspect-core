@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.Helper.formatLocation;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -58,9 +60,5 @@ public class LocalRequest extends AbstractRequest {
 	@Override
 	public int hashCode() {
 		return CompletableMetric.hashCodeOf(this);
-	}
-
-	public static String formatLocation(String className, String methodName) {
-		return className + '.' + methodName + "()";
 	}
 }

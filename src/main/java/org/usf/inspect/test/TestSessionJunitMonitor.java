@@ -2,12 +2,13 @@ package org.usf.inspect.test;
 
 import static java.time.Instant.now;
 import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createTestSession;
+import static org.usf.inspect.core.SessionManager.releaseSession;
+import static org.usf.inspect.core.SessionManager.setCurrentSession;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.usf.inspect.core.ExceptionInfo;
-import org.usf.inspect.core.MainSession;
+import org.usf.inspect.core.MainSessionCallback;
 
 import lombok.Getter;
 
@@ -19,31 +20,30 @@ import lombok.Getter;
 public final class TestSessionJunitMonitor {
 
 	@Getter
-	final MainSession main = createTestSession();
+	MainSessionCallback call;
 	
 	public TestSessionJunitMonitor preProcess(ExtensionContext context){
-		var now = now();
+		var ses = createTestSession(now());
 		call(()->{
-			main.setStart(now);
-			main.setThreadName(threadName());
-			main.setName(context.getDisplayName());
-			main.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
-			main.updateContext().emit();
+			ses.setName(context.getDisplayName());
+			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 		});
+		ses.emit();
+		call = ses.createCallback();
+		setCurrentSession(call);
 		return this;
 	}
 	
 	public TestSessionJunitMonitor postProcess(ExtensionContext context){
 		var now = now();
 		call(()->{
-			main.runSynchronized(()->{
-				context.getExecutionException()
-					.map(ExceptionInfo::fromException)
-					.ifPresent(main::setException);
-				main.setEnd(now);
-			});
-			main.releaseContext();
+			context.getExecutionException()
+				.map(ExceptionInfo::fromException)
+				.ifPresent(call::setException);
+			call.setEnd(now);
 		});
+		call.emit();
+		releaseSession(call);
 		return this;
 	}
 }

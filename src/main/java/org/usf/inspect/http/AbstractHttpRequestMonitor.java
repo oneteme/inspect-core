@@ -6,9 +6,10 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.usf.inspect.core.AbstractRequestCallback.reportNoActiveRequest;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
-import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.RequestMask.REST;
 import static org.usf.inspect.core.SessionManager.createHttpRequest;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
@@ -18,9 +19,7 @@ import java.time.Instant;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
-import org.usf.inspect.core.RestRequest;
-
-import lombok.Getter;
+import org.usf.inspect.core.HttpRequestCallback;
 
 /**
  * 
@@ -29,64 +28,81 @@ import lombok.Getter;
  */
 class AbstractHttpRequestMonitor {
 	
-	@Getter
-	final RestRequest request = createHttpRequest();
+	HttpRequestCallback callback;
 
 	void preProcessHandler(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
-		request.setStart(start);
-		request.setThreadName(threadName());
-		request.setMethod(method.name());
-		request.setURI(uri);
-		request.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
-		request.setOutDataSize(headers.getContentLength()); //-1 unknown !
-		request.setOutContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+		var req = createHttpRequest(start);
+		req.setMethod(method.name());
+		req.setURI(uri);
+		req.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
+		req.setDataSize(headers.getContentLength()); //-1 unknown !
+		req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
 		//req.setUser(decode AUTHORIZATION)
+		req.emit();
+		callback = req.createCallback();
 		if(nonNull(thrw)) { //thrw -> stage
-			request.setEnd(end);
+			callback.setEnd(end);
+			callback.emit();
 		}
-		request.emit();
 	}
 	
 	void postProcessHandler(Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
-		request.runSynchronized(()->{
-			request.setThreadName(threadName()); //deferred thread
-			if(nonNull(status)) {
-				request.setStatus(status.value());
+//		request.setThreadName(threadName()); //deferred thread
+		if(nonNull(callback)) {
+			if(callback.assertStillConnected()) {
+				if(nonNull(status)) {
+					callback.setStatus(status.value());
+				}
+				if(nonNull(headers)) { //response
+					callback.setContentType(headers.getFirst(CONTENT_TYPE));
+					callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+					callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
+				}
+				if(nonNull(thrw)) { //thrw -> stage
+					callback.setEnd(end);
+					callback.emit();
+				}
 			}
-			if(nonNull(headers)) { //response
-				request.setContentType(headers.getFirst(CONTENT_TYPE));
-				request.setInContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-				request.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
-			}
-			if(nonNull(thrw)) { //thrw -> stage
-				request.setEnd(end);
-			}
-		});
+		}
+		else {
+			reportNoActiveRequest("postProcessHandler", REST);
+		}
 	}
 	
 	void completeHandler(Instant end, ResponseContent cnt, Throwable t){
-		request.runSynchronized(()->{
-			if(nonNull(cnt)) {
-				if(nonNull(cnt.contentBytes())) {
-					request.setBodyContent(new String(cnt.contentBytes(), UTF_8));
+//		request.setThreadName(threadName()); //deferred thread
+		if(nonNull(callback)) {
+			if(callback.assertStillConnected()) {
+				if(nonNull(cnt)) {
+					if(nonNull(cnt.contentBytes())) {
+						callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
+					}
+					callback.setDataSize(cnt.contentSize());
 				}
-				request.setInDataSize(cnt.contentSize());
+				else {
+					callback.setDataSize(-1);
+				}
+				callback.setEnd(end);
+				callback.emit();
 			}
-			else {
-				request.setInDataSize(-1);
-			}
-			request.setEnd(end);
-		});
+		}
+		else {
+			reportNoActiveRequest("completeHandler", REST);
+		}
 	}
 
-	boolean assertSameID(String sessionID) {
-		if(nonNull(sessionID)) {
-			if(sessionID.equals(request.getId())) {
+	boolean assertSameID(String sid) {
+		if(nonNull(sid)) {
+			if(sid.equals(callback.getId())) {
 				return true;
 			}
-			reportMessage("assertSameID", request, 
-					format("req.id='%s', ses.id='%s'", request.getId(), sessionID));
+			reportMessage("assertSameID", callback, 
+					format("req.id='%s', ses.id='%s'", callback.getId(), sid));
 		}
 		return false;
+	}
+	
+	String getId(){
+		return callback.getId();
 	}
 }

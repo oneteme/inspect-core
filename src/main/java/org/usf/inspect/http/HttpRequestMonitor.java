@@ -25,7 +25,7 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 	}
 
 	public void postProcessHandler(Instant start, Instant end, ClientHttpResponse response, Throwable thrw) throws IOException {
-		request.createStage(PROCESS, start, end, thrw).emit(); //same thread
+		callback.createStage(PROCESS, start, end, thrw).emit(); //same thread
 		if(nonNull(response)) {
 			super.postProcessHandler(end, response.getStatusCode(), response.getHeaders(), thrw);
 		}
@@ -35,7 +35,7 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 	}
 	
 	public void completeHandler(Instant start, Instant end, ResponseContent cnt, Throwable t) {
-		request.createStage(POST_PROCESS, start, end, t).emit(); 
+		callback.createStage(POST_PROCESS, start, end, t).emit(); 
 		super.completeHandler(end, cnt, t);
 	}
 }

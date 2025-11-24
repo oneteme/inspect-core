@@ -5,7 +5,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
-import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionManager.createNamingRequest;
 
 import java.time.Instant;
@@ -15,7 +14,7 @@ import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 
 import org.usf.inspect.core.DirCommand;
-import org.usf.inspect.core.DirectoryRequest;
+import org.usf.inspect.core.DirectoryRequestCallback;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 import lombok.RequiredArgsConstructor;
@@ -28,12 +27,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 final class DirectoryRequestMonitor {
 
-	private final DirectoryRequest req = createNamingRequest();
+	private DirectoryRequestCallback callback;
 	
 	public void handleConnection(Instant start, Instant end, DirContext dir, Throwable thw) throws NamingException {
-		req.createStage(CONNECTION, start, end, thw, null).emit(); //before end if thrw
-		req.setThreadName(threadName());
-		req.setStart(start);
+		var req = createNamingRequest(start);
 		if(nonNull(dir)) {
 			var url = getEnvironmentVariable(dir, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
 			if(nonNull(url)) {
@@ -43,19 +40,32 @@ final class DirectoryRequestMonitor {
 			}
 			req.setUser(getEnvironmentVariable(dir, "java.naming.security.principal", Object::toString));  //broke context dependency
 		}
-		if(nonNull(thw)) { //if connection error
-			req.setEnd(end);
-		}
 		req.emit();
+		callback = req.createCallback();
+		callback.createStage(CONNECTION, start, end, thw, null).emit(); //before end if thrw
+		if(nonNull(thw)) { //if connection error
+			callback.setEnd(end);
+			callback.emit();
+		}
 	}
 
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
-		req.createStage(DISCONNECTION, start, end, thw, null).emit();
-		req.runSynchronized(()-> req.setEnd(end));
+		if(nonNull(callback)) {
+			callback.createStage(DISCONNECTION, start, end, thw, null).emit();
+			if(callback.assertStillConnected()) {				
+				callback.setEnd(end);
+				callback.emit(); //avoid emit twice
+			} //else report
+		}
 	}
 	
 	<T> ExecutionHandler<T> executeStageHandler(DirCommand cmd, String... args) {
-		return (s,e,o,t)-> req.createStage(EXECUTE, s, e, t, cmd, args).emit();
+		return (s,e,o,t)-> {
+			if(nonNull(callback)) {
+				callback.assertStillConnected();//report if request was closed
+				callback.createStage(EXECUTE, s, e, t, cmd, args).emit();
+			} //else report
+		};
 	}
 
 	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {

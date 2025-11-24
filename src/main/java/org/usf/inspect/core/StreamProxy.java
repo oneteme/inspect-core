@@ -4,6 +4,7 @@ import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionManager.requireCurrentSession;
+import static org.usf.inspect.core.SessionManager.setCurrentSession;
 
 import java.util.Collection;
 import java.util.stream.Stream;
@@ -30,10 +31,10 @@ public final class StreamProxy {
 
 	public static <T> Stream<T> parallel(Stream<T> stream) {
 		if(context().getConfiguration().isEnabled()){
-			var ses = requireCurrentSession();
-			if(nonNull(ses)) {
+			var ctx = requireCurrentSession();
+			if(nonNull(ctx)) {
 				stream = stream.parallel().map(c-> {
-					ses.updateContext();
+					setCurrentSession(ctx);
 					return c;
 				});
 			}

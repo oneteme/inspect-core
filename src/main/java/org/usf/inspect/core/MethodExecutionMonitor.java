@@ -6,13 +6,17 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.evalExpression;
-import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.LocalRequest.formatLocation;
+import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionManager.createBatchSession;
+import static org.usf.inspect.core.SessionManager.createLocalRequest;
 import static org.usf.inspect.core.SessionManager.currentSession;
-import static org.usf.inspect.core.SessionManager.localRequestHandler;
+import static org.usf.inspect.core.SessionManager.releaseSession;
+import static org.usf.inspect.core.SessionManager.setCurrentSession;
+
+import java.util.function.Supplier;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -20,7 +24,10 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.Ordered;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,10 +38,22 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Aspect
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class MethodExecutionMonitor implements Ordered {
 
 	private final AspectUserProvider userProvider;
+	
+	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
+		trackCallble(type, name, fn);
+	}
+
+	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
+		var ste = outerStackTraceElement();
+		return call(fn, localRequestHandler(type, 
+				()-> nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse(null),
+				()-> ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse(null), 
+				()-> null));
+	}
 
 	@Around("@annotation(TraceableStage)") //batch <> TraceableStage
 	Object aroundTraceable(ProceedingJoinPoint point) throws Throwable {
@@ -45,24 +64,23 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
-		var ses = createBatchSession();
+		var ses = createBatchSession(now());
 		call(()->{
-			ses.setThreadName(threadName());        
-			ses.setStart(now());
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
-			ses.updateContext().emit();
+			ses.emit();
 		});
+		var call = ses.createCallback();
+		setCurrentSession(call);
 		return call(point::proceed, (s,e,o,t)-> {
-			ses.runSynchronized(()-> { 
-				ses.setStart(s);
-				if(nonNull(t)) {
-					ses.setException(fromException(t));
-				}
-				ses.setEnd(e);
-			});
-			ses.releaseContext();
+			call.setStart(s);
+			if(nonNull(t)) {
+				call.setException(fromException(t));
+			}
+			call.setEnd(e);
+			call.emit();
+			releaseSession(call);
 		});
 	}
 
@@ -79,6 +97,26 @@ public class MethodExecutionMonitor implements Ordered {
 				()-> getCacheableName(point),
 				()-> locationFrom(point),
 				()-> null));
+	}
+
+	public static <T> ExecutionHandler<T> localRequestHandler(LocalRequestType type, Supplier<String> nameSupp, Supplier<String> locationSupp, Supplier<String> userSupp) {
+		var req = createLocalRequest(now());
+		call(()->{
+			req.setType(type.name());
+			req.setName(nameSupp.get());
+			req.setLocation(locationSupp.get());
+			req.setUser(userSupp.get());
+			req.emit();
+		});
+		return (s,e,o,t)-> {
+			var call = req.createCallback();
+			call.setStart(s);
+			if(nonNull(t)) {
+				call.setException(fromException(t));
+			}
+			call.setEnd(e);
+			call.emit();
+		};
 	}
 
 	@Override

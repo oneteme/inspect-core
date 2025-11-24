@@ -50,7 +50,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 	}
 
 	HttpRequestStage createStage(HttpAction action, Instant start, Instant end, Throwable thrw) {
-		var stg = request.createStage(action, start, end, thrw);
+		var stg = callback.createStage(action, start, end, thrw);
 		lastTimestamp = end;
 		return stg;
 	}
