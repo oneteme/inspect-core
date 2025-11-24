@@ -15,9 +15,9 @@ import lombok.Setter;
 public class MainSessionCallback extends AbstractSessionCallback {
 
 	private Instant start; //updated in some cases
-	
-	public MainSessionCallback(String id, Instant start) {
-		super(id);
+
+	public MainSessionCallback(String id, String name, String user, String location, Instant start) {
+		super(id, false, null, name, user, location, null);
 		this.start = start;
 	}
 }

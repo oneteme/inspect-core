@@ -11,7 +11,8 @@ import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
-import static org.usf.inspect.core.SessionManager.currentSession;
+import static org.usf.inspect.core.SessionContextManager.currentSession;
+import static org.usf.inspect.http.HttpSessionMonitor.SESSION_MONITOR;
 import static org.usf.inspect.http.HttpSessionMonitor.currentHttpMonitor;
 import static org.usf.inspect.http.HttpSessionMonitor.requireHttpMonitor;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
@@ -73,8 +74,8 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	private void traceRestSession(HttpServletRequest req, HttpServletResponse res) {
 		var mnt = currentHttpMonitor(req);
 		if(isNull(mnt)) {
-			mnt = new HttpSessionMonitor(req.getHeader(TRACE_HEADER));
-			mnt.preFilter(req); //called once
+			mnt = new HttpSessionMonitor();
+			mnt.preFilter(req, req.getHeader(TRACE_HEADER)); //called once
 			res.addHeader(TRACE_HEADER, mnt.getSession().getId()); //add headers before doFilter
 			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 		}
@@ -83,11 +84,21 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		}
 	}
 	
-	private ExecutionHandler<Void> filterHandler(HttpServletRequest request, HttpServletResponse response) {
+	private ExecutionHandler<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
+		
+		var mnt = currentHttpMonitor(req);
+		if(isNull(mnt)) {
+			mnt = new HttpSessionMonitor();
+			mnt.preFilter(req, res); //called once
+			req.setAttribute(SESSION_MONITOR, mnt);
+		}
+		else {
+			mnt.getSession().updateContext(); //deferred execution
+		}
 		return (s,e,o,t)-> {
-			var mnt = requireHttpMonitor(request);
+			var mnt = requireHttpMonitor(req);
 			if(nonNull(mnt)) {
-				mnt.postFilterHandler(isAsyncStarted(request), e, response, t);
+				mnt.postFilterHandler(isAsyncStarted(req), e, response, t);
 			}
 			else {
 				reportMessage("restSessionListener", null, null);

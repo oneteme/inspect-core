@@ -4,7 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.FtpAction.CONNECTION;
 import static org.usf.inspect.core.FtpAction.DISCONNECTION;
 import static org.usf.inspect.core.FtpAction.EXECUTE;
-import static org.usf.inspect.core.SessionManager.createFtpRequest;
+import static org.usf.inspect.core.SessionContextManager.createFtpRequest;
 
 import java.time.Instant;
 

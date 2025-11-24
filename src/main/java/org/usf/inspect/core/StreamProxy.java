@@ -3,8 +3,8 @@ package org.usf.inspect.core;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.SessionManager.requireCurrentSession;
-import static org.usf.inspect.core.SessionManager.setCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.requireCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.setCurrentSession;
 
 import java.util.Collection;
 import java.util.stream.Stream;

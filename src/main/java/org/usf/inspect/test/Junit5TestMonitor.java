@@ -1,9 +1,10 @@
 package org.usf.inspect.test;
 
+import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
-import static org.usf.inspect.core.ErrorReporter.reportMessage;
-import static org.usf.inspect.core.SessionManager.createTestSession;
+import static org.usf.inspect.core.SessionContextManager.createTestSession;
+import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
 
 import java.util.Optional;
 
@@ -23,11 +24,11 @@ import org.junit.jupiter.api.extension.TestWatcher;
 public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, TestWatcher, AfterAllCallback {
 
 	private static final Namespace NAMESPACE = create(Junit5TestMonitor.class.getName());
-	private static final String SESSION_KEY = "inspect-hook";
+	private static final String SESSION_KEY = "inspect-junit-monitor";
 	
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
-		createTestSession().updateContext(); //fake session, avoid no session
+		createTestSession(now()).createCallback().setupContext(); //fake session, avoid no session
 	}
 
 	@Override
@@ -42,13 +43,13 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 			mnt.postProcess(context);
 		}
 		else {
-			reportMessage("JunitTestWatcher.afterEach", null, "session is null");
+			reportSessionIsNull("Junit5TestMonitor.afterEach");
 		}
 	}
 	
 	@Override
 	public void afterAll(ExtensionContext context) throws Exception {
-		createTestSession().updateContext(); //fake session, avoid no session
+		createTestSession(now()).createCallback().setupContext(); //fake session, avoid no session
 	}
 
 	@Override

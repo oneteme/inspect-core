@@ -4,31 +4,32 @@ import static java.net.URI.create;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
-import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
-import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.SessionManager.createRestSession;
+import static org.usf.inspect.core.SessionContextManager.createHttpSession;
+import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
+import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
 
 import org.usf.inspect.core.HttpAction;
+import org.usf.inspect.core.HttpSessionCallback;
 import org.usf.inspect.core.HttpSessionStage;
-import org.usf.inspect.core.RestSession;
+import org.usf.inspect.core.SessionContext;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.Getter;
 
 /**
  * 
@@ -37,36 +38,32 @@ import lombok.Getter;
  */
 public final class HttpSessionMonitor {
 	
-	static final String SESSION_MONITOR = HttpSessionMonitor.class.getName() + ".monitor";
+	static final String SESSION_MONITOR = "inspect-http-request-monitor";
 	
-	@Getter
-	private final RestSession session;
+	private HttpSessionCallback call;
+	private SessionContext ctx;
 	private Instant lastTimestamp;
 	
-	public HttpSessionMonitor(String id) {
-		if(nonNull(id)) {
-			this.session = createRestSession(id);
-			this.session.setLinked(true);
-		}
-		else {
-			this.session = createRestSession();
-		}
+	public void preFilter(HttpServletRequest req, HttpServletResponse res){
+		lastTimestamp = now();
+		var ses = createHttpSession(lastTimestamp, req.getHeader(TRACE_HEADER));
+		call(()->{
+			ses.setMethod(req.getMethod());
+			ses.setURI(fromRequest(req));
+			ses.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
+			ses.setDataSize(req.getContentLength());
+			ses.setContentEncoding(req.getHeader(CONTENT_ENCODING));
+			ses.setUserAgent(req.getHeader(USER_AGENT));
+			ses.emit();
+			res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
+			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
+		});
+		call = ses.createCallback();
+		ctx = call.setupContext();
 	}
 	
-	public void preFilter(HttpServletRequest req){
-		lastTimestamp = now();
-		call(()->{
-			session.setStart(lastTimestamp);
-			session.setThreadName(threadName());
-			session.setMethod(req.getMethod());
-			session.setURI(fromRequest(req));
-			session.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
-			session.setInDataSize(req.getContentLength());
-			session.setInContentEncoding(req.getHeader(CONTENT_ENCODING));
-			session.setUserAgent(req.getHeader(USER_AGENT));
-			session.updateContext().emit();
-		});
-		req.setAttribute(SESSION_MONITOR, this);
+	public void asyncPreFilter(){
+		ctx.setup(); //re-setup context for defered processing
 	}
 	
 	public void preProcess(){
@@ -80,39 +77,43 @@ public final class HttpSessionMonitor {
 	public void postProcess(String name, String user, Throwable thrw){
 		call(()-> {
 			createStage(POST_PROCESS, now()).emit();
-			session.runSynchronized(()->{
-				session.setName(name);
-				session.setUser(user);
-				if(nonNull(thrw) && isNull(session.getException())) {// unhandeled exception in @ControllerAdvice
-					session.setException(fromException(thrw));
-				}
-			});
+			call.setName(name);
+			call.setUser(user);
+			if(nonNull(thrw) && isNull(call.getException())) {// unhandeled exception in @ControllerAdvice
+				call.setException(fromException(thrw));
+			}
 		});
 	}
 	
-	public RestSession postFilterHandler(boolean async, Instant end, HttpServletResponse response, Throwable thrw) {
+	public void handleError(Throwable thrw) {
+		if(isNull(call.getException())) {
+			call.setException(fromException(thrw));
+		}
+	}
+	
+	public void postFilterHandler(boolean async, Instant end, HttpServletResponse response, Throwable thrw) {
 		if(async) {
 			createStage(DEFERRED, end).emit();
 		}
-		session.runSynchronized(()->{
-			if(!async && nonNull(response)) {
-				session.setStatus(response.getStatus());
-				session.setOutDataSize(response.getBufferSize()); //!exact size
-				session.setOutContentEncoding(response.getHeader(CONTENT_ENCODING)); 
-				session.setCacheControl(response.getHeader(CACHE_CONTROL));
-				session.setContentType(response.getContentType());
-			}
-			if(nonNull(thrw) && isNull(session.getException())) { // see advise & interceptor
-				session.setException(fromException(thrw));
-			}
-			session.setEnd(end);  //IO | CancellationException | ServletException => no ErrorHandler
-		});
-		return !async || nonNull(thrw) ? session.releaseContext() : null;
+		if(!async && nonNull(response)) {
+			call.setStatus(response.getStatus());
+			call.setDataSize(response.getBufferSize()); //!exact size
+			call.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
+			call.setCacheControl(response.getHeader(CACHE_CONTROL));
+			call.setContentType(response.getContentType());
+		}
+		if(nonNull(thrw) && isNull(call.getException())) { // see advise & interceptor
+			call.setException(fromException(thrw));
+		}
+		call.setEnd(end);  //IO | CancellationException | ServletException => no ErrorHandler
+		if(!async || nonNull(thrw)) {
+			ctx.release();
+		}
 	}
 
 	HttpSessionStage createStage(HttpAction action, Instant end) {
 		var now = now();
-		var stg = session.createStage(action, lastTimestamp, end, null);
+		var stg = call.createStage(action, lastTimestamp, end, null);
 		lastTimestamp = now;
 		return stg;
 	}
@@ -129,7 +130,7 @@ public final class HttpSessionMonitor {
     public static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req) {
     	var mnt = currentHttpMonitor(req);
     	if(isNull(mnt)) {
-    		reportMessage("HttpSessionMonitor.requireMonitor", null, "no active HttpSession");
+    		reportSessionIsNull("HttpSessionMonitor.requireMonitor");
     	}
     	return mnt;
     }

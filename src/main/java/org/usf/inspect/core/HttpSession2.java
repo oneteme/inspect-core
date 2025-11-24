@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import java.net.URI;
 import java.time.Instant;
 
 import lombok.Getter;
@@ -28,12 +29,21 @@ public class HttpSession2 extends AbstractSession2 {
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
 	private ExceptionInfo exception; //must replace failed
+	private boolean linked;
 
 	public HttpSession2(String id, Instant start, String threadName) {
 		super(id, start, threadName);
 	}
 
+	public void setURI(URI uri) {
+		setProtocol(uri.getScheme());
+		setHost(uri.getHost());
+		setPort(uri.getPort());
+		setPath(uri.getPath());
+		setQuery(uri.getQuery());
+	}
+
 	public HttpSessionCallback createCallback() {
-		return new HttpSessionCallback(getId());
+		return new HttpSessionCallback(getId(), getName(), null, getLocation());
 	}
 }

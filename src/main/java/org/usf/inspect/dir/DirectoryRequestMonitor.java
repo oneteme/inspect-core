@@ -5,7 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
-import static org.usf.inspect.core.SessionManager.createNamingRequest;
+import static org.usf.inspect.core.SessionContextManager.createNamingRequest;
 
 import java.time.Instant;
 import java.util.function.Function;

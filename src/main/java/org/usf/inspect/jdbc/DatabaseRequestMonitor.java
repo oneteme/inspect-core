@@ -14,7 +14,7 @@ import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.SessionManager.createDatabaseRequest;
+import static org.usf.inspect.core.SessionContextManager.createDatabaseRequest;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

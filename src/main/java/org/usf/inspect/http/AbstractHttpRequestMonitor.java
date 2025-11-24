@@ -10,7 +10,7 @@ import static org.usf.inspect.core.AbstractRequestCallback.reportNoActiveRequest
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.RequestMask.REST;
-import static org.usf.inspect.core.SessionManager.createHttpRequest;
+import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;

@@ -1,11 +1,10 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.SessionManager.releaseSession;
-import static org.usf.inspect.core.SessionManager.releaseStartupSession;
-import static org.usf.inspect.core.SessionManager.setCurrentSession;
-import static org.usf.inspect.core.SessionManager.setStartupSession;
+import static org.usf.inspect.core.SessionContextManager.releaseSession;
+import static org.usf.inspect.core.SessionContextManager.releaseStartupSession;
+import static org.usf.inspect.core.SessionContextManager.setCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.setStartupSession;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -16,30 +15,32 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
-final class SessionContext {
+public final class SessionContext {
 	
-	final AbstractSession2 session;
+	final boolean startup;
 	final AbstractSessionCallback callback;
+
+	public SessionContext setup() {
+		if(startup) {
+			setStartupSession(this);
+		}
+		else {
+			setCurrentSession(this);
+		}
+		return this;
+	}
+	
+	public SessionContext release() {
+		if(startup) {
+			releaseStartupSession(this);
+		}
+		else {
+			releaseSession(this);
+		}
+		return this;
+	}
 
 	public boolean wasCompleted() {
 		return nonNull(callback);
-	}
-	
-	public void setup() {
-		if(session instanceof MainSession2 msc && STARTUP.name().equals(msc.getType())) {//TODO check type
-			setStartupSession(callback);
-		}
-		else {
-			setCurrentSession(callback);
-		}
-	}
-	
-	public void release() {
-		if(session instanceof MainSession2 msc && STARTUP.name().equals(msc.getType())) {
-			releaseStartupSession(callback);
-		}
-		else {
-			releaseSession(callback);
-		}
 	}
 }

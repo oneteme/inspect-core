@@ -28,5 +28,4 @@ public class AbstractSession2 implements EventTrace {
 	public void setLocation(String className, String methodName) {
 		this.location = formatLocation(className, methodName);
 	}
-
 }

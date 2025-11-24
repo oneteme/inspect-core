@@ -5,7 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
-import static org.usf.inspect.core.SessionManager.createMailRequest;
+import static org.usf.inspect.core.SessionContextManager.createMailRequest;
 
 import java.time.Instant;
 import java.util.stream.Stream;

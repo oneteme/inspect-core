@@ -1,10 +1,10 @@
 package org.usf.inspect.core;
 
 import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.SessionManager.releaseSession;
-import static org.usf.inspect.core.SessionManager.releaseStartupSession;
-import static org.usf.inspect.core.SessionManager.setCurrentSession;
-import static org.usf.inspect.core.SessionManager.setStartupSession;
+import static org.usf.inspect.core.SessionContextManager.releaseSession;
+import static org.usf.inspect.core.SessionContextManager.releaseStartupSession;
+import static org.usf.inspect.core.SessionContextManager.setCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.setStartupSession;
 
 import java.time.Instant;
 
@@ -46,23 +46,23 @@ public class MainSession extends AbstractSession {
 
 	@Override
 	public MainSession updateContext() {
-		if(STARTUP.name().equals(getType())) {
-			setStartupSession(this);
-		}
-		else {
-			setCurrentSession(this);
-		}
+//		if(STARTUP.name().equals(getType())) {
+//			setStartupSession(this);
+//		}
+//		else {
+//			setCurrentSession(this);
+//		}
 		return this;
 	}
 
 	@Override
 	public MainSession releaseContext() {
-		if(STARTUP.name().equals(getType())) {
-			releaseStartupSession(this);
-		}
-		else {
-			releaseSession(this);
-		}
+//		if(STARTUP.name().equals(getType())) {
+//			releaseStartupSession(this);
+//		}
+//		else {
+//			releaseSession(this);
+//		}
 		return this;
 	}
 

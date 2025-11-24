@@ -36,16 +36,16 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class SessionManager {
+public final class SessionContextManager {
 
-	private static final ThreadLocal<AbstractSessionCallback> localTrace = new InheritableThreadLocal<>();
-	private static AbstractSessionCallback startupSession; //avoid setting startup session on all thread local
+	private static final ThreadLocal<SessionContext> localTrace = new InheritableThreadLocal<>();
+	private static SessionContext startupContext; //avoid setting startup session on all thread local
 	
     public static Runnable aroundRunnable(Runnable cmd) {
     	var ses = requireCurrentSession();
 		if(nonNull(ses)) {
-			ses.threadCountUp();
-			return ()-> aroundRunnable(cmd::run, ses, ses::threadCountDown);
+			ses.callback.threadCountUp();
+			return ()-> aroundRunnable(cmd::run, ses, ses.callback::threadCountDown);
 		}
 		return cmd;
     }
@@ -53,8 +53,8 @@ public final class SessionManager {
     public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
     	var ses = requireCurrentSession();
 		if(nonNull(ses)) {
-			ses.threadCountUp();
-			return ()-> aroundCallable(cmd::call, ses, ses::threadCountDown);
+			ses.callback.threadCountUp();
+			return ()-> aroundCallable(cmd::call, ses, ses.callback::threadCountDown);
 		}
 		return cmd;
     }
@@ -62,17 +62,17 @@ public final class SessionManager {
     public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
     	var ses = requireCurrentSession();
     	if(nonNull(ses)) {
-			ses.threadCountUp();
-			return ()-> aroundCallable(cmd::get, ses, ses::threadCountDown);
+			ses.callback.threadCountUp();
+			return ()-> aroundCallable(cmd::get, ses, ses.callback::threadCountDown);
 		}
 		return cmd;
     }
 
-    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSessionCallback session, Runnable callback) throws E {
+    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, SessionContext session, Runnable callback) throws E {
     	aroundCallable(task, session, callback);
     }
     
-    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSessionCallback session, Runnable callback) throws E {
+    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, SessionContext session, Runnable callback) throws E {
 		var prv = currentSession();
 		if(prv != session) {
 			setCurrentSession(session);
@@ -93,7 +93,7 @@ public final class SessionManager {
 		}	
 	}
 	
-	public static AbstractSessionCallback requireCurrentSession() {
+	public static SessionContext requireCurrentSession() {
 		var ses = currentSession();
 		if(isNull(ses)) {
 			reportNoActiveSession("requireCurrentSession", null);
@@ -105,19 +105,19 @@ public final class SessionManager {
 		return ses;
 	}
 
-	public static AbstractSessionCallback currentSession() {
+	public static SessionContext currentSession() {
 		var trc = localTrace.get();
-		return nonNull(trc) ? trc : startupSession; // priority
+		return nonNull(trc) ? trc : startupContext; // priority
 	}
 
-	public static void setCurrentSession(AbstractSessionCallback session) {
+	public static void setCurrentSession(SessionContext session) {
 		var prv = localTrace.get();
 		if(prv != session) {
 			localTrace.set(session);
 		}
 	}
 	
-	public static void releaseSession(AbstractSessionCallback session) {
+	public static void releaseSession(SessionContext session) {
 		var prv = localTrace.get();
 		if(prv == session) {
 			localTrace.remove();
@@ -130,60 +130,37 @@ public final class SessionManager {
 		}
 	}
 	
-	static void setStartupSession(AbstractSessionCallback session) {
-		if(startupSession != session) {
-			if(isNull(startupSession)) {
-				startupSession = session;
+	static void setStartupSession(SessionContext session) {
+		if(startupContext != session) {
+			if(isNull(startupContext)) {
+				startupContext = session;
 			}
 			else {
-				reportSessionConflict("setStartupSession", startupSession.getId(), session.getId());
+				reportSessionConflict("setStartupSession", startupContext.getId(), session.getId());
 			}
 		}
 	}
 	
-	static void releaseStartupSession(AbstractSessionCallback session) {
-		if(startupSession == session) {
-			if(nonNull(session.getEnd())) { //reactor
-				startupSession = null;
+	static void releaseStartupSession(SessionContext ctx) {
+		if(startupContext == ctx) {
+			if(ctx.wasCompleted()) { //reactor
+				startupContext = null;
 			}
 		}
-		else if(nonNull(startupSession)) {
-			reportSessionConflict("releaseStartupSession", startupSession.getId(), session.getId());
+		else if(nonNull(startupContext)) {
+			reportSessionConflict("releaseStartupSession", startupContext.getId(), ctx.getId());
 		}
 		else {
-			reportNoActiveSession("releaseStartupSession", session);
+			reportNoActiveSession("releaseStartupSession", ctx);
 		}
 	}
 
-	public static RestSession createRestSession() {
-		return createRestSession(nextId());
-	}
-
-	public static RestSession createRestSession(String uuid) {
-		var ses = new RestSession();
-		ses.setId(uuid);
+	public static HttpSession2 createHttpSession(Instant start, String uuid) {
+		var ses = new HttpSession2(uuid, start, threadName());
+		ses.setLinked(nonNull(uuid));
 		return ses;
 	}
 
-	public static MainSession createStartupSession() {
-		return createMainSession(STARTUP);
-	}
-
-	public static MainSession createBatchSession() {
-		return createMainSession(BATCH);
-	}
-	
-	public static MainSession createTestSession() {
-		return createMainSession(TEST);
-	}
-	
-	static MainSession createMainSession(MainSessionType type) {
-		var ses = new MainSession();
-		ses.setId(nextId());
-		ses.setType(type.name());
-		return ses;
-	}
-	
 	public static MainSession2 createStartupSession(Instant start) {
 		return createMainSession(STARTUP, start);
 	}
@@ -227,8 +204,8 @@ public final class SessionManager {
 	private static String requireSessionIdFor(RequestMask mask) {
 		var ses = requireCurrentSession();
 		if(nonNull(ses)) {
-			ses.updateMask(mask);
-			return ses.getId();
+			ses.callback.updateMask(mask);
+			return ses.callback.getId();
 		}
 		return null;
 	}
@@ -258,14 +235,18 @@ public final class SessionManager {
 		return randomUUID().toString();
 	}
 
-	static void reportSessionConflict(String action, String prev, String next) {
-		reporter().action(action).message(format("previous=%s, next=%s", prev, next)).thread().emit();
+	public static void reportSessionIsNull(String action) {
+		reporter().action(action).message("session is null").thread().emit();
 	}
-
+	
 	static void reportNoActiveSession(String action, AbstractSessionCallback session) {
 		reporter().action(action).message("no active session").trace(session).thread().emit();
 	}
 	
+	static void reportSessionConflict(String action, String prev, String next) {
+		reporter().action(action).message(format("previous=%s, next=%s", prev, next)).thread().emit();
+	}
+
 	static void reportIllegalSessionState(String action, String msg, AbstractSessionCallback session) {
 		reporter().action(action).message(msg).trace(session).thread().emit();
 	}

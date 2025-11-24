@@ -11,7 +11,7 @@ import org.springframework.boot.web.reactive.function.client.WebClientCustomizer
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
-import org.usf.inspect.core.SessionManager;
+import org.usf.inspect.core.SessionContextManager;
 
 
 /**
@@ -26,7 +26,7 @@ public class ReactorModuleConfiguration {
 	
 	static {
 		setExecutorServiceDecorator("inspect-executor-decorator", (sc,es)-> wrap(es, "ReactorExecutorService"));
-		onScheduleHook("inspect-schedule-hook", SessionManager::aroundRunnable); //custom schedules
+		onScheduleHook("inspect-schedule-hook", SessionContextManager::aroundRunnable); //custom schedules
 	}
 
     @Bean

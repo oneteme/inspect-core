@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.SessionManager.releaseSession;
-import static org.usf.inspect.core.SessionManager.setCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.releaseSession;
+import static org.usf.inspect.core.SessionContextManager.setCurrentSession;
 
 import java.time.Instant;
 
@@ -56,13 +56,13 @@ public class RestSession extends AbstractSession {
 
 	@Override
 	public RestSession updateContext() {
-		setCurrentSession(this);
+//		setCurrentSession(this);
 		return this;
 	}
 
 	@Override
 	public RestSession releaseContext() {
-		releaseSession(this);
+//		releaseSession(this);
 		return this;
 	}
 

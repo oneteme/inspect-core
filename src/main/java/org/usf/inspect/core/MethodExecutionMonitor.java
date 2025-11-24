@@ -10,11 +10,9 @@ import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.SessionManager.createBatchSession;
-import static org.usf.inspect.core.SessionManager.createLocalRequest;
-import static org.usf.inspect.core.SessionManager.currentSession;
-import static org.usf.inspect.core.SessionManager.releaseSession;
-import static org.usf.inspect.core.SessionManager.setCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.createBatchSession;
+import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
+import static org.usf.inspect.core.SessionContextManager.currentSession;
 
 import java.util.function.Supplier;
 
@@ -72,7 +70,7 @@ public class MethodExecutionMonitor implements Ordered {
 			ses.emit();
 		});
 		var call = ses.createCallback();
-		setCurrentSession(call);
+		var ctx = call.setupContext();
 		return call(point::proceed, (s,e,o,t)-> {
 			call.setStart(s);
 			if(nonNull(t)) {
@@ -80,7 +78,7 @@ public class MethodExecutionMonitor implements Ordered {
 			}
 			call.setEnd(e);
 			call.emit();
-			releaseSession(call);
+			ctx.release();
 		});
 	}
 

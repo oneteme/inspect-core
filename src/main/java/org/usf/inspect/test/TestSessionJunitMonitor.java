@@ -2,15 +2,12 @@ package org.usf.inspect.test;
 
 import static java.time.Instant.now;
 import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.SessionManager.createTestSession;
-import static org.usf.inspect.core.SessionManager.releaseSession;
-import static org.usf.inspect.core.SessionManager.setCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.createTestSession;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.usf.inspect.core.ExceptionInfo;
 import org.usf.inspect.core.MainSessionCallback;
-
-import lombok.Getter;
+import org.usf.inspect.core.SessionContext;
 
 /**
  * 
@@ -19,18 +16,18 @@ import lombok.Getter;
  */
 public final class TestSessionJunitMonitor {
 
-	@Getter
-	MainSessionCallback call;
+	private SessionContext ctx;
+	private MainSessionCallback call;
 	
 	public TestSessionJunitMonitor preProcess(ExtensionContext context){
 		var ses = createTestSession(now());
 		call(()->{
 			ses.setName(context.getDisplayName());
 			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
+			ses.emit();
 		});
-		ses.emit();
 		call = ses.createCallback();
-		setCurrentSession(call);
+		ctx = call.setupContext();
 		return this;
 	}
 	
@@ -41,9 +38,9 @@ public final class TestSessionJunitMonitor {
 				.map(ExceptionInfo::fromException)
 				.ifPresent(call::setException);
 			call.setEnd(now);
+			call.emit();
 		});
-		call.emit();
-		releaseSession(call);
+		ctx.release();
 		return this;
 	}
 }

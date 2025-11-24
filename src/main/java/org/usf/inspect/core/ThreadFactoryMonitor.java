@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.concurrent.Executors.defaultThreadFactory;
-import static org.usf.inspect.core.SessionManager.aroundRunnable;
+import static org.usf.inspect.core.SessionContextManager.aroundRunnable;
 
 import java.util.concurrent.ThreadFactory;
 

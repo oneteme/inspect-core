@@ -1,8 +1,6 @@
 package org.usf.inspect.http;
 
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.http.HttpSessionMonitor.requireHttpMonitor;
 
 import org.springframework.core.Ordered;
@@ -33,10 +31,7 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 		if(routePredicate.accept(request)) {
 			var mnt = requireHttpMonitor(request);
 			if(nonNull(mnt)) { //non filtered requests
-				var ses = mnt.getSession();
-				if(isNull(ses.getException())) {
-					ses.setException(fromException(ex));
-				}
+				mnt.handleError(ex);
 			}
 		}
 		return null;

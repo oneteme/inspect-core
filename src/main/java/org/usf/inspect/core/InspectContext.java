@@ -9,14 +9,12 @@ import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilde
 import static org.usf.inspect.core.BasicDispatchState.DISABLE;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
-import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.SessionManager.createStartupSession;
-import static org.usf.inspect.core.SessionManager.nextId;
+import static org.usf.inspect.core.SessionContextManager.createStartupSession;
+import static org.usf.inspect.core.SessionContextManager.nextId;
+import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -48,7 +46,7 @@ public final class InspectContext {
 	private final InspectCollectorConfiguration configuration;
 	private final EventTraceScheduledDispatcher dispatcher;
 
-	private MainSession session;
+	private SessionContext sesCtx;
 
 	public static InspectContext context() {
 		if(isNull(singleton)) {
@@ -75,32 +73,31 @@ public final class InspectContext {
 	}
 
 	void traceStartupSession(Instant start) {
-		session = createStartupSession();
+		var ses = createStartupSession(start);
 		call(()->{
-			session.setStart(start);
-			session.setThreadName(threadName());
-			session.setType(STARTUP.name());
-			session.setName("main");
-			session.updateContext().emit();
+			ses.setName("main");
+			ses.emit();
 		});
+		var call = ses.createCallback();
+		sesCtx = call.setupContext(true);
 	}
 
 	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
-		if(nonNull(session)) {
+		if(nonNull(sesCtx)) {
 			call(()->{
-				session.runSynchronized(()-> {
-					session.setLocation(className, methodName);
-					if(nonNull(thrw)) {  //nullable
-						session.setException(fromException(thrw));
-					}
-					session.setEnd(instant);
-				});
-				session.releaseContext();
+				var ses = (MainSessionCallback) sesCtx.callback;
+				ses.setLocation(className, methodName);
+				if(nonNull(thrw)) {  //nullable
+					ses.setException(fromException(thrw));
+				}
+				ses.setEnd(instant);
+				ses.emit();
 			});
-			session = null;
+			sesCtx.release();
+			sesCtx = null;
 		}
 		else {
-			reportMessage("traceStartupSession", null, "session is null");
+			reportSessionIsNull("traceStartupSession");
 		}
 	}
 

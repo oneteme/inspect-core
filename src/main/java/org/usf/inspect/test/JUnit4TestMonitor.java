@@ -5,9 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.core.SessionManager.createTestSession;
-import static org.usf.inspect.core.SessionManager.releaseSession;
-import static org.usf.inspect.core.SessionManager.setCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.createTestSession;
 
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -32,7 +30,7 @@ public final class JUnit4TestMonitor implements TestRule {
 					main.emit();
 				});
 				var call = main.createCallback();
-				setCurrentSession(call);
+				var ctx = call.setupContext();
 				exec(base::evaluate, (s,e,m,t)-> {
 					call.setStart(s);
 					if(nonNull(t)) {
@@ -40,7 +38,7 @@ public final class JUnit4TestMonitor implements TestRule {
 					}
 					call.setEnd(e);
 					call.emit();
-					releaseSession(call);
+					ctx.release();
 				});
 			}
 		};

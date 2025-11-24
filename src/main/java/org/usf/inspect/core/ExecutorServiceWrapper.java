@@ -3,8 +3,8 @@ package org.usf.inspect.core;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.SessionManager.aroundCallable;
-import static org.usf.inspect.core.SessionManager.aroundRunnable;
+import static org.usf.inspect.core.SessionContextManager.aroundCallable;
+import static org.usf.inspect.core.SessionContextManager.aroundRunnable;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
