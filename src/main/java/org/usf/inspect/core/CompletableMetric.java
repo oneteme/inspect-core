@@ -11,6 +11,7 @@ import java.util.Objects;
  * @author u$f
  *
  */
+@Deprecated
 public interface CompletableMetric extends Metric {
 	
 	String getId();

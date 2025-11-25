@@ -16,7 +16,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class AbstractSession2 implements EventTrace {
+public class AbstractSession2 implements Initializer {
 
 	private final String id;
 	private final Instant start;

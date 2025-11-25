@@ -23,7 +23,6 @@ public class TracingProperties { //add remote
 	private boolean modifiable = true; //if true dispatch a trace copy
 	private int delayIfPending = 30; // send pending traces after {n} seconds, 0: send immediately, -1 not 
 	private DumpProperties dump = new DumpProperties();
-	private PurgeProperties purge = new PurgeProperties();
 	
 	void validate() {
 		assertGreaterOrEquals(queueCapacity, 100, "queue-capacity");

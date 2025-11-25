@@ -17,7 +17,6 @@ import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
-import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
@@ -27,6 +26,7 @@ import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionCallback;
 import org.usf.inspect.core.HttpSessionStage;
 import org.usf.inspect.core.SessionContext;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,8 +37,6 @@ import jakarta.servlet.http.HttpServletResponse;
  *
  */
 public final class HttpSessionMonitor {
-	
-	static final String SESSION_MONITOR = "inspect-http-request-monitor";
 	
 	private HttpSessionCallback call;
 	private SessionContext ctx;
@@ -62,8 +60,12 @@ public final class HttpSessionMonitor {
 		ctx = call.setupContext();
 	}
 	
-	public void asyncPreFilter(){
+	public ExecutionHandler<Void> asyncFilterHandler(){
 		ctx.setup(); //re-setup context for defered processing
+		return (s,e,o,t)-> {
+			createStage(DEFERRED, e).emit();
+			ctx.release(); //release context after defered processing
+		};
 	}
 	
 	public void preProcess(){
@@ -91,11 +93,8 @@ public final class HttpSessionMonitor {
 		}
 	}
 	
-	public void postFilterHandler(boolean async, Instant end, HttpServletResponse response, Throwable thrw) {
-		if(async) {
-			createStage(DEFERRED, end).emit();
-		}
-		if(!async && nonNull(response)) {
+	public void postFilterHandler(Instant end, HttpServletResponse response, Throwable thrw) {
+		if(nonNull(response)) {
 			call.setStatus(response.getStatus());
 			call.setDataSize(response.getBufferSize()); //!exact size
 			call.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
@@ -106,9 +105,7 @@ public final class HttpSessionMonitor {
 			call.setException(fromException(thrw));
 		}
 		call.setEnd(end);  //IO | CancellationException | ServletException => no ErrorHandler
-		if(!async || nonNull(thrw)) {
-			ctx.release();
-		}
+		ctx.release();
 	}
 
 	HttpSessionStage createStage(HttpAction action, Instant end) {
@@ -123,15 +120,4 @@ public final class HttpSessionMonitor {
         return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
     }
 
-    public static HttpSessionMonitor currentHttpMonitor(HttpServletRequest req) {
-    	return (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
-    }
-    
-    public static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req) {
-    	var mnt = currentHttpMonitor(req);
-    	if(isNull(mnt)) {
-    		reportSessionIsNull("HttpSessionMonitor.requireMonitor");
-    	}
-    	return mnt;
-    }
 }

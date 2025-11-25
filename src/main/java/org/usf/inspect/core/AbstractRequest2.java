@@ -14,7 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public abstract class AbstractRequest2 implements EventTrace {
+public abstract class AbstractRequest2 implements Initializer {
 
 	private final String id;
 	private final String sessionId;

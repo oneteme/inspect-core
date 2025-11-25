@@ -1,7 +1,7 @@
 package org.usf.inspect.http;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.http.HttpSessionMonitor.requireHttpMonitor;
+import static org.usf.inspect.http.HttpSessionFilter.requireHttpMonitor;
 
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.HandlerExceptionResolver;

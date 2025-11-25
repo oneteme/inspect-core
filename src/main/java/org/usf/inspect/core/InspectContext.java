@@ -113,9 +113,6 @@ public final class InspectContext {
 		if(conf.getTracing().getDump().isEnabled()) {
 			hooks.add(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), instance.getId()), mapper));
 		}
-		if(conf.getTracing().getPurge().isEnabled()) { //after dumper
-			hooks.add(new EventTracePurger());
-		}
 		DispatcherAgent agnt = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
 			agnt = new RestDispatcherAgent(prop, mapper);

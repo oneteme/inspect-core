@@ -1,11 +1,5 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.SessionContextManager.releaseSession;
-import static org.usf.inspect.core.SessionContextManager.releaseStartupSession;
-import static org.usf.inspect.core.SessionContextManager.setCurrentSession;
-import static org.usf.inspect.core.SessionContextManager.setStartupSession;
-
 import java.time.Instant;
 
 import com.fasterxml.jackson.annotation.JsonCreator;

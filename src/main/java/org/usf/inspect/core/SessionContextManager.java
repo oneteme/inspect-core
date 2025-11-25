@@ -202,10 +202,13 @@ public final class SessionContextManager {
 	}
 	
 	private static String requireSessionIdFor(RequestMask mask) {
-		var ses = requireCurrentSession();
-		if(nonNull(ses)) {
-			ses.callback.updateMask(mask);
-			return ses.callback.getId();
+		var ctx = requireCurrentSession();
+		if(nonNull(ctx)) {
+			var ses = ctx.callback;
+			if(ses.updateMask(mask) && ses.isAsync()) {
+				new MaskChangeTrace(ses.getId(), ses.getRequestMask().get()).emit();
+			}
+			return ses.getId();
 		}
 		return null;
 	}

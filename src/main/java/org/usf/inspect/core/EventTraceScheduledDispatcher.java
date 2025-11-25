@@ -17,7 +17,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 
@@ -132,43 +131,59 @@ public final class EventTraceScheduledDispatcher {
 	}
 
 	void dispatchAll(DispatchState state) {
-		var resolver = new EventTraceQueueManager(propr.getQueueCapacity(), propr.isModifiable(), queue);
 		try {
 			if(state.canPropagate()) {
 				triggerHooks(DispatchHook::preDispatch);
 				try {
-					dispatchQueue(state, resolver);
+					dispatchQueue(state);
 				}
 				finally {
-					triggerHooks(h-> h.postDispatch(state.wasCompleted(), resolver));
+					triggerHooks(DispatchHook::postDispatch);
 				}
 			}
 		}
 		finally {
-			if(queue.size() > propr.getQueueCapacity()) {
-				int n = queue.removeFrom(propr.getQueueCapacity());
-				log.warn("{} last traces were deleted", n);
-			}
 			dispatchTasks(state);
 		}
 	}
 	
-	void dispatchQueue(DispatchState state, EventTraceQueueManager resolver) {
+	void dispatchQueue(DispatchState state) {
 		if(state.canDispatch()) {
-			resolver.dequeue(state.wasCompleted() ? 0 : propr.getDelayIfPending(), (q, n)->{
-				var traces = q;
-				log.debug("dispatching {} traces .., pending {} traces", traces.size(), n);
+			queue.safeConsume(propr.getQueueCapacity(), snp->{
+				var trc = snp;
+				log.trace("dispatching {} traces .., pending {} traces", trc.size(), 0);
 				try {
-					traces = agent.dispatch(state.wasCompleted(), ++attempts, n, traces);
-					if(attempts > 5) { //more than one attempt
-						log.info("successfully dispatched {} items after {} attempts", traces.size(), attempts);
-					}
+					trc = agent.dispatch(state.wasCompleted(), ++attempts, 0, trc);
+					log.trace("successfully dispatched {} items after {} attempts", trc.size(), attempts);
 					attempts=0;
 				} catch (Exception e) {
-					throw new DispatchException(format("failed to dispatch %d traces", traces.size()), e);
+					var max = propr.getQueueCapacity();
+					if(trc.size() > max) {
+						deletedTracesByType(trc, max, MachineResourceUsage.class, AbstractStage.class, LogEntry.class, Callback.class); //delete Exception
+						if(trc.size() > max) { //GRAVE
+							trc = emptyList(); //danger
+//							atomicState.set(DISABLE); //TODO stop tracing ! server
+						}
+					}
+					throw new DispatchException(format("failed to dispatch %d traces", trc.size()), e);
 				}
-				return traces;
+				return trc;
 			});
+		}
+	}
+	
+	void deletedTracesByType(Collection<EventTrace> traces, int maxCapacity, Class<?>... types) {
+		for(var t : types) {
+			var size = traces.size();
+			if(size > maxCapacity) {
+				traces.removeIf(t::isInstance);
+				if(size > traces.size()) {
+					log.warn("{} {} traces were deleted", size - traces.size(), t.getSimpleName());
+				}
+			}
+			else {
+				break;
+			}
 		}
 	}
 	
@@ -187,7 +202,7 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 	
-	public Stream<EventTrace> peek() {
+	public List<EventTrace> peek() {
 		return queue.peek();
 	}
 

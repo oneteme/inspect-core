@@ -36,7 +36,7 @@ public final class EventTraceDumper implements DispatchHook {
 	}
 
 	@Override
-	public void postDispatch(boolean complete, EventTraceQueueManager manager) {
+	public void postDispatch(boolean complete, Collection<EventTrace> manager) {
 		if(manager.isQueueCapacityExceeded()) {
 			manager.dequeue(complete ? 0 : -1, (trc, pnd)->{
 				emitDispatchFileTask(writeTraces(trc));

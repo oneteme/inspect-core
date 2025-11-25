@@ -16,20 +16,20 @@ import org.junit.runners.model.Statement;
  * @author u$f
  *
  */
-public final class JUnit4TestMonitor implements TestRule {
+public final class Junit4TestMonitor implements TestRule {
 
 	@Override
 	public Statement apply(Statement base, Description description) {
 		return new Statement() {
 			@Override
 			public void evaluate() throws Throwable {
-				var main = createTestSession(now());
+				var ses = createTestSession(now());
 				call(()->{
-					main.setName(description.getDisplayName());
-					main.setLocation(description.getClassName(), description.getMethodName());
-					main.emit();
+					ses.setName(description.getDisplayName());
+					ses.setLocation(description.getClassName(), description.getMethodName());
+					ses.emit();
 				});
-				var call = main.createCallback();
+				var call = ses.createCallback();
 				var ctx = call.setupContext();
 				exec(base::evaluate, (s,e,m,t)-> {
 					call.setStart(s);

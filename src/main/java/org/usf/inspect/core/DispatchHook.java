@@ -17,5 +17,5 @@ public interface DispatchHook {
 	
 	default void preDispatch() {}
 	
-	default void postDispatch(boolean complete, EventTraceQueueManager resolver) {}
+	default void postDispatch() {}
 }

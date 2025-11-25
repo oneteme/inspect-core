@@ -12,9 +12,7 @@ import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.SessionContextManager.currentSession;
-import static org.usf.inspect.http.HttpSessionMonitor.SESSION_MONITOR;
-import static org.usf.inspect.http.HttpSessionMonitor.currentHttpMonitor;
-import static org.usf.inspect.http.HttpSessionMonitor.requireHttpMonitor;
+import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.io.IOException;
@@ -45,6 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class HttpSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 
+	static final String SESSION_MONITOR = "inspect-http-request-monitor";
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 
 	private final HttpRoutePredicate routePredicate;
@@ -57,7 +56,6 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-		traceRestSession(req, res);
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
 			exec(()-> filterChain.doFilter(req, res), filterHandler(req, res));	
@@ -71,39 +69,27 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		}
 	}
 	
-	private void traceRestSession(HttpServletRequest req, HttpServletResponse res) {
-		var mnt = currentHttpMonitor(req);
-		if(isNull(mnt)) {
-			mnt = new HttpSessionMonitor();
-			mnt.preFilter(req, req.getHeader(TRACE_HEADER)); //called once
-			res.addHeader(TRACE_HEADER, mnt.getSession().getId()); //add headers before doFilter
-			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
-		}
-		else {
-			mnt.getSession().updateContext(); //deferred execution
-		}
-	}
-	
 	private ExecutionHandler<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
-		
-		var mnt = currentHttpMonitor(req);
-		if(isNull(mnt)) {
-			mnt = new HttpSessionMonitor();
-			mnt.preFilter(req, res); //called once
-			req.setAttribute(SESSION_MONITOR, mnt);
-		}
-		else {
-			mnt.getSession().updateContext(); //deferred execution
-		}
-		return (s,e,o,t)-> {
+		if(isAsyncStarted(req)) {
 			var mnt = requireHttpMonitor(req);
 			if(nonNull(mnt)) {
-				mnt.postFilterHandler(isAsyncStarted(req), e, response, t);
+				return mnt.asyncFilterHandler(); //deferred execution
+			}
+		}
+		else {
+			var prv = currentHttpMonitor(req);
+			if(isNull(prv)) {
+				var mnt = new HttpSessionMonitor();
+				mnt.preFilter(req, res); //called once
+				req.setAttribute(SESSION_MONITOR, mnt);
+				return(s,e,o,t)-> mnt.postFilterHandler(e, res, t);
 			}
 			else {
-				reportMessage("restSessionListener", null, null);
+				reportMessage("HttpSessionFilter.filterHandler", prv., 
+						"Unexpected HttpSessionMonitor in request attribute");
 			}
-		};
+		}
+		return (s,e,o,t)-> {}; //do nothing
 	}
 
 	@Override
@@ -177,4 +163,17 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		return handler instanceof HandlerMethod mth && 
 				!(mth.getBean() instanceof ErrorController);
 	}
+	
+
+    static HttpSessionMonitor currentHttpMonitor(HttpServletRequest req) {
+    	return (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
+    }
+    
+    static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req) {
+    	var mnt = currentHttpMonitor(req);
+    	if(isNull(mnt)) {
+    		reportSessionIsNull("HttpSessionMonitor.requireMonitor");
+    	}
+    	return mnt;
+    }
 }
