@@ -93,7 +93,7 @@ public final class EventTraceScheduledDispatcher {
 	}
 
 	private void dispatchIfCapacityExceeded(int size){
-		if(size > propr.getQueueCapacity()) {
+		if(size > propr.getQueueCapacity() * 0.9) {
 			synchronizedDispatch(true, false); //deferred process
 		}
 	}
@@ -159,9 +159,9 @@ public final class EventTraceScheduledDispatcher {
 				} catch (Exception e) {
 					var max = propr.getQueueCapacity();
 					if(trc.size() > max) {
-						deletedTracesByType(trc, max, MachineResourceUsage.class, AbstractStage.class, LogEntry.class, Callback.class); //delete Exception
-						if(trc.size() > max) { //GRAVE
-							trc = emptyList(); //danger
+						deletedTraces(trc, max, MachineResourceUsage.class, AbstractStage.class, LogEntry.class, Callback.class); //delete Exception
+						if(trc.size() > max) { 
+							trc = emptyList(); //DANGER
 //							atomicState.set(DISABLE); //TODO stop tracing ! server
 						}
 					}
@@ -172,7 +172,7 @@ public final class EventTraceScheduledDispatcher {
 		}
 	}
 	
-	void deletedTracesByType(Collection<EventTrace> traces, int maxCapacity, Class<?>... types) {
+	void deletedTraces(Collection<EventTrace> traces, int maxCapacity, Class<?>... types) {
 		for(var t : types) {
 			var size = traces.size();
 			if(size > maxCapacity) {
@@ -215,13 +215,16 @@ public final class EventTraceScheduledDispatcher {
 	}
 
 	void complete() {
+
 		atomicState.getAndUpdate(DispatchState::complete);
 		log.info("shutting down the scheduler service...");
 		executor.shutdown();
+		InterruptedException ie;
 		try {
 			executor.awaitTermination(5, SECONDS);
 		} catch (InterruptedException e) { // shutting down host
 			log.warn("interrupted while waiting for executor termination", e);
+			ie = e;
 		}
 		finally {
 			synchronizedDispatch(false, true); //run it on shutdown-hook thread

@@ -1,6 +1,5 @@
 package org.usf.inspect.http;
 
-import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -96,8 +95,7 @@ class AbstractHttpRequestMonitor {
 			if(sid.equals(callback.getId())) {
 				return true;
 			}
-			reportMessage("assertSameID", callback, 
-					format("req.id='%s', ses.id='%s'", callback.getId(), sid));
+			reportMessage("assertSameID", "session.id=" + sid);
 		}
 		return false;
 	}

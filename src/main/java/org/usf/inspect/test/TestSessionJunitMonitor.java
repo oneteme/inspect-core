@@ -1,7 +1,7 @@
 package org.usf.inspect.test;
 
 import static java.time.Instant.now;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -21,7 +21,7 @@ public final class TestSessionJunitMonitor {
 	
 	public TestSessionJunitMonitor preProcess(ExtensionContext context){
 		var ses = createTestSession(now());
-		call(()->{
+		runSafely(()->{
 			ses.setName(context.getDisplayName());
 			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			ses.emit();
@@ -33,7 +33,7 @@ public final class TestSessionJunitMonitor {
 	
 	public TestSessionJunitMonitor postProcess(ExtensionContext context){
 		var now = now();
-		call(()->{
+		runSafely(()->{
 			context.getExecutionException()
 				.map(ExceptionInfo::fromException)
 				.ifPresent(call::setException);

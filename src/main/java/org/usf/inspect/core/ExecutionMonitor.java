@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
-import static org.usf.inspect.core.ErrorReporter.reporter;
+import static org.usf.inspect.core.ErrorReporter.stackReporter;
 
 import java.time.Instant;
 
@@ -34,25 +34,25 @@ public final class ExecutionMonitor {
 			throw e;
 		}
 		finally {
-			trigger(handler, s, now(), o, t);
+			notifyHandler(handler, s, now(), o, t);
 		}
 	}
 	
-	public static <T> void trigger(ExecutionHandler<T> handler, Instant start, Instant end, T obj, Throwable thrw) {
+	public static <T> void notifyHandler(ExecutionHandler<T> handler, Instant start, Instant end, T obj, Throwable thrw) {
 		try {
 			handler.handle(start, end, obj, thrw);
 		}
 		catch (Throwable ex) {// do not throw exception
-			reporter().action("ExecutionMonitor.handle").cause(ex).emit();
+			stackReporter().action("ExecutionMonitor.handle").cause(ex).emit();
 		}
 	}
 	
-	public static void call(Runnable call)  {
+	public static void runSafely(Runnable call)  {
 		try {
 			call.run();
 		}
 		catch (Throwable ex) {// do not throw exception
-			reporter().action("ExecutionMonitor.call").cause(ex).emit();
+			stackReporter().action("ExecutionMonitor.call").cause(ex).emit();
 		}
 	}
 	

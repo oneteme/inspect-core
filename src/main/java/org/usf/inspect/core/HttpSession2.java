@@ -44,6 +44,6 @@ public class HttpSession2 extends AbstractSession2 {
 	}
 
 	public HttpSessionCallback createCallback() {
-		return new HttpSessionCallback(getId(), getName(), null, getLocation());
+		return new HttpSessionCallback(getId());
 	}
 }

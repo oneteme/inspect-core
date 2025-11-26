@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import static java.util.Collections.emptyList;
 
 import java.io.File;
-import java.util.Collection;
 import java.util.List;
 
 /**

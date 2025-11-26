@@ -3,8 +3,8 @@ package org.usf.inspect.core;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.SessionContextManager.requireCurrentSession;
-import static org.usf.inspect.core.SessionContextManager.setCurrentSession;
+import static org.usf.inspect.core.SessionContextManager.requireActiveContext;
+import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
 import java.util.Collection;
 import java.util.stream.Stream;
@@ -31,10 +31,10 @@ public final class StreamProxy {
 
 	public static <T> Stream<T> parallel(Stream<T> stream) {
 		if(context().getConfiguration().isEnabled()){
-			var ctx = requireCurrentSession();
+			var ctx = requireActiveContext();
 			if(nonNull(ctx)) {
 				stream = stream.parallel().map(c-> {
-					setCurrentSession(ctx);
+					setActiveContext(ctx);
 					return c;
 				});
 			}

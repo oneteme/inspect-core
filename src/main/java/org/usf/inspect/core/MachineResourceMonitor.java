@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.time.Instant.now;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 
 import java.io.File;
 import java.lang.management.MemoryMXBean;
@@ -24,7 +24,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 
 	@Override
 	public void onInstanceEmit(InstanceEnvironment instance) {
-		call(()->{
+		runSafely(()->{
 			var heap = bean.getHeapMemoryUsage();
 //			var meta = bean.getNonHeapMemoryUsage()
 			instance.setResource(new MachineResource(
@@ -38,7 +38,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 
 	@Override
 	public void preDispatch() {
-		call(()->{
+		runSafely(()->{
 			var heap = bean.getHeapMemoryUsage();
 //			var meta = bean.getNonHeapMemoryUsage()
 			new MachineResourceUsage(now(),

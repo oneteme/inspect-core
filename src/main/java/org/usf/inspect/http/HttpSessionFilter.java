@@ -5,15 +5,12 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
-import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
-import static org.usf.inspect.core.SessionContextManager.currentSession;
 import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
-import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.io.IOException;
 import java.util.Map;
@@ -64,7 +61,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 			throw e;
 		}
 		catch (Exception e) {//should never happen
-			reportError("FilterExecutionMonitor.doFilterInternal", currentSession(), e);
+			reportError("FilterExecutionMonitor.doFilterInternal", e);
 			throw new IllegalStateException(e); 
 		}
 	}
@@ -85,7 +82,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 				return(s,e,o,t)-> mnt.postFilterHandler(e, res, t);
 			}
 			else {
-				reportMessage("HttpSessionFilter.filterHandler", prv., 
+				reportMessage("HttpSessionFilter.filterHandler", 
 						"Unexpected HttpSessionMonitor in request attribute");
 			}
 		}

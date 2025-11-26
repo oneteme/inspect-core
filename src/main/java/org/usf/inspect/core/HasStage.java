@@ -1,10 +1,11 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
+
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 
 public interface HasStage {
 	

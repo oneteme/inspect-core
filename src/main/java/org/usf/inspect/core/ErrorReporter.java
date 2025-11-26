@@ -21,7 +21,6 @@ public final class ErrorReporter {
 	private String action;
 	private String message;
 	private String thread;
-	private EventTrace trace;
 	private Throwable cause;
 
 	public ErrorReporter action(String action) {
@@ -39,10 +38,6 @@ public final class ErrorReporter {
 		return this;
 	}
 
-	public ErrorReporter trace(EventTrace trace) {
-		this.trace = trace;
-		return this;
-	}
 
 	public ErrorReporter cause(Throwable cause) {
 		this.cause = cause;
@@ -66,9 +61,6 @@ public final class ErrorReporter {
 		if(nonNull(thread)) {
 			sb.append(", thread=").append(thread);
 		}
-		if(nonNull(trace)) {
-			sb.append(", trace=").append(trace);
-		}
 		if(nonNull(cause)) {
 			sb.append(", cause=").append(cause.getClass().getSimpleName())
 			.append(": ").append(cause.getMessage());
@@ -76,15 +68,15 @@ public final class ErrorReporter {
 		return sb.toString();
 	}
 
-	public static ErrorReporter reporter(){
+	public static ErrorReporter stackReporter(){
 		return new ErrorReporter(true).thread();
 	}
 
-	public static void reportError(String action, EventTrace trace, Throwable cause) {
-		new ErrorReporter(false).action(action).trace(trace).cause(cause).thread().emit();
+	public static void reportError(String action, Throwable cause) {
+		new ErrorReporter(false).action(action).cause(cause).thread().emit();
 	}
 
-	public static void reportMessage(String action, EventTrace trace, String message) {
-		new ErrorReporter(false).action(action).trace(trace).message(message).thread().emit();
+	public static void reportMessage(String action, String message) {
+		new ErrorReporter(false).action(action).message(message).thread().emit();
 	}
 }

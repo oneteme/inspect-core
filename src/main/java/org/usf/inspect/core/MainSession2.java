@@ -20,6 +20,6 @@ public class MainSession2 extends AbstractSession2 {
 	}
 
 	public MainSessionCallback createCallback() {
-		return new MainSessionCallback(getId(), getName(), getUser(), getLocation(), getStart());
+		return new MainSessionCallback(getId());
 	}
 }

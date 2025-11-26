@@ -10,7 +10,7 @@ import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
@@ -22,11 +22,11 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 import java.net.URI;
 import java.time.Instant;
 
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionCallback;
 import org.usf.inspect.core.HttpSessionStage;
 import org.usf.inspect.core.SessionContext;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -45,7 +45,7 @@ public final class HttpSessionMonitor {
 	public void preFilter(HttpServletRequest req, HttpServletResponse res){
 		lastTimestamp = now();
 		var ses = createHttpSession(lastTimestamp, req.getHeader(TRACE_HEADER));
-		call(()->{
+		runSafely(()->{
 			ses.setMethod(req.getMethod());
 			ses.setURI(fromRequest(req));
 			ses.setAuthScheme(extractAuthScheme(req.getHeader(AUTHORIZATION))); //extract user !?
@@ -69,15 +69,15 @@ public final class HttpSessionMonitor {
 	}
 	
 	public void preProcess(){
-		call(()-> createStage(PRE_PROCESS, now()).emit());
+		runSafely(()-> createStage(PRE_PROCESS, now()).emit());
 	}
 	
 	public void process(){
-		call(()-> createStage(PROCESS, now()).emit());
+		runSafely(()-> createStage(PROCESS, now()).emit());
 	}
 
 	public void postProcess(String name, String user, Throwable thrw){
-		call(()-> {
+		runSafely(()-> {
 			createStage(POST_PROCESS, now()).emit();
 			call.setName(name);
 			call.setUser(user);

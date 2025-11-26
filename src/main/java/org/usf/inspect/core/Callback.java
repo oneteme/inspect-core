@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorReporter.reporter;
+import static org.usf.inspect.core.ErrorReporter.stackReporter;
 
 import java.time.Instant;
 
@@ -18,7 +18,7 @@ public interface Callback extends EventTrace {
 	
 	default boolean assertStillConnected(){
 		if(nonNull(getEnd())) {
-			reporter().action("assertStillConnected").trace(this).emit();
+			stackReporter().action("assertStillConnected").emit();
 			return false;
 		}
 		return true;

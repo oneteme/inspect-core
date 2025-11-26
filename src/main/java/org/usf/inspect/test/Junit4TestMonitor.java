@@ -3,8 +3,8 @@ package org.usf.inspect.test;
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 
 import org.junit.rules.TestRule;
@@ -24,7 +24,7 @@ public final class Junit4TestMonitor implements TestRule {
 			@Override
 			public void evaluate() throws Throwable {
 				var ses = createTestSession(now());
-				call(()->{
+				runSafely(()->{
 					ses.setName(description.getDisplayName());
 					ses.setLocation(description.getClassName(), description.getMethodName());
 					ses.emit();

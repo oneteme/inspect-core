@@ -2,7 +2,7 @@ package org.usf.inspect.http;
 
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
@@ -33,7 +33,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 
 	public void postProcess(ClientResponse res, Throwable thrw) {
 		var now = now();
-		call(()->{
+		runSafely(()->{
 			createStage(PROCESS, lastTimestamp, now, thrw).emit(); //emit manually
 			if(nonNull(res)) {
 				super.postProcessHandler(now, res.statusCode(), res.headers().asHttpHeaders(), thrw);

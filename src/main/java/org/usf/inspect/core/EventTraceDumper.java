@@ -4,7 +4,6 @@ import static java.lang.Integer.parseInt;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.move;
-import static java.util.Collections.emptyList;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.InspectContext.context;
 
@@ -12,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,14 +35,14 @@ public final class EventTraceDumper implements DispatchHook {
 		this.writer = mapper.writerFor(new TypeReference<Collection<EventTrace>>() {});
 	}
 
-	@Override
-	public void postDispatch(boolean complete, Collection<EventTrace> manager) {
-		if(manager.isQueueCapacityExceeded()) {
-			manager.dequeue(complete ? 0 : -1, (trc, pnd)->{
+//	@Override
+	public void postDispatch(boolean complete, ConcurrentLinkedSetQueue<EventTrace> manager) {
+//		if(manager.isQueueCapacityExceeded()) {
+			manager.safeConsume(complete ? 0 : -1, trc->{
 				emitDispatchFileTask(writeTraces(trc));
-				return emptyList();
+				return Collections.emptyList();
 			});
-		}
+//		}
 	}
 	
 	File writeTraces(Collection<EventTrace> traces) {
@@ -76,7 +76,7 @@ public final class EventTraceDumper implements DispatchHook {
 				}
 			}
 			else { //do not throw exception => end task
-				reportMessage("EventTraceDumper.emitDispatchFileTask", null, 
+				reportMessage("EventTraceDumper.emitDispatchFileTask", 
 						"traces dump file '" + f.getName() + "' is not found");
 			}
 		});
@@ -100,7 +100,7 @@ public final class EventTraceDumper implements DispatchHook {
 			}
 		}
 		if(!done) {
-			reportMessage("EventTraceDumper.deleteFile", null, 
+			reportMessage("EventTraceDumper.deleteFile", 
 					"cannot delete or rename file '" + file.getName() + "'");
 		}
 	}

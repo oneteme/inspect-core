@@ -10,7 +10,7 @@ import static org.usf.inspect.core.BasicDispatchState.DISABLE;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.SessionContextManager.createStartupSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
@@ -74,7 +74,7 @@ public final class InspectContext {
 
 	void traceStartupSession(Instant start) {
 		var ses = createStartupSession(start);
-		call(()->{
+		runSafely(()->{
 			ses.setName("main");
 			ses.emit();
 		});
@@ -84,7 +84,7 @@ public final class InspectContext {
 
 	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
 		if(nonNull(sesCtx)) {
-			call(()->{
+			runSafely(()->{
 				var ses = (MainSessionCallback) sesCtx.callback;
 				ses.setLocation(className, methodName);
 				if(nonNull(thrw)) {  //nullable
@@ -171,23 +171,31 @@ public final class InspectContext {
 
 	public static SimpleModule coreModule() {
 		return new SimpleModule("inspect-core-module").registerSubtypes(
-				new NamedType(LogEntry.class, 					"log"),  
-				new NamedType(MachineResourceUsage.class, 		"rsrc-usg"),
-				new NamedType(MainSession.class,  				"main-ses"), 
-				new NamedType(RestSession.class,  				"rest-ses"), 
-				new NamedType(LocalRequest.class, 				"locl-req"), 
-				new NamedType(DatabaseRequest.class,			"jdbc-req"),
-				new NamedType(RestRequest.class,  				"http-req"), 
-				new NamedType(MailRequest.class,  				"mail-req"), 
-				new NamedType(DirectoryRequest.class,			"ldap-req"), 
-				new NamedType(FtpRequest.class,  				"ftp-req"),
-				new NamedType(DatabaseRequestStage.class,		"jdbc-stg"),
-				new NamedType(HttpRequestStage.class,  			"http-stg"), 
-				new NamedType(HttpSessionStage.class,  			"sess-stg"), 
-				new NamedType(MailRequestStage.class,  			"mail-stg"), 
-				new NamedType(DirectoryRequestStage.class,		"ldap-stg"), 
-				new NamedType(FtpRequestStage.class,  			"ftp-stg"),
-				new NamedType(RestRemoteServerProperties.class, "rest-rmt"));
+				new NamedType(LogEntry.class, 					"00"),  
+				new NamedType(MachineResourceUsage.class, 		"01"),
+				new NamedType(RestRemoteServerProperties.class, "02"),
+				new NamedType(MainSession2.class,  				"10"), 
+				new NamedType(MainSessionCallback.class,  		"11"), 
+				new NamedType(HttpSession2.class,  				"20"), 
+				new NamedType(HttpSessionCallback.class,  		"21"), 
+				new NamedType(LocalRequest2.class, 				"110"),
+				new NamedType(LocalRequestCallback.class, 		"111"),
+				new NamedType(HttpRequest2.class,  				"120"), 
+				new NamedType(HttpRequestCallback.class,  		"121"), 
+				new NamedType(DatabaseRequest2.class,			"130"),
+				new NamedType(DatabaseRequestCallback.class,	"231"),
+				new NamedType(FtpRequestCallback.class,  		"140"), 
+				new NamedType(FtpRequestCallback.class,  		"141"),
+				new NamedType(MailRequest2.class,  				"150"), 
+				new NamedType(MailRequestCallback.class,  		"151"), 
+				new NamedType(DirectoryRequest2.class,			"160"),
+				new NamedType(DirectoryRequestCallback.class,	"161"), 
+				new NamedType(HttpSessionStage.class,  			"210"), 
+				new NamedType(HttpRequestStage.class,  			"220"), 
+				new NamedType(DatabaseRequestStage.class,		"230"), 
+				new NamedType(FtpRequestStage.class,  			"240"),
+				new NamedType(MailRequestStage.class,  			"250"), 
+				new NamedType(DirectoryRequestStage.class,		"260"));
 	}
 
 	static InspectCollectorConfiguration disabledConfiguration() {

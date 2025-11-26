@@ -26,10 +26,9 @@ public class HttpSessionCallback extends AbstractSessionCallback implements HasS
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
-	private boolean linked;
 	
-	public HttpSessionCallback(String id, String name, String user, String location) {
-		super(id, false, null, name, user, location, null);
+	public HttpSessionCallback(String id) {
+		super(id);
 	}
 
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {

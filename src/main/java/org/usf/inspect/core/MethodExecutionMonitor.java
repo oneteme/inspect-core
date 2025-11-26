@@ -5,6 +5,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
@@ -12,7 +13,7 @@ import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionContextManager.createBatchSession;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
-import static org.usf.inspect.core.SessionContextManager.currentSession;
+import static org.usf.inspect.core.SessionContextManager.activeContext;
 
 import java.util.function.Supplier;
 
@@ -55,7 +56,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	@Around("@annotation(TraceableStage)") //batch <> TraceableStage
 	Object aroundTraceable(ProceedingJoinPoint point) throws Throwable {
-		var ses = currentSession();
+		var ses = activeContext();
 		return isNull(ses) || ses.wasCompleted() 
 				? aroundBatch(point) 
 				: aroundStage(point);
@@ -63,7 +64,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
 		var ses = createBatchSession(now());
-		call(()->{
+		runSafely(()->{
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
@@ -99,7 +100,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	public static <T> ExecutionHandler<T> localRequestHandler(LocalRequestType type, Supplier<String> nameSupp, Supplier<String> locationSupp, Supplier<String> userSupp) {
 		var req = createLocalRequest(now());
-		call(()->{
+		runSafely(()->{
 			req.setType(type.name());
 			req.setName(nameSupp.get());
 			req.setLocation(locationSupp.get());

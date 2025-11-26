@@ -1,12 +1,11 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.SessionContextManager.releaseSession;
-import static org.usf.inspect.core.SessionContextManager.releaseStartupSession;
-import static org.usf.inspect.core.SessionContextManager.setCurrentSession;
-import static org.usf.inspect.core.SessionContextManager.setStartupSession;
+import static org.usf.inspect.core.SessionContextManager.setActiveContext;
+import static org.usf.inspect.core.SessionContextManager.clearContext;
 
 import lombok.AccessLevel;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -18,29 +17,23 @@ import lombok.RequiredArgsConstructor;
 public final class SessionContext {
 	
 	final boolean startup;
-	final AbstractSessionCallback callback;
+	@NonNull final AbstractSessionCallback callback;
+	
+	public String getId() {
+		return callback.getId();
+	}
 
 	public SessionContext setup() {
-		if(startup) {
-			setStartupSession(this);
-		}
-		else {
-			setCurrentSession(this);
-		}
+		setActiveContext(this);
 		return this;
 	}
 	
 	public SessionContext release() {
-		if(startup) {
-			releaseStartupSession(this);
-		}
-		else {
-			releaseSession(this);
-		}
+		clearContext(this);
 		return this;
 	}
 
 	public boolean wasCompleted() {
-		return nonNull(callback);
+		return nonNull(callback.getEnd()) && !callback.isAsync();
 	}
 }

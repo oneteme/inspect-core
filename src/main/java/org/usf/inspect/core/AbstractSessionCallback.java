@@ -5,8 +5,8 @@ import static org.usf.inspect.core.Helper.formatLocation;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -15,7 +15,7 @@ import lombok.Setter;
  *
  */
 @Getter
-@AllArgsConstructor
+@RequiredArgsConstructor
 public abstract class AbstractSessionCallback implements Callback {
 
 	private final String id;
@@ -23,10 +23,11 @@ public abstract class AbstractSessionCallback implements Callback {
 	private final AtomicInteger requestMask = new AtomicInteger(); // thread safe
 	private boolean async;
 	private Instant end;
-	@Setter private String name;  //title, topic
-	@Setter private String user;  //title, topic
+	@Setter private String name; //title, topic
+	@Setter private String user;
 	@Setter private String location; //class.method, URL
 	@Setter private ExceptionInfo exception;
+	@Setter private String instanceId; //for distributed tracing
 	
 	public void setLocation(String className, String methodName) {
 		this.location = formatLocation(className, methodName);

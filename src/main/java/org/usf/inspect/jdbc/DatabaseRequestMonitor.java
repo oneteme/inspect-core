@@ -155,7 +155,7 @@ final class DatabaseRequestMonitor {
 			lastStg = null;
 		}
 		else {
-			reportMessage("empty batch or already traced", callback, null);
+			reportMessage("emitBatchStage", "empty batch or already traced");
 		}
 	}
 
@@ -181,7 +181,7 @@ final class DatabaseRequestMonitor {
 				}
 			}
 			catch (Exception e) {
-				reportError("DatabaseRequestMonitor.updateStageRowsCount", callback, e);
+				reportError("DatabaseRequestMonitor.updateStageRowsCount", e);
 			}
 		}
 	}
