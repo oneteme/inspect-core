@@ -10,7 +10,7 @@ import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
-import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
+import static org.usf.inspect.core.SessionContextManager.reportContextIsNull;
 
 import java.io.IOException;
 import java.util.Map;
@@ -169,7 +169,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
     static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req) {
     	var mnt = currentHttpMonitor(req);
     	if(isNull(mnt)) {
-    		reportSessionIsNull("HttpSessionMonitor.requireMonitor");
+    		reportContextIsNull("HttpSessionMonitor.requireMonitor");
     	}
     	return mnt;
     }

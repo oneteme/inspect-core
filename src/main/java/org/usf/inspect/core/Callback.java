@@ -10,9 +10,7 @@ import java.time.Instant;
  * @author u$f
  *
  */
-public interface Callback extends EventTrace {
-	
-	String getId();
+public interface Callback extends Compleatable {
 	
 	Instant getEnd();
 	

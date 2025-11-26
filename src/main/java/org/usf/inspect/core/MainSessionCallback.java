@@ -14,7 +14,7 @@ import lombok.Setter;
 @Setter
 public class MainSessionCallback extends AbstractSessionCallback {
 
-	private Instant start; //updated in some cases
+	private Instant start; //updated sometime after initialization
 
 	public MainSessionCallback(String id) {
 		super(id);

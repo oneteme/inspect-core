@@ -4,7 +4,7 @@ import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
-import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
+import static org.usf.inspect.core.SessionContextManager.reportContextIsNull;
 
 import java.util.Optional;
 
@@ -43,7 +43,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 			mnt.postProcess(context);
 		}
 		else {
-			reportSessionIsNull("Junit5TestMonitor.afterEach");
+			reportContextIsNull("Junit5TestMonitor.afterEach");
 		}
 	}
 	

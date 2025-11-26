@@ -229,9 +229,9 @@ public final class SessionContextManager {
 
 	private static void emitLog(Level lvl, String msg) {
 		var log = logEntry(lvl, msg, 0); // no stack
-		var ses = requireActiveContext();
-		if(nonNull(ses)) {
-			log.setSessionId(ses.getId());
+		var ctx = requireActiveContext();
+		if(nonNull(ctx)) {
+			log.setSessionId(ctx.getId());
 		}
 		log.emit();
 	}
@@ -240,7 +240,7 @@ public final class SessionContextManager {
 		return randomUUID().toString();
 	}
 
-	public static void reportSessionIsNull(String action) {
+	public static void reportContextIsNull(String action) {
 		stackReporter().action(action).message("session is null").thread().emit();
 	}
 	

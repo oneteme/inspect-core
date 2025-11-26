@@ -24,7 +24,7 @@ public class AbstractRequestCallback implements Callback, HasStage {
 	@JsonIgnore private final AtomicInteger stageCounter = new AtomicInteger();
 	
 	private final String id;
-	private String command;
+	private String command; //READ, EMIT, EDIT, ..
 	private Instant end;
 	private String instanceId; //for distributed tracing
 	

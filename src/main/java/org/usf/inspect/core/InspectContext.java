@@ -14,7 +14,7 @@ import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.SessionContextManager.createStartupSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
-import static org.usf.inspect.core.SessionContextManager.reportSessionIsNull;
+import static org.usf.inspect.core.SessionContextManager.reportContextIsNull;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -97,7 +97,7 @@ public final class InspectContext {
 			sesCtx = null;
 		}
 		else {
-			reportSessionIsNull("traceStartupSession");
+			reportContextIsNull("traceStartupSession");
 		}
 	}
 

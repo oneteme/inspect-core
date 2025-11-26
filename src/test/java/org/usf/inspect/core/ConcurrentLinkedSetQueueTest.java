@@ -24,11 +24,11 @@ import lombok.ToString;
 
 class ConcurrentLinkedSetQueueTest {
 	
-	private ConcurrentLinkedSetQueue<Dummy> queue;
+	private ProcessingQueue<Dummy> queue;
 	
 	@BeforeEach
 	void init() {
-		queue = new ConcurrentLinkedSetQueue<>();
+		queue = new ProcessingQueue<>();
 	}
 	
 	@Test

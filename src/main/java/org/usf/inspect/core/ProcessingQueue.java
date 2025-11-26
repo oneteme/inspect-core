@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class ConcurrentLinkedSetQueue<T> {
+public final class ProcessingQueue<T> {
 
 	private final ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>(); //possible duplicates 
 	
@@ -31,7 +31,7 @@ public final class ConcurrentLinkedSetQueue<T> {
 		return queue.size();
 	}
 	
-	public void safeConsume(int max, UnaryOperator<List<T>> op) {
+	public void pollAll(int max, UnaryOperator<List<T>> op) {
 		List<T> items = new ArrayList<>();
 		try {
 			T obj;

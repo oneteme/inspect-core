@@ -37,14 +37,6 @@ public abstract class AbstractSessionCallback implements Callback {
 		this.end = end;
 		this.async = threadCount.get() == 0;
 	}
-
-	void threadCountUp() {
-		threadCount.incrementAndGet();
-	}
-	
-	void threadCountDown() {
-		threadCount.decrementAndGet();
-	}
 	
 	public boolean updateMask(RequestMask mask) {
 		return !mask.is(requestMask.getAndUpdate(v-> v|mask.getValue()));
@@ -56,5 +48,13 @@ public abstract class AbstractSessionCallback implements Callback {
 
 	SessionContext setupContext(boolean startup) {
 		return new SessionContext(startup, this).setup();
+	}
+
+	void threadCountUp() {
+		threadCount.incrementAndGet();
+	}
+	
+	void threadCountDown() {
+		threadCount.decrementAndGet();
 	}
 }
