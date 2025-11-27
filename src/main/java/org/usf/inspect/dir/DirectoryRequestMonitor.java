@@ -2,6 +2,7 @@ package org.usf.inspect.dir;
 
 import static java.net.URI.create;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
@@ -52,7 +53,7 @@ final class DirectoryRequestMonitor {
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
 		if(nonNull(callback)) {
 			callback.createStage(DISCONNECTION, start, end, thw, null).emit();
-			if(callback.assertStillConnected()) {				
+			if(assertStillOpened(callback)) {				
 				callback.setEnd(end);
 				callback.emit(); //avoid emit twice
 			} //else report
@@ -62,7 +63,7 @@ final class DirectoryRequestMonitor {
 	<T> ExecutionHandler<T> executeStageHandler(DirCommand cmd, String... args) {
 		return (s,e,o,t)-> {
 			if(nonNull(callback)) {
-				callback.assertStillConnected();//report if request was closed
+				assertStillOpened(callback);//report if request was closed
 				callback.createStage(EXECUTE, s, e, t, cmd, args).emit();
 			} //else report
 		};

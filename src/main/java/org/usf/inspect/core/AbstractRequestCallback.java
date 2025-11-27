@@ -26,7 +26,6 @@ public class AbstractRequestCallback implements Callback, HasStage {
 	private final String id;
 	private String command; //READ, EMIT, EDIT, ..
 	private Instant end;
-	private String instanceId; //for distributed tracing
 	
 	public static void reportNoActiveRequest(String action, RequestMask mask) {
 		stackReporter().action(action).message("no active request["+mask+"]").thread().emit();

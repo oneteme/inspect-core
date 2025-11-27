@@ -8,5 +8,4 @@ package org.usf.inspect.core;
 public interface Compleatable extends EventTrace {
 	
 	String getId();
-
 }

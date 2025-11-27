@@ -1,6 +1,7 @@
 package org.usf.inspect.ftp;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.FtpAction.CONNECTION;
 import static org.usf.inspect.core.FtpAction.DISCONNECTION;
 import static org.usf.inspect.core.FtpAction.EXECUTE;
@@ -51,7 +52,7 @@ final class FtpRequestMonitor {
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
 		if(nonNull(callback)) {
 			callback.createStage(DISCONNECTION, start, end, thw, null).emit();
-			if(callback.assertStillConnected()) {//report if request was closed
+			if(assertStillOpened(callback)) {//report if request was closed
 				callback.setEnd(end);
 				callback.emit(); //avoid emit twice
 			}
@@ -61,7 +62,7 @@ final class FtpRequestMonitor {
 	<T> ExecutionHandler<T> executeStageHandler(FtpCommand cmd, String... args) {
 		return (s,e,o,t)-> {
 			if(nonNull(callback)) {
-				callback.assertStillConnected();//report if request was closed
+				assertStillOpened(callback);//report if request was closed
 				callback.createStage(EXECUTE, s, e, t, cmd, args).emit();
 			}//else report
 		};

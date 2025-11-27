@@ -5,10 +5,9 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.AbstractRequestCallback.reportNoActiveRequest;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
-import static org.usf.inspect.core.RequestMask.REST;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
@@ -47,46 +46,36 @@ class AbstractHttpRequestMonitor {
 	
 	void postProcessHandler(Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 //		request.setThreadName(threadName()); //deferred thread
-		if(nonNull(callback)) {
-			if(callback.assertStillConnected()) {
-				if(nonNull(status)) {
-					callback.setStatus(status.value());
-				}
-				if(nonNull(headers)) { //response
-					callback.setContentType(headers.getFirst(CONTENT_TYPE));
-					callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-					callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
-				}
-				if(nonNull(thrw)) { //thrw -> stage
-					callback.setEnd(end);
-					callback.emit();
-				}
+		if(assertStillOpened(callback)) {
+			if(nonNull(status)) {
+				callback.setStatus(status.value());
 			}
-		}
-		else {
-			reportNoActiveRequest("postProcessHandler", REST);
+			if(nonNull(headers)) { //response
+				callback.setContentType(headers.getFirst(CONTENT_TYPE));
+				callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+				callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
+			}
+			if(nonNull(thrw)) { //report if request was closed
+				callback.setEnd(end); //thrw -> stage
+				callback.emit();
+			}
 		}
 	}
 	
 	void completeHandler(Instant end, ResponseContent cnt, Throwable t){
 //		request.setThreadName(threadName()); //deferred thread
-		if(nonNull(callback)) {
-			if(callback.assertStillConnected()) {
-				if(nonNull(cnt)) {
-					if(nonNull(cnt.contentBytes())) {
-						callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
-					}
-					callback.setDataSize(cnt.contentSize());
+		if(assertStillOpened(callback)) {
+			if(nonNull(cnt)) {
+				if(nonNull(cnt.contentBytes())) {
+					callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
 				}
-				else {
-					callback.setDataSize(-1);
-				}
-				callback.setEnd(end);
-				callback.emit();
+				callback.setDataSize(cnt.contentSize());
 			}
-		}
-		else {
-			reportNoActiveRequest("completeHandler", REST);
+			else {
+				callback.setDataSize(-1);
+			}
+			callback.setEnd(end);
+			callback.emit();
 		}
 	}
 

@@ -2,6 +2,7 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
@@ -52,7 +53,7 @@ final class MailRequestMonitor {
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
 		if(nonNull(callback)) {
 			callback.createStage(DISCONNECTION, start, end, thw, null).emit();
-			if(callback.assertStillConnected()) { //report if request was closed
+			if(assertStillOpened(callback)) { //report if request was closed
 				callback.setEnd(end);
 				callback.emit(); //avoid emit twice
 			}
@@ -72,7 +73,7 @@ final class MailRequestMonitor {
 					mail.setContentType(msg.getContentType());
 					mail.setSize(msg.getSize());
 				}
-				callback.assertStillConnected(); //report if request was closed
+				assertStillOpened(callback); //report if request was closed
 				callback.createStage(EXECUTE, s, e, t, cmd, mail).emit();
 			} //else report
 		};

@@ -183,7 +183,7 @@ public final class InspectContext {
 				new NamedType(HttpRequest2.class,  				"120"), 
 				new NamedType(HttpRequestCallback.class,  		"121"), 
 				new NamedType(DatabaseRequest2.class,			"130"),
-				new NamedType(DatabaseRequestCallback.class,	"231"),
+				new NamedType(DatabaseRequestCallback.class,	"131"),
 				new NamedType(FtpRequestCallback.class,  		"140"), 
 				new NamedType(FtpRequestCallback.class,  		"141"),
 				new NamedType(MailRequest2.class,  				"150"), 

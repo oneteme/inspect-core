@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
 import static org.usf.inspect.core.ExecutionMonitor.runSafely;
@@ -73,13 +74,15 @@ public class MethodExecutionMonitor implements Ordered {
 		var call = ses.createCallback();
 		var ctx = call.setupContext();
 		return call(point::proceed, (s,e,o,t)-> {
-			call.setStart(s);
-			if(nonNull(t)) {
-				call.setException(fromException(t));
+			if(assertStillOpened(call)) {
+				call.setStart(s);
+				if(nonNull(t)) {
+					call.setException(fromException(t));
+				}
+				call.setEnd(e);
+				call.emit();
+				ctx.release();
 			}
-			call.setEnd(e);
-			call.emit();
-			ctx.release();
 		});
 	}
 

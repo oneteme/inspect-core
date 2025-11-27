@@ -1,6 +1,7 @@
 package org.usf.inspect.test;
 
 import static java.time.Instant.now;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 
@@ -33,13 +34,15 @@ public final class TestSessionJunitMonitor {
 	
 	public TestSessionJunitMonitor postProcess(ExtensionContext context){
 		var now = now();
-		runSafely(()->{
-			context.getExecutionException()
-				.map(ExceptionInfo::fromException)
-				.ifPresent(call::setException);
-			call.setEnd(now);
-			call.emit();
-		});
+		if(assertStillOpened(call)) { //report if session was closed
+			runSafely(()->{
+				context.getExecutionException()
+					.map(ExceptionInfo::fromException)
+					.ifPresent(call::setException);
+					call.setEnd(now);
+					call.emit();	
+			});
+		}
 		ctx.release();
 		return this;
 	}

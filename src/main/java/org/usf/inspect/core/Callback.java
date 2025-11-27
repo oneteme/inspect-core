@@ -13,12 +13,15 @@ import java.time.Instant;
 public interface Callback extends Compleatable {
 	
 	Instant getEnd();
-	
-	default boolean assertStillConnected(){
-		if(nonNull(getEnd())) {
-			stackReporter().action("assertStillConnected").emit();
-			return false;
+
+	public static boolean assertStillOpened(Callback callback) {
+		if(nonNull(callback)) {
+			if(nonNull(callback.getEnd())) {
+				return true;
+			}
+			stackReporter().message("callack was closed").emit();
 		}
-		return true;
+		stackReporter().message("callback is null").thread().emit();
+		return false;
 	}
 }

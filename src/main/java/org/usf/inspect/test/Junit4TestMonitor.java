@@ -2,6 +2,7 @@ package org.usf.inspect.test;
 
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.ExecutionMonitor.runSafely;
@@ -32,12 +33,13 @@ public final class Junit4TestMonitor implements TestRule {
 				var call = ses.createCallback();
 				var ctx = call.setupContext();
 				exec(base::evaluate, (s,e,m,t)-> {
-					call.setStart(s);
-					if(nonNull(t)) {
-						call.setException(fromException(t));
+					if(assertStillOpened(call)) { //report if session was closedcall.setStart(s);
+						if(nonNull(t)) {
+							call.setException(fromException(t));
+						}
+						call.setEnd(e);
+						call.emit();	
 					}
-					call.setEnd(e);
-					call.emit();
 					ctx.release();
 				});
 			}

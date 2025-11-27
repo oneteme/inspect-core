@@ -3,6 +3,7 @@ package org.usf.inspect.jdbc;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.DatabaseAction.BATCH;
 import static org.usf.inspect.core.DatabaseAction.CONNECTION;
 import static org.usf.inspect.core.DatabaseAction.DISCONNECTION;
@@ -79,6 +80,7 @@ final class DatabaseRequestMonitor {
 				mainCommand = parseCommand(sql);
 				prepared = true;
 			}
+			assertStillOpened(callback); //report if request was closed
 			callback.createStage(STATEMENT, s, e, t, null).emit(); //sql.split.count ?
 		};
 	}
@@ -91,6 +93,7 @@ final class DatabaseRequestMonitor {
 			if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //safe++
 				if(nonNull(t)) {
 					lastStg.setException(mainCauseException(t)); //may overwrite previous
+					assertStillOpened(callback); //report if request was closed
 					lastStg.emit();
 					lastStg = null;
 				}
@@ -151,6 +154,7 @@ final class DatabaseRequestMonitor {
 	
 	void emitBatchStage() { //wait for last addBatch
 		if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //batch & largeBatch
+			assertStillOpened(callback); //report if request was closed
 			lastStg.emit();
 			lastStg = null;
 		}
@@ -168,6 +172,7 @@ final class DatabaseRequestMonitor {
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
+			assertStillOpened(callback); //report if request was closed
 			lastStg.emit();
 		};
 	}
@@ -187,13 +192,16 @@ final class DatabaseRequestMonitor {
 	}
 
 	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
-		return (s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n}).emit(); //differed start 
+		return (s,e,o,t)-> {
+			assertStillOpened(callback); //report if request was closed
+			callback.createStage(FETCH, start, e, t, null, new long[] {n}).emit(); //differed start 
+		};
 	}
 	
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
 		if(nonNull(callback)) {
 			callback.createStage(DISCONNECTION, start, end, t, null).emit();
-			if(callback.assertStillConnected()) {
+			if(assertStillOpened(callback)) {  //report if request was closed
 				callback.emit();
 				callback.setEnd(end);
 			}	
@@ -207,7 +215,7 @@ final class DatabaseRequestMonitor {
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
 		return (s,e,o,t)-> {
 			if(nonNull(callback)) {
-				callback.assertStillConnected();
+				assertStillOpened(callback); //report if request was closed
 				callback.createStage(action, s, e, t, cmd, args).emit();
 			}
 		};
