@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.lang.String.format;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.ErrorReporter.stackReporter;
 import static org.usf.inspect.core.Helper.threadName;
@@ -21,6 +22,7 @@ import static org.usf.inspect.core.RequestMask.REST;
 import static org.usf.inspect.core.RequestMask.SMTP;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
@@ -158,7 +160,7 @@ public final class SessionContextManager {
 	}
 
 	public static HttpSession2 createHttpSession(Instant start, String uuid) {
-		var ses = new HttpSession2(uuid, start, threadName());
+		var ses = new HttpSession2(requireNonNullElseGet(uuid, SessionContextManager::nextId), start, threadName());
 		ses.setLinked(nonNull(uuid));
 		return ses;
 	}
