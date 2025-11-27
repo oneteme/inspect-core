@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ErrorReporter.stackReporter;
 
@@ -16,7 +17,7 @@ public interface Callback extends Compleatable {
 
 	public static boolean assertStillOpened(Callback callback) {
 		if(nonNull(callback)) {
-			if(nonNull(callback.getEnd())) {
+			if(isNull(callback.getEnd())) {
 				return true;
 			}
 			stackReporter().message("callack was closed").emit();
