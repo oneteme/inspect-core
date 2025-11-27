@@ -105,6 +105,7 @@ public final class HttpSessionMonitor {
 			call.setException(fromException(thrw));
 		}
 		call.setEnd(end);  //IO | CancellationException | ServletException => no ErrorHandler
+		call.emit();
 		ctx.release();
 	}
 
