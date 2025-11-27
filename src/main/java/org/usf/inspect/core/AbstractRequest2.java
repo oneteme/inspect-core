@@ -21,4 +21,5 @@ public abstract class AbstractRequest2 implements Initializer {
 	private final Instant start;
 	private final String threadName;
 	private String user;
+	private String instanceId; //for distributed tracing
 }

@@ -27,7 +27,6 @@ public abstract class AbstractSessionCallback implements Callback {
 	@Setter private String user;
 	@Setter private String location; //class.method, URL
 	@Setter private ExceptionInfo exception;
-	@Setter private String instanceId; //for distributed tracing
 	
 	public void setLocation(String className, String methodName) {
 		this.location = formatLocation(className, methodName);
