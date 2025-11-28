@@ -2,6 +2,8 @@ package org.usf.inspect.core;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +19,7 @@ public class LocalRequestCallback extends AbstractRequestCallback {
 	private Instant start; //real start
 	private ExceptionInfo exception; 
 
+	@JsonCreator
 	public LocalRequestCallback(String id) {
 		super(id);
 	}

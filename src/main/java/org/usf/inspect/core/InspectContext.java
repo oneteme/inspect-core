@@ -173,7 +173,7 @@ public final class InspectContext {
 		return new SimpleModule("inspect-core-module").registerSubtypes(
 				new NamedType(LogEntry.class, 					"00"),  
 				new NamedType(MachineResourceUsage.class, 		"01"),
-				new NamedType(RestRemoteServerProperties.class,  "02"),
+				new NamedType(RestRemoteServerProperties.class, "02"),
 				new NamedType(MainSession2.class,  				"10"), 
 				new NamedType(MainSessionCallback.class,  		"11"), 
 				new NamedType(HttpSession2.class,  				"20"), 

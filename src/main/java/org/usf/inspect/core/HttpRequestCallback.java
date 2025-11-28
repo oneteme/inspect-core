@@ -2,6 +2,8 @@ package org.usf.inspect.core;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,7 +22,8 @@ public class HttpRequestCallback extends AbstractRequestCallback {
 	private String contentEncoding; //gzip, compress, identity,..
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	private boolean linked;
-	
+
+	@JsonCreator
 	public HttpRequestCallback(String id) {
 		super(id);
 	}

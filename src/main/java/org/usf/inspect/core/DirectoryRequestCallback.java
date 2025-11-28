@@ -5,6 +5,8 @@ import static org.usf.inspect.core.CommandType.merge;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,7 +20,8 @@ import lombok.Setter;
 public class DirectoryRequestCallback extends AbstractRequestCallback {
 
 	private boolean failed;
-	
+
+	@JsonCreator
 	public DirectoryRequestCallback(String id) {
 		super(id);
 	}

@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Getter;
@@ -27,6 +28,7 @@ public class HttpSessionCallback extends AbstractSessionCallback implements HasS
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
 	
+	@JsonCreator
 	public HttpSessionCallback(String id) {
 		super(id);
 	}

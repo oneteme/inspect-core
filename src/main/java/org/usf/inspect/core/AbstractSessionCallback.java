@@ -37,6 +37,10 @@ public abstract class AbstractSessionCallback implements Callback {
 		this.async = threadCount.get() > 0;
 	}
 	
+	public void setRequestMask(int mask) {
+		requestMask.set(mask);
+	}
+	
 	public boolean updateMask(RequestMask mask) {
 		return !mask.is(requestMask.getAndUpdate(v-> v|mask.getValue()));
 	}

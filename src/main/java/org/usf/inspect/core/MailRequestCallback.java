@@ -5,6 +5,8 @@ import static org.usf.inspect.core.CommandType.merge;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,6 +21,7 @@ public class MailRequestCallback extends AbstractRequestCallback {
 
 	private boolean failed;
 
+	@JsonCreator
 	public MailRequestCallback(String id) {
 		super(id);
 	}
