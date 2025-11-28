@@ -8,6 +8,9 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
+import static org.usf.inspect.core.HttpAction.POST_PROCESS;
+import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
+import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
@@ -38,44 +41,51 @@ class AbstractHttpRequestMonitor {
 		//req.setUser(decode AUTHORIZATION)
 		req.emit();
 		callback = req.createCallback();
+		callback.createStage(PRE_PROCESS, start, end, thrw).emit();
 		if(nonNull(thrw)) { //thrw -> stage
 			callback.setEnd(end);
 			callback.emit();
 		}
 	}
 	
-	void postProcessHandler(Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
+	void postProcessHandler(Instant start, Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 //		request.setThreadName(threadName()); //deferred thread
-		if(assertStillOpened(callback)) {
-			if(nonNull(status)) {
-				callback.setStatus(status.value());
-			}
-			if(nonNull(headers)) { //response
-				callback.setContentType(headers.getFirst(CONTENT_TYPE));
-				callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-				callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
-			}
-			if(nonNull(thrw)) { //report if request was closed
-				callback.setEnd(end); //thrw -> stage
-				callback.emit();
+		if(nonNull(callback)) {
+			callback.createStage(PROCESS, start, end, thrw).emit();
+			if(assertStillOpened(callback)) {
+				if(nonNull(status)) {
+					callback.setStatus(status.value());
+				}
+				if(nonNull(headers)) { //response
+					callback.setContentType(headers.getFirst(CONTENT_TYPE));
+					callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+					callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
+				}
+				if(nonNull(thrw)) { //report if request was closed
+					callback.setEnd(end); //thrw -> stage
+					callback.emit();
+				}
 			}
 		}
 	}
 	
-	void completeHandler(Instant end, ResponseContent cnt, Throwable t){
+	void completeHandler(Instant start, Instant end, ResponseContent cnt, Throwable thrw){
 //		request.setThreadName(threadName()); //deferred thread
-		if(assertStillOpened(callback)) {
-			if(nonNull(cnt)) {
-				if(nonNull(cnt.contentBytes())) {
-					callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
+		if(nonNull(callback)) {
+			callback.createStage(POST_PROCESS, start, end, thrw).emit();
+			if(assertStillOpened(callback)) {
+				if(nonNull(cnt)) {
+					if(nonNull(cnt.contentBytes())) {
+						callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
+					}
+					callback.setDataSize(cnt.contentSize());
 				}
-				callback.setDataSize(cnt.contentSize());
+				else {
+					callback.setDataSize(-1);
+				}
+				callback.setEnd(end);
+				callback.emit();
 			}
-			else {
-				callback.setDataSize(-1);
-			}
-			callback.setEnd(end);
-			callback.emit();
 		}
 	}
 

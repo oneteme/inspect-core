@@ -34,7 +34,7 @@ public abstract class AbstractSessionCallback implements Callback {
 	
 	public void setEnd(Instant end){
 		this.end = end;
-		this.async = threadCount.get() == 0;
+		this.async = threadCount.get() > 0;
 	}
 	
 	public boolean updateMask(RequestMask mask) {

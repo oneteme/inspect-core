@@ -160,11 +160,6 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		return handler instanceof HandlerMethod mth && 
 				!(mth.getBean() instanceof ErrorController);
 	}
-	
-
-    static HttpSessionMonitor currentHttpMonitor(HttpServletRequest req) {
-    	return (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
-    }
     
     static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req) {
     	var mnt = currentHttpMonitor(req);
@@ -172,5 +167,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
     		reportContextIsNull("HttpSessionMonitor.requireMonitor");
     	}
     	return mnt;
+    }	
+
+    static HttpSessionMonitor currentHttpMonitor(HttpServletRequest req) {
+    	return (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
     }
 }

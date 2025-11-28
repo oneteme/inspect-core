@@ -22,7 +22,6 @@ import static org.usf.inspect.core.RequestMask.REST;
 import static org.usf.inspect.core.RequestMask.SMTP;
 
 import java.time.Instant;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 

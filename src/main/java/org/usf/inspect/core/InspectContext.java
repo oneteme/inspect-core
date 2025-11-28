@@ -95,6 +95,7 @@ public final class InspectContext {
 			});
 			sesCtx.release();
 			sesCtx = null;
+			
 		}
 		else {
 			reportContextIsNull("traceStartupSession");
@@ -173,7 +174,7 @@ public final class InspectContext {
 		return new SimpleModule("inspect-core-module").registerSubtypes(
 				new NamedType(LogEntry.class, 					"00"),  
 				new NamedType(MachineResourceUsage.class, 		"01"),
-				new NamedType(RestRemoteServerProperties.class, "02"),
+				new NamedType(RestRemoteServerProperties.class,  "02"),
 				new NamedType(MainSession2.class,  				"10"), 
 				new NamedType(MainSessionCallback.class,  		"11"), 
 				new NamedType(HttpSession2.class,  				"20"), 
@@ -183,7 +184,7 @@ public final class InspectContext {
 				new NamedType(HttpRequest2.class,  				"120"), 
 				new NamedType(HttpRequestCallback.class,  		"121"), 
 				new NamedType(DatabaseRequest2.class,			"130"),
-				new NamedType(DatabaseRequestCallback.class,	"131"),
+				new NamedType(DatabaseRequestCallback.class,		"131"),
 				new NamedType(FtpRequestCallback.class,  		"140"), 
 				new NamedType(FtpRequestCallback.class,  		"141"),
 				new NamedType(MailRequest2.class,  				"150"), 

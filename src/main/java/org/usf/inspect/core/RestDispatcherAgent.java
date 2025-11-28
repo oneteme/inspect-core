@@ -111,7 +111,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 				}
 			}
 			else {
-				throw new DispatchException("instance is null");
+				throw new DispatchException("instance is null or not started yet");
 			}
 		}
 	}
