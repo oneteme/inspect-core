@@ -95,7 +95,6 @@ public final class InspectContext {
 			});
 			sesCtx.release();
 			sesCtx = null;
-			
 		}
 		else {
 			reportContextIsNull("traceStartupSession");
@@ -184,8 +183,8 @@ public final class InspectContext {
 				new NamedType(HttpRequest2.class,  				"120"), 
 				new NamedType(HttpRequestCallback.class,  		"121"), 
 				new NamedType(DatabaseRequest2.class,			"130"),
-				new NamedType(DatabaseRequestCallback.class,		"131"),
-				new NamedType(FtpRequestCallback.class,  		"140"), 
+				new NamedType(DatabaseRequestCallback.class,	"131"),
+				new NamedType(FtpRequest2.class,		  		"140"), 
 				new NamedType(FtpRequestCallback.class,  		"141"),
 				new NamedType(MailRequest2.class,  				"150"), 
 				new NamedType(MailRequestCallback.class,  		"151"), 
