@@ -245,7 +245,7 @@ public final class SessionContextManager {
 	}
 
 	public static void reportContextIsNull(String action) {
-		stackReporter().action(action).message("session is null").thread().emit();
+		stackReporter().action(action).message("context is null").thread().emit();
 	}
 	
 	static void reportNoActiveContext(String action) {
