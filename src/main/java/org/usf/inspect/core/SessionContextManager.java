@@ -39,14 +39,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionContextManager {
 
-	private static final ThreadLocal<SessionContext> localTrace = new InheritableThreadLocal<>();
-	private static SessionContext startupContext; //avoid setting startup session on all thread local
+	private static final ThreadLocal<AbstractSessionCallback> localTrace = new InheritableThreadLocal<>();
+	private static AbstractSessionCallback startupContext; //avoid setting startup session on all thread local
 	
     public static Runnable aroundRunnable(Runnable cmd) {
     	var ses = requireActiveContext();
 		if(nonNull(ses)) {
-			ses.callback.threadCountUp();
-			return ()-> aroundRunnable(cmd::run, ses, ses.callback::threadCountDown);
+			ses.threadCountUp();
+			return ()-> aroundRunnable(cmd::run, ses, ses::threadCountDown);
 		}
 		return cmd;
     }
@@ -54,8 +54,8 @@ public final class SessionContextManager {
     public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
     	var ses = requireActiveContext();
 		if(nonNull(ses)) {
-			ses.callback.threadCountUp();
-			return ()-> aroundCallable(cmd::call, ses, ses.callback::threadCountDown);
+			ses.threadCountUp();
+			return ()-> aroundCallable(cmd::call, ses, ses::threadCountDown);
 		}
 		return cmd;
     }
@@ -63,17 +63,17 @@ public final class SessionContextManager {
     public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
     	var ses = requireActiveContext();
     	if(nonNull(ses)) {
-			ses.callback.threadCountUp();
-			return ()-> aroundCallable(cmd::get, ses, ses.callback::threadCountDown);
+			ses.threadCountUp();
+			return ()-> aroundCallable(cmd::get, ses, ses::threadCountDown);
 		}
 		return cmd;
     }
 
-    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, SessionContext ctx, Runnable callback) throws E {
+    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSessionCallback ctx, Runnable callback) throws E {
     	aroundCallable(task, ctx, callback);
     }
     
-    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, SessionContext ctx, Runnable callback) throws E {
+    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSessionCallback ctx, Runnable callback) throws E {
 		var prv = activeContext();
 		if(prv != ctx) {
 			setActiveContext(ctx);
@@ -94,7 +94,7 @@ public final class SessionContextManager {
 		}	
 	}
 	
-	public static SessionContext requireActiveContext() {
+	public static AbstractSessionCallback requireActiveContext() {
 		var ses = activeContext();
 		if(isNull(ses)) {
 			reportNoActiveContext("requireActiveContext");
@@ -106,13 +106,13 @@ public final class SessionContextManager {
 		return ses;
 	}
 
-	public static SessionContext activeContext() {
+	public static AbstractSessionCallback activeContext() {
 		var trc = localTrace.get();
 		return nonNull(trc) ? trc : startupContext; // priority
 	}
 
-	static void setActiveContext(SessionContext session) {
-		if(session.startup) {
+	public static void setActiveContext(AbstractSessionCallback session) {
+		if(session.isStartup()) {
 			if(startupContext != session) {
 				if(isNull(startupContext)) {
 					startupContext = session;
@@ -130,8 +130,8 @@ public final class SessionContextManager {
 		}
 	}
 	
-	static void clearContext(SessionContext ctx) {
-		if(ctx.startup) {
+	public static void clearContext(AbstractSessionCallback ctx) {
+		if(ctx.isStartup()) {
 			if(startupContext == ctx) {
 				if(ctx.wasCompleted()) { //reactor
 					startupContext = null;
@@ -189,7 +189,11 @@ public final class SessionContextManager {
 	}
 	
 	public static HttpRequest2 createHttpRequest(Instant start) {
-		return new HttpRequest2(nextId(), requireSessionIdFor(REST), start, threadName());
+		return createHttpRequest(nextId(), start);
+	}
+	
+	public static HttpRequest2 createHttpRequest(String id, Instant start) {
+		return new HttpRequest2(id, requireSessionIdFor(REST), start, threadName());
 	}
 
 	public static FtpRequest2 createFtpRequest(Instant start) {
@@ -205,9 +209,8 @@ public final class SessionContextManager {
 	}
 	
 	private static String requireSessionIdFor(RequestMask mask) {
-		var ctx = requireActiveContext();
-		if(nonNull(ctx)) {
-			var ses = ctx.callback;
+		var ses = requireActiveContext();
+		if(nonNull(ses)) {
 			if(ses.updateMask(mask) && ses.isAsync()) {
 				ses.emit();
 			}

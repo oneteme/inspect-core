@@ -12,9 +12,11 @@ import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
+import static org.usf.inspect.core.SessionContextManager.activeContext;
+import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createBatchSession;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
-import static org.usf.inspect.core.SessionContextManager.activeContext;
+import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
 import java.util.function.Supplier;
 
@@ -72,7 +74,7 @@ public class MethodExecutionMonitor implements Ordered {
 			ses.emit();
 		});
 		var call = ses.createCallback();
-		var ctx = call.setupContext();
+		setActiveContext(call);
 		return call(point::proceed, (s,e,o,t)-> {
 			if(assertStillOpened(call)) {
 				call.setStart(s);
@@ -81,7 +83,7 @@ public class MethodExecutionMonitor implements Ordered {
 				}
 				call.setEnd(e);
 				call.emit();
-				ctx.release();
+				clearContext(call);
 			}
 		});
 	}

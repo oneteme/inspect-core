@@ -12,9 +12,11 @@ import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.InstanceType.SERVER;
+import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createStartupSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.SessionContextManager.reportContextIsNull;
+import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -46,7 +48,7 @@ public final class InspectContext {
 	private final InspectCollectorConfiguration configuration;
 	private final EventTraceScheduledDispatcher dispatcher;
 
-	private SessionContext sesCtx;
+	private AbstractSessionCallback ctx;
 
 	public static InspectContext context() {
 		if(isNull(singleton)) {
@@ -78,23 +80,22 @@ public final class InspectContext {
 			ses.setName("main");
 			ses.emit();
 		});
-		var call = ses.createCallback();
-		sesCtx = call.setupContext(true);
+		ctx = ses.createCallback();
+		setActiveContext(ctx);
 	}
 
 	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
-		if(nonNull(sesCtx)) {
+		if(nonNull(ctx)) {
 			runSafely(()->{
-				var ses = (MainSessionCallback) sesCtx.callback;
-				ses.setLocation(className, methodName);
+				ctx.setLocation(className, methodName);
 				if(nonNull(thrw)) {  //nullable
-					ses.setException(fromException(thrw));
+					ctx.setException(fromException(thrw));
 				}
-				ses.setEnd(instant);
-				ses.emit();
+				ctx.setEnd(instant);
+				ctx.emit();
 			});
-			sesCtx.release();
-			sesCtx = null;
+			clearContext(ctx);
+			ctx = null;
 		}
 		else {
 			reportContextIsNull("traceStartupSession");

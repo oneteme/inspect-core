@@ -1,6 +1,7 @@
 package org.usf.inspect.http;
 
 import static java.lang.String.join;
+import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
@@ -67,25 +68,25 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
 	
 	private ExecutionHandler<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
-		if(isAsyncStarted(req)) {
-			var mnt = requireHttpMonitor(req);
-			if(nonNull(mnt)) {
-				return mnt.asyncFilterHandler(); //deferred execution
-			}
+		var prv = currentHttpMonitor(req);
+		if(isNull(prv)) {
+			var mnt = new HttpSessionMonitor();
+			mnt.preFilter(req, res); //called once
+			req.setAttribute(SESSION_MONITOR, mnt);
+			return(s,e,o,t)-> {
+				if(isAsyncStarted(req)) {
+					mnt.deferredFilter(e); 
+				}
+				else {
+					mnt.postFilterHandler(e, res, t);
+				}
+			};
 		}
-		else {
-			var prv = currentHttpMonitor(req);
-			if(isNull(prv)) {
-				var mnt = new HttpSessionMonitor();
-				mnt.preFilter(req, res); //called once
-				req.setAttribute(SESSION_MONITOR, mnt);
-				return(s,e,o,t)-> mnt.postFilterHandler(e, res, t);
-			}
-			else {
-				reportMessage("HttpSessionFilter.filterHandler", 
-						"Unexpected HttpSessionMonitor in request attribute");
-			}
+		else if(isAsyncDispatch(req))  {
+			return prv.asyncPostFilterHander(res);
 		}
+		reportMessage("HttpSessionFilter.filterHandler", 
+				"Unexpected HttpSessionMonitor in request attribute");
 		return (s,e,o,t)-> {}; //do nothing
 	}
 
@@ -104,28 +105,37 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	 */
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		var mnt = requireHttpMonitor(request);
-		if(nonNull(mnt) && shouldIntercept(handler)) {  //avoid unfiltered request
-			mnt.preProcess();
+		var now = now();
+		if(shouldIntercept(handler)) {  //avoid unfiltered request
+			var mnt = requireHttpMonitor(request, "preHandle");
+			if(nonNull(mnt)) {
+				mnt.preProcess(now);
+			}
 		}
 		return HandlerInterceptor.super.preHandle(request, response, handler);
 	}
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-		var mnt = requireHttpMonitor(request);
-		if(nonNull(mnt) && shouldIntercept(handler)) { //avoid unfiltered request
-			mnt.process();
+		var now = now();
+		if(shouldIntercept(handler)) { //avoid unfiltered request
+			var mnt = requireHttpMonitor(request, "postHandle");
+			if(nonNull(mnt)) {
+				mnt.process(now);
+			}
 		}
 	}
 
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-		var mnt = requireHttpMonitor(request);
-		if(nonNull(mnt) && shouldIntercept(handler)) { //avoid unfiltered request 
-			var name = resolveEndpointName(handler, request);
-			var user = userProvider.getUser(request, name);
-			mnt.postProcess(name, user, ex);
+		var now = now();
+		if(shouldIntercept(handler)) { //avoid unfiltered request 
+			var mnt = requireHttpMonitor(request, "afterCompletion");
+			if(nonNull(mnt)) {
+				var name = resolveEndpointName(handler, request);
+				var user = userProvider.getUser(request, name);
+				mnt.postProcess(now, name, user, ex);
+			}
 		}
 	}
 	
@@ -161,10 +171,10 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 				!(mth.getBean() instanceof ErrorController);
 	}
     
-    static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req) {
+    static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req, String action) {
     	var mnt = currentHttpMonitor(req);
     	if(isNull(mnt)) {
-    		reportContextIsNull("HttpSessionMonitor.requireMonitor");
+    		reportContextIsNull("HttpSessionMonitor."+action);
     	}
     	return mnt;
     }	

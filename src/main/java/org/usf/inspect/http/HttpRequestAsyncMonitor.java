@@ -35,8 +35,8 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 			else {
 				super.postProcessHandler(lastTimestamp, now, null, null, thrw);
 			}
+			lastTimestamp = now;
 		});
-		lastTimestamp = now;
 	}
 	
 	public void completeHandler(Instant end, ResponseContent cnt, Throwable t) {

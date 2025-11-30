@@ -6,7 +6,9 @@ import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.ExecutionMonitor.runSafely;
+import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
+import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -31,16 +33,17 @@ public final class Junit4TestMonitor implements TestRule {
 					ses.emit();
 				});
 				var call = ses.createCallback();
-				var ctx = call.setupContext();
+				setActiveContext(call);
 				exec(base::evaluate, (s,e,m,t)-> {
-					if(assertStillOpened(call)) { //report if session was closedcall.setStart(s);
+					if(assertStillOpened(call)) { //report if session was closed
+						call.setStart(s);
 						if(nonNull(t)) {
 							call.setException(fromException(t));
 						}
 						call.setEnd(e);
 						call.emit();	
 					}
-					ctx.release();
+					clearContext(call);
 				});
 			}
 		};

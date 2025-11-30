@@ -20,6 +20,10 @@ public class MainSessionCallback extends AbstractSessionCallback {
 
 	@JsonCreator
 	public MainSessionCallback(String id) {
-		super(id);
+		this(id, false);
+	}
+	
+	MainSessionCallback(String id, boolean startup) {
+		super(id, startup);
 	}
 }

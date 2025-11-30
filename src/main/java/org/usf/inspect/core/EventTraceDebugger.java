@@ -1,17 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Collections.synchronizedMap;
-import static java.util.Comparator.comparing;
-import static java.util.Objects.nonNull;
-
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**

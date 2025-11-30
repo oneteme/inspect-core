@@ -46,25 +46,24 @@ final class FtpRequestMonitor {
 		if(nonNull(thrw)) { //if connection error
 			callback.setEnd(end);
 			callback.emit();
+			callback = null;
 		}
 	}
 
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
-		if(nonNull(callback)) {
+		if(assertStillOpened(callback)) {//report if request was closed
 			callback.createStage(DISCONNECTION, start, end, thw, null).emit();
-			if(assertStillOpened(callback)) {//report if request was closed
-				callback.setEnd(end);
-				callback.emit(); //avoid emit twice
-			}
-		}//else report
+			callback.setEnd(end);
+			callback.emit(); //avoid emit twice
+			callback = null;
+		}
 	}
 	
 	<T> ExecutionHandler<T> executeStageHandler(FtpCommand cmd, String... args) {
 		return (s,e,o,t)-> {
-			if(nonNull(callback)) {
-				assertStillOpened(callback);//report if request was closed
+			if(assertStillOpened(callback)) {//report if request was closed
 				callback.createStage(EXECUTE, s, e, t, cmd, args).emit();
-			}//else report
+			}
 		};
 	}
 }

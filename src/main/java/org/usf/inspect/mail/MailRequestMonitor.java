@@ -47,22 +47,22 @@ final class MailRequestMonitor {
 		if(nonNull(thw)) { // if connection error
 			callback.setEnd(end);
 			callback.emit();
+			callback = null;
 		}
 	}
 
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
-		if(nonNull(callback)) {
+		if(assertStillOpened(callback)) { //report if request was closed
 			callback.createStage(DISCONNECTION, start, end, thw, null).emit();
-			if(assertStillOpened(callback)) { //report if request was closed
-				callback.setEnd(end);
-				callback.emit(); //avoid emit twice
-			}
+			callback.setEnd(end);
+			callback.emit(); //avoid emit twice
+			callback = null;
 		}
 	}
 	
 	<T> ExecutionHandler<T> executeStageHandler(MailCommand cmd, Message msg) {
 		return (s,e,o,t)-> {
-			if(nonNull(callback)) {
+			if(assertStillOpened(callback)) { //report if request was closed
 				Mail mail = null;
 				if(nonNull(msg)) {
 					mail = new Mail();
@@ -73,9 +73,8 @@ final class MailRequestMonitor {
 					mail.setContentType(msg.getContentType());
 					mail.setSize(msg.getSize());
 				}
-				assertStillOpened(callback); //report if request was closed
 				callback.createStage(EXECUTE, s, e, t, cmd, mail).emit();
-			} //else report
+			}
 		};
 	}
 	

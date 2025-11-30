@@ -5,6 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 import static org.usf.inspect.core.SessionContextManager.reportContextIsNull;
+import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
 import java.util.Optional;
 
@@ -28,7 +29,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
-		createTestSession(now()).createCallback().setupContext(); //fake session, avoid no session
+		setActiveContext(createTestSession(now()).createCallback()); //fake session, avoid no session
 	}
 
 	@Override
@@ -49,7 +50,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	
 	@Override
 	public void afterAll(ExtensionContext context) throws Exception {
-		createTestSession(now()).createCallback().setupContext(); //fake session, avoid no session
+		setActiveContext(createTestSession(now()).createCallback()); //fake session, avoid no session
 	}
 
 	@Override

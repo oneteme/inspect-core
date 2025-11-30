@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.MainSessionType.STARTUP;
+
 import java.time.Instant;
 
 import lombok.Getter;
@@ -20,6 +22,6 @@ public class MainSession2 extends AbstractSession2 {
 	}
 
 	public MainSessionCallback createCallback() {
-		return new MainSessionCallback(getId());
+		return new MainSessionCallback(getId(), STARTUP.name().equals(type));
 	}
 }

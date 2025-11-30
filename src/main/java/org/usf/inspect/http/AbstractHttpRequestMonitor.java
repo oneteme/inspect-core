@@ -12,6 +12,7 @@ import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
+import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
@@ -22,6 +23,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.usf.inspect.core.HttpRequestCallback;
 
+import lombok.Getter;
+
 /**
  * 
  * @author u$f
@@ -29,15 +32,20 @@ import org.usf.inspect.core.HttpRequestCallback;
  */
 class AbstractHttpRequestMonitor {
 	
+	@Getter private final String id = nextId();
 	HttpRequestCallback callback;
 
 	void preProcessHandler(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
-		var req = createHttpRequest(start);
+		var req = createHttpRequest(id, start);
 		req.setMethod(method.name());
-		req.setURI(uri);
-		req.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
-		req.setDataSize(headers.getContentLength()); //-1 unknown !
-		req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+		if(nonNull(uri)) {
+			req.setURI(uri);
+		}
+		if(nonNull(headers)) {
+			req.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
+			req.setDataSize(headers.getContentLength()); //-1 unknown !
+			req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+		}
 		//req.setUser(decode AUTHORIZATION)
 		req.emit();
 		callback = req.createCallback();
@@ -45,47 +53,46 @@ class AbstractHttpRequestMonitor {
 		if(nonNull(thrw)) { //thrw -> stage
 			callback.setEnd(end);
 			callback.emit();
+			callback = null;
 		}
 	}
 	
 	void postProcessHandler(Instant start, Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 //		request.setThreadName(threadName()); //deferred thread
-		if(nonNull(callback)) {
+		if(assertStillOpened(callback)) { //report if request was closed
 			callback.createStage(PROCESS, start, end, thrw).emit();
-			if(assertStillOpened(callback)) {
-				if(nonNull(status)) {
-					callback.setStatus(status.value());
-				}
-				if(nonNull(headers)) { //response
-					callback.setContentType(headers.getFirst(CONTENT_TYPE));
-					callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-					callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
-				}
-				if(nonNull(thrw)) { //report if request was closed
-					callback.setEnd(end); //thrw -> stage
-					callback.emit();
-				}
+			if(nonNull(status)) {
+				callback.setStatus(status.value());
+			}
+			if(nonNull(headers)) { //response
+				callback.setContentType(headers.getFirst(CONTENT_TYPE));
+				callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+				callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
+			}
+			if(nonNull(thrw)) { //report if request was closed
+				callback.setEnd(end); //thrw -> stage
+				callback.emit();
+				callback = null;
 			}
 		}
 	}
 	
 	void completeHandler(Instant start, Instant end, ResponseContent cnt, Throwable thrw){
 //		request.setThreadName(threadName()); //deferred thread
-		if(nonNull(callback)) {
+		if(assertStillOpened(callback)) { //report if request was closed
 			callback.createStage(POST_PROCESS, start, end, thrw).emit();
-			if(assertStillOpened(callback)) {
-				if(nonNull(cnt)) {
-					if(nonNull(cnt.contentBytes())) {
-						callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
-					}
-					callback.setDataSize(cnt.contentSize());
+			if(nonNull(cnt)) {
+				if(nonNull(cnt.contentBytes())) {
+					callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
 				}
-				else {
-					callback.setDataSize(-1);
-				}
-				callback.setEnd(end);
-				callback.emit();
+				callback.setDataSize(cnt.contentSize());
 			}
+			else {
+				callback.setDataSize(-1);
+			}
+			callback.setEnd(end);
+			callback.emit();
+			callback = null;
 		}
 	}
 
@@ -97,9 +104,5 @@ class AbstractHttpRequestMonitor {
 			reportMessage("assertSameID", "session.id=" + sid);
 		}
 		return false;
-	}
-	
-	String getId(){
-		return callback.getId();
 	}
 }

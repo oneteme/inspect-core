@@ -30,7 +30,7 @@ public class HttpSessionCallback extends AbstractSessionCallback implements HasS
 	
 	@JsonCreator
 	public HttpSessionCallback(String id) {
-		super(id);
+		super(id, false);
 	}
 
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {

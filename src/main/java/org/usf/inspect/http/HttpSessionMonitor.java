@@ -16,7 +16,9 @@ import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
+import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
+import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
@@ -26,7 +28,6 @@ import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionCallback;
 import org.usf.inspect.core.HttpSessionStage;
-import org.usf.inspect.core.SessionContext;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,7 +40,6 @@ import jakarta.servlet.http.HttpServletResponse;
 public final class HttpSessionMonitor {
 	
 	private HttpSessionCallback call;
-	private SessionContext ctx;
 	private Instant lastTimestamp;
 	
 	public void preFilter(HttpServletRequest req, HttpServletResponse res){
@@ -57,28 +57,25 @@ public final class HttpSessionMonitor {
 			res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 		});
 		call = ses.createCallback();
-		ctx = call.setupContext();
+		setActiveContext(call);
 	}
 	
-	public ExecutionHandler<Void> asyncFilterHandler(){
-		ctx.setup(); //re-setup context for defered processing
-		return (s,e,o,t)-> {
-			createStage(DEFERRED, e).emit();
-			ctx.release(); //release context after defered processing
-		};
+	public void deferredFilter(Instant end){
+		runSafely(()-> createStage(DEFERRED, end).emit());
+		clearContext(call);
 	}
 	
-	public void preProcess(){
-		runSafely(()-> createStage(PRE_PROCESS, now()).emit());
+	public void preProcess(Instant end){
+		runSafely(()-> createStage(PRE_PROCESS, end).emit());
 	}
 	
-	public void process(){
-		runSafely(()-> createStage(PROCESS, now()).emit());
+	public void process(Instant end){
+		runSafely(()-> createStage(PROCESS, end).emit());
 	}
 
-	public void postProcess(String name, String user, Throwable thrw){
+	public void postProcess(Instant end, String name, String user, Throwable thrw){
 		runSafely(()-> {
-			createStage(POST_PROCESS, now()).emit();
+			createStage(POST_PROCESS, end).emit();
 			call.setName(name);
 			call.setUser(user);
 			if(nonNull(thrw) && isNull(call.getException())) {// unhandeled exception in @ControllerAdvice
@@ -91,6 +88,11 @@ public final class HttpSessionMonitor {
 		if(isNull(call.getException())) {
 			call.setException(fromException(thrw));
 		}
+	}
+	
+	public ExecutionHandler<Void> asyncPostFilterHander(HttpServletResponse res){
+		setActiveContext(call);
+		return (s,e,o,t)-> postFilterHandler(e, res, t);
 	}
 	
 	public void postFilterHandler(Instant end, HttpServletResponse response, Throwable thrw) {
@@ -106,7 +108,7 @@ public final class HttpSessionMonitor {
 		}
 		call.setEnd(end);  //IO | CancellationException | ServletException => no ErrorHandler
 		call.emit();
-		ctx.release();
+		clearContext(call);
 	}
 
 	HttpSessionStage createStage(HttpAction action, Instant end) {

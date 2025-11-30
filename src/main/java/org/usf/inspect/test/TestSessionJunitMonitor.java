@@ -3,12 +3,13 @@ package org.usf.inspect.test;
 import static java.time.Instant.now;
 import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ExecutionMonitor.runSafely;
+import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
+import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.usf.inspect.core.ExceptionInfo;
 import org.usf.inspect.core.MainSessionCallback;
-import org.usf.inspect.core.SessionContext;
 
 /**
  * 
@@ -17,7 +18,6 @@ import org.usf.inspect.core.SessionContext;
  */
 public final class TestSessionJunitMonitor {
 
-	private SessionContext ctx;
 	private MainSessionCallback call;
 	
 	public TestSessionJunitMonitor preProcess(ExtensionContext context){
@@ -28,7 +28,7 @@ public final class TestSessionJunitMonitor {
 			ses.emit();
 		});
 		call = ses.createCallback();
-		ctx = call.setupContext();
+		setActiveContext(call);
 		return this;
 	}
 	
@@ -39,11 +39,12 @@ public final class TestSessionJunitMonitor {
 				context.getExecutionException()
 					.map(ExceptionInfo::fromException)
 					.ifPresent(call::setException);
-					call.setEnd(now);
-					call.emit();	
+				call.setEnd(now);
+				call.emit();	
 			});
 		}
-		ctx.release();
+		clearContext(call);
+		call = null;
 		return this;
 	}
 }

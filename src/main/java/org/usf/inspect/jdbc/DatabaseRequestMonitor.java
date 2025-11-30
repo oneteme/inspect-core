@@ -70,6 +70,7 @@ final class DatabaseRequestMonitor {
 		if(nonNull(thrw)) { //if connection error
 			callback.setEnd(end);
 			callback.emit();
+			callback = null;
 		}
 	}
 	
@@ -80,8 +81,9 @@ final class DatabaseRequestMonitor {
 				mainCommand = parseCommand(sql);
 				prepared = true;
 			}
-			assertStillOpened(callback); //report if request was closed
-			callback.createStage(STATEMENT, s, e, t, null).emit(); //sql.split.count ?
+			if(assertStillOpened(callback)) { //report if request was closed
+				callback.createStage(STATEMENT, s, e, t, null).emit(); //sql.split.count ?
+			}
 		};
 	}
 
@@ -93,7 +95,6 @@ final class DatabaseRequestMonitor {
 			if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //safe++
 				if(nonNull(t)) {
 					lastStg.setException(mainCauseException(t)); //may overwrite previous
-					assertStillOpened(callback); //report if request was closed
 					lastStg.emit();
 					lastStg = null;
 				}
@@ -102,7 +103,7 @@ final class DatabaseRequestMonitor {
 				}
 				lastStg.setEnd(e); //optim this
 			}
-			else {
+			else if(assertStillOpened(callback)) {//report if request was closed
 				lastStg = callback.createStage(BATCH, s, e, t, null, new long[]{1});
 			}
 		};
@@ -154,7 +155,6 @@ final class DatabaseRequestMonitor {
 	
 	void emitBatchStage() { //wait for last addBatch
 		if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //batch & largeBatch
-			assertStillOpened(callback); //report if request was closed
 			lastStg.emit();
 			lastStg = null;
 		}
@@ -168,12 +168,13 @@ final class DatabaseRequestMonitor {
 			if(nonNull(sql)) { //statement
 				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
 			}
-			lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			if(assertStillOpened(callback)) { //report if request was closed
+				lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+				lastStg.emit();
+			}
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
-			assertStillOpened(callback); //report if request was closed
-			lastStg.emit();
 		};
 	}
 
@@ -193,18 +194,18 @@ final class DatabaseRequestMonitor {
 
 	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
 		return (s,e,o,t)-> {
-			assertStillOpened(callback); //report if request was closed
-			callback.createStage(FETCH, start, e, t, null, new long[] {n}).emit(); //differed start 
+			if(assertStillOpened(callback)) { //report if request was closed
+				callback.createStage(FETCH, start, e, t, null, new long[] {n}).emit(); //differed start 
+			}
 		};
 	}
 	
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
-		if(nonNull(callback)) {
+		if(assertStillOpened(callback)) { //report if request was closed
 			callback.createStage(DISCONNECTION, start, end, t, null).emit();
-			if(assertStillOpened(callback)) {  //report if request was closed
-				callback.emit();
-				callback.setEnd(end);
-			}	
+			callback.setEnd(end);
+			callback.emit();
+			callback = null;
 		}
 	}
 
@@ -214,8 +215,7 @@ final class DatabaseRequestMonitor {
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
 		return (s,e,o,t)-> {
-			if(nonNull(callback)) {
-				assertStillOpened(callback); //report if request was closed
+			if(assertStillOpened(callback)) { //report if request was closed
 				callback.createStage(action, s, e, t, cmd, args).emit();
 			}
 		};

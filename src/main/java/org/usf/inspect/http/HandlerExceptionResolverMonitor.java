@@ -29,7 +29,7 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 	@Override
 	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
 		if(routePredicate.accept(request)) {
-			var mnt = requireHttpMonitor(request);
+			var mnt = requireHttpMonitor(request, "resolveException");
 			if(nonNull(mnt)) { //non filtered requests
 				mnt.handleError(ex);
 			}

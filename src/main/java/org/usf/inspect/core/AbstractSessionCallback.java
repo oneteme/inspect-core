@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.formatLocation;
 
 import java.time.Instant;
@@ -19,6 +20,7 @@ import lombok.Setter;
 public abstract class AbstractSessionCallback implements Callback {
 
 	private final String id;
+	private final boolean startup;
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
 	private final AtomicInteger requestMask = new AtomicInteger(); // thread safe
 	private boolean async;
@@ -37,6 +39,7 @@ public abstract class AbstractSessionCallback implements Callback {
 		this.async = threadCount.get() > 0;
 	}
 	
+	@Deprecated(forRemoval = true, since = "1.1")
 	public void setRequestMask(int mask) {
 		requestMask.set(mask);
 	}
@@ -45,19 +48,15 @@ public abstract class AbstractSessionCallback implements Callback {
 		return !mask.is(requestMask.getAndUpdate(v-> v|mask.getValue()));
 	}
 
-	public SessionContext setupContext() {
-		return setupContext(false);
-	}
-
-	SessionContext setupContext(boolean startup) {
-		return new SessionContext(startup, this).setup();
-	}
-
 	void threadCountUp() {
 		threadCount.incrementAndGet();
 	}
 	
 	void threadCountDown() {
 		threadCount.decrementAndGet();
+	}
+
+	public boolean wasCompleted() {
+		return nonNull(getEnd()) && !isAsync();
 	}
 }
