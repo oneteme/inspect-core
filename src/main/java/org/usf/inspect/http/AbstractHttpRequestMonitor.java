@@ -36,8 +36,10 @@ class AbstractHttpRequestMonitor {
 	HttpRequestCallback callback;
 
 	void preProcessHandler(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
-		var req = createHttpRequest(id, start);
-		req.setMethod(method.name());
+		var req = createHttpRequest(start, id);
+		if(nonNull(method)) {
+			req.setMethod(method.name());
+		}
 		if(nonNull(uri)) {
 			req.setURI(uri);
 		}
@@ -45,8 +47,8 @@ class AbstractHttpRequestMonitor {
 			req.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
 			req.setDataSize(headers.getContentLength()); //-1 unknown !
 			req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+			//req.setUser(decode AUTHORIZATION)
 		}
-		//req.setUser(decode AUTHORIZATION)
 		req.emit();
 		callback = req.createCallback();
 		callback.createStage(PRE_PROCESS, start, end, thrw).emit();
@@ -59,7 +61,7 @@ class AbstractHttpRequestMonitor {
 	
 	void postProcessHandler(Instant start, Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 //		request.setThreadName(threadName()); //deferred thread
-		if(assertStillOpened(callback)) { //report if request was closed
+		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
 			callback.createStage(PROCESS, start, end, thrw).emit();
 			if(nonNull(status)) {
 				callback.setStatus(status.value());
@@ -79,13 +81,13 @@ class AbstractHttpRequestMonitor {
 	
 	void completeHandler(Instant start, Instant end, ResponseContent cnt, Throwable thrw){
 //		request.setThreadName(threadName()); //deferred thread
-		if(assertStillOpened(callback)) { //report if request was closed
+		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
 			callback.createStage(POST_PROCESS, start, end, thrw).emit();
 			if(nonNull(cnt)) {
+				callback.setDataSize(cnt.contentSize());
 				if(nonNull(cnt.contentBytes())) {
 					callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
 				}
-				callback.setDataSize(cnt.contentSize());
 			}
 			else {
 				callback.setDataSize(-1);

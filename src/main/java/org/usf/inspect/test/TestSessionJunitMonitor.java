@@ -42,9 +42,9 @@ public final class TestSessionJunitMonitor {
 				call.setEnd(now);
 				call.emit();	
 			});
+			clearContext(call);
+			call = null;
 		}
-		clearContext(call);
-		call = null;
 		return this;
 	}
 }

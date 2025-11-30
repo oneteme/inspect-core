@@ -201,7 +201,7 @@ final class DatabaseRequestMonitor {
 	}
 	
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
-		if(assertStillOpened(callback)) { //report if request was closed
+		if(assertStillOpened(callback)) {  //report if request was closed, avoid emit trace twice
 			callback.createStage(DISCONNECTION, start, end, t, null).emit();
 			callback.setEnd(end);
 			callback.emit();

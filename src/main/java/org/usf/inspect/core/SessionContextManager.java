@@ -189,11 +189,11 @@ public final class SessionContextManager {
 	}
 	
 	public static HttpRequest2 createHttpRequest(Instant start) {
-		return createHttpRequest(nextId(), start);
+		return createHttpRequest(start, nextId());
 	}
 	
-	public static HttpRequest2 createHttpRequest(String id, Instant start) {
-		return new HttpRequest2(id, requireSessionIdFor(REST), start, threadName());
+	public static HttpRequest2 createHttpRequest(Instant start, String rid) {
+		return new HttpRequest2(rid, requireSessionIdFor(REST), start, threadName());
 	}
 
 	public static FtpRequest2 createFtpRequest(Instant start) {

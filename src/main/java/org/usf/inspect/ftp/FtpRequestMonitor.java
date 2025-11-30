@@ -51,10 +51,10 @@ final class FtpRequestMonitor {
 	}
 
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
-		if(assertStillOpened(callback)) {//report if request was closed
+		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
 			callback.createStage(DISCONNECTION, start, end, thw, null).emit();
 			callback.setEnd(end);
-			callback.emit(); //avoid emit twice
+			callback.emit();
 			callback = null;
 		}
 	}
