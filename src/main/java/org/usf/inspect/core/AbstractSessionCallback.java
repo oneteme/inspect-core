@@ -35,8 +35,8 @@ public abstract class AbstractSessionCallback implements Callback {
 	}
 	
 	public void setEnd(Instant end){
+		this.async = threadCount.get() > 0; //session ended but some threads are still running
 		this.end = end;
-		this.async = threadCount.get() > 0;
 	}
 	
 	@Deprecated(forRemoval = true, since = "1.1")

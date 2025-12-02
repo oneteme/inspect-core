@@ -37,7 +37,7 @@ public final class EventTraceScheduledDispatcher {
 	private final DispatcherAgent agent;
 	private final List<DispatchHook> hooks;
 	private final List<DispatchTask> tasks;
-	private final ProcessingQueue<EventTrace> queue;
+	private final ProcessingQueue queue;
 	private final AtomicReference<DispatchState> atomicState;
 	private int attempts;
 
@@ -49,7 +49,7 @@ public final class EventTraceScheduledDispatcher {
 		this.propr = propr;
 		this.agent = agent;
 		this.hooks = unmodifiableList(hooks);
-		this.queue = new ProcessingQueue<>();
+		this.queue = new ProcessingQueue();
 		this.tasks = synchronizedList(new ArrayList<>());
 		var delay  = schd.getInterval().getSeconds();
 		this.executor.scheduleWithFixedDelay(()-> synchronizedDispatch(false, false), delay, delay, SECONDS);

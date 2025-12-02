@@ -211,8 +211,8 @@ public final class SessionContextManager {
 	private static String requireSessionIdFor(RequestMask mask) {
 		var ses = requireActiveContext();
 		if(nonNull(ses)) {
-			if(ses.updateMask(mask) && ses.isAsync()) {
-				ses.emit();
+			if(ses.updateMask(mask)) {
+				new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionCallback, ses.getRequestMask().get()).emit();
 			}
 			return ses.getId();
 		}
