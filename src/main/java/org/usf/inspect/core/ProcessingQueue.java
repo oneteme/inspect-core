@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.lang.Integer.compare;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.groupingBy;
@@ -10,7 +9,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -77,20 +75,10 @@ public final class ProcessingQueue {
 
 	static void resolveTraceUpdates(List<EventTrace> traces){
 		traces.stream()
-			.filter(AbstractSessionCallback.class::isInstance)
-			.map(AbstractSessionCallback.class::cast)
-			.forEach(ses-> traces.removeIf(evn-> {
-				if(evn instanceof SessionMaskUpdate upd && upd.getId().equals(ses.getId())) {
-					ses.getRequestMask().updateAndGet(v-> v > upd.getMask() ? v : v | upd.getMask()); //server side : upd.getMask() may be > ses.getRequestMask()
-					return true;
-				}
-				return false;
-			}));
-		traces.stream()
 		.filter(SessionMaskUpdate.class::isInstance)
 		.map(SessionMaskUpdate.class::cast)
 		.collect(groupingBy(SessionMaskUpdate::getId))
-		.values().forEach(v-> v.stream().reduce((prv, cur)-> {
+		.values().forEach(c-> c.stream().reduce((prv, cur)-> { //keep the highest mask
 				if(prv.getMask() > cur.getMask()) {
 					traces.remove(cur);
 					return prv;
@@ -99,6 +87,12 @@ public final class ProcessingQueue {
 					traces.remove(prv);
 					return cur;
 				}
-			}));
+			}).ifPresent(mdk-> traces.stream()
+				.filter(t-> t instanceof AbstractSessionCallback ses && mdk.getId().equals(ses.getId()))
+				.map(AbstractSessionCallback.class::cast)
+				.findFirst().ifPresent(ses-> {
+					ses.getRequestMask().updateAndGet(v-> v > mdk.getMask() ? v : v | mdk.getMask());
+					traces.remove(mdk); //remove mask if callback found
+				})));
 	}
 }

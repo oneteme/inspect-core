@@ -215,7 +215,6 @@ public final class EventTraceScheduledDispatcher {
 	}
 
 	void complete() {
-
 		atomicState.getAndUpdate(DispatchState::complete);
 		log.info("shutting down the scheduler service...");
 		executor.shutdown();

@@ -108,9 +108,9 @@ public final class InspectContext {
 		if(conf.getMonitoring().getResources().isEnabled()) {
 			hooks.add(new MachineResourceMonitor(conf.getMonitoring().getResources().getDisk()));
 		}
-		if(conf.isDebugMode()) {
-			hooks.add(new EventTraceDebugger());
-		}
+//		if(conf.isDebugMode()) {
+//			hooks.add(new EventTraceDebugger());
+//		}
 		if(conf.getTracing().getDump().isEnabled()) {
 			hooks.add(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), instance.getId()), mapper));
 		}
@@ -175,6 +175,7 @@ public final class InspectContext {
 				new NamedType(LogEntry.class, 					"00"),  
 				new NamedType(MachineResourceUsage.class, 		"01"),
 				new NamedType(RestRemoteServerProperties.class, "02"),
+				new NamedType(SessionMaskUpdate.class,			"03"),  
 				new NamedType(MainSession2.class,  				"10"), 
 				new NamedType(MainSessionCallback.class,  		"11"), 
 				new NamedType(HttpSession2.class,  				"20"), 
