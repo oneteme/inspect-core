@@ -7,6 +7,7 @@ import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 import static org.usf.inspect.core.BasicDispatchState.DISABLE;
+import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
@@ -15,7 +16,6 @@ import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createStartupSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
-import static org.usf.inspect.core.SessionContextManager.reportContextIsNull;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
 import java.net.UnknownHostException;
@@ -85,7 +85,7 @@ public final class InspectContext {
 	}
 
 	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
-		if(nonNull(ctx)) {
+		if(assertStillOpened(ctx)) {
 			runSafely(()->{
 				ctx.setLocation(className, methodName);
 				if(nonNull(thrw)) {  //nullable
@@ -96,9 +96,6 @@ public final class InspectContext {
 			});
 			clearContext(ctx);
 			ctx = null;
-		}
-		else {
-			reportContextIsNull("traceStartupSession");
 		}
 	}
 

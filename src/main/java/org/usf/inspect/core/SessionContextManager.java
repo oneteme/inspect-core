@@ -244,10 +244,6 @@ public final class SessionContextManager {
 		return randomUUID().toString();
 	}
 
-	public static void reportContextIsNull(String action) {
-		reportMessage(true, action, "context is null");
-	}
-	
 	static void reportNoActiveContext(String action) {
 		reportMessage(true, action, "no active context");
 	}

@@ -7,11 +7,11 @@ import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
+import static org.usf.inspect.core.ErrorReporter.assertMonitorNonNull;
 import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
-import static org.usf.inspect.core.SessionContextManager.reportContextIsNull;
 
 import java.io.IOException;
 import java.util.Map;
@@ -107,8 +107,8 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 		var now = now();
 		if(shouldIntercept(handler)) {  //avoid unfiltered request
-			var mnt = requireHttpMonitor(request, "preHandle");
-			if(nonNull(mnt)) {
+			var mnt = currentHttpMonitor(request);
+			if(assertMonitorNonNull(mnt, "HttpSessionFilter.preHandle")) {
 				mnt.preProcess(now);
 			}
 		}
@@ -119,8 +119,8 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
 		var now = now();
 		if(shouldIntercept(handler)) { //avoid unfiltered request
-			var mnt = requireHttpMonitor(request, "postHandle");
-			if(nonNull(mnt)) {
+			var mnt = currentHttpMonitor(request);
+			if(assertMonitorNonNull(mnt, "HttpSessionFilter.postHandle")) {
 				mnt.process(now);
 			}
 		}
@@ -130,8 +130,8 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 		var now = now();
 		if(shouldIntercept(handler)) { //avoid unfiltered request 
-			var mnt = requireHttpMonitor(request, "afterCompletion");
-			if(nonNull(mnt)) {
+			var mnt = currentHttpMonitor(request);
+			if(assertMonitorNonNull(mnt, "HttpSessionFilter.afterCompletion")) {
 				var name = resolveEndpointName(handler, request);
 				var user = userProvider.getUser(request, name);
 				mnt.postProcess(now, name, user, ex);
@@ -171,14 +171,6 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 				!(mth.getBean() instanceof ErrorController);
 	}
     
-    static HttpSessionMonitor requireHttpMonitor(HttpServletRequest req, String action) {
-    	var mnt = currentHttpMonitor(req);
-    	if(isNull(mnt)) {
-    		reportContextIsNull("HttpSessionMonitor."+action);
-    	}
-    	return mnt;
-    }	
-
     static HttpSessionMonitor currentHttpMonitor(HttpServletRequest req) {
     	return (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
     }

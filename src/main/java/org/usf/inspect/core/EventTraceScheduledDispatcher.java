@@ -9,6 +9,7 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.groupingBy;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,7 +38,7 @@ public final class EventTraceScheduledDispatcher {
 	private final DispatcherAgent agent;
 	private final List<DispatchHook> hooks;
 	private final List<DispatchTask> tasks;
-	private final ProcessingQueue queue;
+	private final ProcessingQueue<EventTrace> queue;
 	private final AtomicReference<DispatchState> atomicState;
 	private int attempts;
 
@@ -49,7 +50,7 @@ public final class EventTraceScheduledDispatcher {
 		this.propr = propr;
 		this.agent = agent;
 		this.hooks = unmodifiableList(hooks);
-		this.queue = new ProcessingQueue();
+		this.queue = new ProcessingQueue<>();
 		this.tasks = synchronizedList(new ArrayList<>());
 		var delay  = schd.getInterval().getSeconds();
 		this.executor.scheduleWithFixedDelay(()-> synchronizedDispatch(false, false), delay, delay, SECONDS);
@@ -150,6 +151,7 @@ public final class EventTraceScheduledDispatcher {
 	void dispatchQueue(DispatchState state) {
 		if(state.canDispatch()) {
 			queue.pollAll(propr.getQueueCapacity(), snp->{
+				resolveTraceUpdates(snp);
 				var trc = snp;
 				log.trace("dispatching {} traces .., pending {} traces", trc.size(), 0);
 				try {
@@ -159,7 +161,7 @@ public final class EventTraceScheduledDispatcher {
 				} catch (Exception e) {
 					var max = propr.getQueueCapacity();
 					if(trc.size() > max) {
-						deletedTraces(trc, max, MachineResourceUsage.class, AbstractStage.class, LogEntry.class, Callback.class); //delete Exception
+						deletedTraces(trc, max, AbstractStage.class, MachineResourceUsage.class, LogEntry.class, SessionMaskUpdate.class, Callback.class); //delete Exception
 						if(trc.size() > max) { 
 							trc = emptyList(); //DANGER
 //							atomicState.set(DISABLE); //TODO stop tracing ! server
@@ -239,6 +241,30 @@ public final class EventTraceScheduledDispatcher {
 				warnException(log, e, "failed to execute hook '{}'", h.getClass().getSimpleName());
 			}
 		}
+	}
+	
+	static void resolveTraceUpdates(List<EventTrace> traces){
+		traces.stream()
+		.filter(SessionMaskUpdate.class::isInstance)
+		.map(SessionMaskUpdate.class::cast)
+		.collect(groupingBy(SessionMaskUpdate::getId))
+		.values().forEach(c-> c.stream().reduce((prv, cur)-> {//keep higher mask
+				if(prv.getMask() > cur.getMask()) {
+					traces.remove(cur);
+					return prv;
+				}
+				else {
+					traces.remove(prv);
+					return cur;
+				}
+			}).ifPresent(mdk-> traces.stream()
+				.filter(t-> t instanceof AbstractSessionCallback ses && mdk.getId().equals(ses.getId()))
+				.findFirst()
+				.map(AbstractSessionCallback.class::cast)
+				.ifPresent(ses-> {
+					ses.getRequestMask().updateAndGet(v-> v > mdk.getMask() ? v : v | mdk.getMask());
+					traces.remove(mdk); //remove mask if callback found
+				})));
 	}
 
 	static Thread daemonThread(Runnable r) { //counter !?

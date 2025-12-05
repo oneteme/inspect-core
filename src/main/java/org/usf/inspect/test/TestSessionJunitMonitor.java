@@ -44,7 +44,7 @@ public final class TestSessionJunitMonitor {
 			});
 			clearContext(call);
 			call = null;
-		}
+		}	
 		return this;
 	}
 }

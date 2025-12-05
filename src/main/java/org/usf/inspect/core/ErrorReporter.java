@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static org.usf.inspect.core.Helper.threadName;
@@ -49,5 +50,13 @@ public final class ErrorReporter {
 			arr = excetionStackTraceRows(requireNonNullElseGet(cause, Exception::new), -1);
 		}
 		logEntry(REPORT, msg, arr).emit();
+	}
+	
+	public static boolean assertMonitorNonNull(Object monitor, String action) {
+		if (isNull(monitor)) {
+			reportMessage(false, action, "monitor is null");
+			return false;
+		}
+		return true;
 	}
 }

@@ -4,7 +4,6 @@ import static java.time.Instant.now;
 
 import java.time.Instant;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -16,7 +15,7 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor
 public final class LogEntry implements EventTrace {
 	
 	private final Instant instant;

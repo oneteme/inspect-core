@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorReporter.*;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 
 import java.util.Objects;
 

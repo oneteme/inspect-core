@@ -1,10 +1,9 @@
 package org.usf.inspect.test;
 
 import static java.time.Instant.now;
-import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
+import static org.usf.inspect.core.ErrorReporter.assertMonitorNonNull;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
-import static org.usf.inspect.core.SessionContextManager.reportContextIsNull;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
 import java.util.Optional;
@@ -40,11 +39,8 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	@Override
 	public void afterEach(ExtensionContext context) throws Exception {
 		var mnt = context.getStore(NAMESPACE).get(SESSION_KEY, TestSessionJunitMonitor.class);
-		if(nonNull(mnt)) {
+		if(assertMonitorNonNull(mnt, "Junit5TestMonitor.afterEach")) {
 			mnt.postProcess(context);
-		}
-		else {
-			reportContextIsNull("Junit5TestMonitor.afterEach");
 		}
 	}
 	

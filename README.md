@@ -1,120 +1,104 @@
 # inspect-core
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.oneteme/inspect-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.oneteme%22%20AND%20a:%22inspect-core%22)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Java Version](https://img.shields.io/badge/Java-21-blue.svg)](https://www.oracle.com/java/technologies/javase/21-relnote-issues.html)
 
-INSPECT — Évaluateur de Performance Système Intégré & Suivi de Communication.
+INSPECT — Integrated System Performance Evaluator & Communication Tracking
 
-`inspect-core` est une bibliothèque Java open-source conçue pour superviser et tracer le comportement des applications (monolithiques ou distribuées). Elle collecte des événements structurés sur l'activité de l'application (sessions et requêtes) — tels que le démarrage, l'exécution de batchs, le trafic HTTP entrant/sortant, les appels à des ressources externes et le traitement parallèle — et les transmet à un `inspect-server` central pour corrélation et analyse.
+inspect-core is an open-source Java library designed to supervise and trace application behavior (monolithic or distributed). It collects structured events about application activity (sessions and requests) — such as startup, batch runs, incoming/outgoing HTTP traffic, external resource calls and parallel processing — and forwards them to a central inspect-server for correlation and analysis.
 
-## Pourquoi INSPECT ?
-- Obtenez une vue corrélée de bout en bout du traitement et des communications à travers votre système d'information.
-- Tracez le trafic entrant et sortant, les exécutions de batchs et les événements de démarrage d'application de manière structurée et consultable.
-- Suivez les traitements asynchrones et multi-threadés et corrélez les événements liés dans la même session.
-- Centralisez l'analyse et l'agrégation des traces sur un `inspect-server` dédié pour détecter la latence, les erreurs et les problèmes de ressources.
+Why INSPECT?
+- Gain a correlated, end-to-end view of processing and communications across your information system.
+- Trace incoming and outgoing traffic, batch executions and application startup events in a structured, searchable way.
+- Follow asynchronous and multi-threaded processing and correlate related events into the same session.
+- Centralize analysis and aggregation of traces on a dedicated inspect-server to detect latency, errors and resource issues.
 
-## 1. Présentation
+1. Presentation
 ---------------
-`inspect-core` capture deux concepts principaux :
-- **Session** : représente une unité de traitement logique (par exemple : démarrage de l'application, un traitement par lots, la gestion d'une requête HTTP entrante, une exécution de test). Les sessions regroupent des événements connexes et permettent la corrélation des actions effectuées au cours de leur cycle de vie.
-- **Requête** : représente une interaction avec une ressource externe ou locale (par exemple : HTTP, FTP/SFTP, LDAP/JNDI, SMTP, appels à la base de données ou opérations locales comme l'accès au cache et aux fichiers). Les requêtes incluent des métadonnées telles que la durée, le statut, le point de terminaison, la taille des données et les erreurs éventuelles.
+inspect-core captures two main concepts:
+- Session: represents a logical processing unit (for example: application startup, a batch job, handling of an incoming HTTP request, a test run). Sessions group related events and enable correlation of actions performed during their lifetime.
+- Request: represents an interaction with an external or local resource (for example: HTTP, FTP/SFTP, LDAP/JNDI, SMTP, database calls or local operations like cache and file access). Requests include metadata such as duration, status, endpoint, payload sizes and any errors.
 
-## 2. Intégration
+2. Integration (Maven)
 ----------------------
-Ajoutez la bibliothèque à votre projet :
+Add the library to your project:
 
-**Maven**:
+Maven: [![Maven Central Version](https://img.shields.io/maven-central/v/io.github.oneteme/inspect-core?style=social)](https://central.sonatype.com/artifact/io.github.oneteme/inspect-core)
 ```xml
 <dependency>
   <groupId>io.github.oneteme</groupId>
   <artifactId>inspect-core</artifactId>
-  <version>1.1.17</version>
+  <version>REPLACE_WITH_VERSION</version>
 </dependency>
 ```
 
-**Gradle**:
+Gradle (example):
 ```groovy
-implementation 'io.github.oneteme:inspect-core:1.1.17'
+implementation 'io.github.oneteme:inspect-core:REPLACE_WITH_VERSION'
 ```
 
-## 3. Configuration (exemple YAML)
+3. Configuration (example YAML)
 -------------------------------
-Ajoutez et adaptez ceci à votre `application.yml`:
+Add and adapt this to your `application.yml`:
 
 ```yaml
 inspect:
   collector:
-    enabled: true                # default=false, active le collecteur
-    debug-mode: false            # default=false, active le mode de débogage pour le collecteur
+    enabled: true                # default=false, enable the collector
+    debug-mode: false            # default=false, enable debug mode for collector
     scheduling:
-      interval: 5s               # default=60s, intervalle entre les envois de traces
+      interval: 5s               # default=60s, interval between trace dispatches
     monitoring:
       http-route:
         excludes:
-          method: OPTIONS        # default=[], exclut des méthodes HTTP spécifiques
-          path: /favicon.ico, /actuator/info  # default=[], exclut les chemins correspondants
+          method: OPTIONS        # default=[], exclude specific HTTP methods
+          path: /favicon.ico, /actuator/info  # default=[], exclude matching paths
       resources:
-        enabled: true            # collecte les métriques de base (mémoire / disque)
+        enabled: true            # collect memory / disk / basic resource metrics
       exception:
-        max-stack-trace-rows: -1 # -1 = illimité, limite les lignes de stack trace dans les traces
-        max-cause-depth: -1      # -1 = illimité, limite la profondeur des causes imbriquées
+        max-stack-trace-rows: -1 # -1 = unlimited, limit stack trace rows in traces
+        max-cause-depth: -1      # -1 = unlimited, limit nested cause depth
     tracing:
-      queue-capacity: 100        # default=10000, capacité de la file d'attente d'envoi des traces
-      delay-if-pending: 0        # default=30, délai (s) si l'envoi précédent est en attente
+      queue-capacity: 100        # default=10000, trace dispatch queue capacity
+      delay-if-pending: 0        # default=30, delay (s) if previous dispatch pending
       dump:
-        enabled: true            # écrit les traces sur le disque local (utile pour le débogage)
+        enabled: true            # write traces to local disk (useful for debug)
       remote:
-        mode: REST               # mode d'envoi (ex: REST)
+        mode: REST               # dispatch mode (e.g., REST)
         host: http://localhost:9001
-        retention-max-age: 10d   # default=30d, période de rétention pour les traces locales
+        retention-max-age: 10d   # default=30d, retention period for local traces
 ```
 
-**Notes:**
-- Ajustez `scheduling.interval` et `tracing.queue-capacity` en fonction de votre charge.
-- Utilisez HTTPS pour `remote.host` en production pour sécuriser le transfert des traces.
+Notes:
+- Tune `scheduling.interval` and `tracing.queue-capacity` to match your load profile.
+- Use HTTPS for `remote.host` in production to secure trace transfer.
 
-## 4. Supervision — ce que `inspect-core` surveille
+4. Monitoring — what inspect-core supervises
 ---------------------------------------------
-- **Sessions**
-  - **Démarrage** : capture les séquences de démarrage de l'application et les événements d'initialisation.
-  - **Batch** : suit les exécutions de jobs et de traitements par lots (durée, succès/échec, exceptions).
-  - **HTTP Entrant** : suit le traitement des requêtes HTTP entrantes (méthode, chemin, statut, temps).
-  - **Tests** : capture les exécutions de tests pour la corrélation dans les environnements d'intégration.
+- Sessions
+  - Startup: capture application boot sequences and initialization events.
+  - Batch: track job and batch executions (duration, success/failure, exceptions).
+  - Incoming HTTP: track handling of incoming HTTP requests (method, path, status, timing).
+  - Tests: capture test-run executions for correlation in integration environments.
 
-- **Requêtes**
-  - **HTTP** : appels HTTP sortants et entrants (URL, méthode, en-têtes, taille des données, statut de la réponse).
-  - **FTP / SFTP** : métadonnées de connexion et de transfert (hôte, port, utilisateur, durée, erreurs).
-  - **LDAP / JNDI** : opérations de recherche/liste/attributs (point de terminaison, utilisateur, durée).
-  - **SMTP** : opérations d'envoi d'e-mails (métadonnées du message, destinataires, taille, statut de livraison).
-  - **Opérations Locales** : accès au cache, opérations sur les fichiers, opérations constantes ou en mémoire (contexte pour le travail non lié au réseau).
+- Requests
+  - HTTP: outgoing and incoming HTTP calls (URL, method, headers, payload sizes, response status).
+  - FTP / SFTP: connection and transfer metadata (host, port, user, duration, errors).
+  - LDAP / JNDI: lookup/list/attribute operations (endpoint, user, duration).
+  - SMTP: email send operations (message metadata, recipients, size, delivery status).
+  - Local operations: cache access, file operations, constant or in-process operations (context for non-network work).
 
-- **Threads**
-  - Suit et corrèle le travail exécuté sur d'autres threads afin que le traitement parallèle ou asynchrone soit inclus dans la session parente et non perdu.
+- Threads
+  - Tracks and correlates work executed on other threads so parallel or asynchronous processing is included in the parent session and not lost.
 
-- **Ressources**
-  - Métriques de base de la machine telles que l'utilisation de la mémoire et du disque, collectées périodiquement pour corréler la consommation de ressources avec l'activité de l'application.
+- Resources
+  - Basic machine metrics such as memory and disk usage collected periodically to correlate resource consumption with application activity.
 
-## 5. Sécurité & Confidentialité
+5. Security & privacy
 ---------------------
-- Les traces peuvent inclure des en-têtes et des métadonnées de charge utile. Soyez prudent avec les données sensibles (en-têtes d'autorisation, données personnelles, secrets).
-- Préférez le filtrage ou le masquage des champs sensibles avant l'envoi des traces.
-- Sécurisez le transport vers `inspect-server` (HTTPS) et contrôlez les politiques d'accès/rétention côté serveur.
+- Traces may include headers and payload metadata. Be careful with sensitive data (Authorization headers, personal data, secrets).
+- Prefer filtering or masking sensitive fields before traces are dispatched.
+- Secure transport to the inspect-server (HTTPS) and control access/retention policies on the server side.
 
-## 6. Bonnes pratiques
+6. Best practices
 -----------------
-- **Configuration Prudente** : N'activez que les moniteurs dont vous avez besoin pour éviter une surcharge de performance.
-- **Gestion des Données Sensibles** : Utilisez les fonctionnalités de masquage ou de filtrage pour éviter de tracer des informations sensibles.
-- **Dimensionnement** : Ajustez la capacité de la file d'attente et l'intervalle d'envoi en fonction de la charge de votre application pour éviter la perte de traces.
-- **Alertes** : Configurez des alertes sur votre `inspect-server` pour être notifié proactivement des erreurs ou des problèmes de performance.
-- **Tests** : Intégrez le suivi dans vos tests d'intégration pour identifier les régressions de performance avant la mise en production.
-
-## 7. Contribuer
------------------
-Les contributions sont les bienvenues ! Veuillez consulter `CODE_OF_CONDUCT.md` et soumettre une pull request.
-
-## 8. Licence
-----------
-Ce projet est sous licence Apache 2.0. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
 - Enable `debug-mode` and `dump` only for diagnostics; both increase I/O and logs.
 - Configure sensible defaults for `queue-capacity` and `scheduling.interval` based on expected traffic.
 - Exclude non-relevant routes (OPTIONS, favicon, health checks) to reduce noise.
