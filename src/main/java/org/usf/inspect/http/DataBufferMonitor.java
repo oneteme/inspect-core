@@ -46,7 +46,7 @@ final class DataBufferMonitor implements ResponseContent {
 				}
 			}
 			catch (Exception e) {
-				reportError("DataBufferMonitor.handle", e);
+				reportError(false, "DataBufferMonitor.handle", e);
 			}
 			return db; //maybe consumed
 		})

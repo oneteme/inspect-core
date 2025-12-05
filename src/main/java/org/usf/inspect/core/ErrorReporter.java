@@ -1,10 +1,12 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static java.util.Objects.requireNonNullElseGet;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LogEntry.logEntry;
-import static org.usf.inspect.core.LogEntry.Level.ERROR;
+import static org.usf.inspect.core.LogEntry.Level.REPORT;
+import static org.usf.inspect.core.StackTraceRow.excetionStackTraceRows;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -17,66 +19,35 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ErrorReporter {
 
-	private final boolean stack;
-	private String action;
-	private String message;
-	private String thread;
-	private Throwable cause;
-
-	public ErrorReporter action(String action) {
-		this.action = action;
-		return this;
+	public static void reportError(boolean stack, String action, Throwable thwr) {
+		report(stack, format(action, null, thwr), thwr);
 	}
 
-	public ErrorReporter message(String message) {
-		this.message = message;
-		return this;
+	public static void reportMessage(boolean stack, String action, String msg) {
+		report(stack, format(action, msg, null), null);
 	}
 
-	public ErrorReporter thread() {
-		this.thread = threadName();
-		return this;
-	}
-
-
-	public ErrorReporter cause(Throwable cause) {
-		this.cause = cause;
-		return this;
-	}
-
-	public void emit() {
-		var stk = stack || context().getConfiguration().isDebugMode() ? -1 : 0;
-		logEntry(ERROR, toString(), stk).emit();
-	}
-
-	@Override
-	public String toString() {
+	static String format(String action, String msg, Throwable thwr) {
 		var sb = new StringBuilder();
+		sb.append("thread=").append(threadName());
 		if(nonNull(action)) {
-			sb.append("action=").append(action);
+			sb.append(", action=").append(action);
 		}
-		if(nonNull(message)) {
-			sb.append(", message=").append(message);
+		if(nonNull(msg)) {
+			sb.append(", message=").append(msg);
 		}
-		if(nonNull(thread)) {
-			sb.append(", thread=").append(thread);
-		}
-		if(nonNull(cause)) {
-			sb.append(", cause=").append(cause.getClass().getSimpleName())
-			.append(": ").append(cause.getMessage());
+		if(nonNull(thwr)) {
+			sb.append(", cause=").append(thwr.getClass().getName())
+			.append(":").append(thwr.getMessage());
 		}
 		return sb.toString();
 	}
 
-	public static ErrorReporter stackReporter(){
-		return new ErrorReporter(true).thread();
-	}
-
-	public static void reportError(String action, Throwable cause) {
-		new ErrorReporter(false).action(action).cause(cause).thread().emit();
-	}
-
-	public static void reportMessage(String action, String message) {
-		new ErrorReporter(false).action(action).message(message).thread().emit();
+	static void report(boolean stack, String msg, Throwable cause) {
+		StackTraceRow[] arr = null;
+		if(stack && context().getConfiguration().isDebugMode()) {
+			arr = excetionStackTraceRows(requireNonNullElseGet(cause, Exception::new), -1);
+		}
+		logEntry(REPORT, msg, arr).emit();
 	}
 }

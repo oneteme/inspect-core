@@ -17,17 +17,26 @@ import org.springframework.http.client.ClientHttpResponse;
  */
 final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 	
-	public void preProcess(HttpRequest request) {
-		var start = now(); //no pre-process stage
-		runSafely(()-> super.preProcessHandler(start, start, request.getMethod(), request.getURI(), request.getHeaders(), null));
+	public void preExchange(HttpRequest request) { //no pre-process 
+		var start = now();
+		runSafely(()-> super.preExchange(start, start, request.getMethod(), request.getURI(), request.getHeaders(), null));
 	}
 
-	public void postProcessHandler(Instant start, Instant end, ClientHttpResponse response, Throwable thrw) throws IOException {
+	public void postExchange(Instant start, Instant end, ClientHttpResponse response, Throwable thrw) throws IOException {
 		if(nonNull(response)) {
-			super.postProcessHandler(start, end, response.getStatusCode(), response.getHeaders(), thrw);
+			super.postExchange(start, end, response.getStatusCode(), response.getHeaders(), thrw);
 		}
 		else {
-			super.postProcessHandler(start, end, null, null, thrw);
+			super.postExchange(start, end, null, null, thrw);
 		}
+		if(nonNull(thrw)) {
+			super.complete(end); //sync client, complete on error
+		}
+	}
+	
+	@Override
+	void postResponse(Instant start, Instant end, ResponseContent cnt, Throwable thrw) {
+		super.postResponse(start, end, cnt, thrw);
+		super.complete(end); //sync client, complete after response
 	}
 }

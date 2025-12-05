@@ -124,11 +124,11 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					return true;
 				}
 			} catch (IOException ioe) {/*ignore this exception */}
-			reportError("RestDispatcherAgent.shouldRetry", e);
+			reportError(false, "RestDispatcherAgent.shouldRetry", e);
 			return false;
 		}
 		else if(e instanceof ResourceAccessException rae && rae.getCause() instanceof SocketTimeoutException) {
-			reportError("RestDispatcherAgent.shouldRetry", e);
+			reportError(false, "RestDispatcherAgent.shouldRetry", e);
 			return false; //timeout should not be retried
 		}
 		log.warn("bad request : {}", e.getMessage());
@@ -159,7 +159,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					body = baos.toByteArray();
 				}
 				catch (Exception e) {/*do not throw exception */
-					reportError("RestDispatcherAgent.bodyCompressionInterceptor", e);
+					reportError(false, "RestDispatcherAgent.bodyCompressionInterceptor", e);
 				}
 			}
 			return exec.execute(req, body);

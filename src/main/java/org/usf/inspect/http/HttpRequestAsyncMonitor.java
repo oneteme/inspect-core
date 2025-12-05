@@ -17,29 +17,29 @@ import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
  */
 final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 
-	private Instant lastTimestamp;
+	private volatile Instant lastTimestamp;
 	
 	public ExecutionHandler<Object> preProcessHandler(ClientRequest req) {
 		return (s,e,o,t)-> {
-			super.preProcessHandler(s, e, req.method(), req.url(), req.headers(), t);
+			super.preExchange(s, e, req.method(), req.url(), req.headers(), t);
 			lastTimestamp = e;
 		};
 	}
 
-	public void postProcess(ClientResponse res, Throwable thrw) {
+	public void postExchange(ClientResponse res, Throwable thrw) {
 		var now = now();
 		runSafely(()->{
 			if(nonNull(res)) {
-				super.postProcessHandler(lastTimestamp, now, res.statusCode(), res.headers().asHttpHeaders(), thrw);
+				super.postExchange(lastTimestamp, now, res.statusCode(), res.headers().asHttpHeaders(), thrw);
 			}
 			else {
-				super.postProcessHandler(lastTimestamp, now, null, null, thrw);
+				super.postExchange(lastTimestamp, now, null, null, thrw);
 			}
 			lastTimestamp = now;
 		});
 	}
-	
-	public void completeHandler(Instant end, ResponseContent cnt, Throwable t) {
-		super.completeHandler(lastTimestamp, end, cnt, t);
+		
+	public void complete() {
+		super.complete(now());
 	}
 }

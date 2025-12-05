@@ -5,7 +5,7 @@ package org.usf.inspect.core;
  * @author u$f
  *
  */
-public interface Compleatable extends EventTrace {
+public interface CompletableTrace extends EventTrace {
 	
 	String getId();
 }

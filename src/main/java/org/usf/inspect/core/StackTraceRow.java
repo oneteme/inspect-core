@@ -31,13 +31,9 @@ public final class StackTraceRow {
 		return format("%s.%s(%s:%d)", className, methodName, getFileName(), lineNumber);
 	}
 
-	public static StackTraceRow[] threadStackTraceRows(int maxRows) {
-		return excetionStackTraceRows(new Exception(), maxRows); //see Thread.getStackTrace
-	}
-	
 	public static StackTraceRow[] excetionStackTraceRows(Throwable thrw, int maxRows) {
 		StackTraceRow[] rows = null;
-		if(maxRows != 0) {
+		if(maxRows != 0 && nonNull(thrw)) {
 			var stack = thrw.getStackTrace(); 
 			rows = new StackTraceRow[maxRows < 0 ? stack.length : min(maxRows, stack.length)];
 			for(var i=0; i<rows.length; i++) {

@@ -1,8 +1,9 @@
 package org.usf.inspect.core;
 
+import static java.lang.String.format;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorReporter.stackReporter;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 
 import java.time.Instant;
 
@@ -11,7 +12,7 @@ import java.time.Instant;
  * @author u$f
  *
  */
-public interface Callback extends Compleatable {
+public interface Callback extends CompletableTrace {
 	
 	Instant getEnd();
 
@@ -20,9 +21,9 @@ public interface Callback extends Compleatable {
 			if(isNull(callback.getEnd())) {
 				return true;
 			}
-			stackReporter().message("callack was closed").emit();
+			reportMessage(true, "assertStillOpened", format("'%s' is already closed", callback.getClass().getSimpleName()));
 		}
-		stackReporter().message("callback is null").thread().emit();
+		reportMessage(true, "assertStillOpened", "callback is null");
 		return false;
 	}
 }

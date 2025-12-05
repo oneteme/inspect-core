@@ -5,7 +5,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
-import static org.usf.inspect.core.ErrorReporter.stackReporter;
+import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
@@ -232,7 +232,7 @@ public final class SessionContextManager {
 	}
 
 	private static void emitLog(Level lvl, String msg) {
-		var log = logEntry(lvl, msg, 0); // no stack
+		var log = logEntry(lvl, msg); // no stack
 		var ctx = requireActiveContext();
 		if(nonNull(ctx)) {
 			log.setSessionId(ctx.getId());
@@ -245,18 +245,18 @@ public final class SessionContextManager {
 	}
 
 	public static void reportContextIsNull(String action) {
-		stackReporter().action(action).message("context is null").thread().emit();
+		reportMessage(true, action, "context is null");
 	}
 	
 	static void reportNoActiveContext(String action) {
-		stackReporter().action(action).message("no active context").thread().emit();
+		reportMessage(true, action, "no active context");
 	}
 	
 	static void reportContextConflict(String action, String prev, String next) {
-		stackReporter().action(action).message(format("previous=%s, next=%s", prev, next)).thread().emit();
+		reportMessage(true, action, format("previous=%s, next=%s", prev, next));
 	}
 
 	static void reportIllegalContextState(String action, String msg) {
-		stackReporter().action(action).message(msg).thread().emit();
+		reportMessage(true, action, msg);
 	}
 }

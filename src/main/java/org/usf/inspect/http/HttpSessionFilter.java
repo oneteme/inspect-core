@@ -62,7 +62,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 			throw e;
 		}
 		catch (Exception e) {//should never happen
-			reportError("FilterExecutionMonitor.doFilterInternal", e);
+			reportError(false, "FilterExecutionMonitor.doFilterInternal", e);
 			throw new IllegalStateException(e); 
 		}
 	}
@@ -85,7 +85,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		else if(isAsyncDispatch(req))  {
 			return prv.asyncPostFilterHander(res);
 		}
-		reportMessage("HttpSessionFilter.filterHandler", 
+		reportMessage(false, "HttpSessionFilter.filterHandler", 
 				"Unexpected HttpSessionMonitor in request attribute");
 		return (s,e,o,t)-> {}; //do nothing
 	}

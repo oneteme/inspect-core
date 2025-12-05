@@ -7,7 +7,7 @@ import java.time.Instant;
  * @author u$f
  *
  */
-public interface Initializer extends Compleatable {
+public interface Initializer extends CompletableTrace {
 
 	Instant getStart();
 }

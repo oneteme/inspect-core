@@ -33,9 +33,9 @@ import lombok.Getter;
 class AbstractHttpRequestMonitor {
 	
 	@Getter private final String id = nextId();
-	HttpRequestCallback callback;
+	private HttpRequestCallback callback;
 
-	void preProcessHandler(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
+	void preExchange(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
 		var req = createHttpRequest(start, id);
 		if(nonNull(method)) {
 			req.setMethod(method.name());
@@ -53,13 +53,11 @@ class AbstractHttpRequestMonitor {
 		callback = req.createCallback();
 		callback.createStage(PRE_PROCESS, start, end, thrw).emit();
 		if(nonNull(thrw)) { //thrw -> stage
-			callback.setEnd(end);
-			callback.emit();
-			callback = null;
+			complete(end);
 		}
 	}
 	
-	void postProcessHandler(Instant start, Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
+	void postExchange(Instant start, Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 //		request.setThreadName(threadName()); //deferred thread
 		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
 			callback.createStage(PROCESS, start, end, thrw).emit();
@@ -71,15 +69,10 @@ class AbstractHttpRequestMonitor {
 				callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
 				callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
 			}
-			if(nonNull(thrw)) { //report if request was closed
-				callback.setEnd(end); //thrw -> stage
-				callback.emit();
-				callback = null;
-			}
 		}
 	}
 	
-	void completeHandler(Instant start, Instant end, ResponseContent cnt, Throwable thrw){
+	void postResponse(Instant start, Instant end, ResponseContent cnt, Throwable thrw){
 //		request.setThreadName(threadName()); //deferred thread
 		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
 			callback.createStage(POST_PROCESS, start, end, thrw).emit();
@@ -92,6 +85,11 @@ class AbstractHttpRequestMonitor {
 			else {
 				callback.setDataSize(-1);
 			}
+		}
+	}
+	
+	void complete(Instant end) {
+		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
 			callback.setEnd(end);
 			callback.emit();
 			callback = null;
@@ -103,7 +101,7 @@ class AbstractHttpRequestMonitor {
 			if(sid.equals(callback.getId())) {
 				return true;
 			}
-			reportMessage("assertSameID", "session.id=" + sid);
+			reportMessage(false, "assertSameID", "session.id=" + sid);
 		}
 		return false;
 	}
