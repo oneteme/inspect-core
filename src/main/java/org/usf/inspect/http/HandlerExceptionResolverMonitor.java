@@ -1,6 +1,6 @@
 package org.usf.inspect.http;
 
-import static org.usf.inspect.core.ErrorReporter.assertMonitorNonNull;
+import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
 import static org.usf.inspect.http.HttpSessionFilter.currentHttpMonitor;
 
 import org.springframework.core.Ordered;

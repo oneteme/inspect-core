@@ -16,7 +16,7 @@ import lombok.ToString;
 @ToString
 public class ResourceMonitoringProperties {
 
-	private boolean enabled = true;
+	private boolean enabled;
 	private File disk = new File("/");
 
 	void validate() { 

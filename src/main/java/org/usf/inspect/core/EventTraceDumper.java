@@ -4,8 +4,6 @@ import static java.lang.Integer.parseInt;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.move;
-import static org.usf.inspect.core.ErrorReporter.reportMessage;
-import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,10 +34,10 @@ public final class EventTraceDumper implements DispatchHook {
 	}
 
 //	@Override
-	public void postDispatch(boolean complete, ProcessingQueue<EventTrace> manager) {
+	public void postDispatch(Context ctx, ProcessingQueue<EventTrace> manager) {
 //		if(manager.isQueueCapacityExceeded()) {
-			manager.pollAll(complete ? 0 : -1, trc->{
-				emitDispatchFileTask(writeTraces(trc));
+			manager.pollAll(ctx.isCompleted() ? 0 : -1, trc->{
+				ctx.emitTask(dispatchFileTask(ctx, writeTraces(trc)));
 				return Collections.emptyList();
 			});
 //		}
@@ -58,14 +56,14 @@ public final class EventTraceDumper implements DispatchHook {
 		return f;
 	}
 	
-	static void emitDispatchFileTask(File f) {
+	DispatchTask dispatchFileTask(Context ctx, File f) {
 		var fileRef = new File[] {f};
-		context().emitTask(agn->{
+		return agn->{
 			if(fileRef[0].exists()) {
 				var rt = getFileDispatchAttempts(fileRef[0].getName());
 				try {
-					agn.dispatch(++rt, fileRef[0]);
-					deleteFile(fileRef[0]); //ignore deleteFile exception
+					agn.dispatch(fileRef[0]);
+					deleteFile(ctx, fileRef[0]); //ignore deleteFile exception
 					if(rt > 5) { //more than one attempt
 						log.info("successfully dispatched '{}' file after {} attempts", fileRef[0].getName(), rt);
 					}
@@ -76,13 +74,13 @@ public final class EventTraceDumper implements DispatchHook {
 				}
 			}
 			else { //do not throw exception => end task
-				reportMessage(false, "EventTraceDumper.emitDispatchFileTask", 
+				ctx.reportMessage(false, "EventTraceDumper.emitDispatchFileTask", 
 						"traces dump file '" + f.getName() + "' is not found");
 			}
-		});
+		};
 	}
 	
-	static void deleteFile(File file) {
+	void deleteFile(Context ctx, File file) {
 		boolean done = false;
 		try {
 			delete(file.toPath());
@@ -100,7 +98,7 @@ public final class EventTraceDumper implements DispatchHook {
 			}
 		}
 		if(!done) {
-			reportMessage(false, "EventTraceDumper.deleteFile", 
+			ctx.reportMessage(false, "EventTraceDumper.deleteFile", 
 					"cannot delete or rename file '" + file.getName() + "'");
 		}
 	}

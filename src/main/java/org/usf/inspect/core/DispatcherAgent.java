@@ -14,9 +14,9 @@ public interface DispatcherAgent {
 	
 	void dispatch(InstanceEnvironment instance); //callback ?
     
-	List<EventTrace> dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces);
+	List<EventTrace> dispatch(boolean complete, List<EventTrace> traces);
 
-	void dispatch(int attempts, File dumpFile);
+	void dispatch(File dumpFile);
 	
 	static DispatcherAgent noAgent() {
 		
@@ -28,12 +28,12 @@ public interface DispatcherAgent {
 			}
 			
 			@Override
-			public List<EventTrace> dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces) {
+			public List<EventTrace> dispatch(boolean complete, List<EventTrace> traces) {
 				return emptyList();
 			}
 			
 			@Override
-			public void dispatch(int attempts, File dumpFile) {
+			public void dispatch(File dumpFile) {
 				//do nothing
 			}
 		};

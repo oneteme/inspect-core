@@ -21,12 +21,10 @@ public class TracingProperties { //add remote
 	private RemoteServerProperties remote; //replace server
 	//v1.1
 	private boolean modifiable = true; //if true dispatch a trace copy
-	private int delayIfPending = 30; // send pending traces after {n} seconds, 0: send immediately, -1 not 
 	private DumpProperties dump = new DumpProperties();
 	
 	void validate() {
 		assertGreaterOrEquals(queueCapacity, 100, "queue-capacity");
-		assertGreaterOrEquals(delayIfPending, -1, "dispatch-if-pending");
 		dump.validate();
 		if(nonNull(remote)) {
 			remote.validate();

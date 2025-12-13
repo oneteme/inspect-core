@@ -21,14 +21,12 @@ public final class ProcessingQueue<T> {
 
 	private final ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>(); 
 	
-	public int add(T o) { //return size, reduce sync call
-		queue.add(o);
-		return queue.size();
+	public boolean add(T o) { //return size, reduce sync call
+		return queue.add(o);
 	}
 
-	public int addAll(Collection<T> arr){
-		queue.addAll(arr); 
-		return queue.size();
+	public boolean addAll(Collection<T> arr){
+		return queue.addAll(arr);
 	}
 	
 	public void pollAll(int max, UnaryOperator<List<T>> op) {
@@ -52,7 +50,7 @@ public final class ProcessingQueue<T> {
 			}
 		}
 	}
-
+	
 	public List<T> peek() {
 		return new ArrayList<>(queue);
 	}
@@ -61,14 +59,8 @@ public final class ProcessingQueue<T> {
 		return queue.size();
 	}
 
-	public int removeIfInstanceOf(Class<?> cls) {
-		queue.removeIf(cls::isInstance);
-		return queue.size();
-	}
-
 	@Override
 	public String toString() {
 		return queue.toString();
 	}
-
 }

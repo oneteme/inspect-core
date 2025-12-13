@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
-import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
 
@@ -43,7 +43,7 @@ public final class ExecutionMonitor {
 			handler.handle(start, end, obj, thrw);
 		}
 		catch (Throwable ex) {// do not throw exception
-			reportError(true, "ExecutionMonitor.notifyHandler", ex);
+			context().reportError(true, "ExecutionMonitor.notifyHandler", ex);
 		}
 	}
 	
@@ -52,7 +52,7 @@ public final class ExecutionMonitor {
 			call.run();
 		}
 		catch (Throwable ex) {// do not throw exception
-			reportError(true, "ExecutionMonitor.runSafely", ex);
+			context().reportError(true, "ExecutionMonitor.runSafely", ex);
 		}
 	}
 	

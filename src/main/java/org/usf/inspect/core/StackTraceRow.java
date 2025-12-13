@@ -31,7 +31,7 @@ public final class StackTraceRow {
 		return format("%s.%s(%s:%d)", className, methodName, getFileName(), lineNumber);
 	}
 
-	public static StackTraceRow[] excetionStackTraceRows(Throwable thrw, int maxRows) {
+	public static StackTraceRow[] exceptionStackTraceRows(Throwable thrw, int maxRows) {
 		StackTraceRow[] rows = null;
 		if(maxRows != 0 && nonNull(thrw)) {
 			var stack = thrw.getStackTrace(); 

@@ -9,7 +9,6 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
-import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
@@ -28,24 +27,30 @@ import java.time.Instant;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionCallback;
+import org.usf.inspect.core.Monitor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 /**
+ * 
+ * Filter → Interceptor.preHandle → Deferred → Controller(task-?) →   Filter → Interceptor.preHandle → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
+ * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
  * 
  * @author u$f 
  *
  */
-public final class HttpSessionMonitor {
+@RequiredArgsConstructor
+public final class HttpSessionMonitor implements Monitor {
 	
 	private HttpSessionCallback call;
 	private Instant lastTimestamp;
+	private boolean async;
 	
 	public void preFilter(HttpServletRequest req, HttpServletResponse res){
 		lastTimestamp = now();
-		var ses = createHttpSession(lastTimestamp, req.getHeader(TRACE_HEADER));
-		runSafely(()->{
+		call = createHttpSession(lastTimestamp, req.getHeader(TRACE_HEADER), ses->{
 			if(nonNull(req)) {
 				ses.setMethod(req.getMethod());
 				ses.setURI(fromRequest(req));
@@ -54,13 +59,11 @@ public final class HttpSessionMonitor {
 				ses.setContentEncoding(req.getHeader(CONTENT_ENCODING));
 				ses.setUserAgent(req.getHeader(USER_AGENT));
 			}
-			ses.emit();
 			if(nonNull(res)) {
 				res.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 				res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 			}
 		});
-		call = ses.createCallback();
 		setActiveContext(call);
 	}
 	
@@ -77,8 +80,8 @@ public final class HttpSessionMonitor {
 		}
 	}
 	
-	public void process(Instant end){
-		if(assertStillOpened(call)) {
+	public void process(Instant end){ //see this.asyncPostFilterHander
+		if(assertStillOpened(call) && !async) {
 			runSafely(()-> emitStage(PROCESS, end));
 		}
 	}
@@ -102,8 +105,10 @@ public final class HttpSessionMonitor {
 		}
 	}
 	
-	public ExecutionHandler<Void> asyncPostFilterHander(HttpServletResponse res){
+	public ExecutionHandler<Void> asyncPostFilterHander(Instant end, HttpServletResponse res){
+		async = true;
 		if(assertStillOpened(call)) {
+			runSafely(()-> emitStage(PROCESS, end));
 			setActiveContext(call);
 		}
 		return (s,e,o,t)-> postFilterHandler(e, res, t);
@@ -122,7 +127,7 @@ public final class HttpSessionMonitor {
 				call.setException(fromException(thrw));
 			}
 			call.setEnd(end);  //IO | CancellationException | ServletException => no ErrorHandler
-			call.emit();
+			emit(call);
 			clearContext(call);
 			call = null;
 		}
@@ -130,7 +135,7 @@ public final class HttpSessionMonitor {
 
 	void emitStage(HttpAction action, Instant end) {
 		var now = now();
-		call.createStage(action, lastTimestamp, end, null).emit();
+		emit(call.createStage(action, lastTimestamp, end, null));
 		lastTimestamp = now;
 	}
 

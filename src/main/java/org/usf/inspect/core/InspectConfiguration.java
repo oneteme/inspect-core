@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.lang.String.format;
 import static java.time.Instant.ofEpochMilli;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
+import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.InspectContext.context;
@@ -10,11 +11,13 @@ import static org.usf.inspect.core.InspectContext.initializeInspectContext;
 import static org.usf.inspect.http.HttpRoutePredicate.compile;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -32,12 +35,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.inspect.http.HandlerExceptionResolverMonitor;
 import org.usf.inspect.http.HttpRoutePredicate;
 import org.usf.inspect.http.HttpSessionFilter;
 import org.usf.inspect.http.RestRequestInterceptor;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jakarta.servlet.Filter;
 import lombok.RequiredArgsConstructor;
@@ -50,19 +60,18 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Configuration
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = lombok.AccessLevel.PACKAGE)
 @ConditionalOnProperty(prefix = "inspect.collector", name = "enabled", havingValue = "true")
-class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<SpringApplicationEvent>{
+public class InspectConfiguration implements WebMvcConfigurer {
 	
 	private final ApplicationContext appContext;
 	
 	@Primary
 	@Bean("inspectContext")
-	InspectContext inspectContext(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+	Context inspectContext(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
 		logLoadingBean("inspectContext", InspectContext.class);
-		var start = ofEpochMilli(appContext.getStartupDate());
-		initializeInspectContext(start, conf.validate(), provider); 
-		context().traceStartupSession(start); //start session after context is initialized
+		initializeInspectContext(conf.validate(), createObjectMapper()); 
+		appEventListener(ofEpochMilli(appContext.getStartupDate()), provider); //early bean load
 		return context();
 	}
 	
@@ -126,19 +135,27 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
     		
     		@Override
     		public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+    			if(bean instanceof ThreadPoolTaskExecutor ds) {
+    				ds.setTaskDecorator(SessionContextManager::aroundRunnable);
+    			}
 	            return bean instanceof DataSource ds ? wrap(ds, beanName) :  bean;
     		}
 		};
     }
-    
-	@Override
-	public void onApplicationEvent(SpringApplicationEvent e) {
-		if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-			context().traceStartupSession(ofEpochMilli(e.getTimestamp()), 
-					e.getSpringApplication().getMainApplicationClass().getName(), "main", 
-					e instanceof ApplicationFailedEvent f ? f.getException() : null);
-		}
-	}
+
+    @Bean
+    ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
+    	var mnt = new StartupMonitor();
+    	mnt.beforeStartup(start, provider);
+		return e-> {
+			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
+				mnt.afterStartup(
+						ofEpochMilli(e.getTimestamp()), 
+						e.getSpringApplication().getMainApplicationClass(), "main", 
+						e instanceof ApplicationFailedEvent f ? f.getException() : null);
+			}
+		};
+    }
     
     @Bean
     @ConditionalOnMissingBean
@@ -187,4 +204,43 @@ class InspectConfiguration implements WebMvcConfigurer, ApplicationListener<Spri
 		default -> throw new UnsupportedOperationException(format("dispatching type '%s' is not supported, ", mode));
 		};
     }
+    
+	static ObjectMapper createObjectMapper() {
+		return json()
+				.modules(new JavaTimeModule(), coreModule())
+				.build()
+				.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+		//		.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
+		//		.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
+	}
+	
+	public static SimpleModule coreModule() {
+		return new SimpleModule("inspect-core-module").registerSubtypes(
+				new NamedType(LogEntry.class, 					"00"),  
+				new NamedType(MachineResourceUsage.class, 		"01"),
+				new NamedType(RestRemoteServerProperties.class, "02"),
+				new NamedType(SessionMaskUpdate.class,			"03"),  
+				new NamedType(MainSession2.class,  				"10"), 
+				new NamedType(MainSessionCallback.class,  		"11"), 
+				new NamedType(HttpSession2.class,  				"20"), 
+				new NamedType(HttpSessionCallback.class,  		"21"), 
+				new NamedType(LocalRequest2.class, 				"110"),
+				new NamedType(LocalRequestCallback.class, 		"111"),
+				new NamedType(HttpRequest2.class,  				"120"), 
+				new NamedType(HttpRequestCallback.class,  		"121"), 
+				new NamedType(DatabaseRequest2.class,			"130"),
+				new NamedType(DatabaseRequestCallback.class,	"131"),
+				new NamedType(FtpRequest2.class,		  		"140"), 
+				new NamedType(FtpRequestCallback.class,  		"141"),
+				new NamedType(MailRequest2.class,  				"150"), 
+				new NamedType(MailRequestCallback.class,  		"151"), 
+				new NamedType(DirectoryRequest2.class,			"160"),
+				new NamedType(DirectoryRequestCallback.class,	"161"), 
+				new NamedType(HttpSessionStage.class,  			"210"), 
+				new NamedType(HttpRequestStage.class,  			"220"), 
+				new NamedType(DatabaseRequestStage.class,		"230"), 
+				new NamedType(FtpRequestStage.class,  			"240"),
+				new NamedType(MailRequestStage.class,  			"250"), 
+				new NamedType(DirectoryRequestStage.class,		"260"));
+	}
 }

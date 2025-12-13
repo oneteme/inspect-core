@@ -1,7 +1,5 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.ErrorReporter.reportMessage;
-
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,8 +24,4 @@ public class AbstractRequestCallback implements Callback, HasStage {
 	private final String id;
 	private String command; //READ, EMIT, EDIT, ..
 	private Instant end;
-	
-	public static void reportNoActiveRequest(String action, RequestMask mask) {
-		reportMessage(true, action, "no active request["+mask+"]");
-	}
 }

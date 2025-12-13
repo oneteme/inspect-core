@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
@@ -15,6 +16,7 @@ import lombok.ToString;
  */
 @Getter
 @Setter
+@Slf4j
 @ToString
 @RequiredArgsConstructor
 public final class InstanceEnvironment {
@@ -37,4 +39,5 @@ public final class InstanceEnvironment {
 	private final InspectCollectorConfiguration configuration;
 	private MachineResource resource; //init/max heap +  init/max metaspace
 	private Instant end;
+
 }

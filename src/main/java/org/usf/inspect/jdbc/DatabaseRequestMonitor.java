@@ -3,7 +3,6 @@ package org.usf.inspect.jdbc;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.DatabaseAction.BATCH;
 import static org.usf.inspect.core.DatabaseAction.CONNECTION;
 import static org.usf.inspect.core.DatabaseAction.DISCONNECTION;
@@ -12,8 +11,6 @@ import static org.usf.inspect.core.DatabaseAction.FETCH;
 import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.mergeCommand;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
-import static org.usf.inspect.core.ErrorReporter.reportError;
-import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.SessionContextManager.createDatabaseRequest;
 
@@ -30,6 +27,7 @@ import org.usf.inspect.core.DatabaseCommand;
 import org.usf.inspect.core.DatabaseRequestCallback;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.Monitor;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,7 +37,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-final class DatabaseRequestMonitor {
+final class DatabaseRequestMonitor implements Monitor {
 
 	private final ConnectionMetadataCache cache; //required
 
@@ -49,27 +47,26 @@ final class DatabaseRequestMonitor {
 	private DatabaseRequestStage lastStg; // hold last stage
 	
 	public void handleConnection(Instant start, Instant end, Connection cnx, Throwable thrw) throws SQLException {
-		var req = createDatabaseRequest(start);
-		if(nonNull(cnx) && !cache.isPresent()) {
-			cache.update(cnx.getMetaData());
-		}
-		if(cache.isPresent()) {
-			req.setScheme(cache.getScheme());
-			req.setHost(cache.getHost());
-			req.setPort(cache.getPort());
-			req.setName(cache.getName()); //getCatalog
-			req.setSchema(cache.getSchema());
-			req.setUser(cache.getUser());
-			req.setProductName(cache.getProductName());
-			req.setProductVersion(cache.getProductVersion());
-			req.setDriverVersion(cache.getDriverVersion());
-		}
-		req.emit();
-		callback = req.createCallback();
-		callback.createStage(CONNECTION, start, end, thrw, null).emit(); //before end if thrw
+		callback = createDatabaseRequest(start, req->{
+			if(nonNull(cnx) && !cache.isPresent()) {
+				cache.update(cnx.getMetaData());
+			}
+			if(cache.isPresent()) {
+				req.setScheme(cache.getScheme());
+				req.setHost(cache.getHost());
+				req.setPort(cache.getPort());
+				req.setName(cache.getName()); //getCatalog
+				req.setSchema(cache.getSchema());
+				req.setUser(cache.getUser());
+				req.setProductName(cache.getProductName());
+				req.setProductVersion(cache.getProductVersion());
+				req.setDriverVersion(cache.getDriverVersion());
+			}
+		});
+		emit(callback.createStage(CONNECTION, start, end, thrw, null)); //before end if thrw
 		if(nonNull(thrw)) { //if connection error
 			callback.setEnd(end);
-			callback.emit();
+			emit(callback);
 			callback = null;
 		}
 	}
@@ -82,7 +79,7 @@ final class DatabaseRequestMonitor {
 				prepared = true;
 			}
 			if(assertStillOpened(callback)) { //report if request was closed
-				callback.createStage(STATEMENT, s, e, t, null).emit(); //sql.split.count ?
+				emit(callback.createStage(STATEMENT, s, e, t, null)); //sql.split.count ?
 			}
 		};
 	}
@@ -95,7 +92,7 @@ final class DatabaseRequestMonitor {
 			if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //safe++
 				if(nonNull(t)) {
 					lastStg.setException(mainCauseException(t)); //may overwrite previous
-					lastStg.emit();
+					emit(lastStg);
 					lastStg = null;
 				}
 				else {
@@ -155,7 +152,7 @@ final class DatabaseRequestMonitor {
 	
 	void emitBatchStage() { //wait for last addBatch
 		if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //batch & largeBatch
-			lastStg.emit();
+			emit(lastStg);
 			lastStg = null;
 		}
 		else {
@@ -170,7 +167,7 @@ final class DatabaseRequestMonitor {
 			}
 			if(assertStillOpened(callback)) { //report if request was closed
 				lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
-				lastStg.emit();
+				emit(lastStg);
 			}
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
@@ -195,16 +192,16 @@ final class DatabaseRequestMonitor {
 	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
 		return (s,e,o,t)-> {
 			if(assertStillOpened(callback)) { //report if request was closed
-				callback.createStage(FETCH, start, e, t, null, new long[] {n}).emit(); //differed start 
+				emit(callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
 			}
 		};
 	}
 	
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
 		if(assertStillOpened(callback)) {  //report if request was closed, avoid emit trace twice
-			callback.createStage(DISCONNECTION, start, end, t, null).emit();
+			emit(callback.createStage(DISCONNECTION, start, end, t, null));
 			callback.setEnd(end);
-			callback.emit();
+			emit(callback);
 			callback = null;
 		}
 	}
@@ -216,7 +213,7 @@ final class DatabaseRequestMonitor {
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
 		return (s,e,o,t)-> {
 			if(assertStillOpened(callback)) { //report if request was closed
-				callback.createStage(action, s, e, t, cmd, args).emit();
+				emit(callback.createStage(action, s, e, t, cmd, args));
 			}
 		};
 	}

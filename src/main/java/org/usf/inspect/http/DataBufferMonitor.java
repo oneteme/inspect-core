@@ -2,8 +2,8 @@ package org.usf.inspect.http;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.ErrorReporter.reportError;
 import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
 import java.util.concurrent.CancellationException;
@@ -46,7 +46,7 @@ final class DataBufferMonitor implements ResponseContent {
 				}
 			}
 			catch (Exception e) {
-				reportError(false, "DataBufferMonitor.handle", e);
+				context().reportError(false, "DataBufferMonitor.handle", e);
 			}
 			return db; //maybe consumed
 		})

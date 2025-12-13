@@ -15,7 +15,7 @@ public interface DispatchHook {
 	
 	default void onTracesEmit(Collection<EventTrace> traces) {}
 	
-	default void preDispatch() {}
+	default void onSchedule(Context ctx) {}
 	
-	default void postDispatch() {}
+	default void onTraceDispatch(Context ctx, Collection<EventTrace> traces) {}
 }

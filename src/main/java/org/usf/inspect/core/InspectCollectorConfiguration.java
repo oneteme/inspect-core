@@ -12,7 +12,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-public final class InspectCollectorConfiguration {
+public class InspectCollectorConfiguration {
 	
 	private boolean enabled = false;
 	private SchedulingProperties scheduling = new SchedulingProperties(); //replace dispatch

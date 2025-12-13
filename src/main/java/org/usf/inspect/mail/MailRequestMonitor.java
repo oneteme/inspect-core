@@ -2,7 +2,6 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
@@ -15,6 +14,7 @@ import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.Mail;
 import org.usf.inspect.core.MailCommand;
 import org.usf.inspect.core.MailRequestCallback;
+import org.usf.inspect.core.Monitor;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
@@ -28,35 +28,34 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-final class MailRequestMonitor {
+final class MailRequestMonitor implements Monitor {
 	
-	private MailRequestCallback callback;
 	private final Transport trsp;
+	private MailRequestCallback callback;
 
 	public void handleConnection(Instant start, Instant end, Void v, Throwable thw) {
-		var req = createMailRequest(start);
-		var url = trsp.getURLName();
-		if(nonNull(url)) {
-			req.setProtocol(url.getProtocol());
-			req.setHost(url.getHost());
-			req.setPort(url.getPort());
-			req.setUser(url.getUsername());
-		}
-		req.emit();
-		callback = req.createCallback();
-		callback.createStage(CONNECTION, start, end, thw, null).emit(); //before end if thrw
+		callback = createMailRequest(start, req->{
+			var url = trsp.getURLName();
+			if(nonNull(url)) {
+				req.setProtocol(url.getProtocol());
+				req.setHost(url.getHost());
+				req.setPort(url.getPort());
+				req.setUser(url.getUsername());
+			}
+		});
+		emit(callback.createStage(CONNECTION, start, end, thw, null)); //before end if thrw
 		if(nonNull(thw)) { // if connection error
 			callback.setEnd(end);
-			callback.emit();
+			emit(callback);
 			callback = null;
 		}
 	}
 
 	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
 		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
-			callback.createStage(DISCONNECTION, start, end, thw, null).emit();
+			emit(callback.createStage(DISCONNECTION, start, end, thw, null));
 			callback.setEnd(end);
-			callback.emit(); 
+			emit(callback);
 			callback = null;
 		}
 	}
@@ -64,7 +63,7 @@ final class MailRequestMonitor {
 	<T> ExecutionHandler<T> executeStageHandler(MailCommand cmd, Message msg) {
 		return (s,e,o,t)-> {
 			if(assertStillOpened(callback)) { //report if request was closed
-				callback.createStage(EXECUTE, s, e, t, cmd, createMailTrace(msg)).emit();
+				emit(callback.createStage(EXECUTE, s, e, t, cmd, createMailTrace(msg)));
 			}
 		};
 	}

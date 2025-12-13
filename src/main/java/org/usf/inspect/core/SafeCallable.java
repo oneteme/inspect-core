@@ -21,4 +21,9 @@ public interface SafeCallable<T, E extends Throwable> { //Metrics Tracker
 			return null;
 		}
 	}
+	
+	public interface SafeConsumer<T> { //Metrics Tracker 
+		
+		void accept(T obj) throws Exception;
+	}
 }

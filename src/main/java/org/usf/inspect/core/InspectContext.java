@@ -1,35 +1,34 @@
 package org.usf.inspect.core;
 
-import static java.lang.System.getProperty;
-import static java.net.InetAddress.getLocalHost;
+import static java.lang.Math.max;
+import static java.lang.Runtime.getRuntime;
+import static java.lang.Thread.currentThread;
+import static java.util.Collections.synchronizedList;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.Objects.requireNonNullElse;
-import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
-import static org.usf.inspect.core.BasicDispatchState.DISABLE;
-import static org.usf.inspect.core.Callback.assertStillOpened;
+import static java.util.Objects.requireNonNullElseGet;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
-import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.ExecutionMonitor.runSafely;
-import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.SessionContextManager.clearContext;
-import static org.usf.inspect.core.SessionContextManager.createStartupSession;
+import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.LogEntry.logEntry;
+import static org.usf.inspect.core.LogEntry.Level.REPORT;
 import static org.usf.inspect.core.SessionContextManager.nextId;
-import static org.usf.inspect.core.SessionContextManager.setActiveContext;
+import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
 
-import java.net.UnknownHostException;
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.NamedType;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -38,174 +37,338 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public final class InspectContext {
+public final class InspectContext implements Context {
 
-	private static final ObjectMapper mapper = createObjectMapper(); //json mapper, used for serialization
-
-	private static InspectContext singleton;
-
+	private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
+	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(InspectContext::daemonThread);
+	
+	private static Context singleton;
+	
+	@Getter 
 	private final InspectCollectorConfiguration configuration;
-	private final EventTraceScheduledDispatcher dispatcher;
+	private final AtomicReference<DispatchState> atomicState;
+	private final DispatcherAgent agent;
+	private final EventTraceBus eventBus;
+	private final ProcessingQueue<EventTrace> queue = new ProcessingQueue<>();
+	private final List<DispatchTask> tasks = synchronizedList(new ArrayList<>());
+	
+	private volatile boolean dispatching;
+	private volatile boolean shutdown;
+	
+	InspectContext(InspectCollectorConfiguration configuration, DispatcherAgent agent, EventTraceBus eventBus) {
+		if(!configuration.isEnabled()) {
+			throw new IllegalStateException("cannot create InspectContext with disabled configuration");
+		}
+		this.configuration = configuration;
+		this.atomicState = new AtomicReference<>(configuration.getScheduling().getState());
+		this.agent = agent;
+		this.eventBus = eventBus;
+		var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 15s
+		this.executor.scheduleWithFixedDelay(()-> schedule(false), delay, delay, SECONDS);
+		getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
+	}
+	
+	@Override
+	public boolean emitTask(DispatchTask task) { //no hooks
+		return canCollect() && tasks.add(task);
+	}
+	
+	@Override
+	public boolean emitTrace(EventTrace trace) {
+		if(canCollect() && queue.add(trace)) {
+			triggerImmediateDispatchIfQueueFull();
+			return true;
+		}
+		return false;
+	}
+	
+	@Override
+	public boolean emitTraces(List<EventTrace> traces) { //server usage
+		if(canCollect() && queue.addAll(traces)) {
+			triggerImmediateDispatchIfQueueFull();
+			return true;
+		}
+		return false;
+	}
 
-	private AbstractSessionCallback ctx;
+	void triggerImmediateDispatchIfQueueFull(){
+		var max = configuration.getTracing().getQueueCapacity() *.9;
+		if(queue.size() > max && !executor.isShutdown()) {
+			synchronized(this) {
+				if(!dispatching) {
+					dispatching = true;
+					executor.submit(()-> { //added task
+						try {
+							if(queue.size() > max) { //double check, may be dispatched by scheduled task
+								log.info("queue capacity exceeded threshold, triggering immediate dispatch ..");
+								dispatchTraces(false);
+							}
+						}
+						finally {
+							dispatching = false;
+						}
+					});
+				}
+			}
+		}
+	}
+	
+	@Override
+	public void reportError(boolean stack, String action, Throwable thwr) {
+		report(stack, formatLog(action, null, thwr), thwr);
+	}
 
-	public static InspectContext context() {
+	@Override
+	public void reportMessage(boolean stack, String action, String msg) {
+		report(stack, formatLog(action, msg, null), null);
+	}
+	
+	void report(boolean stack, String msg, Throwable cause) {
+		if(canCollect()) {
+			var arr = stack && configuration.isDebugMode() 
+					? exceptionStackTraceRows(requireNonNullElseGet(cause, Exception::new), -1) 
+					: null;
+			queue.add(logEntry(REPORT, msg, arr)); //do not use emitTrace to avoid call hooks 
+		}
+		else { //debug mode
+			log.warn(msg);
+		}
+	}
+
+	@Override
+	public boolean dispatch(InstanceEnvironment instance) { //dispatch immediately
+		if(canDispatch()) {
+			eventBus.triggerInstanceEmit(instance);
+			try {
+				agent.dispatch(instance);
+				return true;
+			} catch (Exception e) {
+				log.warn("failed to dispatch instance {}", instance.getId());
+			}
+		}
+		return false;
+	}
+	
+	void schedule(boolean last) { //dispatch immediately
+		try {
+			if(canCollect()) {
+				eventBus.triggerSchedule(this);
+			}
+			dispatchTasks();
+			dispatchTraces(last);
+		} catch (Throwable e) { //avoid scheduler suppression
+			warnException(e, "failed to schedule dispatch");
+		}
+	}
+	
+	void dispatchTraces(boolean last) { //last shutdown hook only
+		try {
+			if(canDispatch()) {
+				var max = configuration.getTracing().getQueueCapacity();
+				queue.pollAll(max, snp->{
+					mergeSessionMaskUpdates(snp);
+					var trc = snp;
+					eventBus.triggerTraceDispatch(this, unmodifiableList(trc));
+					log.trace("dispatching {} traces .., pending {} traces", trc.size(), 0);
+					trc = agent.dispatch(last, trc);
+					if(trc.isEmpty()) {
+						log.trace("successfully dispatched {} items", trc.size());
+					}
+					else if(trc.size() < snp.size()) {
+						log.warn("partially dispatched traces, {} items could not be dispatched", trc.size());
+					}
+					else {
+						log.warn("failed to dispatch {} traces", trc.size());
+					}
+					return trc;
+				});
+			}
+		} catch (Exception e) { 
+			warnException(e, "failed to dispatch traces");
+		}
+		finally {
+			removeIfCapacityExceeded(); // even not dispatched
+		}
+	}
+	
+	void removeIfCapacityExceeded() {
+		var max = configuration.getTracing().getQueueCapacity();
+		if(queue.size() > max) {
+			var arr = new Class[] {AbstractStage.class, MachineResourceUsage.class, LogEntry.class, SessionMaskUpdate.class};
+			queue.pollAll(max, snp->{
+				for(var typ : arr) {
+					var size = snp.size();
+					if(size > max) {
+						snp.removeIf(typ::isInstance);
+						if(size > snp.size()) {
+							log.warn("removed {} traces of type {}", size - snp.size(), typ.getSimpleName());
+						}
+					}
+					else {
+						break;
+					}
+				}
+				return snp;
+			});
+		}
+	}
+
+	void dispatchTasks() {
+		if(canDispatch() && !tasks.isEmpty()) {
+			var arr = tasks.toArray(DispatchTask[]::new); // iterator is not synchronized @see SynchronizedCollection#iterator
+			for(var t : arr) {
+				try {
+					t.dispatch(agent);
+					tasks.remove(t);
+				}
+				catch (Exception e) { //catch exception => next task
+					warnException(e, "failed to execute task '{}'", t.getClass().getSimpleName());
+				}
+			}
+		}
+	}
+	
+	public boolean canCollect() {
+		return !shutdown && atomicState.get().canCollect();
+	}
+	
+	public boolean canDispatch() {
+		return !shutdown && atomicState.get().canDispatch();
+	}
+
+	public DispatchState getState() {
+		return atomicState.get();
+	}
+
+	public boolean setState(DispatchState state) {
+		if(!shutdown) {
+			atomicState.set(state);
+			return true;
+		}
+		return false;
+	}
+	
+	public List<EventTrace> peek() {
+		return queue.peek();
+	}
+	
+	void shutdown() {
+		if(!shutdown) {
+			shutdown = true;
+			log.info("shutting down the scheduler service...");
+			executor.shutdown();
+			InterruptedException ie = null;
+			try {
+				executor.awaitTermination(5, SECONDS);
+			} catch (InterruptedException e) { // shutting down host
+				log.warn("interrupted while waiting for executor termination", e);
+				ie = e;
+			}
+			finally { //final dispatch, will be executed on shutdown hook thread
+				dispatchTraces(true);
+				if(nonNull(ie)) {
+					currentThread().interrupt();
+				}
+			}
+		}
+	}
+	
+	static void mergeSessionMaskUpdates(List<EventTrace> traces){
+		var updates = traces.stream()
+		.filter(SessionMaskUpdate.class::isInstance)
+		.map(SessionMaskUpdate.class::cast)
+		.collect(toMap(SessionMaskUpdate::getId, identity(), (a,b)-> a.getMask() > b.getMask() ? a : b));
+		traces.removeIf(t -> {
+	        if (t instanceof SessionMaskUpdate) {
+	        	return true;
+	        }
+	        if (t instanceof AbstractSessionCallback ses) {
+	            var upd = updates.get(ses.getId());
+	            if (upd != null) {
+	                ses.getRequestMask().updateAndGet(v -> max(v, upd.getMask()));
+	            }
+	        }
+	        return false;
+	    });
+	}
+
+	static String formatLog(String action, String msg, Throwable thwr) {
+		var sb = new StringBuilder();
+		sb.append("thread=").append(threadName());
+		if(nonNull(action)) {
+			sb.append(", action=").append(action);
+		}
+		if(nonNull(msg)) {
+			sb.append(", message=").append(msg);
+		}
+		if(nonNull(thwr)) {
+			sb.append(", cause=").append(thwr.getClass().getName())
+			.append(":").append(thwr.getMessage());
+		}
+		return sb.toString();
+	}
+
+	static void warnException(Throwable t, String msg, Object... args) {
+		log.warn(msg, args);
+		log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
+		if(log.isDebugEnabled()) {
+			while(nonNull(t.getCause()) && t != t.getCause()) {
+				t = t.getCause();
+				log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
+			}
+		}
+	}
+	
+	static Thread daemonThread(Runnable r) { //counter !?
+		var thread = new Thread(r, "inspect-scheduler-" + THREAD_COUNTER.incrementAndGet());
+		thread.setDaemon(true);
+		thread.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));
+		return thread;
+	}
+	
+	static synchronized void initializeInspectContext(InspectCollectorConfiguration conf, ObjectMapper mapper) {
 		if(isNull(singleton)) {
-			singleton = new InspectContext(disabledConfiguration(), null);
-			log.warn("inspect context was not started");
+			DispatcherAgent agent = null;
+			if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
+				agent = new RestDispatcherAgent(prop, mapper);
+			}
+			else if(isNull(conf.getTracing().getRemote())) {
+				agent = noAgent(); //no remote agent
+				log.warn("remote tracing is disabled, traces will be lost");
+			}
+			else {
+				throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
+			}
+			singleton = createContext(conf, agent, mapper);
+		}
+		else {
+			throw new IllegalStateException("InspectContext is already initialized");
+		}
+	}
+
+	public static synchronized Context context() {
+		if(isNull(singleton)) {
+			var config = new InspectCollectorConfiguration();
+			config.setEnabled(false);
+			singleton = createContext(config, null, null);
 		}
 		return singleton;
 	}
-
-	public InspectCollectorConfiguration getConfiguration() {
-		return configuration;
-	}
-
-	public void emitTrace(EventTrace trace) {
-		if(nonNull(dispatcher)) {
-			dispatcher.emit(trace);
+	
+	public static Context createContext(InspectCollectorConfiguration conf, DispatcherAgent agent, ObjectMapper mapper) {
+		if(conf.isEnabled()) {
+			var eventBus = new EventTraceBus();
+			if(conf.getMonitoring().getResources().isEnabled()) {
+				eventBus.registerHook(new MachineResourceMonitor(conf.getMonitoring().getResources().getDisk()));
+			}
+//			if(conf.isDebugMode()) {
+//				bus.registerHook(new EventTraceDebugger())
+//			}
+			if(conf.getTracing().getDump().isEnabled()) {
+				eventBus.registerHook(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), nextId()), mapper));
+			}
+			return new InspectContext(conf, agent, eventBus);
 		}
-	}
-
-	public void emitTask(DispatchTask task) {
-		if(nonNull(dispatcher)) {
-			dispatcher.emit(task);
-		}
-	}
-
-	void traceStartupSession(Instant start) {
-		var ses = createStartupSession(start);
-		runSafely(()->{
-			ses.setName("main");
-			ses.emit();
-		});
-		ctx = ses.createCallback();
-		setActiveContext(ctx);
-	}
-
-	void traceStartupSession(Instant instant, String className, String methodName, Throwable thrw) {
-		if(assertStillOpened(ctx)) {
-			runSafely(()->{
-				ctx.setLocation(className, methodName);
-				if(nonNull(thrw)) {  //nullable
-					ctx.setException(fromException(thrw));
-				}
-				ctx.setEnd(instant);
-				ctx.emit();
-			});
-			clearContext(ctx);
-			ctx = null;
-		}
-	}
-
-	static void initializeInspectContext(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
-		var instance = contextInstance(start, conf, provider);
-		var hooks = new ArrayList<DispatchHook>();
-		if(conf.getMonitoring().getResources().isEnabled()) {
-			hooks.add(new MachineResourceMonitor(conf.getMonitoring().getResources().getDisk()));
-		}
-//		if(conf.isDebugMode()) {
-//			hooks.add(new EventTraceDebugger());
-//		}
-		if(conf.getTracing().getDump().isEnabled()) {
-			hooks.add(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), instance.getId()), mapper));
-		}
-		DispatcherAgent agnt = null;
-		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-			agnt = new RestDispatcherAgent(prop, mapper);
-		}
-		else if(isNull(conf.getTracing().getRemote())) {
-			agnt = noAgent(); //no remote agent
-			log.warn("remote tracing is disabled, traces will be lost");
-		}
-		else {
-			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
-		}
-		var dspt = new EventTraceScheduledDispatcher(conf.getTracing(), conf.getScheduling(), agnt, hooks);
-		singleton = new InspectContext(conf, dspt);
-		dspt.dispatch(instance);
-	}
-
-	static InstanceEnvironment contextInstance(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
-		return new InstanceEnvironment(nextId(),
-				start, SERVER,
-				provider.getName(), 
-				provider.getVersion(),
-				provider.getEnvironment(),
-				hostAddress(),
-				getProperty("os.name"), //version ? window 10 / Linux
-				"java/" + getProperty("java.version"),
-				getProperty("user.name"),
-				provider.getBranch(),
-				provider.getCommitHash(),
-				collectorID(),
-				provider.additionalProperties(),
-				conf);
-	}
-
-	static String hostAddress() {
-		try {
-			return getLocalHost().getHostAddress(); //hostName ?
-		} catch (UnknownHostException e) {
-			log.warn("error while getting host address {}", e.getMessage());
-			return null;
-		}
-	}
-
-	static String collectorID() {
-		return "spring-collector/" //use getImplementationTitle
-				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
-	}
-
-	static ObjectMapper createObjectMapper() {
-		return json()
-				.modules(new JavaTimeModule(), coreModule())
-				.build()
-				.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-		//		.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
-		//		.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
-	}
-
-	public static SimpleModule coreModule() {
-		return new SimpleModule("inspect-core-module").registerSubtypes(
-				new NamedType(LogEntry.class, 					"00"),  
-				new NamedType(MachineResourceUsage.class, 		"01"),
-				new NamedType(RestRemoteServerProperties.class, "02"),
-				new NamedType(SessionMaskUpdate.class,			"03"),  
-				new NamedType(MainSession2.class,  				"10"), 
-				new NamedType(MainSessionCallback.class,  		"11"), 
-				new NamedType(HttpSession2.class,  				"20"), 
-				new NamedType(HttpSessionCallback.class,  		"21"), 
-				new NamedType(LocalRequest2.class, 				"110"),
-				new NamedType(LocalRequestCallback.class, 		"111"),
-				new NamedType(HttpRequest2.class,  				"120"), 
-				new NamedType(HttpRequestCallback.class,  		"121"), 
-				new NamedType(DatabaseRequest2.class,			"130"),
-				new NamedType(DatabaseRequestCallback.class,	"131"),
-				new NamedType(FtpRequest2.class,		  		"140"), 
-				new NamedType(FtpRequestCallback.class,  		"141"),
-				new NamedType(MailRequest2.class,  				"150"), 
-				new NamedType(MailRequestCallback.class,  		"151"), 
-				new NamedType(DirectoryRequest2.class,			"160"),
-				new NamedType(DirectoryRequestCallback.class,	"161"), 
-				new NamedType(HttpSessionStage.class,  			"210"), 
-				new NamedType(HttpRequestStage.class,  			"220"), 
-				new NamedType(DatabaseRequestStage.class,		"230"), 
-				new NamedType(FtpRequestStage.class,  			"240"),
-				new NamedType(MailRequestStage.class,  			"250"), 
-				new NamedType(DirectoryRequestStage.class,		"260"));
-	}
-
-	static InspectCollectorConfiguration disabledConfiguration() {
-		var conf = new InspectCollectorConfiguration();
-		conf.setEnabled(false);
-		conf.setDebugMode(false);
-		conf.getScheduling().setState(DISABLE);
-		conf.getTracing().setRemote(null); //avoid remote dispatching
-		conf.getMonitoring().getResources().setEnabled(false); //avoid resource monitoring
-		conf.getMonitoring().getException().setMaxStackTraceRows(0); //avoid memory leak
-		conf.getMonitoring().getException().setMaxCauseDepth(0); //avoid memory leak
-		return conf;
+		return ()-> conf;
 	}
 }

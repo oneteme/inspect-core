@@ -5,8 +5,6 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.Callback.assertStillOpened;
-import static org.usf.inspect.core.ErrorReporter.reportMessage;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
@@ -22,6 +20,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.usf.inspect.core.HttpRequestCallback;
+import org.usf.inspect.core.Monitor;
 
 import lombok.Getter;
 
@@ -30,28 +29,28 @@ import lombok.Getter;
  * @author u$f
  *
  */
-class AbstractHttpRequestMonitor {
-	
+class AbstractHttpRequestMonitor implements Monitor {
+
 	@Getter private final String id = nextId();
+	
 	private HttpRequestCallback callback;
 
 	void preExchange(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
-		var req = createHttpRequest(start, id);
-		if(nonNull(method)) {
-			req.setMethod(method.name());
-		}
-		if(nonNull(uri)) {
-			req.setURI(uri);
-		}
-		if(nonNull(headers)) {
-			req.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
-			req.setDataSize(headers.getContentLength()); //-1 unknown !
-			req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-			//req.setUser(decode AUTHORIZATION)
-		}
-		req.emit();
-		callback = req.createCallback();
-		callback.createStage(PRE_PROCESS, start, end, thrw).emit();
+		callback = createHttpRequest(start, id, req->{
+			if(nonNull(method)) {
+				req.setMethod(method.name());
+			}
+			if(nonNull(uri)) {
+				req.setURI(uri);
+			}
+			if(nonNull(headers)) {
+				req.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
+				req.setDataSize(headers.getContentLength()); //-1 unknown !
+				req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+				//req.setUser(decode AUTHORIZATION)
+			}
+		});
+		emit(callback.createStage(PRE_PROCESS, start, end, thrw));
 		if(nonNull(thrw)) { //thrw -> stage
 			complete(end);
 		}
@@ -60,7 +59,7 @@ class AbstractHttpRequestMonitor {
 	void postExchange(Instant start, Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 //		request.setThreadName(threadName()); //deferred thread
 		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
-			callback.createStage(PROCESS, start, end, thrw).emit();
+			emit(callback.createStage(PROCESS, start, end, thrw));
 			if(nonNull(status)) {
 				callback.setStatus(status.value());
 			}
@@ -75,7 +74,7 @@ class AbstractHttpRequestMonitor {
 	void postResponse(Instant start, Instant end, ResponseContent cnt, Throwable thrw){
 //		request.setThreadName(threadName()); //deferred thread
 		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
-			callback.createStage(POST_PROCESS, start, end, thrw).emit();
+			emit(callback.createStage(POST_PROCESS, start, end, thrw));
 			if(nonNull(cnt)) {
 				callback.setDataSize(cnt.contentSize());
 				if(nonNull(cnt.contentBytes())) {
@@ -91,7 +90,7 @@ class AbstractHttpRequestMonitor {
 	void complete(Instant end) {
 		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
 			callback.setEnd(end);
-			callback.emit();
+			emit(callback);
 			callback = null;
 		}
 	}

@@ -37,16 +37,16 @@ public final class MachineResourceMonitor implements DispatchHook {
 	}
 
 	@Override
-	public void preDispatch() {
+	public void onSchedule(Context ctx) {
 		runSafely(()->{
 			var heap = bean.getHeapMemoryUsage();
 //			var meta = bean.getNonHeapMemoryUsage()
-			new MachineResourceUsage(now(),
+			ctx.emitTrace(new MachineResourceUsage(now(),
 					toMb(heap.getUsed()), 
 					toMb(heap.getCommitted()), 
 //					toMb(meta.getUsed()), 
 //					toMb(meta.getCommitted()),
-					toMb(file.getTotalSpace() - file.getUsableSpace())).emit(); // used space
+					toMb(file.getTotalSpace() - file.getUsableSpace()))); // used space
 		});
 	}
 

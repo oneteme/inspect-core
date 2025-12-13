@@ -9,7 +9,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
-import static org.usf.inspect.core.ErrorReporter.reportError;
+import static org.usf.inspect.core.InspectContext.context;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -45,6 +45,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	private final RestRemoteServerProperties properties;
 	private final ObjectMapper mapper;
 	private final RestTemplate template;
+	private int attempts = 0;
 
 	private InstanceEnvironment instance;
 	private boolean registred = false;
@@ -59,15 +60,15 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	}
 
 	@Override
-	public List<EventTrace> dispatch(boolean complete, int attempts, int pending, List<EventTrace> traces)  {
+	public List<EventTrace> dispatch(boolean complete, List<EventTrace> traces)  {
 		assertInstanceRegistred();
 		try {
 			var uri = fromUriString(properties.getTracesURI())
-					.queryParam("attempts", attempts)
-					.queryParam("pending", pending)
+					.queryParam("attempts", ++attempts)
 					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
 					.buildAndExpand(instance.getId()).toUri();
 			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
+			attempts = 0;
 			return emptyList(); //no partial dispatch
 		}
 		catch (RestClientException e) { //server / client ?
@@ -79,7 +80,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	}
 	
 	@Override
-	public void dispatch(int attempts, File dumpFile) {
+	public void dispatch(File dumpFile) {
 		assertInstanceRegistred();
 		try {
 			var uri = fromUriString(properties.getTracesURI())
@@ -102,8 +103,10 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 		if(!registred) {
 			if(nonNull(instance)) {
 				try {
+					++attempts;
 					template.postForObject(properties.getInstanceURI(), instance, String.class);
 					registred = true;
+					attempts = 0;
 					log.info("instance was registred with id={}", instance.getId());
 				}
 				catch(RestClientException e) {//server / client ?
@@ -124,12 +127,12 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					return true;
 				}
 			} catch (IOException ioe) {/*ignore this exception */}
-			reportError(false, "RestDispatcherAgent.shouldRetry", e);
-			return false;
+			context().reportError(false, "RestDispatcherAgent.shouldRetry", e);
+			return false;  //TODO check other exceptions : BadGateway
 		}
 		else if(e instanceof ResourceAccessException rae && rae.getCause() instanceof SocketTimeoutException) {
-			reportError(false, "RestDispatcherAgent.shouldRetry", e);
-			return false; //timeout should not be retried
+			context().reportError(false, "RestDispatcherAgent.shouldRetry", e);
+			return false; //timeout should not be retried, TODO connection/read timeout ?
 		}
 		log.warn("bad request : {}", e.getMessage());
 		return true;
@@ -159,7 +162,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					body = baos.toByteArray();
 				}
 				catch (Exception e) {/*do not throw exception */
-					reportError(false, "RestDispatcherAgent.bodyCompressionInterceptor", e);
+					context().reportError(false, "RestDispatcherAgent.bodyCompressionInterceptor", e);
 				}
 			}
 			return exec.execute(req, body);

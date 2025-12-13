@@ -3,13 +3,12 @@ package org.usf.inspect.core;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Callback.assertStillOpened;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
@@ -41,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Aspect
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
-public class MethodExecutionMonitor implements Ordered {
+public class MethodExecutionMonitor implements Monitor, Ordered {
 
 	private final AspectUserProvider userProvider;
 	
@@ -54,26 +53,23 @@ public class MethodExecutionMonitor implements Ordered {
 		return call(fn, localRequestHandler(type, 
 				()-> nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse(null),
 				()-> ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse(null), 
-				()-> null));
+				()-> null, context()));
 	}
 
 	@Around("@annotation(TraceableStage)") //batch <> TraceableStage
 	Object aroundTraceable(ProceedingJoinPoint point) throws Throwable {
 		var ses = activeContext();
 		return isNull(ses) || ses.wasCompleted() 
-				? aroundBatch(point) 
-				: aroundStage(point);
+				? aroundBatch(point, context()) 
+				: aroundStage(point, context());
 	}
 
-	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
-		var ses = createBatchSession(now());
-		runSafely(()->{
+	Object aroundBatch(ProceedingJoinPoint point, Context ctx) throws Throwable {
+		var call = createBatchSession(now(), ses->{
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
-			ses.emit();
 		});
-		var call = ses.createCallback();
 		setActiveContext(call);
 		return call(point::proceed, (s,e,o,t)-> {
 			if(assertStillOpened(call)) {
@@ -82,17 +78,17 @@ public class MethodExecutionMonitor implements Ordered {
 					call.setException(fromException(t));
 				}
 				call.setEnd(e);
-				call.emit();
+				emit(call);
 				clearContext(call);
 			}
 		});
 	}
 
-	Object aroundStage(ProceedingJoinPoint point) throws Throwable {
+	Object aroundStage(ProceedingJoinPoint point, Context ctx) throws Throwable {
 		return call(point::proceed, localRequestHandler(EXEC, 
 				()-> resolveStageName(point),
 				()-> locationFrom(point),
-				()-> null));
+				()-> null, ctx));
 	}
 
 	@Around("@annotation(org.springframework.cache.annotation.Cacheable)")
@@ -100,26 +96,23 @@ public class MethodExecutionMonitor implements Ordered {
 		return call(point::proceed, localRequestHandler(CACHE, 
 				()-> getCacheableName(point),
 				()-> locationFrom(point),
-				()-> null));
+				()-> null, context()));
 	}
 
-	public static <T> ExecutionHandler<T> localRequestHandler(LocalRequestType type, Supplier<String> nameSupp, Supplier<String> locationSupp, Supplier<String> userSupp) {
-		var req = createLocalRequest(now());
-		runSafely(()->{
+	public static <T> ExecutionHandler<T> localRequestHandler(LocalRequestType type, Supplier<String> nameSupp, Supplier<String> locationSupp, Supplier<String> userSupp, Context ctx) {
+		var call = createLocalRequest(now(), req->{
 			req.setType(type.name());
 			req.setName(nameSupp.get());
 			req.setLocation(locationSupp.get());
 			req.setUser(userSupp.get());
-			req.emit();
 		});
 		return (s,e,o,t)-> {
-			var call = req.createCallback();
 			call.setStart(s);
 			if(nonNull(t)) {
 				call.setException(fromException(t));
 			}
 			call.setEnd(e);
-			call.emit();
+			ctx.emitTrace(call);
 		};
 	}
 

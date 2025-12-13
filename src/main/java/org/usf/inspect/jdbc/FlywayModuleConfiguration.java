@@ -5,6 +5,7 @@ import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.MethodExecutionMonitor.localRequestHandler;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
@@ -39,7 +40,7 @@ public class FlywayModuleConfiguration {
 		return fly-> exec(fly::migrate, localRequestHandler(EXEC, 
 				()-> "migration",
 				()-> scriptLocation(fly),
-				()-> fly.getConfiguration().getUser()));
+				()-> fly.getConfiguration().getUser(), context()));
 	}
 	
 	static String scriptLocation(Flyway fly) {
