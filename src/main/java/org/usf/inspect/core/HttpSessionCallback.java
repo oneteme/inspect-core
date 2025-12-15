@@ -36,4 +36,9 @@ public class HttpSessionCallback extends AbstractSessionCallback implements HasS
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
 		return createStage(type, start, end, null, t, HttpSessionStage::new);
 	}
+
+	@Override
+	void setStart(Instant start) {
+		//do nothing
+	}
 }

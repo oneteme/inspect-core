@@ -10,5 +10,6 @@ import java.time.Instant;
 public interface Callback extends CompletableTrace {
 	
 	Instant getEnd();
-
+	
+	void setEnd(Instant end);
 }

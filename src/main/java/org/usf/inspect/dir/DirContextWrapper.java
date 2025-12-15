@@ -35,7 +35,12 @@ public class DirContextWrapper implements DirContext {
 	
 	public DirContextWrapper(SafeCallable<DirContext, RuntimeException> fn) {
 		this.monitor = new DirectoryRequestMonitor();
-		this.ctx = call(fn, monitor::handleConnection);
+		this.ctx = call(fn, monitor.handleConnection());
+	}
+	
+	@Override
+	public void close() throws NamingException {
+		exec(ctx::close, monitor.handleDisconnection());
 	}
 
 	@Override
@@ -116,10 +121,5 @@ public class DirContextWrapper implements DirContext {
 	@Override
 	public NamingEnumeration<SearchResult> search(String name, String filterExpr, Object[] filterArgs, SearchControls cons) throws NamingException {
 		return call(()-> ctx.search(name, filterExpr, cons), monitor.executeStageHandler(SEARCH, name));
-	}
-	
-	@Override
-	public void close() throws NamingException {
-		exec(ctx::close, monitor::handleDisconnection);
 	}
 }

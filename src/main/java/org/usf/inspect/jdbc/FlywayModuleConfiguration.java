@@ -1,13 +1,14 @@
 package org.usf.inspect.jdbc;
 
+import static java.time.Instant.now;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
 import static org.usf.inspect.core.ExecutionMonitor.exec;
 import static org.usf.inspect.core.Helper.formatLocation;
-import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.MethodExecutionMonitor.localRequestHandler;
+import static org.usf.inspect.core.Monitor.executionHandler;
+import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
 import org.flywaydb.core.Flyway;
@@ -37,10 +38,12 @@ public class FlywayModuleConfiguration {
 
 	@Bean
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
-		return fly-> exec(fly::migrate, localRequestHandler(EXEC, 
-				()-> "migration",
-				()-> scriptLocation(fly),
-				()-> fly.getConfiguration().getUser(), context()));
+		return fly-> exec(fly::migrate, executionHandler(createLocalRequest(now()), req->{
+			req.setType(EXEC.name());
+			req.setName("migration");
+			req.setLocation(scriptLocation(fly));
+			req.setUser(fly.getConfiguration().getUser());
+		}));
 	}
 	
 	static String scriptLocation(Flyway fly) {

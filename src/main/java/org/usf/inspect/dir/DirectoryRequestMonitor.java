@@ -5,18 +5,21 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
-import static org.usf.inspect.core.SessionContextManager.createNamingRequest;
+import static org.usf.inspect.core.Monitor.connectionHandler;
+import static org.usf.inspect.core.Monitor.disconnectionHandler;
+import static org.usf.inspect.core.Monitor.connectionStageHandler;
 
-import java.time.Instant;
 import java.util.function.Function;
 
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 
 import org.usf.inspect.core.DirCommand;
+import org.usf.inspect.core.DirectoryRequest2;
 import org.usf.inspect.core.DirectoryRequestCallback;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.Monitor;
+import org.usf.inspect.core.SessionContextManager;
 
 /**
  * 
@@ -27,8 +30,8 @@ final class DirectoryRequestMonitor implements Monitor {
 
 	private DirectoryRequestCallback callback;
 	
-	public void handleConnection(Instant start, Instant end, DirContext dir, Throwable thw) {
-		callback = createNamingRequest(start, req->{
+	public ExecutionHandler<DirContext> handleConnection() {
+		return connectionHandler(SessionContextManager::createNamingRequest, this::createCallback, (req,dir)->{
 			if(nonNull(dir)) {
 				var url = getEnvironmentVariable(dir, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
 				if(nonNull(url)) {
@@ -38,30 +41,20 @@ final class DirectoryRequestMonitor implements Monitor {
 				}
 				req.setUser(getEnvironmentVariable(dir, "java.naming.security.principal", Object::toString));  //broke context dependency
 			}
-		});
-		emit(callback.createStage(CONNECTION, start, end, thw, null)); //before end if thrw
-		if(nonNull(thw)) { //if connection error
-			callback.setEnd(end);
-			emit(callback);
-			callback = null;
-		}
+		}, (req,s,e,o,t)-> req.createStage(CONNECTION, s, e, t, null)); //before end if thrw
+	}
+	
+	//callback should be created before processing
+	DirectoryRequestCallback createCallback(DirectoryRequest2 session) { 
+		return callback = session.createCallback();
 	}
 
-	public void handleDisconnection(Instant start, Instant end, Void v, Throwable thw) {
-		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
-			emit(callback.createStage(DISCONNECTION, start, end, thw, null));
-			callback.setEnd(end);
-			emit(callback);
-			callback = null;
-		}
+	public ExecutionHandler<Void> handleDisconnection() {
+		return disconnectionHandler(callback, (req,s,e,o,t)-> req.createStage(DISCONNECTION, s, e, t, null));
 	}
 	
 	<T> ExecutionHandler<T> executeStageHandler(DirCommand cmd, String... args) {
-		return (s,e,o,t)-> {
-			if(assertStillOpened(callback)) { // report if request was closed
-				emit(callback.createStage(EXECUTE, s, e, t, cmd, args));
-			}
-		};
+		return connectionStageHandler(callback, (req,s,e,o,t)-> req.createStage(EXECUTE, s, e, t, cmd, args));
 	}
 
 	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {

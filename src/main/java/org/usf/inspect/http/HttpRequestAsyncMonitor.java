@@ -1,8 +1,9 @@
 package org.usf.inspect.http;
 
 import static java.time.Instant.now;
+import static java.util.Map.entry;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExecutionMonitor.runSafely;
+import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
 
 import java.time.Instant;
 
@@ -21,25 +22,19 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 	
 	public ExecutionHandler<Object> preProcessHandler(ClientRequest req) {
 		return (s,e,o,t)-> {
-			super.preExchange(s, e, req.method(), req.url(), req.headers(), t);
+			super.preExchange(req.method(), req.url(), req.headers()).handle(s, e, null, t);
 			lastTimestamp = e;
 		};
 	}
 
 	public void postExchange(ClientResponse res, Throwable thrw) {
 		var now = now();
-		runSafely(()->{
-			if(nonNull(res)) {
-				super.postExchange(lastTimestamp, now, res.statusCode(), res.headers().asHttpHeaders(), thrw);
-			}
-			else {
-				super.postExchange(lastTimestamp, now, null, null, thrw);
-			}
-			lastTimestamp = now;
-		});
+		var entry = nonNull(res) ? entry(res.statusCode(), res.headers().asHttpHeaders()) : null;
+		notifyHandler(super.postExchange(), lastTimestamp, now, entry, thrw);
+		lastTimestamp = now;
 	}
 		
 	public void complete() {
-		super.complete(now());
+		notifyHandler(super.disconnection(), lastTimestamp, now(), null, null);
 	}
 }

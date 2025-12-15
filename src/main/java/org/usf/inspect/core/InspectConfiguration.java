@@ -1,23 +1,32 @@
 package org.usf.inspect.core;
 
 import static java.lang.String.format;
+import static java.lang.System.getProperty;
+import static java.net.InetAddress.getLocalHost;
 import static java.time.Instant.ofEpochMilli;
+import static java.util.Objects.requireNonNullElse;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
+import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
+import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.InspectContext.initializeInspectContext;
+import static org.usf.inspect.core.InstanceType.SERVER;
+import static org.usf.inspect.core.Monitor.mainExecutionHandler;
+import static org.usf.inspect.core.SessionContextManager.createStartupSession;
+import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.http.HttpRoutePredicate.compile;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
+import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.Optional;
 
 import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -38,6 +47,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.http.HandlerExceptionResolverMonitor;
 import org.usf.inspect.http.HttpRoutePredicate;
 import org.usf.inspect.http.HttpSessionFilter;
@@ -145,14 +155,16 @@ public class InspectConfiguration implements WebMvcConfigurer {
 
     @Bean
     ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
-    	var mnt = new StartupMonitor();
-    	mnt.beforeStartup(start, provider);
+    	var instance = newInstanceEnvironment(start, context().getConfiguration(), provider);
+		context().dispatch(instance);
+		ExecutionHandler<String> handler = mainExecutionHandler(createStartupSession(start, instance.getId()),
+				ses-> ses.setName("main"), 
+				(call, loc)-> call.setLocation(loc));
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-				mnt.afterStartup(
-						ofEpochMilli(e.getTimestamp()), 
-						e.getSpringApplication().getMainApplicationClass(), "main", 
-						e instanceof ApplicationFailedEvent f ? f.getException() : null);
+				var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
+				var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
+				notifyHandler(handler, null, ofEpochMilli(e.getTimestamp()), lct, exp);
 			}
 		};
     }
@@ -242,5 +254,36 @@ public class InspectConfiguration implements WebMvcConfigurer {
 				new NamedType(FtpRequestStage.class,  			"240"),
 				new NamedType(MailRequestStage.class,  			"250"), 
 				new NamedType(DirectoryRequestStage.class,		"260"));
+	}
+
+	static InstanceEnvironment newInstanceEnvironment(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+		return new InstanceEnvironment(nextId(),
+				start, SERVER,
+				provider.getName(), 
+				provider.getVersion(),
+				provider.getEnvironment(),
+				hostAddress(),
+				getProperty("os.name"), //version ? window 10 / Linux
+				"java/" + getProperty("java.version"),
+				getProperty("user.name"),
+				provider.getBranch(),
+				provider.getCommitHash(),
+				collectorID(),
+				provider.additionalProperties(),
+				conf);
+	}
+
+	static String hostAddress() {
+		try {
+			return getLocalHost().getHostAddress(); //hostName ?
+		} catch (UnknownHostException e) {
+			log.warn("error while getting host address {}", e.getMessage());
+			return null;
+		}
+	}
+
+	static String collectorID() {
+		return "spring-collector/" //use getImplementationTitle
+				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
 	}
 }

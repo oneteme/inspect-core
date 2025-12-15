@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.time.Instant.now;
-import static org.usf.inspect.core.ExecutionMonitor.runSafely;
 
 import java.io.File;
 import java.lang.management.MemoryMXBean;
@@ -24,7 +23,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 
 	@Override
 	public void onInstanceEmit(InstanceEnvironment instance) {
-		runSafely(()->{
+		try{
 			var heap = bean.getHeapMemoryUsage();
 //			var meta = bean.getNonHeapMemoryUsage()
 			instance.setResource(new MachineResource(
@@ -33,12 +32,15 @@ public final class MachineResourceMonitor implements DispatchHook {
 //					toMb(meta.getInit()), 
 //					toMb(meta.getMax()),
 					toMb(file.getTotalSpace())));
-		});
+		}
+		catch(Exception e) {
+			//ignore
+		}
 	}
 
 	@Override
 	public void onSchedule(Context ctx) {
-		runSafely(()->{
+		try{
 			var heap = bean.getHeapMemoryUsage();
 //			var meta = bean.getNonHeapMemoryUsage()
 			ctx.emitTrace(new MachineResourceUsage(now(),
@@ -47,7 +49,10 @@ public final class MachineResourceMonitor implements DispatchHook {
 //					toMb(meta.getUsed()), 
 //					toMb(meta.getCommitted()),
 					toMb(file.getTotalSpace() - file.getUsableSpace()))); // used space
-		});
+		}
+		catch(Exception e) {
+			ctx.reportError(false, "MachineResourceMonitor.onSchedule", e);
+		}
 	}
 
 	static int toMb(long value) {

@@ -1,14 +1,15 @@
 package org.usf.inspect.http;
 
 import static java.time.Instant.now;
+import static java.util.Map.entry;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExecutionMonitor.runSafely;
+import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
 
-import java.io.IOException;
 import java.time.Instant;
 
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 
 /**
  * 
@@ -19,24 +20,24 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 	
 	public void preExchange(HttpRequest request) { //no pre-process 
 		var start = now();
-		runSafely(()-> super.preExchange(start, start, request.getMethod(), request.getURI(), request.getHeaders(), null));
+		notifyHandler(super.preExchange(request.getMethod(), request.getURI(), request.getHeaders()), start, start, null, null);
 	}
 
-	public void postExchange(Instant start, Instant end, ClientHttpResponse response, Throwable thrw) throws IOException {
-		if(nonNull(response)) {
-			super.postExchange(start, end, response.getStatusCode(), response.getHeaders(), thrw);
-		}
-		else {
-			super.postExchange(start, end, null, null, thrw);
-		}
-		if(nonNull(thrw)) {
-			super.complete(end); //sync client, complete on error
-		}
+	public ExecutionHandler<ClientHttpResponse> clientHttpResponseHandler() {
+		return (s,e,res,t)-> {
+			if(nonNull(res)) {
+				super.postExchange().handle(s, e, entry(res.getStatusCode(), res.getHeaders()), t);
+			}
+			if(nonNull(t)) {
+				super.disconnection().handle(s, e, null, null);
+			}
+		};
 	}
 	
-	@Override
-	void postResponse(Instant start, Instant end, ResponseContent cnt, Throwable thrw) {
-		super.postResponse(start, end, cnt, thrw);
-		super.complete(end); //sync client, complete after response
+	ExecutionHandler<ResponseContent> postResponse(Instant start, Instant end, ResponseContent cnt, Throwable thrw) {
+		return (s,e,o,t)-> {
+			notifyHandler(super.postResponse(), start, end, cnt, thrw);
+			super.disconnection().handle(s, e, null, null);
+		};
 	}
 }

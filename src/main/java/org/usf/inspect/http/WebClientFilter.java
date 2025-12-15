@@ -25,7 +25,7 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 		var mnt = new HttpRequestAsyncMonitor();
 		return call(()-> exc.exchange(from(request).header(TRACE_HEADER, mnt.getId()).build()), mnt.preProcessHandler(request))
 				.map(res->{
-					var buff = new DataBufferMonitor(mnt::postResponse);
+					var buff = new DataBufferMonitor(mnt.postResponse());
 					return res.mutate().body(f-> buff.handle(f, res.statusCode().isError())).build();
 				})
 				.doOnNext(r-> mnt.postExchange(r, null))

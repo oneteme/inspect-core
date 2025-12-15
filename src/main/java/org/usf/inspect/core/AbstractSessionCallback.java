@@ -30,6 +30,8 @@ public abstract class AbstractSessionCallback implements Callback {
 	@Setter private String location; //class.method, URL
 	@Setter private ExceptionInfo exception;
 	
+	abstract void setStart(Instant start);
+	
 	public void setLocation(String className, String methodName) {
 		this.location = formatLocation(className, methodName);
 	}

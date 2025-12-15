@@ -12,7 +12,11 @@ import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.mergeCommand;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.SessionContextManager.createDatabaseRequest;
+import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.Monitor.assertStillOpened;
+import static org.usf.inspect.core.Monitor.connectionHandler;
+import static org.usf.inspect.core.Monitor.connectionStageHandler;
+import static org.usf.inspect.core.Monitor.disconnectionHandler;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -24,10 +28,11 @@ import java.util.stream.IntStream;
 
 import org.usf.inspect.core.DatabaseAction;
 import org.usf.inspect.core.DatabaseCommand;
+import org.usf.inspect.core.DatabaseRequest2;
 import org.usf.inspect.core.DatabaseRequestCallback;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
-import org.usf.inspect.core.Monitor;
+import org.usf.inspect.core.SessionContextManager;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,7 +42,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-final class DatabaseRequestMonitor implements Monitor {
+final class DatabaseRequestMonitor {
 
 	private final ConnectionMetadataCache cache; //required
 
@@ -46,8 +51,8 @@ final class DatabaseRequestMonitor implements Monitor {
 	private DatabaseCommand mainCommand;
 	private DatabaseRequestStage lastStg; // hold last stage
 	
-	public void handleConnection(Instant start, Instant end, Connection cnx, Throwable thrw) throws SQLException {
-		callback = createDatabaseRequest(start, req->{
+	public ExecutionHandler<Connection> handleConnection(Instant start, Instant end, Connection cnx, Throwable thrw) throws SQLException {
+		return connectionHandler(SessionContextManager::createDatabaseRequest, this::createCallback, (req,o)->{
 			if(nonNull(cnx) && !cache.isPresent()) {
 				cache.update(cnx.getMetaData());
 			}
@@ -62,26 +67,23 @@ final class DatabaseRequestMonitor implements Monitor {
 				req.setProductVersion(cache.getProductVersion());
 				req.setDriverVersion(cache.getDriverVersion());
 			}
-		});
-		emit(callback.createStage(CONNECTION, start, end, thrw, null)); //before end if thrw
-		if(nonNull(thrw)) { //if connection error
-			callback.setEnd(end);
-			emit(callback);
-			callback = null;
-		}
+		}, (req,s,e,o,t)-> req.createStage(CONNECTION, s, e, t, null)); //before end if thrw
+	}
+
+	//callback should be created before processing
+	DatabaseRequestCallback createCallback(DatabaseRequest2 session) { 
+		return callback = session.createCallback();
 	}
 	
 	public ExecutionHandler<Statement> statementStageHandler(String sql) {
-		return (s,e,o,t)-> {
+		return connectionStageHandler(callback, (req,s,e,o,t)-> {
 			mainCommand = null; //rest
 			if(nonNull(sql)) {
 				mainCommand = parseCommand(sql);
 				prepared = true;
 			}
-			if(assertStillOpened(callback)) { //report if request was closed
-				emit(callback.createStage(STATEMENT, s, e, t, null)); //sql.split.count ?
-			}
-		};
+			return req.createStage(STATEMENT, s, e, t, null);
+		});
 	}
 
 	public ExecutionHandler<Void> addBatchStageHandler(String sql) {
@@ -92,7 +94,7 @@ final class DatabaseRequestMonitor implements Monitor {
 			if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //safe++
 				if(nonNull(t)) {
 					lastStg.setException(mainCauseException(t)); //may overwrite previous
-					emit(lastStg);
+					context().emitTrace(lastStg);
 					lastStg = null;
 				}
 				else {
@@ -100,7 +102,7 @@ final class DatabaseRequestMonitor implements Monitor {
 				}
 				lastStg.setEnd(e); //optim this
 			}
-			else if(assertStillOpened(callback)) {//report if request was closed
+			else if(assertStillOpened(callback, "addBatchStageHandler")) {//report if request was closed
 				lastStg = callback.createStage(BATCH, s, e, t, null, new long[]{1});
 			}
 		};
@@ -152,11 +154,11 @@ final class DatabaseRequestMonitor implements Monitor {
 	
 	void emitBatchStage() { //wait for last addBatch
 		if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //batch & largeBatch
-			emit(lastStg);
+			context().emitTrace(lastStg);
 			lastStg = null;
 		}
 		else {
-			reportMessage(false, "emitBatchStage", "empty batch or already traced");
+			context().reportMessage(false, "emitBatchStage", "empty batch or already traced");
 		}
 	}
 
@@ -165,9 +167,9 @@ final class DatabaseRequestMonitor implements Monitor {
 			if(nonNull(sql)) { //statement
 				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
 			}
-			if(assertStillOpened(callback)) { //report if request was closed
+			if(assertStillOpened(callback, "executeStageHandler")) { //report if request was closed
 				lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
-				emit(lastStg);
+				context().emitTrace(lastStg);
 			}
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
@@ -184,26 +186,21 @@ final class DatabaseRequestMonitor implements Monitor {
 				}
 			}
 			catch (Exception e) {
-				reportError(false, "DatabaseRequestMonitor.updateStageRowsCount", e);
+				context().reportError(false, "DatabaseRequestMonitor.updateStageRowsCount", e);
 			}
 		}
 	}
 
 	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
 		return (s,e,o,t)-> {
-			if(assertStillOpened(callback)) { //report if request was closed
-				emit(callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
+			if(assertStillOpened(callback, "fetch")) { //report if request was closed
+				context().emitTrace(callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
 			}
 		};
 	}
 	
-	public void handleDisconnection(Instant start, Instant end, Void v, Throwable t) { //sonar: used as lambda
-		if(assertStillOpened(callback)) {  //report if request was closed, avoid emit trace twice
-			emit(callback.createStage(DISCONNECTION, start, end, t, null));
-			callback.setEnd(end);
-			emit(callback);
-			callback = null;
-		}
+	public ExecutionHandler<Void> handleDisconnection() { //sonar: used as lambda
+		return disconnectionHandler(callback, (req,s,e,o,t)-> req.createStage(DISCONNECTION, s, e, t, null));
 	}
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, String... args) {
@@ -211,11 +208,7 @@ final class DatabaseRequestMonitor implements Monitor {
 	}
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return (s,e,o,t)-> {
-			if(assertStillOpened(callback)) { //report if request was closed
-				emit(callback.createStage(action, s, e, t, cmd, args));
-			}
-		};
+		return connectionStageHandler(callback, (req,s,e,o,t)-> req.createStage(action, s, e, t, cmd, args));
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

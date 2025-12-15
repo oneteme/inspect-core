@@ -26,7 +26,6 @@ import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import org.usf.inspect.core.LogEntry.Level;
-import org.usf.inspect.core.SafeCallable.SafeConsumer;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
 import lombok.AccessLevel;
@@ -159,57 +158,50 @@ public final class SessionContextManager {
 		}
 	}
 
-	public static HttpSessionCallback createHttpSession(Instant start, String uuid, SafeConsumer<HttpSession2> consumer) {
+	public static HttpSession2 createHttpSession(Instant start, String uuid) {
 		var ses = new HttpSession2(requireNonNullElseGet(uuid, SessionContextManager::nextId), start, threadName());
 		ses.setLinked(nonNull(uuid));
-		return completeAndEmit(ses, consumer).createCallback();
+		return ses;
 	}
 
-	public static MainSessionCallback createStartupSession(Instant start, String uuid, SafeConsumer<MainSession2> consumer) {
-		return createMainSession(STARTUP, start, requireNonNullElseGet(uuid, SessionContextManager::nextId), consumer);
+	static MainSession2 createStartupSession(Instant start, String uuid) {
+		return createMainSession(STARTUP, start, requireNonNullElseGet(uuid, SessionContextManager::nextId));
 	}
 
-	public static MainSessionCallback createBatchSession(Instant start, SafeConsumer<MainSession2> consumer) {
-		return createMainSession(BATCH, start, nextId(), consumer);
+	public static MainSession2 createBatchSession(Instant start) {
+		return createMainSession(BATCH, start, nextId());
 	}
 	
-	public static MainSessionCallback createTestSession(Instant start, SafeConsumer<MainSession2> consumer) {
-		return createMainSession(TEST, start, nextId(), consumer);
+	public static MainSession2 createTestSession(Instant start) {
+		return createMainSession(TEST, start, nextId());
 	}
 	
-	static MainSessionCallback createMainSession(MainSessionType type, Instant start, String uuid, SafeConsumer<MainSession2> consumer) {
-		var main = new MainSession2(uuid, start, threadName(), type.name());
-		return completeAndEmit(main, consumer).createCallback();
+	static MainSession2 createMainSession(MainSessionType type, Instant start, String uuid) {
+		return new MainSession2(uuid, start, threadName(), type.name());
 	}
 
-	public static LocalRequestCallback createLocalRequest(Instant start, SafeConsumer<LocalRequest2> consumer) {
-		var req = new LocalRequest2(nextId(), requireSessionIdFor(LOCAL), start, threadName());
-		return completeAndEmit(req, consumer).createCallback();
+	public static LocalRequest2 createLocalRequest(Instant start) {
+		return new LocalRequest2(nextId(), requireSessionIdFor(LOCAL), start, threadName());
 	}
 	
-	public static DatabaseRequestCallback createDatabaseRequest(Instant start, SafeConsumer<DatabaseRequest2> consumer) {
-		var req = new DatabaseRequest2(nextId(), requireSessionIdFor(JDBC), start, threadName());
-		return completeAndEmit(req, consumer).createCallback();
+	public static DatabaseRequest2 createDatabaseRequest(Instant start) {
+		return new DatabaseRequest2(nextId(), requireSessionIdFor(JDBC), start, threadName());
 	}
 	
-	public static HttpRequestCallback createHttpRequest(Instant start, String rid, SafeConsumer<HttpRequest2> consumer) {
-		var req = new HttpRequest2(rid, requireSessionIdFor(REST), start, threadName());
-		return completeAndEmit(req, consumer).createCallback();
+	public static HttpRequest2 createHttpRequest(Instant start, String rid) {
+		return new HttpRequest2(rid, requireSessionIdFor(REST), start, threadName());
 	}
 
-	public static FtpRequestCallback createFtpRequest(Instant start, SafeConsumer<FtpRequest2> consumer) {
-		var req = new FtpRequest2(nextId(), requireSessionIdFor(FTP), start, threadName());
-		return completeAndEmit(req, consumer).createCallback();
+	public static FtpRequest2 createFtpRequest(Instant start) {
+		return new FtpRequest2(nextId(), requireSessionIdFor(FTP), start, threadName());
 	}
 	
-	public static MailRequestCallback createMailRequest(Instant start, SafeConsumer<MailRequest2> consumer) {
-		var req = new MailRequest2(nextId(), requireSessionIdFor(SMTP), start, threadName());
-		return completeAndEmit(req, consumer).createCallback();
+	public static MailRequest2 createMailRequest(Instant start) {
+		return new MailRequest2(nextId(), requireSessionIdFor(SMTP), start, threadName());
 	}
 
-	public static DirectoryRequestCallback createNamingRequest(Instant start, SafeConsumer<DirectoryRequest2> consumer) {
-		var req = new DirectoryRequest2(nextId(), requireSessionIdFor(LDAP), start, threadName());
-		return completeAndEmit(req, consumer).createCallback();
+	public static DirectoryRequest2 createNamingRequest(Instant start) {
+		return new DirectoryRequest2(nextId(), requireSessionIdFor(LDAP), start, threadName());
 	}
 	
 	static String requireSessionIdFor(RequestMask mask) {
@@ -221,19 +213,6 @@ public final class SessionContextManager {
 			return ses.getId();
 		}
 		return null;
-	}
-	
-	static <T extends EventTrace> T completeAndEmit(T req, SafeConsumer<T> consumer) {
-		try {
-			consumer.accept(req);
-		}
-		catch (Throwable e) {
-			//TODO report error
-		}
-		finally {
-			context().emitTrace(req);
-		}
-		return req;
 	}
 	
 	public static void emitInfo(String msg) {

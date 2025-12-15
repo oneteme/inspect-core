@@ -9,18 +9,23 @@ import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
+import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.Monitor.connectionHandler;
+import static org.usf.inspect.core.Monitor.disconnectionHandler;
+import static org.usf.inspect.core.Monitor.connectionStageHandler;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
-import java.time.Instant;
+import java.util.Map.Entry;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
+import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.HttpRequest2;
 import org.usf.inspect.core.HttpRequestCallback;
-import org.usf.inspect.core.Monitor;
 
 import lombok.Getter;
 
@@ -29,14 +34,14 @@ import lombok.Getter;
  * @author u$f
  *
  */
-class AbstractHttpRequestMonitor implements Monitor {
+class AbstractHttpRequestMonitor {
 
 	@Getter private final String id = nextId();
 	
 	private HttpRequestCallback callback;
 
-	void preExchange(Instant start, Instant end, HttpMethod method, URI uri, HttpHeaders headers, Throwable thrw) {
-		callback = createHttpRequest(start, id, req->{
+	ExecutionHandler<Void> preExchange(HttpMethod method, URI uri, HttpHeaders headers) {
+		return connectionHandler(t-> createHttpRequest(t, id), this::createCallback, (req,o)->{
 			if(nonNull(method)) {
 				req.setMethod(method.name());
 			}
@@ -49,32 +54,36 @@ class AbstractHttpRequestMonitor implements Monitor {
 				req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
 				//req.setUser(decode AUTHORIZATION)
 			}
+		}, (req,s,e,o,t)-> req.createStage(PRE_PROCESS, s, e, t)); //before end if thrw
+	}
+	
+	//callback should be created before processing
+	HttpRequestCallback createCallback(HttpRequest2 session) { 
+		return callback = session.createCallback();
+	}
+	
+	ExecutionHandler<Entry<HttpStatusCode, HttpHeaders>> postExchange() {
+//		request.setThreadName(threadName()); //deferred thread
+		return connectionStageHandler(callback, (req,s,e,entry,t)->{
+			if(nonNull(entry)) {
+				var status = entry.getKey();
+				if(nonNull(status)) {
+					callback.setStatus(status.value());
+				}
+				var headers = entry.getValue();
+				if(nonNull(headers)) { //response
+					callback.setContentType(headers.getFirst(CONTENT_TYPE));
+					callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+					callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
+				}
+			}
+			return callback.createStage(PROCESS, s, e, t);
 		});
-		emit(callback.createStage(PRE_PROCESS, start, end, thrw));
-		if(nonNull(thrw)) { //thrw -> stage
-			complete(end);
-		}
 	}
 	
-	void postExchange(Instant start, Instant end, HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
+	ExecutionHandler<ResponseContent> postResponse(){
 //		request.setThreadName(threadName()); //deferred thread
-		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
-			emit(callback.createStage(PROCESS, start, end, thrw));
-			if(nonNull(status)) {
-				callback.setStatus(status.value());
-			}
-			if(nonNull(headers)) { //response
-				callback.setContentType(headers.getFirst(CONTENT_TYPE));
-				callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-				callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
-			}
-		}
-	}
-	
-	void postResponse(Instant start, Instant end, ResponseContent cnt, Throwable thrw){
-//		request.setThreadName(threadName()); //deferred thread
-		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
-			emit(callback.createStage(POST_PROCESS, start, end, thrw));
+		return connectionStageHandler(callback, (req,s,e,cnt,t)->{
 			if(nonNull(cnt)) {
 				callback.setDataSize(cnt.contentSize());
 				if(nonNull(cnt.contentBytes())) {
@@ -84,15 +93,14 @@ class AbstractHttpRequestMonitor implements Monitor {
 			else {
 				callback.setDataSize(-1);
 			}
-		}
+			return callback.createStage(POST_PROCESS, s, e, t);
+		});
 	}
 	
-	void complete(Instant end) {
-		if(assertStillOpened(callback)) { //report if request was closed, avoid emit trace twice
-			callback.setEnd(end);
-			emit(callback);
-			callback = null;
-		}
+	ExecutionHandler<Object> disconnection() {
+		var call = callback;
+		callback = null; //avoid reuse
+		return disconnectionHandler(call, null);
 	}
 
 	boolean assertSameID(String sid) {
@@ -100,7 +108,7 @@ class AbstractHttpRequestMonitor implements Monitor {
 			if(sid.equals(callback.getId())) {
 				return true;
 			}
-			reportMessage(false, "assertSameID", "session.id=" + sid);
+			context().reportMessage(false, "assertSameID", "session.id=" + sid);
 		}
 		return false;
 	}
