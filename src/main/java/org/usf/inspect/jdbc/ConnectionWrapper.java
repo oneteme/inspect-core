@@ -126,6 +126,6 @@ public final class ConnectionWrapper implements Connection {
 	
 	@Override
 	public void close() throws SQLException {
-		exec(cn::close, monitor::handleDisconnection);
+		exec(cn::close, monitor.handleDisconnection());
 	}
 }

@@ -6,8 +6,8 @@ import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
 import static org.usf.inspect.core.Monitor.connectionHandler;
-import static org.usf.inspect.core.Monitor.disconnectionHandler;
 import static org.usf.inspect.core.Monitor.connectionStageHandler;
+import static org.usf.inspect.core.Monitor.disconnectionHandler;
 
 import java.util.function.Function;
 
@@ -41,7 +41,7 @@ final class DirectoryRequestMonitor implements Monitor {
 				}
 				req.setUser(getEnvironmentVariable(dir, "java.naming.security.principal", Object::toString));  //broke context dependency
 			}
-		}, (req,s,e,o,t)-> req.createStage(CONNECTION, s, e, t, null)); //before end if thrw
+		}, (s,e,o,t)-> callback.createStage(CONNECTION, s, e, t, null)); //before end if thrw
 	}
 	
 	//callback should be created before processing
@@ -50,11 +50,11 @@ final class DirectoryRequestMonitor implements Monitor {
 	}
 
 	public ExecutionHandler<Void> handleDisconnection() {
-		return disconnectionHandler(callback, (req,s,e,o,t)-> req.createStage(DISCONNECTION, s, e, t, null));
+		return disconnectionHandler(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
 	}
 	
 	<T> ExecutionHandler<T> executeStageHandler(DirCommand cmd, String... args) {
-		return connectionStageHandler(callback, (req,s,e,o,t)-> req.createStage(EXECUTE, s, e, t, cmd, args));
+		return connectionStageHandler(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, args));
 	}
 
 	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {

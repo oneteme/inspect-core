@@ -4,6 +4,7 @@ import static java.lang.String.format;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
@@ -14,10 +15,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
+import org.usf.inspect.core.SafeCallable.SafeConsumer;
+import org.usf.inspect.core.SafeCallable.SafeFunction;
 
 public interface Monitor {
 	
 	static final String EXECUTION_HANDLER_ACTION = "Monitor.executionHandler";
+	static final String CONNECTION_HANDLER_ACTION = "Monitor.connectionHandler";
 	
 	default void emit(EventTrace trace) {
 		try {
@@ -66,20 +71,20 @@ public interface Monitor {
 		setActiveContext(callback);
 		return (s,e,o,t)-> {
 			if(assertStillOpened(callback, EXECUTION_HANDLER_ACTION)) {
-				try {
-					callback.setStart(s); //nullable
-					if(nonNull(t)) {
-						callback.setException(fromException(t));
-					}
-					callback.setEnd(e);
-					if(nonNull(postProcess)) {
+				if(nonNull(postProcess)) {
+					try {
 						postProcess.accept(callback, o);
 					}
-					context().emitTrace(callback);
+					catch (Exception ex) {
+						context().reportError(true, EXECUTION_HANDLER_ACTION, ex);
+					}
 				}
-				catch (Exception ex) {
-					context().reportError(true, EXECUTION_HANDLER_ACTION, ex);
+				callback.setStart(s); //nullable
+				if(nonNull(t)) {
+					callback.setException(fromException(t));
 				}
+				callback.setEnd(e);
+				context().emitTrace(callback);
 			}
 			if(nonNull(callback)) {
 				clearContext(callback);
@@ -87,11 +92,11 @@ public interface Monitor {
 		};
 	}
 	
-	static <R> ExecutionHandler<R> executionHandler(LocalRequest2 request, Consumer<LocalRequest2> preProcess) {
+	static <R> ExecutionHandler<R> executionHandler(LocalRequest2 request, SafeConsumer<LocalRequest2> preProcess) {
 		return executionHandler(request, preProcess, null);
 	}
 	
-	static <R> ExecutionHandler<R> executionHandler(LocalRequest2 request, Consumer<LocalRequest2> preProcess, BiConsumer<LocalRequestCallback, R> postProcess) {
+	static <R> ExecutionHandler<R> executionHandler(LocalRequest2 request, SafeConsumer<LocalRequest2> preProcess, BiConsumer<LocalRequestCallback, R> postProcess) {
 		try {
 			if(nonNull(preProcess)) {
 				preProcess.accept(request);
@@ -104,25 +109,25 @@ public interface Monitor {
 		var callback = request.createCallback(); 
 		return (s,e,o,t)-> {
 			if(assertStillOpened(callback, EXECUTION_HANDLER_ACTION)) {
-				try {
-					callback.setStart(s); //nullable
-					if(nonNull(t)) {
-						callback.setException(fromException(t));
-					}
-					callback.setEnd(e);
-					if(nonNull(postProcess)) {
+				if(nonNull(postProcess)) {
+					try {
 						postProcess.accept(callback, o);
 					}
-					context().emitTrace(callback);
+					catch (Exception ex) {
+						context().reportError(true, EXECUTION_HANDLER_ACTION, ex);
+					}
 				}
-				catch (Exception ex) {
-					context().reportError(true, EXECUTION_HANDLER_ACTION, ex);
+				callback.setStart(s); //nullable
+				if(nonNull(t)) {
+					callback.setException(fromException(t));
 				}
+				callback.setEnd(e);
+				context().emitTrace(callback);
 			}
 		};
 	}
 	
-	static <T extends AbstractRequest2, U extends AbstractRequestCallback, R> ExecutionHandler<R> connectionHandler(Function<Instant, T> factory, Function<T, U> callbackFn, BiConsumer<T, R> preProcess, StageCreator<U,R> stageFn) {
+	static <T extends AbstractRequest2, U extends AbstractRequestCallback, R> ExecutionHandler<R> connectionHandler(SafeFunction<Instant, T> factory, Function<T, U> callbackFn, SafeBiConsumer<T, R> preProcess, StageCreator<R> stageFn) {
 		return (s,e,o,t)-> {
 			var session = factory.apply(s); //cannot be null
 			try {
@@ -132,52 +137,37 @@ public interface Monitor {
 				context().emitTrace(session);
 			}
 			catch (Exception ex) {
-				context().reportError(true, EXECUTION_HANDLER_ACTION, ex);
+				context().reportError(true, "Monitor.connectionHandler", ex);
 			}
-			try {
-				var callback = callbackFn.apply(session); //cannot be null
-				if(nonNull(stageFn)) {
-					connectionStageHandler(callback, stageFn);
-				}
-				if(nonNull(t)) { // if connection error
-					callback.setEnd(e);
-					context().emitTrace(callback);
-				}
+			var callback = callbackFn.apply(session); //cannot be null
+			if(nonNull(stageFn)) {
+				notifyHandler(connectionStageHandler(callback, stageFn), s, e, o, t);
 			}
-			catch (Exception ex) {
-				context().reportError(true, EXECUTION_HANDLER_ACTION, ex);
+			if(nonNull(t)) { // if connection error
+				callback.setEnd(e);
+				context().emitTrace(callback);
 			}
 		};
 	}
 	
-	static <U extends Callback, R> ExecutionHandler<R> disconnectionHandler(U callback, StageCreator<U,R> stageFn){
+	static <U extends Callback, R> ExecutionHandler<R> disconnectionHandler(U callback, StageCreator<R> stageFn){
 		return (s,e,o,t)-> {
-			if(assertStillOpened(callback, EXECUTION_HANDLER_ACTION)) {
+			if(assertStillOpened(callback, "Monitor.disconnectionHandler")) {
 				if(nonNull(stageFn)) {
-					connectionStageHandler(callback, stageFn);
+					notifyHandler(connectionStageHandler(callback, stageFn), s, e, o, t);
 				}
-				try {
-					callback.setEnd(e);
-					context().emitTrace(callback);
-				}
-				catch (Exception ex) {
-					context().reportError(true, "Monitor.disconnectionHandler", ex);
-				}
+				callback.setEnd(e);
+				context().emitTrace(callback);
 			}
 		};
 	}
 
-	static <U extends Callback, R> ExecutionHandler<R> connectionStageHandler(U callback, StageCreator<U,R> stageFn){
+	static <U extends Callback, R> ExecutionHandler<R> connectionStageHandler(U callback, StageCreator<R> stageFn){
 		return (s,e,o,t)-> {
-			if(nonNull(stageFn) && assertStillOpened(callback, EXECUTION_HANDLER_ACTION)) {
-				try {
-					var stage = stageFn.createStage(callback, s, e, o, t);
-					if(nonNull(stage)) {
-						context().emitTrace(stage);
-					}
-				}
-				catch (Exception ex) {
-					context().reportError(true, "Monitor.stageHandler", ex);
+			if(assertStillOpened(callback, "Monitor.stageHandler")) {
+				var stg = stageFn.createStage(s, e, o, t);
+				if(nonNull(stg)) {
+					context().emitTrace(stg);
 				}
 			}
 		};
@@ -202,7 +192,8 @@ public interface Monitor {
 		return true;
 	}
 	
-	interface StageCreator<U extends Callback, R> {
-		AbstractStage createStage(U callback, Instant start, Instant end, R obj, Throwable thrw) throws Exception;
+	public interface StageCreator<R> {
+		
+		AbstractStage createStage(Instant start, Instant end, R obj, Throwable thrw) throws Exception;
 	}
 }

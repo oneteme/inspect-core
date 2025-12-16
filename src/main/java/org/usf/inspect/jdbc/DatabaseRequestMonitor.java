@@ -9,19 +9,16 @@ import static org.usf.inspect.core.DatabaseAction.DISCONNECTION;
 import static org.usf.inspect.core.DatabaseAction.EXECUTE;
 import static org.usf.inspect.core.DatabaseAction.FETCH;
 import static org.usf.inspect.core.DatabaseAction.STATEMENT;
-import static org.usf.inspect.core.DatabaseCommand.mergeCommand;
+import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.Monitor.assertStillOpened;
 import static org.usf.inspect.core.Monitor.connectionHandler;
 import static org.usf.inspect.core.Monitor.connectionStageHandler;
 import static org.usf.inspect.core.Monitor.disconnectionHandler;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Instant;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -34,6 +31,7 @@ import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
 import org.usf.inspect.core.SessionContextManager;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -51,8 +49,10 @@ final class DatabaseRequestMonitor {
 	private DatabaseCommand mainCommand;
 	private DatabaseRequestStage lastStg; // hold last stage
 	
-	public ExecutionHandler<Connection> handleConnection(Instant start, Instant end, Connection cnx, Throwable thrw) throws SQLException {
-		return connectionHandler(SessionContextManager::createDatabaseRequest, this::createCallback, (req,o)->{
+	BatchStageHandler batchHandler = null;
+	
+	public ExecutionHandler<Connection> handleConnection() {
+		return connectionHandler(SessionContextManager::createDatabaseRequest, this::createCallback, (req,cnx)->{
 			if(nonNull(cnx) && !cache.isPresent()) {
 				cache.update(cnx.getMetaData());
 			}
@@ -67,7 +67,7 @@ final class DatabaseRequestMonitor {
 				req.setProductVersion(cache.getProductVersion());
 				req.setDriverVersion(cache.getDriverVersion());
 			}
-		}, (req,s,e,o,t)-> req.createStage(CONNECTION, s, e, t, null)); //before end if thrw
+		}, (s,e,o,t)-> callback.createStage(CONNECTION, s, e, t, null)); //before end if thrw
 	}
 
 	//callback should be created before processing
@@ -75,37 +75,27 @@ final class DatabaseRequestMonitor {
 		return callback = session.createCallback();
 	}
 	
-	public ExecutionHandler<Statement> statementStageHandler(String sql) {
-		return connectionStageHandler(callback, (req,s,e,o,t)-> {
-			mainCommand = null; //rest
-			if(nonNull(sql)) {
-				mainCommand = parseCommand(sql);
-				prepared = true;
-			}
-			return req.createStage(STATEMENT, s, e, t, null);
-		});
+	public ExecutionHandler<Object> statementStageHandler(String sql) {
+		mainCommand = null; //rest
+		if(nonNull(sql)) {
+			prepared = true;
+			parseAndMergeCommand(sql);
+		}
+		return stageHandler(STATEMENT);
 	}
 
 	public ExecutionHandler<Void> addBatchStageHandler(String sql) {
-		return (s,e,o,t)-> {
-			if(nonNull(sql)) { //statement
-				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
+		if(nonNull(sql)) {
+			parseAndMergeCommand(sql);
+		}
+		return isNull(batchHandler) ? connectionStageHandler(callback, (s,e,v,t)-> {
+			var stg = callback.createStage(BATCH, s, e, t, null, new long[] {1});
+			if(nonNull(t)) {
+				return stg;
 			}
-			if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //safe++
-				if(nonNull(t)) {
-					lastStg.setException(mainCauseException(t)); //may overwrite previous
-					context().emitTrace(lastStg);
-					lastStg = null;
-				}
-				else {
-					lastStg.getCount()[0]++;
-				}
-				lastStg.setEnd(e); //optim this
-			}
-			else if(assertStillOpened(callback, "addBatchStageHandler")) {//report if request was closed
-				lastStg = callback.createStage(BATCH, s, e, t, null, new long[]{1});
-			}
-		};
+			batchHandler = new BatchStageHandler(stg);
+			return null;
+		}) : batchHandler;
 	}
 	
 	public ExecutionHandler<ResultSet> executeQueryStageHandler(String sql) {
@@ -153,9 +143,9 @@ final class DatabaseRequestMonitor {
 	}
 	
 	void emitBatchStage() { //wait for last addBatch
-		if(nonNull(lastStg) && BATCH.name().equals(lastStg.getName())) { //batch & largeBatch
-			context().emitTrace(lastStg);
-			lastStg = null;
+		if(nonNull(batchHandler)) { //batch & largeBatch
+			context().emitTrace(batchHandler.getStage());
+			batchHandler = null;
 		}
 		else {
 			context().reportMessage(false, "emitBatchStage", "empty batch or already traced");
@@ -163,18 +153,16 @@ final class DatabaseRequestMonitor {
 	}
 
 	private <T> ExecutionHandler<T> executeStageHandler(String sql, Function<T, long[]> countFn) {
-		return (s,e,o,t)-> {
-			if(nonNull(sql)) { //statement
-				mainCommand = mergeCommand(mainCommand, parseCommand(sql)); //command set on exec stg
-			}
-			if(assertStillOpened(callback, "executeStageHandler")) { //report if request was closed
-				lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
-				context().emitTrace(lastStg);
-			}
+		if(nonNull(sql)) { //statement
+			parseAndMergeCommand(sql); //command set on exec stg
+		}
+		return connectionStageHandler(callback, (s,e,o,t)-> {
+			lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
-		};
+			return lastStg; //wait for rows count update before submit
+		});
 	}
 
 	public void updateStageRowsCount(long rows) {
@@ -192,15 +180,12 @@ final class DatabaseRequestMonitor {
 	}
 
 	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
-		return (s,e,o,t)-> {
-			if(assertStillOpened(callback, "fetch")) { //report if request was closed
-				context().emitTrace(callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
-			}
-		};
+		return connectionStageHandler(callback, 
+				(s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
 	}
 	
 	public ExecutionHandler<Void> handleDisconnection() { //sonar: used as lambda
-		return disconnectionHandler(callback, (req,s,e,o,t)-> req.createStage(DISCONNECTION, s, e, t, null));
+		return disconnectionHandler(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
 	}
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, String... args) {
@@ -208,12 +193,49 @@ final class DatabaseRequestMonitor {
 	}
 
 	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return connectionStageHandler(callback, (req,s,e,o,t)-> req.createStage(action, s, e, t, cmd, args));
+		return connectionStageHandler(callback, (s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
 	}
 	
 	static long[] appendLong(long[]arr, long v) {
 		var a = copyOf(arr, arr.length+1);
 		a[arr.length] = v;
 		return a;
+	}
+	
+	void parseAndMergeCommand(String sql) {
+		try {
+			mainCommand = mergeCommand(mainCommand, parseCommand(sql));
+		}
+		catch (Exception e) {
+			context().reportError(false, "parseAndMergeCommand", e);
+		}
+	}
+	
+	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
+		if(main == cmd || isNull(cmd)) {
+			return main;
+		}
+		return isNull(main) ? cmd : SQL;
+	}
+	
+	@Getter
+	final class BatchStageHandler implements ExecutionHandler<Void> {
+
+		private final DatabaseRequestStage stage;
+		
+		public BatchStageHandler(DatabaseRequestStage stage) {
+			this.stage = stage;
+		}
+
+		@Override
+		public void handle(Instant start, Instant end, Void o, Throwable t) {
+			stage.getCount()[0]++;
+			stage.setEnd(end); //optim this		
+			if(nonNull(t)) {
+				batchHandler = null; //reset batching trace
+				stage.setException(mainCauseException(t)); //may overwrite previous
+				context().emitTrace(stage);
+			}
+		}
 	}
 }

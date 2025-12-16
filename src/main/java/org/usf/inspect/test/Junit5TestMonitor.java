@@ -57,7 +57,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	}
 	
 	static void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
-		updateStoredSession(context, hndl-> mainExecutionHandler(createTestSession(now()), ses-> { 
+		updateStoredHandler(context, hndl-> mainExecutionHandler(createTestSession(now()), ses-> { 
 			ses.setName(context.getDisplayName());
 			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			//set user
@@ -65,17 +65,17 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	}
 	
 	static void postProcess(ExtensionContext context){
-		var now = now();
-		updateStoredSession(context, hndl-> {
+		var end = now();
+		updateStoredHandler(context, hndl-> {
 			if(assertMonitorNonNull(hndl, "Junit5TestMonitor.postProcess")) {
-				notifyHandler(hndl, null, now, null, context.getExecutionException().orElse(null));
+				notifyHandler(hndl, null, end, null, context.getExecutionException().orElse(null));
 			}
 			return null;
 		});
 	}
 	
 	@SuppressWarnings("unchecked")
-	static ExecutionHandler<Void> updateStoredSession(ExtensionContext context, UnaryOperator<ExecutionHandler<Void>> op) {
+	static ExecutionHandler<Void> updateStoredHandler(ExtensionContext context, UnaryOperator<ExecutionHandler<Void>> op) {
 		var str = context.getStore(NAMESPACE);
 		var ses = op.apply(str.get(SESSION_KEY, ExecutionHandler.class));
 		str.put(SESSION_KEY, ses);

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class WebUtils {
+final class WebUtils {
 
 	static final String TRACE_HEADER = "x-tracert"; //X-Request-Id
 }

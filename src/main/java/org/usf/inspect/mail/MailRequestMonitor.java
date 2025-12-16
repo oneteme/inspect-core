@@ -6,8 +6,8 @@ import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
 import static org.usf.inspect.core.Monitor.connectionHandler;
-import static org.usf.inspect.core.Monitor.disconnectionHandler;
 import static org.usf.inspect.core.Monitor.connectionStageHandler;
+import static org.usf.inspect.core.Monitor.disconnectionHandler;
 
 import java.util.stream.Stream;
 
@@ -34,8 +34,8 @@ final class MailRequestMonitor {
 	
 	private MailRequestCallback callback;
 
-	public ExecutionHandler<Void> handleConnection(Transport trsp) {
-		return connectionHandler(SessionContextManager::createMailRequest, this::createCallback, (req,o)->{
+	ExecutionHandler<Void> handleConnection(Transport trsp) {
+		return connectionHandler(SessionContextManager::createMailRequest, this::createCallback, (req,v)->{
 			var url = trsp.getURLName();
 			if(nonNull(url)) {
 				req.setProtocol(url.getProtocol());
@@ -43,15 +43,15 @@ final class MailRequestMonitor {
 				req.setPort(url.getPort());
 				req.setUser(url.getUsername());
 			}
-		}, (req,s,e,o,t)-> req.createStage(CONNECTION, s, e, t, null)); //before end if thrw
+		}, (s,e,o,t)-> callback.createStage(CONNECTION, s, e, t, null)); //before end if thrw
 	}
 
-	public ExecutionHandler<Void> handleDisconnection() {
-		return disconnectionHandler(callback, (req,s,e,o,t)-> req.createStage(DISCONNECTION, s, e, t, null));
+	ExecutionHandler<Void> handleDisconnection() {
+		return disconnectionHandler(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
 	}
 	
 	<T> ExecutionHandler<T> executeStageHandler(MailCommand cmd, Message msg) {
-		return connectionStageHandler(callback, (req,s,e,o,t)-> req.createStage(EXECUTE, s, e, t, cmd, createMailTrace(msg)));
+		return connectionStageHandler(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, createMailTrace(msg)));
 	}
 	
 	//callback should be created before processing

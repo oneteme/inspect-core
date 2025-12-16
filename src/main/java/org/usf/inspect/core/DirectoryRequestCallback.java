@@ -19,7 +19,7 @@ import lombok.Setter;
 @Setter
 public class DirectoryRequestCallback extends AbstractRequestCallback {
 
-	private boolean failed;
+	 private boolean failed;
 
 	@JsonCreator
 	public DirectoryRequestCallback(String id) {

@@ -11,8 +11,8 @@ import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.Monitor.connectionHandler;
-import static org.usf.inspect.core.Monitor.disconnectionHandler;
 import static org.usf.inspect.core.Monitor.connectionStageHandler;
+import static org.usf.inspect.core.Monitor.disconnectionHandler;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
@@ -54,7 +54,7 @@ class AbstractHttpRequestMonitor {
 				req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
 				//req.setUser(decode AUTHORIZATION)
 			}
-		}, (req,s,e,o,t)-> req.createStage(PRE_PROCESS, s, e, t)); //before end if thrw
+		}, (s,e,o,t)-> callback.createStage(PRE_PROCESS, s, e, t)); //before end if thrw
 	}
 	
 	//callback should be created before processing
@@ -64,7 +64,7 @@ class AbstractHttpRequestMonitor {
 	
 	ExecutionHandler<Entry<HttpStatusCode, HttpHeaders>> postExchange() {
 //		request.setThreadName(threadName()); //deferred thread
-		return connectionStageHandler(callback, (req,s,e,entry,t)->{
+		return connectionStageHandler(callback, (s,e,entry,t)->{
 			if(nonNull(entry)) {
 				var status = entry.getKey();
 				if(nonNull(status)) {
@@ -83,7 +83,7 @@ class AbstractHttpRequestMonitor {
 	
 	ExecutionHandler<ResponseContent> postResponse(){
 //		request.setThreadName(threadName()); //deferred thread
-		return connectionStageHandler(callback, (req,s,e,cnt,t)->{
+		return connectionStageHandler(callback, (s,e,cnt,t)->{
 			if(nonNull(cnt)) {
 				callback.setDataSize(cnt.contentSize());
 				if(nonNull(cnt.contentBytes())) {
