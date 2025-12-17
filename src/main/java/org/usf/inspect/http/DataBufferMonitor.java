@@ -54,7 +54,7 @@ final class DataBufferMonitor implements ResponseContent {
     	.doOnCancel(()-> throwable = new CancellationException("cancelled"))
     	.doFinally(v-> { //called 2 times
     		if(done.compareAndSet(false, true)) {
-    			listener.fire(start, now(), this, throwable);
+    			listener.safeHandle(start, now(), this, throwable);
     		}
     	});
 	}

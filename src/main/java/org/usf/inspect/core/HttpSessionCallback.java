@@ -39,6 +39,6 @@ public class HttpSessionCallback extends AbstractSessionCallback implements HasS
 
 	@Override
 	public void setStart(Instant start) {
-		//do nothing
+		//do not set start
 	}
 }

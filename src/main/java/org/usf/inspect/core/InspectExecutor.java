@@ -36,7 +36,7 @@ public final class InspectExecutor {
 		}
 		finally {
 			if(nonNull(handler)) {
-				handler.fire(s, now(), o, t);
+				handler.safeHandle(s, now(), o, t);
 			}
 		}
 	}
@@ -56,7 +56,7 @@ public final class InspectExecutor {
 		
 		void handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception;
 
-		default void fire(Instant start, Instant end, T res, Throwable thrw) {
+		default void safeHandle(Instant start, Instant end, T res, Throwable thrw) {
 			try {
 				handle(start, end, res, thrw);
 			}

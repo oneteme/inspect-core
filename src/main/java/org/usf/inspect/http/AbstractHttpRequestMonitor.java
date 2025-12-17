@@ -11,8 +11,8 @@ import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.Monitor.traceBegin;
-import static org.usf.inspect.core.Monitor.traceStep;
 import static org.usf.inspect.core.Monitor.traceEnd;
+import static org.usf.inspect.core.Monitor.traceStep;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
@@ -23,9 +23,9 @@ import java.util.Map.Entry;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
-import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.HttpRequest2;
 import org.usf.inspect.core.HttpRequestCallback;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 import lombok.Getter;
 

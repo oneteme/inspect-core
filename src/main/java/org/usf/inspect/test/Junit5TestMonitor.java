@@ -67,7 +67,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 		var end = now();
 		updateExecutionListener(context, hndl-> {
 			if(assertMonitorNonNull(hndl, "Junit5TestMonitor.postProcess")) {
-				hndl.fire(null, end, null, context.getExecutionException().orElse(null));
+				hndl.safeHandle(null, end, null, context.getExecutionException().orElse(null));
 			}
 			return null;
 		});

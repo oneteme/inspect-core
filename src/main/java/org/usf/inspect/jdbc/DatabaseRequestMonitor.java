@@ -14,8 +14,8 @@ import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.Monitor.traceBegin;
-import static org.usf.inspect.core.Monitor.traceStep;
 import static org.usf.inspect.core.Monitor.traceEnd;
+import static org.usf.inspect.core.Monitor.traceStep;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

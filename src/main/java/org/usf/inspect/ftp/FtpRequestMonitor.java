@@ -5,13 +5,13 @@ import static org.usf.inspect.core.FtpAction.CONNECTION;
 import static org.usf.inspect.core.FtpAction.DISCONNECTION;
 import static org.usf.inspect.core.FtpAction.EXECUTE;
 import static org.usf.inspect.core.Monitor.traceBegin;
-import static org.usf.inspect.core.Monitor.traceStep;
 import static org.usf.inspect.core.Monitor.traceEnd;
+import static org.usf.inspect.core.Monitor.traceStep;
 
-import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.FtpCommand;
 import org.usf.inspect.core.FtpRequest2;
 import org.usf.inspect.core.FtpRequestCallback;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Monitor;
 import org.usf.inspect.core.SessionContextManager;
 

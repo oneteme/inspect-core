@@ -6,8 +6,8 @@ import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
 import static org.usf.inspect.core.Monitor.traceBegin;
-import static org.usf.inspect.core.Monitor.traceStep;
 import static org.usf.inspect.core.Monitor.traceEnd;
+import static org.usf.inspect.core.Monitor.traceStep;
 
 import java.util.stream.Stream;
 
@@ -45,6 +45,11 @@ final class MailRequestMonitor {
 			}
 		}, (s,e,o,t)-> callback.createStage(CONNECTION, s, e, t, null)); //before end if thrw
 	}
+	
+	//callback should be created before processing
+	MailRequestCallback createCallback(MailRequest2 session) { 
+		return callback = session.createCallback();
+	}
 
 	ExecutionListener<Void> handleDisconnection() {
 		return traceEnd(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
@@ -52,11 +57,6 @@ final class MailRequestMonitor {
 	
 	<T> ExecutionListener<T> executeStageHandler(MailCommand cmd, Message msg) {
 		return traceStep(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, createMailTrace(msg)));
-	}
-	
-	//callback should be created before processing
-	MailRequestCallback createCallback(MailRequest2 session) { 
-		return callback = session.createCallback();
 	}
 	
 	static Mail createMailTrace(Message msg) throws MessagingException {

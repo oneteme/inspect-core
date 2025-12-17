@@ -110,7 +110,7 @@ public interface Monitor {
 			context().emitTrace(session);
 			var callback = callbackFn.apply(session); //cannot be null
 			if(nonNull(stageFn)) {
-				traceStep(callback, stageFn).fire(s, e, o, t);
+				traceStep(callback, stageFn).safeHandle(s, e, o, t);
 			}
 			if(nonNull(t)) { // if connection error
 				callback.setEnd(e);
@@ -123,7 +123,7 @@ public interface Monitor {
 		return (s,e,o,t)-> {
 			if(assertStillOpened(callback, "Monitor.disconnectionHandler")) {
 				if(nonNull(stageFn)) {
-					traceStep(callback, stageFn).fire(s, e, o, t);
+					traceStep(callback, stageFn).safeHandle(s, e, o, t);
 				}
 				callback.setEnd(e);
 				context().emitTrace(callback);

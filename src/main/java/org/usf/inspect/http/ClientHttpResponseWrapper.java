@@ -48,7 +48,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 			throw e;
 		}
 		finally {
-			listener.fire(start, now(), pipe, t);
+			listener.safeHandle(start, now(), pipe, t);
 		}
 	}
 }

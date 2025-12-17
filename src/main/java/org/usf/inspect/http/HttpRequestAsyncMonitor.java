@@ -19,7 +19,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 
 	private volatile Instant lastTimestamp;
 	
-	public ExecutionListener<Object> preProcessHandler(ClientRequest req) {
+	public ExecutionListener<Object> preExchange(ClientRequest req) {
 		return (s,e,o,t)-> {
 			super.preExchange(req.method(), req.url(), req.headers()).handle(s, e, null, t);
 			lastTimestamp = e;
@@ -29,11 +29,11 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 	public void postExchange(ClientResponse res, Throwable thrw) {
 		var now = now();
 		var entry = nonNull(res) ? entry(res.statusCode(), res.headers().asHttpHeaders()) : null;
-		super.postExchange().fire(lastTimestamp, now, entry, thrw);
+		super.postExchange().safeHandle(lastTimestamp, now, entry, thrw);
 		lastTimestamp = now;
 	}
 		
 	public void complete() {
-		super.disconnection().fire(lastTimestamp, now(), null, null);
+		super.disconnection().safeHandle(lastTimestamp, now(), null, null);
 	}
 }

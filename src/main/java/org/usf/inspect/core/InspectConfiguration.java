@@ -163,7 +163,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 				var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
 				var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
-				handler.fire(null, ofEpochMilli(e.getTimestamp()), lct, exp);
+				handler.safeHandle(null, ofEpochMilli(e.getTimestamp()), lct, exp);
 			}
 		};
     }

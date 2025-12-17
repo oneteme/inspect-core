@@ -6,8 +6,8 @@ import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
 import static org.usf.inspect.core.Monitor.traceBegin;
-import static org.usf.inspect.core.Monitor.traceStep;
 import static org.usf.inspect.core.Monitor.traceEnd;
+import static org.usf.inspect.core.Monitor.traceStep;
 
 import java.util.function.Function;
 
