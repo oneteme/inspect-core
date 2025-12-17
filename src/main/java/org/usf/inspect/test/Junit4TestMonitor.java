@@ -1,8 +1,8 @@
 package org.usf.inspect.test;
 
 import static java.time.Instant.now;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
-import static org.usf.inspect.core.Monitor.mainExecutionHandler;
+import static org.usf.inspect.core.InspectExecutor.exec;
+import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 
 import org.junit.rules.TestRule;
@@ -24,7 +24,7 @@ public final class Junit4TestMonitor implements TestRule {
 		return new Statement() {
 			@Override
 			public void evaluate() throws Throwable {
-				exec(base::evaluate, mainExecutionHandler(createTestSession(now()), ses-> {
+				exec(base::evaluate, traceAroundMethod(createTestSession(now()), ses-> {
 					ses.setName(description.getDisplayName());
 					ses.setLocation(description.getClassName(), description.getMethodName());
 					//set user

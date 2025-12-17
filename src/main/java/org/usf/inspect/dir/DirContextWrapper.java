@@ -4,8 +4,8 @@ import static org.usf.inspect.core.DirCommand.ATTRIB;
 import static org.usf.inspect.core.DirCommand.LIST;
 import static org.usf.inspect.core.DirCommand.LOOKUP;
 import static org.usf.inspect.core.DirCommand.SEARCH;
-import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.InspectExecutor.call;
+import static org.usf.inspect.core.InspectExecutor.exec;
 
 import javax.naming.Name;
 import javax.naming.NameClassPair;

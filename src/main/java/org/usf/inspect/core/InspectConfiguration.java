@@ -9,12 +9,11 @@ import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
-import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.InspectContext.initializeInspectContext;
 import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.Monitor.mainExecutionHandler;
+import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createStartupSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.http.HttpRoutePredicate.compile;
@@ -47,7 +46,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.http.HandlerExceptionResolverMonitor;
 import org.usf.inspect.http.HttpRoutePredicate;
 import org.usf.inspect.http.HttpSessionFilter;
@@ -157,14 +156,14 @@ public class InspectConfiguration implements WebMvcConfigurer {
     ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
     	var instance = newInstanceEnvironment(start, context().getConfiguration(), provider);
 		context().dispatch(instance);
-		ExecutionHandler<String> handler = mainExecutionHandler(createStartupSession(start, instance.getId()),
+		ExecutionListener<String> handler = traceAroundMethod(createStartupSession(start, instance.getId()),
 				ses-> ses.setName("main"), 
 				(call, loc)-> call.setLocation(loc));
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 				var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
 				var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
-				notifyHandler(handler, null, ofEpochMilli(e.getTimestamp()), lct, exp);
+				handler.fire(null, ofEpochMilli(e.getTimestamp()), lct, exp);
 			}
 		};
     }

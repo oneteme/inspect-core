@@ -5,9 +5,9 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
-import static org.usf.inspect.core.Monitor.connectionHandler;
-import static org.usf.inspect.core.Monitor.connectionStageHandler;
-import static org.usf.inspect.core.Monitor.disconnectionHandler;
+import static org.usf.inspect.core.Monitor.traceBegin;
+import static org.usf.inspect.core.Monitor.traceStep;
+import static org.usf.inspect.core.Monitor.traceEnd;
 
 import java.util.function.Function;
 
@@ -17,7 +17,7 @@ import javax.naming.directory.DirContext;
 import org.usf.inspect.core.DirCommand;
 import org.usf.inspect.core.DirectoryRequest2;
 import org.usf.inspect.core.DirectoryRequestCallback;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Monitor;
 import org.usf.inspect.core.SessionContextManager;
 
@@ -30,8 +30,8 @@ final class DirectoryRequestMonitor implements Monitor {
 
 	private DirectoryRequestCallback callback;
 	
-	public ExecutionHandler<DirContext> handleConnection() {
-		return connectionHandler(SessionContextManager::createNamingRequest, this::createCallback, (req,dir)->{
+	public ExecutionListener<DirContext> handleConnection() {
+		return traceBegin(SessionContextManager::createNamingRequest, this::createCallback, (req,dir)->{
 			if(nonNull(dir)) {
 				var url = getEnvironmentVariable(dir, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
 				if(nonNull(url)) {
@@ -49,12 +49,12 @@ final class DirectoryRequestMonitor implements Monitor {
 		return callback = session.createCallback();
 	}
 
-	public ExecutionHandler<Void> handleDisconnection() {
-		return disconnectionHandler(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
+	public ExecutionListener<Void> handleDisconnection() {
+		return traceEnd(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
 	}
 	
-	<T> ExecutionHandler<T> executeStageHandler(DirCommand cmd, String... args) {
-		return connectionStageHandler(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, args));
+	<T> ExecutionListener<T> executeStageHandler(DirCommand cmd, String... args) {
+		return traceStep(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, args));
 	}
 
 	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {

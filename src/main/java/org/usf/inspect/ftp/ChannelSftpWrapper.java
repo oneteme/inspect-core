@@ -2,8 +2,8 @@ package org.usf.inspect.ftp;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.InspectExecutor.call;
+import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.FtpCommand.CD;
 import static org.usf.inspect.core.FtpCommand.CHGRP;
 import static org.usf.inspect.core.FtpCommand.CHMOD;

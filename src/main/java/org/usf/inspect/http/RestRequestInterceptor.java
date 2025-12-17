@@ -1,6 +1,6 @@
 package org.usf.inspect.http;
 
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.io.IOException;

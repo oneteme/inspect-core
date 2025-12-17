@@ -1,7 +1,7 @@
 package org.usf.inspect.http;
 
 import static org.springframework.web.reactive.function.client.ClientRequest.from;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.util.concurrent.CancellationException;

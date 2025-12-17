@@ -4,10 +4,10 @@ import static java.time.Instant.now;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.Monitor.executionHandler;
+import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
@@ -38,7 +38,7 @@ public class FlywayModuleConfiguration {
 
 	@Bean
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
-		return fly-> exec(fly::migrate, executionHandler(createLocalRequest(now()), req->{
+		return fly-> exec(fly::migrate, traceAroundMethod(createLocalRequest(now()), req->{
 			req.setType(EXEC.name());
 			req.setName("migration");
 			req.setLocation(scriptLocation(fly));

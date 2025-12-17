@@ -6,8 +6,8 @@ import static org.usf.inspect.core.DatabaseAction.METADATA;
 import static org.usf.inspect.core.DatabaseAction.ROLLBACK;
 import static org.usf.inspect.core.DatabaseAction.SAVEPOINT;
 import static org.usf.inspect.core.DatabaseCommand.SET;
-import static org.usf.inspect.core.ExecutionMonitor.call;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.InspectExecutor.call;
+import static org.usf.inspect.core.InspectExecutor.exec;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;

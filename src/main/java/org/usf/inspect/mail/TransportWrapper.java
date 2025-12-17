@@ -2,7 +2,7 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.MailCommand.SEND;
 

@@ -2,7 +2,6 @@ package org.usf.inspect.http;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
@@ -11,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 final class DataBufferMonitor implements ResponseContent {
 
-	private final ExecutionHandler<ResponseContent> monitor;
+	private final ExecutionListener<ResponseContent> listener;
 	private final AtomicBoolean done = new AtomicBoolean(false);
 
 	private byte[] bytes;
@@ -55,7 +54,7 @@ final class DataBufferMonitor implements ResponseContent {
     	.doOnCancel(()-> throwable = new CancellationException("cancelled"))
     	.doFinally(v-> { //called 2 times
     		if(done.compareAndSet(false, true)) {
-    			notifyHandler(monitor, start, now(), this, throwable);
+    			listener.fire(start, now(), this, throwable);
     		}
     	});
 	}

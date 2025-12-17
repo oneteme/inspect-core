@@ -10,9 +10,9 @@ import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.Monitor.connectionHandler;
-import static org.usf.inspect.core.Monitor.connectionStageHandler;
-import static org.usf.inspect.core.Monitor.disconnectionHandler;
+import static org.usf.inspect.core.Monitor.traceBegin;
+import static org.usf.inspect.core.Monitor.traceStep;
+import static org.usf.inspect.core.Monitor.traceEnd;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
@@ -23,7 +23,7 @@ import java.util.Map.Entry;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.HttpRequest2;
 import org.usf.inspect.core.HttpRequestCallback;
 
@@ -40,8 +40,8 @@ class AbstractHttpRequestMonitor {
 	
 	private HttpRequestCallback callback;
 
-	ExecutionHandler<Void> preExchange(HttpMethod method, URI uri, HttpHeaders headers) {
-		return connectionHandler(t-> createHttpRequest(t, id), this::createCallback, (req,o)->{
+	ExecutionListener<Void> preExchange(HttpMethod method, URI uri, HttpHeaders headers) {
+		return traceBegin(t-> createHttpRequest(t, id), this::createCallback, (req,o)->{
 			if(nonNull(method)) {
 				req.setMethod(method.name());
 			}
@@ -62,9 +62,9 @@ class AbstractHttpRequestMonitor {
 		return callback = session.createCallback();
 	}
 	
-	ExecutionHandler<Entry<HttpStatusCode, HttpHeaders>> postExchange() {
+	ExecutionListener<Entry<HttpStatusCode, HttpHeaders>> postExchange() {
 //		request.setThreadName(threadName()); //deferred thread
-		return connectionStageHandler(callback, (s,e,entry,t)->{
+		return traceStep(callback, (s,e,entry,t)->{
 			if(nonNull(entry)) {
 				var status = entry.getKey();
 				if(nonNull(status)) {
@@ -81,9 +81,9 @@ class AbstractHttpRequestMonitor {
 		});
 	}
 	
-	ExecutionHandler<ResponseContent> postResponse(){
+	ExecutionListener<ResponseContent> postResponse(){
 //		request.setThreadName(threadName()); //deferred thread
-		return connectionStageHandler(callback, (s,e,cnt,t)->{
+		return traceStep(callback, (s,e,cnt,t)->{
 			if(nonNull(cnt)) {
 				callback.setDataSize(cnt.contentSize());
 				if(nonNull(cnt.contentBytes())) {
@@ -97,10 +97,10 @@ class AbstractHttpRequestMonitor {
 		});
 	}
 	
-	ExecutionHandler<Object> disconnection() {
+	ExecutionListener<Object> disconnection() {
 		var call = callback;
 		callback = null; //avoid reuse
-		return disconnectionHandler(call, null);
+		return traceEnd(call, null);
 	}
 
 	boolean assertSameID(String sid) {

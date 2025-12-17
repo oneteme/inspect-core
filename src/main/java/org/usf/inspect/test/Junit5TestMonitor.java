@@ -2,9 +2,8 @@ package org.usf.inspect.test;
 
 import static java.time.Instant.now;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
-import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
 import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
-import static org.usf.inspect.core.Monitor.mainExecutionHandler;
+import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
@@ -18,7 +17,7 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.TestWatcher;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 /**
  * 
@@ -57,7 +56,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	}
 	
 	static void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
-		updateStoredHandler(context, hndl-> mainExecutionHandler(createTestSession(now()), ses-> { 
+		updateExecutionListener(context, hndl-> traceAroundMethod(createTestSession(now()), ses-> { 
 			ses.setName(context.getDisplayName());
 			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			//set user
@@ -66,18 +65,18 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	
 	static void postProcess(ExtensionContext context){
 		var end = now();
-		updateStoredHandler(context, hndl-> {
+		updateExecutionListener(context, hndl-> {
 			if(assertMonitorNonNull(hndl, "Junit5TestMonitor.postProcess")) {
-				notifyHandler(hndl, null, end, null, context.getExecutionException().orElse(null));
+				hndl.fire(null, end, null, context.getExecutionException().orElse(null));
 			}
 			return null;
 		});
 	}
 	
 	@SuppressWarnings("unchecked")
-	static ExecutionHandler<Void> updateStoredHandler(ExtensionContext context, UnaryOperator<ExecutionHandler<Void>> op) {
+	static ExecutionListener<Void> updateExecutionListener(ExtensionContext context, UnaryOperator<ExecutionListener<Void>> op) {
 		var str = context.getStore(NAMESPACE);
-		var ses = op.apply(str.get(SESSION_KEY, ExecutionHandler.class));
+		var ses = op.apply(str.get(SESSION_KEY, ExecutionListener.class));
 		str.put(SESSION_KEY, ses);
 		return ses;
 	}

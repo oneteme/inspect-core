@@ -3,13 +3,12 @@ package org.usf.inspect.http;
 import static java.time.Instant.now;
 import static java.util.Map.entry;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
 
 import java.time.Instant;
 
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 /**
  * 
@@ -20,10 +19,11 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 	
 	public void preExchange(HttpRequest request) { //no pre-process 
 		var start = now();
-		notifyHandler(super.preExchange(request.getMethod(), request.getURI(), request.getHeaders()), start, start, null, null);
+		super.preExchange(request.getMethod(), request.getURI(), request.getHeaders())
+			.fire(start, start, null, null);
 	}
 
-	public ExecutionHandler<ClientHttpResponse> clientHttpResponseHandler() {
+	public ExecutionListener<ClientHttpResponse> clientHttpResponseHandler() {
 		return (s,e,res,t)-> {
 			if(nonNull(res)) {
 				super.postExchange().handle(s, e, entry(res.getStatusCode(), res.getHeaders()), t);
@@ -34,9 +34,9 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 		};
 	}
 	
-	ExecutionHandler<ResponseContent> postResponse(Instant start, Instant end, ResponseContent cnt, Throwable thrw) {
+	ExecutionListener<ResponseContent> postResponse(Instant start, Instant end, ResponseContent cnt, Throwable thrw) {
 		return (s,e,o,t)-> {
-			notifyHandler(super.postResponse(), start, end, cnt, thrw);
+			super.postResponse().fire(start, end, cnt, thrw);
 			super.disconnection().handle(s, e, null, null);
 		};
 	}

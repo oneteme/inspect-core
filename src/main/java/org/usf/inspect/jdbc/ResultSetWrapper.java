@@ -1,7 +1,7 @@
 package org.usf.inspect.jdbc;
 
 import static java.time.Instant.now;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.InspectExecutor.exec;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

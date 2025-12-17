@@ -2,7 +2,7 @@ package org.usf.inspect.jdbc;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.sql.Connection;

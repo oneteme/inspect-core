@@ -14,7 +14,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class LocalRequestCallback extends AbstractRequestCallback {
+public class LocalRequestCallback extends AbstractRequestCallback implements AtomicTrace {
 
 	private Instant start; //real start
 	private ExceptionInfo exception; 

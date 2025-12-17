@@ -2,14 +2,13 @@ package org.usf.inspect.http;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 
 import org.springframework.http.client.ClientHttpResponse;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
@@ -26,7 +25,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 
 	@Delegate
 	private final ClientHttpResponse cr;
-	private final ExecutionHandler<ResponseContent> monitor;
+	private final ExecutionListener<ResponseContent> listener;
 	private CacheableInputStream pipe;
 	private Instant start = now();
 
@@ -49,7 +48,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 			throw e;
 		}
 		finally {
-			notifyHandler(monitor, start, now(), pipe, t);
+			listener.fire(start, now(), pipe, t);
 		}
 	}
 }

@@ -13,9 +13,9 @@ import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.Monitor.connectionHandler;
-import static org.usf.inspect.core.Monitor.connectionStageHandler;
-import static org.usf.inspect.core.Monitor.disconnectionHandler;
+import static org.usf.inspect.core.Monitor.traceBegin;
+import static org.usf.inspect.core.Monitor.traceStep;
+import static org.usf.inspect.core.Monitor.traceEnd;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -28,7 +28,7 @@ import org.usf.inspect.core.DatabaseCommand;
 import org.usf.inspect.core.DatabaseRequest2;
 import org.usf.inspect.core.DatabaseRequestCallback;
 import org.usf.inspect.core.DatabaseRequestStage;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.SessionContextManager;
 
 import lombok.Getter;
@@ -51,8 +51,8 @@ final class DatabaseRequestMonitor {
 	
 	BatchStageHandler batchHandler = null;
 	
-	public ExecutionHandler<Connection> handleConnection() {
-		return connectionHandler(SessionContextManager::createDatabaseRequest, this::createCallback, (req,cnx)->{
+	public ExecutionListener<Connection> handleConnection() {
+		return traceBegin(SessionContextManager::createDatabaseRequest, this::createCallback, (req,cnx)->{
 			if(nonNull(cnx) && !cache.isPresent()) {
 				cache.update(cnx.getMetaData());
 			}
@@ -75,7 +75,7 @@ final class DatabaseRequestMonitor {
 		return callback = session.createCallback();
 	}
 	
-	public ExecutionHandler<Object> statementStageHandler(String sql) {
+	public ExecutionListener<Object> statementStageHandler(String sql) {
 		mainCommand = null; //rest
 		if(nonNull(sql)) {
 			prepared = true;
@@ -84,11 +84,11 @@ final class DatabaseRequestMonitor {
 		return stageHandler(STATEMENT);
 	}
 
-	public ExecutionHandler<Void> addBatchStageHandler(String sql) {
+	public ExecutionListener<Void> addBatchStageHandler(String sql) {
 		if(nonNull(sql)) {
 			parseAndMergeCommand(sql);
 		}
-		return isNull(batchHandler) ? connectionStageHandler(callback, (s,e,v,t)-> {
+		return isNull(batchHandler) ? traceStep(callback, (s,e,v,t)-> {
 			var stg = callback.createStage(BATCH, s, e, t, null, new long[] {1});
 			if(nonNull(t)) {
 				return stg;
@@ -98,23 +98,23 @@ final class DatabaseRequestMonitor {
 		}) : batchHandler;
 	}
 	
-	public ExecutionHandler<ResultSet> executeQueryStageHandler(String sql) {
+	public ExecutionListener<ResultSet> executeQueryStageHandler(String sql) {
 		return executeStageHandler(sql, rs-> null); // no count 
 	}
 
-	public ExecutionHandler<Boolean> executeStageHandler(String sql) {
+	public ExecutionListener<Boolean> executeStageHandler(String sql) {
 		return executeStageHandler(sql, b-> null); //-1 if select, cannot call  getUpdateCount
 	}
 
-	public ExecutionHandler<Integer> executeUpdateStageHandler(String sql) {
+	public ExecutionListener<Integer> executeUpdateStageHandler(String sql) {
 		return executeStageHandler(sql, n-> new long[] {n});
 	}
 
-	public ExecutionHandler<Long> executeLargeUpdateStageHandler(String sql) {
+	public ExecutionListener<Long> executeLargeUpdateStageHandler(String sql) {
 		return executeStageHandler(sql, n-> new long[] {n});
 	}
 
-	public ExecutionHandler<int[]> executeBatchStageHandler(){
+	public ExecutionListener<int[]> executeBatchStageHandler(){
 		emitBatchStage(); //before batch execute
 		return executeStageHandler(null, arr-> {
 			if(arr.length > 1) { 
@@ -128,7 +128,7 @@ final class DatabaseRequestMonitor {
 		});
 	}
 
-	public ExecutionHandler<long[]> executeLargeBatchStageHandler() {
+	public ExecutionListener<long[]> executeLargeBatchStageHandler() {
 		emitBatchStage(); //before batch execute
 		return executeStageHandler(null, arr-> {
 			if(arr.length > 1) {
@@ -152,11 +152,11 @@ final class DatabaseRequestMonitor {
 		}
 	}
 
-	private <T> ExecutionHandler<T> executeStageHandler(String sql, Function<T, long[]> countFn) {
+	private <T> ExecutionListener<T> executeStageHandler(String sql, Function<T, long[]> countFn) {
 		if(nonNull(sql)) { //statement
 			parseAndMergeCommand(sql); //command set on exec stg
 		}
-		return connectionStageHandler(callback, (s,e,o,t)-> {
+		return traceStep(callback, (s,e,o,t)-> {
 			lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
@@ -179,21 +179,21 @@ final class DatabaseRequestMonitor {
 		}
 	}
 
-	public <T> ExecutionHandler<T> fetch(Instant start, int n) {
-		return connectionStageHandler(callback, 
+	public <T> ExecutionListener<T> fetch(Instant start, int n) {
+		return traceStep(callback, 
 				(s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
 	}
 	
-	public ExecutionHandler<Void> handleDisconnection() { //sonar: used as lambda
-		return disconnectionHandler(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
+	public ExecutionListener<Void> handleDisconnection() { //sonar: used as lambda
+		return traceEnd(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
 	}
 
-	public ExecutionHandler<Object> stageHandler(DatabaseAction action, String... args) {
+	public ExecutionListener<Object> stageHandler(DatabaseAction action, String... args) {
 		return stageHandler(action, null, args);
 	}
 
-	public ExecutionHandler<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return connectionStageHandler(callback, (s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
+	public ExecutionListener<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
+		return traceStep(callback, (s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
 	}
 	
 	static long[] appendLong(long[]arr, long v) {
@@ -219,7 +219,7 @@ final class DatabaseRequestMonitor {
 	}
 	
 	@Getter
-	final class BatchStageHandler implements ExecutionHandler<Void> {
+	final class BatchStageHandler implements ExecutionListener<Void> {
 
 		private final DatabaseRequestStage stage;
 		

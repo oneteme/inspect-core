@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.time.Instant.now;
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
@@ -16,13 +17,13 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class ExecutionMonitor {
+public final class InspectExecutor {
 	
-	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionHandler<? super Void> handler) throws E {
+	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionListener<? super Void> handler) throws E {
 		call(fn, handler);
 	}
 
-	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionHandler<? super T> handler) throws E {
+	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionListener<? super T> handler) throws E {
 		T o = null;
 		Throwable t = null;
 		var s = now();
@@ -34,19 +35,13 @@ public final class ExecutionMonitor {
 			throw e;
 		}
 		finally {
-			notifyHandler(handler, s, now(), o, t);
+			if(nonNull(handler)) {
+				handler.fire(s, now(), o, t);
+			}
 		}
 	}
 	
-	public static <T> void notifyHandler(ExecutionHandler<T> handler, Instant start, Instant end, T obj, Throwable thrw) {
-		try {
-			handler.handle(start, end, obj, thrw);
-		}
-		catch (Throwable ex) {// do not throw exception
-			context().reportError(true, "ExecutionMonitor.notifyHandler", ex);
-		}
-	}
-	
+	@Deprecated(forRemoval = true)
 	public static void runSafely(Runnable call)  {
 		try {
 			call.run();
@@ -57,8 +52,17 @@ public final class ExecutionMonitor {
 	}
 	
 	@FunctionalInterface
-	public static interface ExecutionHandler<T> {
+	public static interface ExecutionListener<T> {
 		
 		void handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception;
+
+		default void fire(Instant start, Instant end, T res, Throwable thrw) {
+			try {
+				handle(start, end, res, thrw);
+			}
+			catch (Throwable ex) {// do not throw exception
+				context().reportError(true, "ExecutionMonitor.notifyHandler", ex);
+			}
+		}
 	}
 }

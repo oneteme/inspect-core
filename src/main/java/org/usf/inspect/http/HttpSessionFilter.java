@@ -7,7 +7,7 @@ import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
-import static org.usf.inspect.core.ExecutionMonitor.exec;
+import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
@@ -22,7 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.TraceableStage;
 
@@ -66,7 +66,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		}
 	}
 	
-	private ExecutionHandler<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
+	private ExecutionListener<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
 		var prv = currentHttpMonitor(req);
 		if(isNull(prv)) {
 			var mnt = new HttpSessionMonitor();

@@ -2,7 +2,7 @@ package org.usf.inspect.jdbc;
 
 import static org.usf.inspect.core.DatabaseAction.EXECUTE;
 import static org.usf.inspect.core.DatabaseCommand.GET;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.InspectExecutor.call;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;

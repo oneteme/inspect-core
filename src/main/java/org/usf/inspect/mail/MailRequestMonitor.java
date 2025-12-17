@@ -5,13 +5,13 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
-import static org.usf.inspect.core.Monitor.connectionHandler;
-import static org.usf.inspect.core.Monitor.connectionStageHandler;
-import static org.usf.inspect.core.Monitor.disconnectionHandler;
+import static org.usf.inspect.core.Monitor.traceBegin;
+import static org.usf.inspect.core.Monitor.traceStep;
+import static org.usf.inspect.core.Monitor.traceEnd;
 
 import java.util.stream.Stream;
 
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Mail;
 import org.usf.inspect.core.MailCommand;
 import org.usf.inspect.core.MailRequest2;
@@ -34,8 +34,8 @@ final class MailRequestMonitor {
 	
 	private MailRequestCallback callback;
 
-	ExecutionHandler<Void> handleConnection(Transport trsp) {
-		return connectionHandler(SessionContextManager::createMailRequest, this::createCallback, (req,v)->{
+	ExecutionListener<Void> handleConnection(Transport trsp) {
+		return traceBegin(SessionContextManager::createMailRequest, this::createCallback, (req,v)->{
 			var url = trsp.getURLName();
 			if(nonNull(url)) {
 				req.setProtocol(url.getProtocol());
@@ -46,12 +46,12 @@ final class MailRequestMonitor {
 		}, (s,e,o,t)-> callback.createStage(CONNECTION, s, e, t, null)); //before end if thrw
 	}
 
-	ExecutionHandler<Void> handleDisconnection() {
-		return disconnectionHandler(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
+	ExecutionListener<Void> handleDisconnection() {
+		return traceEnd(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
 	}
 	
-	<T> ExecutionHandler<T> executeStageHandler(MailCommand cmd, Message msg) {
-		return connectionStageHandler(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, createMailTrace(msg)));
+	<T> ExecutionListener<T> executeStageHandler(MailCommand cmd, Message msg) {
+		return traceStep(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, createMailTrace(msg)));
 	}
 	
 	//callback should be created before processing

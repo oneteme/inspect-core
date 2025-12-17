@@ -3,14 +3,13 @@ package org.usf.inspect.core;
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExecutionMonitor.call;
+import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.Monitor.executionHandler;
-import static org.usf.inspect.core.Monitor.mainExecutionHandler;
+import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SessionContextManager.createBatchSession;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
@@ -45,7 +44,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		var ste = outerStackTraceElement();
-		return call(fn, executionHandler(createLocalRequest(now()), req->{
+		return call(fn, traceAroundMethod(createLocalRequest(now()), req->{
 			req.setType(type.name());
 			req.setName(nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse(null));
 			req.setLocation(ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse(null));
@@ -62,7 +61,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, mainExecutionHandler(createBatchSession(null), ses-> {
+		return call(point::proceed, traceAroundMethod(createBatchSession(now()), ses-> {
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
@@ -70,7 +69,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundStage(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, executionHandler(createLocalRequest(now()), req->{
+		return call(point::proceed, traceAroundMethod(createLocalRequest(now()), req->{
 			req.setType(EXEC.name());
 			req.setName(resolveStageName(point));
 			req.setLocation(locationFrom(point));
@@ -80,7 +79,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	@Around("@annotation(org.springframework.cache.annotation.Cacheable)")
 	Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, executionHandler(createLocalRequest(now()), req->{
+		return call(point::proceed, traceAroundMethod(createLocalRequest(now()), req->{
 			req.setType(CACHE.name());
 			req.setName(getCacheableName(point));
 			req.setLocation(locationFrom(point));

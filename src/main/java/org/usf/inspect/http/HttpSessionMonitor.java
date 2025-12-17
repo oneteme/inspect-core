@@ -10,8 +10,7 @@ import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.ExecutionMonitor.notifyHandler;
-import static org.usf.inspect.core.ExecutionMonitor.runSafely;
+import static org.usf.inspect.core.InspectExecutor.runSafely;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
@@ -19,7 +18,7 @@ import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.Monitor.assertStillOpened;
-import static org.usf.inspect.core.Monitor.executionHandler;
+import static org.usf.inspect.core.Monitor.traceAround;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
@@ -28,7 +27,7 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 import java.net.URI;
 import java.time.Instant;
 
-import org.usf.inspect.core.ExecutionMonitor.ExecutionHandler;
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSession2;
 import org.usf.inspect.core.HttpSessionCallback;
@@ -48,7 +47,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class HttpSessionMonitor  {
 	
-	private ExecutionHandler<HttpServletResponse> handler;
+	private ExecutionListener<HttpServletResponse> handler;
 	
 	private Instant lastTimestamp;
 	private HttpSessionCallback callback;
@@ -56,7 +55,7 @@ public final class HttpSessionMonitor  {
 	
 	public void preFilter(HttpServletRequest request, HttpServletResponse response){
 		lastTimestamp = now();
-		handler = executionHandler(createHttpSession(lastTimestamp, request.getHeader(TRACE_HEADER)), this::createCallback,
+		handler = traceAround(createHttpSession(lastTimestamp, request.getHeader(TRACE_HEADER)), this::createCallback,
 				ses->{
 					if(nonNull(request)) {
 						ses.setMethod(request.getMethod());
@@ -125,7 +124,7 @@ public final class HttpSessionMonitor  {
 		}
 	}
 	
-	public ExecutionHandler<Void> asyncPostFilterHander(Instant end, HttpServletResponse res){
+	public ExecutionListener<Void> asyncPostFilterHander(Instant end, HttpServletResponse res){
 		async = true;
 		if(assertStillOpened(callback, "HttpSessionMonitor.asyncPostFilterHander")) {
 			runSafely(()-> emitStage(PROCESS, end));
@@ -136,7 +135,7 @@ public final class HttpSessionMonitor  {
 	
 	public void postFilterHandler(Instant end, HttpServletResponse response, Throwable thrw) {
 		if(nonNull(handler) && assertStillOpened(callback, "HttpSessionMonitor.postFilterHandler")) {
-			notifyHandler(handler, null, end, response, thrw);
+			handler.fire(null, end, response, thrw);
 		}
 	}
 
