@@ -17,7 +17,7 @@ import lombok.ToString;
 @ToString
 public class TracingProperties { //add remote
 	
-	private int queueCapacity = 10_000; // {n} max buffering traces, min=100
+	private int queueCapacity = 50_000; // {n} max buffering traces, min=100
 	private RemoteServerProperties remote; //replace server
 	//v1.1
 	private boolean modifiable = true; //if true dispatch a trace copy

@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Mail;
+import org.usf.inspect.core.MailAction;
 import org.usf.inspect.core.MailCommand;
 import org.usf.inspect.core.MailRequest2;
 import org.usf.inspect.core.MailRequestCallback;
@@ -35,7 +36,7 @@ final class MailRequestMonitor {
 	private MailRequestCallback callback;
 
 	ExecutionListener<Void> handleConnection(Transport trsp) {
-		return traceBegin(SessionContextManager::createMailRequest, this::createCallback, (req,v)->{
+		ExecutionListener<Void> lstn = traceBegin(SessionContextManager::createMailRequest, this::createCallback, (req,v)->{
 			var url = trsp.getURLName();
 			if(nonNull(url)) {
 				req.setProtocol(url.getProtocol());
@@ -43,7 +44,8 @@ final class MailRequestMonitor {
 				req.setPort(url.getPort());
 				req.setUser(url.getUsername());
 			}
-		}, (s,e,o,t)-> callback.createStage(CONNECTION, s, e, t, null)); //before end if thrw
+		});
+		return lstn.then(stageHandler(CONNECTION, null, null)); //before end if thrw
 	}
 	
 	//callback should be created before processing
@@ -52,25 +54,30 @@ final class MailRequestMonitor {
 	}
 
 	ExecutionListener<Void> handleDisconnection() {
-		return traceEnd(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
+		ExecutionListener<Void> lstn = stageHandler(DISCONNECTION, null, null);
+		return lstn.then(traceEnd(callback));
 	}
 	
 	<T> ExecutionListener<T> executeStageHandler(MailCommand cmd, Message msg) {
-		return traceStep(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, createMailTrace(msg)));
+		return stageHandler(EXECUTE, cmd, msg);
+	}
+	
+	<T> ExecutionListener<T> stageHandler(MailAction action, MailCommand cmd, Message msg) {
+		return traceStep(callback, (s,e,o,t)-> callback.createStage(action, s, e, t, cmd, createMailTrace(msg)));
 	}
 	
 	static Mail createMailTrace(Message msg) throws MessagingException {
-		Mail mail = null;
 		if(nonNull(msg)) {
-			mail = new Mail();
+			var mail = new Mail();
 			mail.setSubject(msg.getSubject());
 			mail.setFrom(toStringArray(msg.getFrom()));
 			mail.setRecipients(toStringArray(msg.getAllRecipients()));
 			mail.setReplyTo(toStringArray(msg.getReplyTo()));
 			mail.setContentType(msg.getContentType());
 			mail.setSize(msg.getSize());
+			return mail;
 		}
-		return mail;
+		return null;
 	}
 	
 	static String[] toStringArray(Address... address) {

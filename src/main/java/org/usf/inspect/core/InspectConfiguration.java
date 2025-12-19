@@ -50,7 +50,7 @@ import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.http.HandlerExceptionResolverMonitor;
 import org.usf.inspect.http.HttpRoutePredicate;
 import org.usf.inspect.http.HttpSessionFilter;
-import org.usf.inspect.http.RestRequestInterceptor;
+import org.usf.inspect.http.HttpRequestInterceptor;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -119,8 +119,8 @@ public class InspectConfiguration implements WebMvcConfigurer {
     @DependsOn("inspectContext") //ensure inspectContext is loaded first
     RestTemplateCustomizer restTemplateCustomizer() {
     	return rt-> {
-			logRegistringBean("restRequestInterceptor", RestRequestInterceptor.class);
-			rt.getInterceptors().add(0, new RestRequestInterceptor());
+			logRegistringBean("restRequestInterceptor", HttpRequestInterceptor.class);
+			rt.getInterceptors().add(0, new HttpRequestInterceptor());
 		};
     }
 

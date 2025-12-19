@@ -342,7 +342,7 @@ public final class InspectContext implements Context {
 			singleton = createContext(conf, agent, mapper);
 		}
 		else {
-			throw new IllegalStateException("InspectContext is already initialized");
+//			throw new IllegalStateException("InspectContext is already initialized"); //unit tests ?
 		}
 	}
 

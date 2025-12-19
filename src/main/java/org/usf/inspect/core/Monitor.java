@@ -17,27 +17,15 @@ import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
 import org.usf.inspect.core.SafeCallable.SafeConsumer;
 import org.usf.inspect.core.SafeCallable.SafeFunction;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 public interface Monitor {
 	
 	static final String EXECUTION_HANDLER_ACTION = "Monitor.executionHandler";
 	static final String CONNECTION_HANDLER_ACTION = "Monitor.connectionHandler";
-	
-	default void emit(EventTrace trace) {
-		try {
-			context().emitTrace(trace);
-		}
-		catch (Throwable ex) {// do not throw exception
-			context().reportError(true, "EventTrace.emit", ex);
-		}
-	}
-	
-	default void reportError(boolean stack, String action, Throwable thwr) {
-		context().reportError(stack, action, thwr);
-	}
-
-	default void reportMessage(boolean stack, String action, String msg) {
-		context().reportMessage(stack, action, msg);
-	}
 
 	static <R> ExecutionListener<R> traceAroundHttp(HttpSession2 session, SafeConsumer<HttpSession2> preProcess) {
 		return traceAround(session, HttpSession2::createCallback, preProcess, null);
@@ -96,7 +84,7 @@ public interface Monitor {
 		};
 	}
 	
-	static <T extends AbstractRequest2, U extends AbstractRequestCallback, R> ExecutionListener<R> traceBegin(SafeFunction<Instant, T> factory, Function<T, U> callbackFn, SafeBiConsumer<T, R> preProcess, StageCreator<R> stageFn) {
+	static <T extends AbstractRequest2, U extends AbstractRequestCallback, R> ExecutionListener<R> traceBegin(SafeFunction<Instant, T> factory, Function<T, U> callbackFn, SafeBiConsumer<T, R> preProcess){
 		return (s,e,o,t)-> {
 			var session = factory.apply(s); //cannot be null
 			if(nonNull(preProcess)) {
@@ -104,14 +92,11 @@ public interface Monitor {
 					preProcess.accept(session, o);
 				}
 				catch (Exception ex) {
-					context().reportError(true, "Monitor.connectionHandler", ex);
+					context().reportError(true, "Monitor.traceBegin", ex);
 				}
 			}
 			context().emitTrace(session);
 			var callback = callbackFn.apply(session); //cannot be null
-			if(nonNull(stageFn)) {
-				traceStep(callback, stageFn).safeHandle(s, e, o, t);
-			}
 			if(nonNull(t)) { // if connection error
 				callback.setEnd(e);
 				context().emitTrace(callback);
@@ -119,12 +104,9 @@ public interface Monitor {
 		};
 	}
 	
-	static <U extends Callback, R> ExecutionListener<R> traceEnd(U callback, StageCreator<R> stageFn){
+	static <U extends Callback, R> ExecutionListener<R> traceEnd(U callback){
 		return (s,e,o,t)-> {
-			if(assertStillOpened(callback, "Monitor.disconnectionHandler")) {
-				if(nonNull(stageFn)) {
-					traceStep(callback, stageFn).safeHandle(s, e, o, t);
-				}
+			if(assertStillOpened(callback, "Monitor.traceEnd")) {
 				callback.setEnd(e);
 				context().emitTrace(callback);
 			}
@@ -133,7 +115,7 @@ public interface Monitor {
 
 	static <U extends Callback, R> ExecutionListener<R> traceStep(U callback, StageCreator<R> stageFn){
 		return (s,e,o,t)-> {
-			if(assertStillOpened(callback, "Monitor.stageHandler")) {
+			if(assertStillOpened(callback, "Monitor.traceStep")) {
 				var stg = stageFn.createStage(s, e, o, t);
 				if(nonNull(stg)) {
 					context().emitTrace(stg);
@@ -161,7 +143,7 @@ public interface Monitor {
 		return true;
 	}
 	
-	public interface StageCreator<R> {
+	interface StageCreator<R> {
 		
 		AbstractStage createStage(Instant start, Instant end, R obj, Throwable thrw) throws Exception;
 	}

@@ -49,6 +49,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 
 	private InstanceEnvironment instance;
 	private boolean registred = false;
+	
 
 	public RestDispatcherAgent(RestRemoteServerProperties properties, ObjectMapper mapper) {
 		this(properties, mapper, defaultRestTemplate(properties, mapper));
@@ -145,6 +146,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 				.messageConverters(json, plain) //minimum converters
 				.setConnectTimeout(ofSeconds(30))
 				.setReadTimeout(ofSeconds(60))
+//				.additionalInterceptors(new HttpRequestInterceptor())
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties));

@@ -18,13 +18,13 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class RestRequestInterceptor implements ClientHttpRequestInterceptor { //see WebClientFilter
+public final class HttpRequestInterceptor implements ClientHttpRequestInterceptor { //see WebClientFilter
 	
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		var mnt = new HttpRequestMonitor(request);
 		request.getHeaders().set(TRACE_HEADER, mnt.getId());
-		var res = call(()-> execution.execute(request, body), mnt.clientHttpResponseHandler());
-		return new ClientHttpResponseWrapper(res, mnt.postResponse());
+		var res = call(()-> execution.execute(request, body), mnt.exchangeHandler());
+		return new ClientHttpResponseWrapper(res, mnt.responseHandler(res));
 	}
 }

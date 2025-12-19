@@ -8,6 +8,7 @@ import static org.usf.inspect.core.Monitor.traceBegin;
 import static org.usf.inspect.core.Monitor.traceEnd;
 import static org.usf.inspect.core.Monitor.traceStep;
 
+import org.usf.inspect.core.FtpAction;
 import org.usf.inspect.core.FtpCommand;
 import org.usf.inspect.core.FtpRequest2;
 import org.usf.inspect.core.FtpRequestCallback;
@@ -29,8 +30,8 @@ final class FtpRequestMonitor implements Monitor {
 
 	private FtpRequestCallback callback;
 	
-	public ExecutionListener<Void>  handleConnection(ChannelSftp sftp) {
-		return traceBegin(SessionContextManager::createFtpRequest, this::createCallback, (req,o)->{
+	ExecutionListener<Void> connectionHandler(ChannelSftp sftp) {
+		ExecutionListener<Void> lstn = traceBegin(SessionContextManager::createFtpRequest, this::createCallback, (req,o)->{
 			req.setProtocol("sftp");
 			var cs = sftp.getSession(); //throws JSchException
 			if(nonNull(cs)) {
@@ -40,7 +41,8 @@ final class FtpRequestMonitor implements Monitor {
 				req.setServerVersion(cs.getServerVersion());
 				req.setClientVersion(cs.getClientVersion());
 			}
-		}, (s,e,o,t)-> callback.createStage(CONNECTION, s, e, t, null)); //before end if thrw
+		});
+		return lstn.then(stageHandler(CONNECTION, null)); //before end if thrw
 	}
 	
 	//callback should be created before processing
@@ -48,11 +50,16 @@ final class FtpRequestMonitor implements Monitor {
 		return callback = session.createCallback();
 	}
 	
-	public ExecutionListener<Void> handleDisconnection() {
-		return traceEnd(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
+	ExecutionListener<Void> disconnectionHandler() {
+		ExecutionListener<Void> lstn = stageHandler(DISCONNECTION, null);
+		return lstn.then(traceEnd(callback));
 	}
 	
 	<T> ExecutionListener<T> executeStageHandler(FtpCommand cmd, String... args) {
-		return traceStep(callback, (s,e,o,t)-> callback.createStage(EXECUTE, s, e, t, cmd, args));
+		return stageHandler(EXECUTE, cmd, args);
+	}
+
+	<T> ExecutionListener<T> stageHandler(FtpAction action, FtpCommand cmd, String... args) {
+		return traceStep(callback, (s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
 	}
 }

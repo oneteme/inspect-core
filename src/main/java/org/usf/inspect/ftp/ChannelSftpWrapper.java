@@ -46,28 +46,28 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	@Override
 	public void connect() throws JSchException {
 		this.monitor = new FtpRequestMonitor();
-		exec(channel::connect, monitor.handleConnection(channel));
+		exec(channel::connect, monitor.connectionHandler(channel));
 	}
 	
 	@Override
 	public void connect(int connectTimeout) throws JSchException {
 		this.monitor = new FtpRequestMonitor();
-		exec(()-> channel.connect(connectTimeout), monitor.handleConnection(channel));
+		exec(()-> channel.connect(connectTimeout), monitor.connectionHandler(channel));
 	}
 	
 	@Override
 	public void disconnect() {
-		exec(channel::disconnect, monitor.handleDisconnection());
+		exec(channel::disconnect, monitor.disconnectionHandler());
 	}
 	
 	@Override
 	public void quit() {
-		exec(channel::quit, monitor.handleDisconnection());
+		exec(channel::quit, monitor.disconnectionHandler());
 	}
 	
 	@Override
 	public void exit() {
-		exec(channel::exit, monitor.handleDisconnection());
+		exec(channel::exit, monitor.disconnectionHandler());
 	}
 	
 	@Override

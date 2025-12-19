@@ -41,16 +41,6 @@ public final class InspectExecutor {
 		}
 	}
 	
-	@Deprecated(forRemoval = true)
-	public static void runSafely(Runnable call)  {
-		try {
-			call.run();
-		}
-		catch (Throwable ex) {// do not throw exception
-			context().reportError(true, "ExecutionMonitor.runSafely", ex);
-		}
-	}
-	
 	@FunctionalInterface
 	public static interface ExecutionListener<T> {
 		
@@ -61,8 +51,15 @@ public final class InspectExecutor {
 				handle(start, end, res, thrw);
 			}
 			catch (Throwable ex) {// do not throw exception
-				context().reportError(true, "ExecutionMonitor.notifyHandler", ex);
+				context().reportError(true, "ExecutionMonitor.safeHandle", ex);
 			}
+		}
+		
+		default ExecutionListener<T> then(ExecutionListener<? super T> listener) {
+			return (s,e,o,t)-> {
+				this.safeHandle(s, e, o, t);
+				listener.handle(s, e, o, t);
+			};
 		}
 	}
 }

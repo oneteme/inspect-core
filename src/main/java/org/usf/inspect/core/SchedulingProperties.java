@@ -26,6 +26,6 @@ public class SchedulingProperties {
 	private DispatchState state = DISPATCH;
 
 	void validate() {
-		assertBetween(interval, ofSeconds(15), ofHours(1), "interval");
+		assertBetween(interval, ofSeconds(10), ofHours(1), "interval");
 	}
 }

@@ -7,6 +7,11 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 public interface HasStage {
 	
 	String getId();

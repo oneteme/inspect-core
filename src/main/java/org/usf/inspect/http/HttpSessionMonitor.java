@@ -15,7 +15,7 @@ import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.InspectExecutor.runSafely;
+import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.Monitor.assertStillOpened;
 import static org.usf.inspect.core.Monitor.traceAround;
 import static org.usf.inspect.core.Monitor.traceStep;
@@ -80,7 +80,6 @@ public final class HttpSessionMonitor  {
 						call.setContentType(response.getContentType());
 					}
 				});
-		
 	}
 	
 	//callback should be created before processing
@@ -116,14 +115,17 @@ public final class HttpSessionMonitor  {
 
 	public void postProcess(String name, String user, Throwable thrw){
 		if(assertStillOpened(callback, "HttpSessionMonitor.postProcess")) {
-			runSafely(()-> {
-				emitStage(POST_PROCESS);
+			emitStage(POST_PROCESS);
+			try{
 				callback.setName(name);
 				callback.setUser(user);
 				if(nonNull(thrw) && isNull(callback.getException())) {// unhandeled exception in @ControllerAdvice
 					callback.setException(fromException(thrw));
 				}
-			});
+			}
+			catch (Exception e) {
+				context().reportError(true, "HttpSessionMonitor.postProcess", e);
+			}
 		}
 	}
 	

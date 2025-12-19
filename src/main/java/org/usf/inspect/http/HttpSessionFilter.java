@@ -97,7 +97,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-		if(shouldIntercept(handler) && !isAsyncDispatch(request)) { //avoid unfiltred request
+		if(shouldIntercept(handler)) { //avoid unfiltred request
 			var mnt = currentHttpMonitor(request);
 			if(assertMonitorNonNull(mnt, "HttpSessionFilter.postHandle")) {
 				mnt.process();

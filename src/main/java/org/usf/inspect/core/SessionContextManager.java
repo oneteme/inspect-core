@@ -112,7 +112,6 @@ public final class SessionContextManager {
 	}
 
 	public static void setActiveContext(AbstractSessionCallback session) {
-		System.err.println("setActiveContext " + session.getId() + " ~ " + Helper.threadName());
 		if(session.isStartup()) {
 			if(startupContext != session) {
 				if(isNull(startupContext)) {
@@ -132,7 +131,6 @@ public final class SessionContextManager {
 	}
 	
 	public static void clearContext(AbstractSessionCallback ctx) {
-		System.err.println("clearContext " + ctx.getId() + " ~ " + Helper.threadName());
 		if(ctx.isStartup()) {
 			if(startupContext == ctx) {
 				if(ctx.wasCompleted()) { //reactor

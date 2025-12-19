@@ -47,12 +47,12 @@ final class DatabaseRequestMonitor {
 	private DatabaseRequestCallback callback;
 	private boolean prepared;
 	private DatabaseCommand mainCommand;
-	private DatabaseRequestStage lastStg; // hold last stage
+	private DatabaseRequestStage lastExec; // hold last stage
 	
 	BatchStageHandler batchHandler = null;
 	
-	public ExecutionListener<Connection> handleConnection() {
-		return traceBegin(SessionContextManager::createDatabaseRequest, this::createCallback, (req,cnx)->{
+	public ExecutionListener<Connection> connectionHandler() {
+		ExecutionListener<Connection> lstn = traceBegin(SessionContextManager::createDatabaseRequest, this::createCallback, (req,cnx)->{
 			if(nonNull(cnx) && !cache.isPresent()) {
 				cache.update(cnx.getMetaData());
 			}
@@ -67,7 +67,8 @@ final class DatabaseRequestMonitor {
 				req.setProductVersion(cache.getProductVersion());
 				req.setDriverVersion(cache.getDriverVersion());
 			}
-		}, (s,e,o,t)-> callback.createStage(CONNECTION, s, e, t, null)); //before end if thrw
+		});
+		return lstn.then(stageHandler(CONNECTION)); //before end if thrw
 	}
 
 	//callback should be created before processing
@@ -157,20 +158,20 @@ final class DatabaseRequestMonitor {
 			parseAndMergeCommand(sql); //command set on exec stg
 		}
 		return traceStep(callback, (s,e,o,t)-> {
-			lastStg = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			lastExec = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
-			return lastStg; //wait for rows count update before submit
+			return lastExec; //wait for rows count update before submit
 		});
 	}
 
 	public void updateStageRowsCount(long rows) {
 		if(rows > -1) {
 			try { //lastStg may be already sent !!
-				if(nonNull(lastStg) && EXECUTE.name().equals(lastStg.getName())) {
-					var arr = lastStg.getCount();
-					lastStg.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
+				if(nonNull(lastExec) && EXECUTE.name().equals(lastExec.getName())) {
+					var arr = lastExec.getCount();
+					lastExec.setCount(isNull(arr) ? new long[] {rows} : appendLong(arr, rows)); // getMoreResults
 				}
 			}
 			catch (Exception e) {
@@ -180,19 +181,20 @@ final class DatabaseRequestMonitor {
 	}
 
 	public <T> ExecutionListener<T> fetch(Instant start, int n) {
-		return traceStep(callback, 
-				(s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
+		return traceStep(callback, //differed start 
+				(s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n})); 
 	}
 	
-	public ExecutionListener<Void> handleDisconnection() { //sonar: used as lambda
-		return traceEnd(callback, (s,e,o,t)-> callback.createStage(DISCONNECTION, s, e, t, null));
+	public ExecutionListener<Void> disconnectionHandler() { //sonar: used as lambda
+		ExecutionListener<Void> lstn = stageHandler(DISCONNECTION);
+		return lstn.then(traceEnd(callback));
 	}
 
-	public ExecutionListener<Object> stageHandler(DatabaseAction action, String... args) {
+	<T> ExecutionListener<T> stageHandler(DatabaseAction action, String... args) {
 		return stageHandler(action, null, args);
 	}
 
-	public ExecutionListener<Object> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
+	<T> ExecutionListener<T> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
 		return traceStep(callback, (s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
 	}
 	
