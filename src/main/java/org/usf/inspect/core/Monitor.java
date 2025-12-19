@@ -16,6 +16,9 @@ import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
 import org.usf.inspect.core.SafeCallable.SafeConsumer;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+
 /**
  * 
  * @author u$f
@@ -103,7 +106,8 @@ public interface Monitor {
 	
 	public abstract class StatefulMonitor<T extends Initializer, V extends Callback> {
 		
-		protected V callback; //make it private with accessor?
+		@Getter(AccessLevel.PROTECTED) 
+		private V callback; //make it private with accessor?
 		
 		protected abstract V createCallback(T session);
 

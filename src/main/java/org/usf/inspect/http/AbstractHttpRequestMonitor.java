@@ -56,6 +56,7 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequest2, HttpReque
 
 	void postExchange(HttpStatusCode status, HttpHeaders headers) {
 //		request.setThreadName(threadName()); //deferred thread
+		var callback = getCallback();
     	if(nonNull(status)) {
 			callback.setStatus(status.value());
 		}
@@ -68,6 +69,7 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequest2, HttpReque
 	
 	void postResponse(ResponseContent cnt){
 //		request.setThreadName(threadName()); //deferred thread
+		var callback = getCallback();
 		if(nonNull(cnt)) {
 			callback.setDataSize(cnt.contentSize());
 			if(nonNull(cnt.contentBytes())) {
@@ -80,12 +82,12 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequest2, HttpReque
 	}
 	
 	HttpRequestStage createStage(HttpAction action, Instant start,Instant end, Throwable thrw) {
-		return callback.createStage(action, start, end, thrw);
+		return getCallback().createStage(action, start, end, thrw);
 	}
 	
 	boolean assertSameID(String sid) {
 		if(nonNull(sid)) {
-			if(sid.equals(callback.getId())) {
+			if(sid.equals(getCallback().getId())) {
 				return true;
 			}
 			context().reportMessage(false, "assertSameID", "session.id=" + sid);

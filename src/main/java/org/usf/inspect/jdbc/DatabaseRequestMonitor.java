@@ -86,7 +86,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, Dat
 			parseAndMergeCommand(sql);
 		}
 		return isNull(batchHandler) ? traceStep((s,e,v,t)-> {
-			var stg = callback.createStage(BATCH, s, e, t, null, new long[] {1});
+			var stg = getCallback().createStage(BATCH, s, e, t, null, new long[] {1});
 			if(nonNull(t)) {
 				return stg;
 			}
@@ -154,7 +154,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, Dat
 			parseAndMergeCommand(sql); //command set on exec stg
 		}
 		return traceStep((s,e,o,t)-> {
-			lastExec = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			lastExec = getCallback().createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
@@ -177,7 +177,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, Dat
 	}
 
 	public <T> ExecutionListener<T> fetch(Instant start, int n) {
-		return traceStep((s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
+		return traceStep((s,e,o,t)-> getCallback().createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
 	}
 	
 	public ExecutionListener<Object> disconnectionHandler() {
@@ -189,7 +189,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, Dat
 	}
 
 	<T> ExecutionListener<T> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return traceStep((s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
+		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, args));
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

@@ -50,6 +50,6 @@ final class FtpRequestMonitor extends StatefulMonitor<FtpRequest2, FtpRequestCal
 	}
 
 	<T> ExecutionListener<T> stageHandler(FtpAction action, FtpCommand cmd, String... args) {
-		return traceStep((s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
+		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, args));
 	}
 }

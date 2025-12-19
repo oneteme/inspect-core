@@ -55,7 +55,7 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequest2, MailRequest
 	}
 	
 	<T> ExecutionListener<T> stageHandler(MailAction action, MailCommand cmd, Message msg) {
-		return traceStep((s,e,o,t)-> callback.createStage(action, s, e, t, cmd, createMailTrace(msg)));
+		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, createMailTrace(msg)));
 	}
 	
 	static Mail createMailTrace(Message msg) throws MessagingException {

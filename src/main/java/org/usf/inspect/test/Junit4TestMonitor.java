@@ -20,13 +20,13 @@ import lombok.RequiredArgsConstructor;
 public final class Junit4TestMonitor implements TestRule {
 	
 	@Override
-	public Statement apply(Statement base, Description description) {
+	public Statement apply(Statement base, Description dscr) {
 		return new Statement() {
 			@Override
 			public void evaluate() throws Throwable {
 				exec(base::evaluate, traceAroundMethod(createTestSession(now()), ses-> {
-					ses.setName(description.getDisplayName());
-					ses.setLocation(description.getClassName(), description.getMethodName());
+					ses.setName(dscr.getDisplayName());
+					ses.setLocation(dscr.getClassName(), dscr.getMethodName());
 					//set user
 				}));
 			}

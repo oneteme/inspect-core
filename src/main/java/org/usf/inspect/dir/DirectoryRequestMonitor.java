@@ -54,7 +54,7 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequest2, D
 	}
 	
 	<T> ExecutionListener<T> stageHandler(DirAction action, DirCommand cmd, String... args) {
-		return traceStep((s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
+		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, args));
 	}
 
 	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {
