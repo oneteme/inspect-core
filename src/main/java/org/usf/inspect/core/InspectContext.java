@@ -63,19 +63,19 @@ public final class InspectContext implements Context {
 		this.agent = agent;
 		this.eventBus = eventBus;
 		var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 15s
-		this.executor.scheduleWithFixedDelay(()-> schedule(false), delay, delay, SECONDS);
+		this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 		getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 	}
 	
 	@Override
 	public boolean emitTask(DispatchTask task) { //no hooks
-		return canCollect() && tasks.add(task);
+		return scheduling() && atomicState.get().canCollect() && tasks.add(task);
 	}
 	
 	@Override
 	public boolean emitTrace(EventTrace trace) {
-		if(canCollect() && queue.add(trace)) {
-			triggerImmediateDispatchIfQueueFull();
+		if(scheduling() && atomicState.get().canCollect() && queue.add(trace)) {
+			tryDispatchIfQueueFull();
 			return true;
 		}
 		return false;
@@ -83,16 +83,16 @@ public final class InspectContext implements Context {
 	
 	@Override
 	public boolean emitTraces(List<EventTrace> traces) { //server usage
-		if(canCollect() && queue.addAll(traces)) {
-			triggerImmediateDispatchIfQueueFull();
+		if(scheduling() && atomicState.get().canCollect() && queue.addAll(traces)) {
+			tryDispatchIfQueueFull();
 			return true;
 		}
 		return false;
 	}
 
-	void triggerImmediateDispatchIfQueueFull(){
+	void tryDispatchIfQueueFull(){
 		var max = configuration.getTracing().getQueueCapacity() *.9;
-		if(scheduling() && queue.size() > max) {
+		if(queue.size() > max) {
 			synchronized(this) {
 				if(!dispatching) {
 					dispatching = true;
@@ -123,7 +123,7 @@ public final class InspectContext implements Context {
 	}
 	
 	void report(boolean stack, String msg, Throwable cause) {
-		if(canCollect()) {
+		if(scheduling() && atomicState.get().canCollect()) {
 			var arr = stack && configuration.isDebugMode() 
 					? exceptionStackTraceRows(requireNonNullElseGet(cause, Exception::new), -1) 
 					: null;
@@ -136,7 +136,7 @@ public final class InspectContext implements Context {
 
 	@Override
 	public boolean dispatch(InstanceEnvironment instance) { //dispatch immediately
-		if(canDispatch()) {
+		if(scheduling() && atomicState.get().canDispatch()) {
 			eventBus.triggerInstanceEmit(instance);
 			try {
 				agent.dispatch(instance);
@@ -148,28 +148,26 @@ public final class InspectContext implements Context {
 		return false;
 	}
 	
-	void schedule(boolean last) { //dispatch immediately
+	void schedule() { //dispatch immediately
 		try {
-			if(canCollect()) {
-				eventBus.triggerSchedule(this);
-			}
+			eventBus.triggerSchedule(this);
 			dispatchTasks();
-			dispatchTraces(last);
+			dispatchTraces(false);
 		} catch (Throwable e) { //avoid scheduler suppression
 			warnException(e, "failed to schedule dispatch");
 		}
 	}
 	
-	void dispatchTraces(boolean last) { //last shutdown hook only
+	void dispatchTraces(boolean shutdown) { //last shutdown hook only
 		try {
-			if(canDispatch()) {
+			if(atomicState.get().canDispatch()) {
 				var max = configuration.getTracing().getQueueCapacity();
 				queue.pollAll(max, snp->{
 					mergeSessionMaskUpdates(snp);
 					var trc = snp;
 					eventBus.triggerTraceDispatch(this, unmodifiableList(trc));
 					log.trace("dispatching {} traces .., pending {} traces", trc.size(), 0);
-					trc = agent.dispatch(last, trc);
+					trc = agent.dispatch(shutdown, trc);
 					if(trc.isEmpty()) {
 						log.trace("successfully dispatched {} items", trc.size());
 					}
@@ -213,7 +211,7 @@ public final class InspectContext implements Context {
 	}
 
 	void dispatchTasks() {
-		if(canDispatch() && !tasks.isEmpty()) {
+		if(atomicState.get().canDispatch() && !tasks.isEmpty()) {
 			var arr = tasks.toArray(DispatchTask[]::new); // iterator is not synchronized @see SynchronizedCollection#iterator
 			for(var t : arr) {
 				try {
@@ -225,14 +223,6 @@ public final class InspectContext implements Context {
 				}
 			}
 		}
-	}
-	
-	public boolean canCollect() {
-		return scheduling() && atomicState.get().canCollect();
-	}
-	
-	public boolean canDispatch() {
-		return scheduling() && atomicState.get().canDispatch();
 	}
 
 	public DispatchState getState() {

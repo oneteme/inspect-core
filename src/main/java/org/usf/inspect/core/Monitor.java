@@ -87,7 +87,7 @@ public interface Monitor {
 			if(isNull(callback.getEnd())) {
 				return true;
 			}
-			context().reportMessage(true, action, format("'%s.end' is not null", callback.getClass().getSimpleName()));
+			context().reportMessage(true, action, format("'%s.end' is null", callback.getClass().getSimpleName()));
 		}
 		context().reportMessage(true, action, "callback is null");
 		return false;
@@ -107,7 +107,7 @@ public interface Monitor {
 		
 		protected abstract V createCallback(T session);
 
-		protected <R> ExecutionListener<R> traceBegin(Function<Instant, T> sessionFn, SafeBiConsumer<T, R> preProcess){
+		protected <R> ExecutionListener<R> traceBegin(Function<Instant, T> sessionFn, SafeBiConsumer<T, R> preProcess, ExecutionListener<? super R> after){
 			return (s,e,o,t)-> {
 				var session = sessionFn.apply(s); //session cannot be null
 				try {
@@ -118,8 +118,11 @@ public interface Monitor {
 				}
 				context().emitTrace(session);
 				callback = createCallback(session); //cannot be null
+				if(nonNull(after)) {
+					after.safeHandle(s, e, o, t);
+				}
 				if(nonNull(t)) { // if connection error
-					traceEnd().handle(s, e, null, t);
+					traceEnd(null).handle(s, e, null, t);
 				}
 			};
 		}
@@ -135,9 +138,12 @@ public interface Monitor {
 			};
 		}
 		
-		protected <R> ExecutionListener<R> traceEnd(){
+		protected <R> ExecutionListener<R> traceEnd(ExecutionListener<? super R> after){
 			return (s,e,o,t)-> {
 				if(assertStillOpened(callback, "StatefulMonitor.traceEnd")) {
+					if(nonNull(after)) {
+						after.safeHandle(s, e, o, t);
+					}
 					callback.setEnd(e);
 					context().emitTrace(callback);
 				}

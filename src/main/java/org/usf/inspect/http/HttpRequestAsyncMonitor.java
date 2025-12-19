@@ -28,14 +28,13 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 	public ExecutionListener<Object> preExchange(ClientRequest client) {
 		return traceBegin(t-> 
 			createHttpRequest(t, getId()),
-			(req,o)-> fillRequest(req, client.method(), client.url(), client.headers())) //before end if thrw
-		.then(traceStep((s,e,o,t)-> createStage(ASSEMBLY, s, e, t)));
+			(req,o)-> fillRequest(req, client.method(), client.url(), client.headers()), //before end if thrw
+			traceStep((s,e,o,t)-> createStage(ASSEMBLY, s, e, t)));
 	}
 
 	public void postExchange(Throwable thrw) {
 		var now = now();
 		traceStep((s,e,o,t)-> createStage(EXCHANGE, s, e, t))
-		.then(traceStep(null))
 		.safeHandle(lastTimestamp, now, null, thrw);
 	}
 	
@@ -61,7 +60,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 		
 	public void complete() {
 		var now = now();
-		traceEnd().safeHandle(lastTimestamp, now, null, null);
+		traceEnd(null).safeHandle(lastTimestamp, now, null, null);
 	}
 	
 	@Override

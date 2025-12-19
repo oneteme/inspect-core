@@ -27,7 +27,7 @@ import org.usf.inspect.core.SessionContextManager;
 final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequest2, DirectoryRequestCallback> {
 
 	ExecutionListener<DirContext> handleConnection() {
-		ExecutionListener<DirContext> lstn = traceBegin(SessionContextManager::createNamingRequest, (req,dir)->{
+		return traceBegin(SessionContextManager::createNamingRequest, (req,dir)->{
 			if(nonNull(dir)) {
 				var url = getEnvironmentVariable(dir, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
 				if(nonNull(url)) {
@@ -37,8 +37,7 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequest2, D
 				}
 				req.setUser(getEnvironmentVariable(dir, "java.naming.security.principal", Object::toString));  //broke context dependency
 			}
-		});
-		return lstn.then(stageHandler(CONNECTION, null)); //before end if thrw
+		}, stageHandler(CONNECTION, null)); //before end if thrw
 	}
 	
 	//callback should be created before processing
@@ -47,8 +46,7 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequest2, D
 	}
 
 	ExecutionListener<Void> handleDisconnection() {
-		ExecutionListener<Void> lstn = stageHandler(DISCONNECTION, null);
-		return lstn.then(traceEnd());
+		return traceEnd(stageHandler(DISCONNECTION, null));
 	}
 	
 	<T> ExecutionListener<T> executeStageHandler(DirCommand cmd, String... args) {

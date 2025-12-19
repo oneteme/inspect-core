@@ -38,7 +38,7 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequest2, MailRequest
 				req.setPort(url.getPort());
 				req.setUser(url.getUsername());
 			}
-		}).then(stageHandler(CONNECTION, null, null)); //before end if thrw
+		}, stageHandler(CONNECTION, null, null)); //before end if thrw
 	}
 	
 	//callback should be created before processing
@@ -47,7 +47,7 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequest2, MailRequest
 	}
 
 	ExecutionListener<Object> handleDisconnection() {
-		return stageHandler(DISCONNECTION, null, null).then(traceEnd());
+		return traceEnd(stageHandler(DISCONNECTION, null, null));
 	}
 	
 	<T> ExecutionListener<T> executeStageHandler(MailCommand cmd, Message msg) {

@@ -49,7 +49,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, Dat
 	BatchStageHandler batchHandler = null;
 	
 	public ExecutionListener<Connection> connectionHandler() {
-		ExecutionListener<Connection> lstn = traceBegin(SessionContextManager::createDatabaseRequest, (req,cnx)->{
+		return traceBegin(SessionContextManager::createDatabaseRequest, (req,cnx)->{
 			if(nonNull(cnx) && !cache.isPresent()) {
 				cache.update(cnx.getMetaData());
 			}
@@ -64,8 +64,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, Dat
 				req.setProductVersion(cache.getProductVersion());
 				req.setDriverVersion(cache.getDriverVersion());
 			}
-		});
-		return lstn.then(stageHandler(CONNECTION)); //before end if thrw
+		}, stageHandler(CONNECTION)); //before end if thrw
 	}
 
 	//callback should be created before processing
@@ -181,8 +180,8 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, Dat
 		return traceStep((s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
 	}
 	
-	public ExecutionListener<Object> disconnectionHandler() { //sonar: used as lambda
-		return stageHandler(DISCONNECTION).then(traceEnd());
+	public ExecutionListener<Object> disconnectionHandler() {
+		return traceEnd(stageHandler(DISCONNECTION));
 	}
 
 	<T> ExecutionListener<T> stageHandler(DatabaseAction action, String... args) {

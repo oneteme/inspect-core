@@ -27,6 +27,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.usf.inspect.http.HttpRequestInterceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

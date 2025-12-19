@@ -33,7 +33,7 @@ final class FtpRequestMonitor extends StatefulMonitor<FtpRequest2, FtpRequestCal
 				req.setServerVersion(cs.getServerVersion());
 				req.setClientVersion(cs.getClientVersion());
 			}
-		}).then(stageHandler(CONNECTION, null)); //before end if thrw
+		}, stageHandler(CONNECTION, null)); //before end if thrw
 	}
 	
 	//callback should be created before processing
@@ -42,7 +42,7 @@ final class FtpRequestMonitor extends StatefulMonitor<FtpRequest2, FtpRequestCal
 	}
 	
 	ExecutionListener<Object> disconnectionHandler() {
-		return stageHandler(DISCONNECTION, null).then(traceEnd());
+		return traceEnd(stageHandler(DISCONNECTION, null));
 	}
 	
 	<T> ExecutionListener<T> executeStageHandler(FtpCommand cmd, String... args) {
