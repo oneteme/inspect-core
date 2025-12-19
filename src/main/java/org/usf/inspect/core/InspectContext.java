@@ -53,7 +53,6 @@ public final class InspectContext implements Context {
 	private final List<DispatchTask> tasks = synchronizedList(new ArrayList<>());
 	
 	private volatile boolean dispatching;
-	private volatile boolean shutdown;
 	
 	InspectContext(InspectCollectorConfiguration configuration, DispatcherAgent agent, EventTraceBus eventBus) {
 		if(!configuration.isEnabled()) {
@@ -93,7 +92,7 @@ public final class InspectContext implements Context {
 
 	void triggerImmediateDispatchIfQueueFull(){
 		var max = configuration.getTracing().getQueueCapacity() *.9;
-		if(queue.size() > max && !executor.isShutdown()) {
+		if(scheduling() && queue.size() > max) {
 			synchronized(this) {
 				if(!dispatching) {
 					dispatching = true;
@@ -229,11 +228,11 @@ public final class InspectContext implements Context {
 	}
 	
 	public boolean canCollect() {
-		return !shutdown && atomicState.get().canCollect();
+		return scheduling() && atomicState.get().canCollect();
 	}
 	
 	public boolean canDispatch() {
-		return !shutdown && atomicState.get().canDispatch();
+		return scheduling() && atomicState.get().canDispatch();
 	}
 
 	public DispatchState getState() {
@@ -241,7 +240,7 @@ public final class InspectContext implements Context {
 	}
 
 	public boolean setState(DispatchState state) {
-		if(!shutdown) {
+		if(scheduling()) {
 			atomicState.set(state);
 			return true;
 		}
@@ -252,23 +251,24 @@ public final class InspectContext implements Context {
 		return queue.peek();
 	}
 	
+	boolean scheduling() {
+		return !executor.isShutdown();
+	}
+	
 	void shutdown() {
-		if(!shutdown) {
-			shutdown = true;
-			log.info("shutting down the scheduler service...");
-			executor.shutdown();
-			InterruptedException ie = null;
-			try {
-				executor.awaitTermination(5, SECONDS);
-			} catch (InterruptedException e) { // shutting down host
-				log.warn("interrupted while waiting for executor termination", e);
-				ie = e;
-			}
-			finally { //final dispatch, will be executed on shutdown hook thread
-				dispatchTraces(true);
-				if(nonNull(ie)) {
-					currentThread().interrupt();
-				}
+		log.info("shutting down the scheduler service...");
+		executor.shutdown();
+		InterruptedException ie = null;
+		try {
+			executor.awaitTermination(5, SECONDS);
+		} catch (InterruptedException e) { // shutting down host
+			log.warn("interrupted while waiting for executor termination", e);
+			ie = e;
+		}
+		finally { //final dispatch, will be executed on shutdown hook thread
+			dispatchTraces(true);
+			if(nonNull(ie)) {
+				currentThread().interrupt();
 			}
 		}
 	}
@@ -327,23 +327,18 @@ public final class InspectContext implements Context {
 	}
 	
 	static synchronized void initializeInspectContext(InspectCollectorConfiguration conf, ObjectMapper mapper) {
-		if(isNull(singleton)) {
-			DispatcherAgent agent = null;
-			if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-				agent = new RestDispatcherAgent(prop, mapper);
-			}
-			else if(isNull(conf.getTracing().getRemote())) {
-				agent = noAgent(); //no remote agent
-				log.warn("remote tracing is disabled, traces will be lost");
-			}
-			else {
-				throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
-			}
-			singleton = createContext(conf, agent, mapper);
+		DispatcherAgent agent = null;
+		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
+			agent = new RestDispatcherAgent(prop, mapper);
+		}
+		else if(isNull(conf.getTracing().getRemote())) {
+			agent = noAgent(); //no remote agent
+			log.warn("remote tracing is disabled, traces will be lost");
 		}
 		else {
-//			throw new IllegalStateException("InspectContext is already initialized"); //unit tests ?
+			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
 		}
+		singleton = createContext(conf, agent, mapper);
 	}
 
 	public static synchronized Context context() {

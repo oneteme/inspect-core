@@ -20,6 +20,7 @@ import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpRequest2;
 import org.usf.inspect.core.HttpRequestCallback;
 import org.usf.inspect.core.HttpRequestStage;
+import org.usf.inspect.core.Monitor.StatefulMonitor;
 
 import lombok.Getter;
 
@@ -28,16 +29,14 @@ import lombok.Getter;
  * @author u$f
  *
  */
-class AbstractHttpRequestMonitor {
+class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequest2, HttpRequestCallback> {
 
 	@Getter
 	private final String id = nextId();
 	
-	HttpRequestCallback callback;
-	
 	//callback should be created before processing
-	HttpRequestCallback createCallback(HttpRequest2 session) { 
-		return callback = session.createCallback();
+	protected HttpRequestCallback createCallback(HttpRequest2 session) { 
+		return session.createCallback();
 	}
 	
 	void fillRequest(HttpRequest2 req, HttpMethod method, URI uri, HttpHeaders headers) {

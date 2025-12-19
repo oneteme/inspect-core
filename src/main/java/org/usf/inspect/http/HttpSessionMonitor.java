@@ -18,7 +18,6 @@ import static org.usf.inspect.core.HttpAction.PROCESS;
 import static org.usf.inspect.core.InspectContext.context;
 import static org.usf.inspect.core.Monitor.assertStillOpened;
 import static org.usf.inspect.core.Monitor.traceAround;
-import static org.usf.inspect.core.Monitor.traceStep;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
@@ -46,7 +45,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class HttpSessionMonitor  {
+public final class HttpSessionMonitor {
 	
 	private final ExecutionListener<Void> handler;
 	
@@ -138,8 +137,9 @@ public final class HttpSessionMonitor  {
 	void emitStage(HttpAction action) {
 		var end = now();
 		if(nonNull(action)) {
-			traceStep(callback, (s,e,v,t)-> callback.createStage(action, s, e, t))
-				.safeHandle(lastTimestamp, end, null, null);
+			if(assertStillOpened(callback, "StatefulMonitor.traceStep")) {
+				context().emitTrace(callback.createStage(action, lastTimestamp, end, null));
+			}
 		}
 		lastTimestamp = end;
 	}

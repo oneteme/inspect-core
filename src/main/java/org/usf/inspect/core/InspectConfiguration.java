@@ -48,9 +48,9 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.http.HandlerExceptionResolverMonitor;
+import org.usf.inspect.http.HttpRequestInterceptor;
 import org.usf.inspect.http.HttpRoutePredicate;
 import org.usf.inspect.http.HttpSessionFilter;
-import org.usf.inspect.http.HttpRequestInterceptor;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;

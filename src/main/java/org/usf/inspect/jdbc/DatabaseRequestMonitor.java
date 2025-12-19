@@ -13,9 +13,6 @@ import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.Monitor.traceBegin;
-import static org.usf.inspect.core.Monitor.traceEnd;
-import static org.usf.inspect.core.Monitor.traceStep;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -29,6 +26,7 @@ import org.usf.inspect.core.DatabaseRequest2;
 import org.usf.inspect.core.DatabaseRequestCallback;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
+import org.usf.inspect.core.Monitor.StatefulMonitor;
 import org.usf.inspect.core.SessionContextManager;
 
 import lombok.Getter;
@@ -40,11 +38,10 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-final class DatabaseRequestMonitor {
+final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, DatabaseRequestCallback> {
 
 	private final ConnectionMetadataCache cache; //required
 
-	private DatabaseRequestCallback callback;
 	private boolean prepared;
 	private DatabaseCommand mainCommand;
 	private DatabaseRequestStage lastExec; // hold last stage
@@ -52,7 +49,7 @@ final class DatabaseRequestMonitor {
 	BatchStageHandler batchHandler = null;
 	
 	public ExecutionListener<Connection> connectionHandler() {
-		ExecutionListener<Connection> lstn = traceBegin(SessionContextManager::createDatabaseRequest, this::createCallback, (req,cnx)->{
+		ExecutionListener<Connection> lstn = traceBegin(SessionContextManager::createDatabaseRequest, (req,cnx)->{
 			if(nonNull(cnx) && !cache.isPresent()) {
 				cache.update(cnx.getMetaData());
 			}
@@ -72,8 +69,8 @@ final class DatabaseRequestMonitor {
 	}
 
 	//callback should be created before processing
-	DatabaseRequestCallback createCallback(DatabaseRequest2 session) { 
-		return callback = session.createCallback();
+	protected DatabaseRequestCallback createCallback(DatabaseRequest2 session) { 
+		return session.createCallback();
 	}
 	
 	public ExecutionListener<Object> statementStageHandler(String sql) {
@@ -89,7 +86,7 @@ final class DatabaseRequestMonitor {
 		if(nonNull(sql)) {
 			parseAndMergeCommand(sql);
 		}
-		return isNull(batchHandler) ? traceStep(callback, (s,e,v,t)-> {
+		return isNull(batchHandler) ? traceStep((s,e,v,t)-> {
 			var stg = callback.createStage(BATCH, s, e, t, null, new long[] {1});
 			if(nonNull(t)) {
 				return stg;
@@ -157,7 +154,7 @@ final class DatabaseRequestMonitor {
 		if(nonNull(sql)) { //statement
 			parseAndMergeCommand(sql); //command set on exec stg
 		}
-		return traceStep(callback, (s,e,o,t)-> {
+		return traceStep((s,e,o,t)-> {
 			lastExec = callback.createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
@@ -181,13 +178,11 @@ final class DatabaseRequestMonitor {
 	}
 
 	public <T> ExecutionListener<T> fetch(Instant start, int n) {
-		return traceStep(callback, //differed start 
-				(s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n})); 
+		return traceStep((s,e,o,t)-> callback.createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
 	}
 	
-	public ExecutionListener<Void> disconnectionHandler() { //sonar: used as lambda
-		ExecutionListener<Void> lstn = stageHandler(DISCONNECTION);
-		return lstn.then(traceEnd(callback));
+	public ExecutionListener<Object> disconnectionHandler() { //sonar: used as lambda
+		return stageHandler(DISCONNECTION).then(traceEnd());
 	}
 
 	<T> ExecutionListener<T> stageHandler(DatabaseAction action, String... args) {
@@ -195,7 +190,7 @@ final class DatabaseRequestMonitor {
 	}
 
 	<T> ExecutionListener<T> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return traceStep(callback, (s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
+		return traceStep((s,e,o,t)-> callback.createStage(action, s, e, t, cmd, args));
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

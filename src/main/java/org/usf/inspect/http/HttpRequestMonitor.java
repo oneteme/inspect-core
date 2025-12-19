@@ -5,9 +5,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.STREAM;
 import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.Monitor.traceBegin;
-import static org.usf.inspect.core.Monitor.traceEnd;
-import static org.usf.inspect.core.Monitor.traceStep;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 
 import org.springframework.http.HttpRequest;
@@ -23,24 +20,22 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 	
 	HttpRequestMonitor(HttpRequest request) {
 		var now = now();
-		traceBegin(t-> createHttpRequest(t, getId()), 
-				super::createCallback, 
-				(req,o)-> fillRequest(req, request.getMethod(), request.getURI(), request.getHeaders()))
+		traceBegin(t-> createHttpRequest(t, getId()), (req,o)-> 
+		fillRequest(req, request.getMethod(), request.getURI(), request.getHeaders()))
 		.safeHandle(now, now, null, null);
 	}
 
 	ExecutionListener<ClientHttpResponse> exchangeHandler() {
-		ExecutionListener<ClientHttpResponse> lstn = traceStep(callback, 
-				(s,e,r,t)-> createStage(EXCHANGE, s, e, t));
+		ExecutionListener<ClientHttpResponse> lstn = traceStep((s,e,r,t)-> createStage(EXCHANGE, s, e, t));
 		return lstn.then((s,e,res,t)->{
 			if(nonNull(t)) {
-				traceEnd(callback).handle(s, e, null, t); //close if error
+				traceEnd().handle(s, e, null, t); //close if error
 			}
 		});
 	}
 	
 	ExecutionListener<ResponseContent> responseHandler(ClientHttpResponse res){
-		ExecutionListener<ResponseContent> lstn = traceStep(callback, (s,e,cnt,t)-> {
+		ExecutionListener<ResponseContent> lstn = traceStep((s,e,cnt,t)-> {
 			if(nonNull(res)) {
 				try {//execute postExchange after reading response 
 					postExchange(res.getStatusCode(), res.getHeaders()); 
@@ -57,6 +52,6 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 			}
 			return createStage(STREAM, s, e, t);
 		});
-		return lstn.then(traceEnd(callback));
+		return lstn.then(traceEnd());
 	}
 }
