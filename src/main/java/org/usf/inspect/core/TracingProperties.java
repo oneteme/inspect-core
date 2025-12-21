@@ -20,7 +20,6 @@ public class TracingProperties { //add remote
 	private int queueCapacity = 50_000; // {n} max buffering traces, min=100
 	private RemoteServerProperties remote; //replace server
 	//v1.1
-	private boolean modifiable = true; //if true dispatch a trace copy
 	private DumpProperties dump = new DumpProperties();
 	
 	void validate() {

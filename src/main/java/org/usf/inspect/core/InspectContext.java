@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.lang.Math.max;
 import static java.lang.Runtime.getRuntime;
 import static java.lang.Thread.currentThread;
 import static java.util.Collections.synchronizedList;
@@ -12,6 +11,7 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 import static org.usf.inspect.core.DispatcherAgent.noAgent;
 import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.Helper.threadName;
@@ -55,16 +55,18 @@ public final class InspectContext implements Context {
 	private volatile boolean dispatching;
 	
 	InspectContext(InspectCollectorConfiguration configuration, DispatcherAgent agent, EventTraceBus eventBus) {
-		if(!configuration.isEnabled()) {
+		if(configuration.isEnabled()) {
+			this.configuration = configuration;
+			this.atomicState = new AtomicReference<>(configuration.getScheduling().getState());
+			this.agent = agent;
+			this.eventBus = eventBus;
+			var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 15s
+			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
+			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
+		}
+		else {
 			throw new IllegalStateException("cannot create InspectContext with disabled configuration");
 		}
-		this.configuration = configuration;
-		this.atomicState = new AtomicReference<>(configuration.getScheduling().getState());
-		this.agent = agent;
-		this.eventBus = eventBus;
-		var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 15s
-		this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
-		getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 	}
 	
 	@Override
@@ -99,7 +101,7 @@ public final class InspectContext implements Context {
 					executor.submit(()-> { //added task
 						try {
 							if(queue.size() > max) { //double check, may be dispatched by scheduled task
-								log.info("queue capacity exceeded threshold, triggering immediate dispatch ..");
+								log.warn("queue capacity exceeded threshold, triggering immediate dispatch ..");
 								dispatchTraces(false);
 							}
 						}
@@ -136,7 +138,7 @@ public final class InspectContext implements Context {
 
 	@Override
 	public boolean dispatch(InstanceEnvironment instance) { //dispatch immediately
-		if(scheduling() && atomicState.get().canDispatch()) {
+		if(scheduling() && atomicState.get().canCollect()) {
 			eventBus.triggerInstanceEmit(instance);
 			try {
 				agent.dispatch(instance);
@@ -166,7 +168,7 @@ public final class InspectContext implements Context {
 					mergeSessionMaskUpdates(snp);
 					var trc = snp;
 					eventBus.triggerTraceDispatch(this, unmodifiableList(trc));
-					log.trace("dispatching {} traces .., pending {} traces", trc.size(), 0);
+					log.trace("dispatching {} traces ..", trc.size());
 					trc = agent.dispatch(shutdown, trc);
 					if(trc.isEmpty()) {
 						log.trace("successfully dispatched {} items", trc.size());
@@ -184,7 +186,12 @@ public final class InspectContext implements Context {
 			warnException(e, "failed to dispatch traces");
 		}
 		finally {
-			removeIfCapacityExceeded(); // even not dispatched
+			try {
+				removeIfCapacityExceeded(); // even not dispatched
+			}
+			catch (Exception e) {
+				warnException(e, "removeIfCapacityExceeded");
+			}
 		}
 	}
 	
@@ -264,22 +271,20 @@ public final class InspectContext implements Context {
 	}
 	
 	static void mergeSessionMaskUpdates(List<EventTrace> traces){
-		var updates = traces.stream()
+		var call = traces.stream()
+		.filter(AbstractSessionCallback.class::isInstance)
+		.map(AbstractSessionCallback.class::cast)
+		.filter(c-> c.getRequestMask().get() > 0)
+		.map(c-> c.getId())
+		.collect(toSet());
+		
+		var updt = traces.stream()
 		.filter(SessionMaskUpdate.class::isInstance)
 		.map(SessionMaskUpdate.class::cast)
+		.filter(u-> !call.contains(u.getId()))
 		.collect(toMap(SessionMaskUpdate::getId, identity(), (a,b)-> a.getMask() > b.getMask() ? a : b));
-		traces.removeIf(t -> {
-	        if (t instanceof SessionMaskUpdate) {
-	        	return true;
-	        }
-	        if (t instanceof AbstractSessionCallback ses) {
-	            var upd = updates.get(ses.getId());
-	            if (upd != null) {
-	                ses.getRequestMask().updateAndGet(v -> max(v, upd.getMask()));
-	            }
-	        }
-	        return false;
-	    });
+
+		traces.removeIf(t -> t instanceof SessionMaskUpdate u && !updt.containsKey(u.getId()));
 	}
 
 	static String formatLog(String action, String msg, Throwable thwr) {

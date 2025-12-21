@@ -41,7 +41,6 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequest2, MailRequest
 		}, stageHandler(CONNECTION, null, null)); //before end if thrw
 	}
 	
-	//callback should be created before processing
 	protected MailRequestCallback createCallback(MailRequest2 session) { 
 		return session.createCallback();
 	}

@@ -34,7 +34,7 @@ public final class EventTraceBus {
 	}
 	
 	public void triggerTraceDispatch(Context ctx, List<EventTrace> traces){
-		triggerHooks(dispatchHooks, h-> h.onTraceDispatch(ctx, traces));
+		triggerHooks(dispatchHooks, h-> h.onDispatch(ctx, traces));
 	}
 	
 	static <T> void triggerHooks(List<T> hooks, Consumer<? super T> post){

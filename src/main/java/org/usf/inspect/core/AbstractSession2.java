@@ -24,7 +24,8 @@ public class AbstractSession2 implements Initializer {
 	private String name;  //title, topic
 	private String location; //class.method, URL
 	private String user;
-	private String instanceId; //for distributed tracing
+	private int requestMask;// thread safe
+	private String instanceId;
 	
 	public void setLocation(String className, String methodName) {
 		this.location = formatLocation(className, methodName);
