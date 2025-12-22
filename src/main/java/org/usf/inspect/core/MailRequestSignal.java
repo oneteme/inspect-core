@@ -12,17 +12,17 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class MailRequest2 extends AbstractRequest2 {
+public final class MailRequestSignal extends AbstractRequestSignal {
 
 	private String protocol; //smtp(s), imap, pop3
 	private String host;
 	private int port;
 
-	public MailRequest2(String id, String sessionId, Instant start, String threadName) {
+	public MailRequestSignal(String id, String sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 
-	public MailRequestCallback createCallback() {
-		return new MailRequestCallback(getId());
+	public MailRequestUpdate createCallback() {
+		return new MailRequestUpdate(getId());
 	}
 }

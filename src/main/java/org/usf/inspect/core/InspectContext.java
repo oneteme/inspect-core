@@ -214,10 +214,10 @@ public final class InspectContext implements Context {
 				if(snp.size() > max) {
 					var size = snp.size();
 					var call = snp.stream()
-							.filter(Callback.class::isInstance)
-							.map(Callback.class::cast)
-							.collect(toMap(Callback::getId, identity()));
-					snp.removeIf(t-> t instanceof Initializer in && !call.containsKey(in.getId()));
+							.filter(TraceUpdate.class::isInstance)
+							.map(TraceUpdate.class::cast)
+							.collect(toMap(TraceUpdate::getId, identity()));
+					snp.removeIf(t-> t instanceof TraceSignal in && !call.containsKey(in.getId()));
 					snp.removeAll(call.values()); //remove callbacks after their initializers
 					if(size > snp.size()) {
 						log.warn("removed {} traces of type {}", size - snp.size(), "Initializer/Callback");
@@ -288,7 +288,7 @@ public final class InspectContext implements Context {
 	
 	static void mergeSessionMaskUpdates(List<EventTrace> traces){
 		var call = traces.stream().mapMulti((t, c)-> {
-			if(t instanceof AbstractSessionCallback sc && sc.getRequestMask().get() > 0) {
+			if(t instanceof AbstractSessionUpdate sc && sc.getRequestMask().get() > 0) {
 				c.accept(sc.getId());
 			}
 		}).collect(toSet());

@@ -25,6 +25,6 @@ public final class HttpRequestInterceptor implements ClientHttpRequestIntercepto
 		var mnt = new HttpRequestMonitor();
 		request.getHeaders().set(TRACE_HEADER, mnt.getId());
 		var res = call(()-> execution.execute(request, body), mnt.exchangeHandler(request));
-		return new ClientHttpResponseWrapper(res, mnt.responseHandler(res));
+		return new ClientHttpResponseWrapper(res, mnt.responseHandler());
 	}
 }

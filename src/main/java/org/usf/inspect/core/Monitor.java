@@ -28,27 +28,27 @@ public interface Monitor {
 	
 	static final String EXECUTION_HANDLER_ACTION = "Monitor.executionHandler";
 
-	static <R> ExecutionListener<R> traceAroundHttp(HttpSession2 session, SafeConsumer<HttpSession2> preProcess) {
-		return traceAtomic(session, HttpSession2::createCallback, preProcess, null);
+	static <R> ExecutionListener<R> traceAroundHttp(HttpSessionSignal session, SafeConsumer<HttpSessionSignal> preProcess) {
+		return traceAtomic(session, HttpSessionSignal::createCallback, preProcess, null);
 	}
 
-	static <R> ExecutionListener<R> traceAroundHttp(HttpSession2 session, SafeConsumer<HttpSession2> preProcess, BiConsumer<HttpSessionCallback, R> postProcess) {
-		return traceAtomic(session, HttpSession2::createCallback, preProcess, postProcess);
+	static <R> ExecutionListener<R> traceAroundHttp(HttpSessionSignal session, SafeConsumer<HttpSessionSignal> preProcess, BiConsumer<HttpSessionUpdate, R> postProcess) {
+		return traceAtomic(session, HttpSessionSignal::createCallback, preProcess, postProcess);
 	}
 
-	static <R> ExecutionListener<R> traceAroundMethod(MainSession2 session, SafeConsumer<MainSession2> preProcess) {
-		return traceAtomic(session, MainSession2::createCallback, preProcess, null);
+	static <R> ExecutionListener<R> traceAroundMethod(MainSessionSignal session, SafeConsumer<MainSessionSignal> preProcess) {
+		return traceAtomic(session, MainSessionSignal::createCallback, preProcess, null);
 	}
 	
-	static <R> ExecutionListener<R> traceAroundMethod(MainSession2 session, SafeConsumer<MainSession2> preProcess, BiConsumer<MainSessionCallback, R> postProcess) {
-		return traceAtomic(session, MainSession2::createCallback, preProcess, postProcess);
+	static <R> ExecutionListener<R> traceAroundMethod(MainSessionSignal session, SafeConsumer<MainSessionSignal> preProcess, BiConsumer<MainSessionUpdate, R> postProcess) {
+		return traceAtomic(session, MainSessionSignal::createCallback, preProcess, postProcess);
 	}
 
-	static <R> ExecutionListener<R> traceAroundMethod(LocalRequest2 request, SafeConsumer<LocalRequest2> preProcess) {
-		return traceAtomic(request, LocalRequest2::createCallback, preProcess, null);
+	static <R> ExecutionListener<R> traceAroundMethod(LocalRequestSignal request, SafeConsumer<LocalRequestSignal> preProcess) {
+		return traceAtomic(request, LocalRequestSignal::createCallback, preProcess, null);
 	}
 	
-	static <T extends Initializer, U extends Callback & AtomicTrace, R> ExecutionListener<R> traceAtomic(T session, Function<T, U> callbackFn, SafeConsumer<T> preProcess, BiConsumer<U, R> postProcess) {
+	static <T extends TraceSignal, U extends TraceUpdate & AtomicTrace, R> ExecutionListener<R> traceAtomic(T session, Function<T, U> callbackFn, SafeConsumer<T> preProcess, BiConsumer<U, R> postProcess) {
 		try {
 			if(nonNull(preProcess)) {
 				preProcess.accept(session);
@@ -59,7 +59,7 @@ public interface Monitor {
 			context().reportError(true, EXECUTION_HANDLER_ACTION, e);
 		}
 		var callback = callbackFn.apply(session); 
-		if(callback instanceof AbstractSessionCallback ses) {
+		if(callback instanceof AbstractSessionUpdate ses) {
 			setActiveContext(ses);
 		}
 		return (s,e,o,t)-> {
@@ -79,13 +79,13 @@ public interface Monitor {
 				callback.setEnd(e);
 				context().emitTrace(callback);
 			}
-			if(callback instanceof AbstractSessionCallback ses) {
+			if(callback instanceof AbstractSessionUpdate ses) {
 				clearContext(ses);
 			}
 		};
 	}
 
-	static boolean assertStillOpened(Callback callback, String action) {
+	static boolean assertStillOpened(TraceUpdate callback, String action) {
 		if(nonNull(callback)) {
 			if(isNull(callback.getEnd())) {
 				return true;
@@ -104,7 +104,7 @@ public interface Monitor {
 		return true;
 	}
 	
-	public abstract class StatefulMonitor<T extends Initializer, V extends Callback> {
+	public abstract class StatefulMonitor<T extends TraceSignal, V extends TraceUpdate> {
 		
 		@Getter(AccessLevel.PROTECTED) 
 		private V callback;

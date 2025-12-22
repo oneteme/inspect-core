@@ -12,17 +12,17 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class LocalRequest2 extends AbstractRequest2 {
+public final class LocalRequestSignal extends AbstractRequestSignal {
 
 	private String name; //title, topic
 	private String type; //CONST, FILE, CACHE, .. 
 	private String location; //class.method, URL
 
-	public LocalRequest2(String id, String sessionId, Instant start, String threadName) {
+	public LocalRequestSignal(String id, String sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 
-	public LocalRequestCallback createCallback() {
-		return new LocalRequestCallback(getId());
+	public LocalRequestUpdate createCallback() {
+		return new LocalRequestUpdate(getId());
 	}
 }

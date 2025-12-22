@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class FtpRequest2 extends AbstractRequest2 {
+public final class FtpRequestSignal extends AbstractRequestSignal {
 
 	private String protocol; //FTP, FTPS => secure:boolean
 	private String host;
@@ -20,11 +20,11 @@ public class FtpRequest2 extends AbstractRequest2 {
 	private String serverVersion;
 	private String clientVersion;
 	
-	public FtpRequest2(String id, String sessionId, Instant start, String threadName) {
+	public FtpRequestSignal(String id, String sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 	
-	public FtpRequestCallback createCallback() {
-		return new FtpRequestCallback(getId());
+	public FtpRequestUpdate createCallback() {
+		return new FtpRequestUpdate(getId());
 	}
 }

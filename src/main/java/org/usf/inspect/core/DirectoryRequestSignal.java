@@ -12,17 +12,17 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DirectoryRequest2 extends AbstractRequest2 {
+public final class DirectoryRequestSignal extends AbstractRequestSignal {
 
 	private String protocol; // ldap, ldaps
 	private String host;  //IP, domain
 	private int port; // positive number, -1 otherwise
 	
-	public DirectoryRequest2(String id, String sessionId, Instant start, String threadName) {
+	public DirectoryRequestSignal(String id, String sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 
-	public DirectoryRequestCallback createCallback() {
-		return new DirectoryRequestCallback(getId());
+	public DirectoryRequestUpdate createCallback() {
+		return new DirectoryRequestUpdate(getId());
 	}
 }

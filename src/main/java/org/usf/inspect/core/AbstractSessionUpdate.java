@@ -17,7 +17,7 @@ import lombok.Setter;
  */
 @Getter
 @RequiredArgsConstructor
-public abstract class AbstractSessionCallback implements Callback, AtomicTrace {
+public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace {
 
 	private final String id;
 	private final boolean startup;
@@ -27,7 +27,7 @@ public abstract class AbstractSessionCallback implements Callback, AtomicTrace {
 	private Instant end;
 	@Setter private String name; //title, topic
 	@Setter private String user;
-	@Setter private String location; //class.method, URL
+	@Setter private String location; //class.method, URL, endpoint
 	@Setter private ExceptionInfo exception;
 	
 	public void setLocation(String className, String methodName) {

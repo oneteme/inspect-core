@@ -13,7 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class HttpSession2 extends AbstractSession2 {
+public final class HttpSessionSignal extends AbstractSessionSignal {
 	
 	//HttpRequest
 	private String method; //GET, POST, PUT,..
@@ -31,7 +31,7 @@ public class HttpSession2 extends AbstractSession2 {
 	private ExceptionInfo exception; //must replace failed
 	private boolean linked;
 
-	public HttpSession2(String id, Instant start, String threadName) {
+	public HttpSessionSignal(String id, Instant start, String threadName) {
 		super(id, start, threadName);
 	}
 
@@ -43,7 +43,7 @@ public class HttpSession2 extends AbstractSession2 {
 		setQuery(uri.getQuery());
 	}
 
-	public HttpSessionCallback createCallback() {
-		return new HttpSessionCallback(getId());
+	public HttpSessionUpdate createCallback() {
+		return new HttpSessionUpdate(getId());
 	}
 }

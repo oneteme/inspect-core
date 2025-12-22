@@ -17,28 +17,30 @@ import org.usf.inspect.core.InspectExecutor.ExecutionListener;
  */
 final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 
-	ExecutionListener<Object> exchangeHandler(HttpRequest request) {
+	ExecutionListener<ClientHttpResponse> exchangeHandler(HttpRequest request) {
 		return traceBegin(t->
 			createHttpRequest(t, getId()), 
 			(req,o)-> fillRequest(req, request.getMethod(), request.getURI(), request.getHeaders()),
-			traceStep((s,e,r,t)-> createStage(EXCHANGE, s, e, t)));
+			traceStep((s,e,res,t)-> {
+				if(nonNull(res)) {
+					try {//execute postExchange after reading response 
+						postExchange(res.getStatusCode(), res.getHeaders()); 
+					}
+					catch (Exception ex) {
+						context().reportError(true, "HttpRequestMonitor.exchangeHandler", ex);
+					}
+				}
+				return createStage(EXCHANGE, s, e, t);
+			}));
 	}
 	
-	ExecutionListener<ResponseContent> responseHandler(ClientHttpResponse res){
+	ExecutionListener<ResponseContent> responseHandler(){
 		return traceEnd(traceStep((s,e,cnt,t)-> {
-			if(nonNull(res)) {
-				try {//execute postExchange after reading response 
-					postExchange(res.getStatusCode(), res.getHeaders()); 
-				}
-				catch (Exception ex) {
-					context().reportError(true, "HttpRequestMonitor.postExchange", ex);
-				}
-			}
 			try {
 				postResponse(cnt);
 			}
 			catch (Exception ex) {
-				context().reportError(true, "HttpRequestMonitor.postResponse", ex);
+				context().reportError(true, "HttpRequestMonitor.responseHandler", ex);
 			}
 			return createStage(STREAM, s, e, t);
 		}));

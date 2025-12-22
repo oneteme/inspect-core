@@ -39,8 +39,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionContextManager {
 
-	private static final ThreadLocal<AbstractSessionCallback> localTrace = new InheritableThreadLocal<>();
-	private static AbstractSessionCallback startupContext; //avoid setting startup session on all thread local
+	private static final ThreadLocal<AbstractSessionUpdate> localTrace = new InheritableThreadLocal<>();
+	private static AbstractSessionUpdate startupContext; //avoid ThreadLocal for startup context
 	
     public static Runnable aroundRunnable(Runnable cmd) {
     	var ses = requireActiveContext();
@@ -69,11 +69,11 @@ public final class SessionContextManager {
 		return cmd;
     }
 
-    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSessionCallback ctx, Runnable callback) throws E {
+    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSessionUpdate ctx, Runnable callback) throws E {
     	aroundCallable(task, ctx, callback);
     }
     
-    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSessionCallback ctx, Runnable callback) throws E {
+    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSessionUpdate ctx, Runnable callback) throws E {
 		var prv = activeContext();
 		if(prv != ctx) {
 			setActiveContext(ctx);
@@ -94,7 +94,7 @@ public final class SessionContextManager {
 		}	
 	}
 	
-	public static AbstractSessionCallback requireActiveContext() {
+	public static AbstractSessionUpdate requireActiveContext() {
 		var ses = activeContext();
 		if(isNull(ses)) {
 			reportNoActiveContext("requireActiveContext");
@@ -106,12 +106,12 @@ public final class SessionContextManager {
 		return ses;
 	}
 
-	public static AbstractSessionCallback activeContext() {
+	public static AbstractSessionUpdate activeContext() {
 		var trc = localTrace.get();
 		return nonNull(trc) ? trc : startupContext; // priority
 	}
 
-	public static void setActiveContext(AbstractSessionCallback session) {
+	public static void setActiveContext(AbstractSessionUpdate session) {
 		if(session.isStartup()) {
 			if(startupContext != session) {
 				if(isNull(startupContext)) {
@@ -130,7 +130,7 @@ public final class SessionContextManager {
 		}
 	}
 	
-	public static void clearContext(AbstractSessionCallback ctx) {
+	public static void clearContext(AbstractSessionUpdate ctx) {
 		if(ctx.isStartup()) {
 			if(startupContext == ctx) {
 				if(ctx.wasCompleted()) { //reactor
@@ -158,57 +158,57 @@ public final class SessionContextManager {
 		}
 	}
 
-	public static HttpSession2 createHttpSession(Instant start, String uuid) {
-		var ses = new HttpSession2(requireNonNullElseGet(uuid, SessionContextManager::nextId), start, threadName());
+	public static HttpSessionSignal createHttpSession(Instant start, String uuid) {
+		var ses = new HttpSessionSignal(requireNonNullElseGet(uuid, SessionContextManager::nextId), start, threadName());
 		ses.setLinked(nonNull(uuid));
 		return ses;
 	}
 
-	static MainSession2 createStartupSession(Instant start, String uuid) {
+	static MainSessionSignal createStartupSession(Instant start, String uuid) {
 		return createMainSession(STARTUP, start, requireNonNullElseGet(uuid, SessionContextManager::nextId));
 	}
 
-	public static MainSession2 createBatchSession(Instant start) {
+	public static MainSessionSignal createBatchSession(Instant start) {
 		return createMainSession(BATCH, start, nextId());
 	}
 	
-	public static MainSession2 createTestSession(Instant start) {
+	public static MainSessionSignal createTestSession(Instant start) {
 		return createMainSession(TEST, start, nextId());
 	}
 	
-	static MainSession2 createMainSession(MainSessionType type, Instant start, String uuid) {
-		return new MainSession2(uuid, start, threadName(), type.name());
+	static MainSessionSignal createMainSession(MainSessionType type, Instant start, String uuid) {
+		return new MainSessionSignal(uuid, start, threadName(), type.name());
 	}
 
-	public static LocalRequest2 createLocalRequest(Instant start) {
-		return new LocalRequest2(nextId(), requireSessionIdFor(LOCAL), start, threadName());
+	public static LocalRequestSignal createLocalRequest(Instant start) {
+		return new LocalRequestSignal(nextId(), requireSessionIdFor(LOCAL), start, threadName());
 	}
 	
-	public static DatabaseRequest2 createDatabaseRequest(Instant start) {
-		return new DatabaseRequest2(nextId(), requireSessionIdFor(JDBC), start, threadName());
+	public static DatabaseRequestSignal createDatabaseRequest(Instant start) {
+		return new DatabaseRequestSignal(nextId(), requireSessionIdFor(JDBC), start, threadName());
 	}
 	
-	public static HttpRequest2 createHttpRequest(Instant start, String rid) {
-		return new HttpRequest2(rid, requireSessionIdFor(REST), start, threadName());
+	public static HttpRequestSignal createHttpRequest(Instant start, String rid) {
+		return new HttpRequestSignal(rid, requireSessionIdFor(REST), start, threadName());
 	}
 
-	public static FtpRequest2 createFtpRequest(Instant start) {
-		return new FtpRequest2(nextId(), requireSessionIdFor(FTP), start, threadName());
+	public static FtpRequestSignal createFtpRequest(Instant start) {
+		return new FtpRequestSignal(nextId(), requireSessionIdFor(FTP), start, threadName());
 	}
 	
-	public static MailRequest2 createMailRequest(Instant start) {
-		return new MailRequest2(nextId(), requireSessionIdFor(SMTP), start, threadName());
+	public static MailRequestSignal createMailRequest(Instant start) {
+		return new MailRequestSignal(nextId(), requireSessionIdFor(SMTP), start, threadName());
 	}
 
-	public static DirectoryRequest2 createNamingRequest(Instant start) {
-		return new DirectoryRequest2(nextId(), requireSessionIdFor(LDAP), start, threadName());
+	public static DirectoryRequestSignal createNamingRequest(Instant start) {
+		return new DirectoryRequestSignal(nextId(), requireSessionIdFor(LDAP), start, threadName());
 	}
 	
 	static String requireSessionIdFor(RequestMask mask) {
 		var ses = requireActiveContext();
 		if(nonNull(ses)) {
 			if(ses.updateMask(mask)) {
-				context().emitTrace(new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionCallback, ses.getRequestMask().get()));
+				context().emitTrace(new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ses.getRequestMask().get()));
 			}
 			return ses.getId();
 		}

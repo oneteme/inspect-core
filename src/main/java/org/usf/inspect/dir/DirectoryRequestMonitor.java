@@ -13,8 +13,8 @@ import javax.naming.directory.DirContext;
 
 import org.usf.inspect.core.DirAction;
 import org.usf.inspect.core.DirCommand;
-import org.usf.inspect.core.DirectoryRequest2;
-import org.usf.inspect.core.DirectoryRequestCallback;
+import org.usf.inspect.core.DirectoryRequestSignal;
+import org.usf.inspect.core.DirectoryRequestUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Monitor.StatefulMonitor;
 import org.usf.inspect.core.SessionContextManager;
@@ -24,7 +24,7 @@ import org.usf.inspect.core.SessionContextManager;
  * @author u$f
  *
  */
-final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequest2, DirectoryRequestCallback> {
+final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSignal, DirectoryRequestUpdate> {
 
 	ExecutionListener<DirContext> handleConnection() {
 		return traceBegin(SessionContextManager::createNamingRequest, (req,dir)->{
@@ -41,7 +41,7 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequest2, D
 	}
 	
 	//callback should be created before processing
-	protected DirectoryRequestCallback createCallback(DirectoryRequest2 session) { 
+	protected DirectoryRequestUpdate createCallback(DirectoryRequestSignal session) { 
 		return session.createCallback();
 	}
 

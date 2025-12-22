@@ -14,7 +14,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class HttpRequestCallback extends AbstractRequestCallback {
+public final class HttpRequestUpdate extends AbstractRequestUpdate {
 
 	private int status; //2xx, 4xx, 5xx, 0 otherwise 
 	private long dataSize; //in bytes, -1 unknown
@@ -24,7 +24,7 @@ public class HttpRequestCallback extends AbstractRequestCallback {
 	private boolean linked;
 
 	@JsonCreator
-	public HttpRequestCallback(String id) {
+	public HttpRequestUpdate(String id) {
 		super(id);
 	}
 

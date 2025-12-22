@@ -22,8 +22,8 @@ import java.util.stream.IntStream;
 
 import org.usf.inspect.core.DatabaseAction;
 import org.usf.inspect.core.DatabaseCommand;
-import org.usf.inspect.core.DatabaseRequest2;
-import org.usf.inspect.core.DatabaseRequestCallback;
+import org.usf.inspect.core.DatabaseRequestSignal;
+import org.usf.inspect.core.DatabaseRequestUpdate;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Monitor.StatefulMonitor;
@@ -38,7 +38,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, DatabaseRequestCallback> {
+final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal, DatabaseRequestUpdate> {
 
 	private final ConnectionMetadataCache cache; //required
 
@@ -68,7 +68,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequest2, Dat
 	}
 
 	//callback should be created before processing
-	protected DatabaseRequestCallback createCallback(DatabaseRequest2 session) { 
+	protected DatabaseRequestUpdate createCallback(DatabaseRequestSignal session) { 
 		return session.createCallback();
 	}
 	

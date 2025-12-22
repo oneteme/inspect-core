@@ -17,12 +17,12 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DirectoryRequestCallback extends AbstractRequestCallback {
+public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 
 	 private boolean failed;
 
 	@JsonCreator
-	public DirectoryRequestCallback(String id) {
+	public DirectoryRequestUpdate(String id) {
 		super(id);
 	}
 

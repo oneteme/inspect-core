@@ -17,7 +17,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class AbstractRequestCallback implements Callback, HasStage {
+public class AbstractRequestUpdate implements TraceUpdate, HasStage {
 
 	@JsonIgnore private final AtomicInteger stageCounter = new AtomicInteger();
 	

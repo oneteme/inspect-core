@@ -28,8 +28,8 @@ import java.time.Instant;
 import java.util.function.BooleanSupplier;
 
 import org.usf.inspect.core.HttpAction;
-import org.usf.inspect.core.HttpSession2;
-import org.usf.inspect.core.HttpSessionCallback;
+import org.usf.inspect.core.HttpSessionSignal;
+import org.usf.inspect.core.HttpSessionUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -50,7 +50,7 @@ public final class HttpSessionMonitor {
 	private final ExecutionListener<Void> handler;
 	
 	private Instant lastTimestamp;
-	private HttpSessionCallback callback;
+	private HttpSessionUpdate callback;
 	private boolean async;
 	
 	public HttpSessionMonitor(HttpServletRequest request, HttpServletResponse response) {
@@ -82,7 +82,7 @@ public final class HttpSessionMonitor {
 	}
 	
 	//callback should be created before processing
-	HttpSessionCallback createCallback(HttpSession2 session) { 
+	HttpSessionUpdate createCallback(HttpSessionSignal session) { 
 		return callback = session.createCallback();
 	}
 	

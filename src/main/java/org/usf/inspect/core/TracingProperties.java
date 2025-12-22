@@ -17,13 +17,13 @@ import lombok.ToString;
 @ToString
 public class TracingProperties { //add remote
 	
-	private int queueCapacity = 50_000; // {n} max buffering traces, min=100
+	private int queueCapacity = 100_000; // {n} max buffering traces, min=100
 	private RemoteServerProperties remote; //replace server
 	//v1.1
 	private DumpProperties dump = new DumpProperties();
 	
 	void validate() {
-		assertGreaterOrEquals(queueCapacity, 100, "queue-capacity");
+		assertGreaterOrEquals(queueCapacity, 10, "queue-capacity");
 		dump.validate();
 		if(nonNull(remote)) {
 			remote.validate();

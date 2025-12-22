@@ -16,7 +16,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class HttpSessionCallback extends AbstractSessionCallback implements HasStage {
+public final class HttpSessionUpdate extends AbstractSessionUpdate implements HasStage {
 	
 	@JsonIgnore private final AtomicInteger stageCounter = new AtomicInteger();
 
@@ -29,7 +29,7 @@ public class HttpSessionCallback extends AbstractSessionCallback implements HasS
 	private String cacheControl; //max-age, no-cache
 	
 	@JsonCreator
-	public HttpSessionCallback(String id) {
+	public HttpSessionUpdate(String id) {
 		super(id, false);
 	}
 

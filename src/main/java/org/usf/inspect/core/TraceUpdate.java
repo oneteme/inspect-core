@@ -7,7 +7,7 @@ import java.time.Instant;
  * @author u$f
  *
  */
-public interface Callback extends CompletableTrace {
+public interface TraceUpdate extends TracePart {
 	
 	Instant getEnd();
 	

@@ -7,8 +7,8 @@ import static org.usf.inspect.core.FtpAction.EXECUTE;
 
 import org.usf.inspect.core.FtpAction;
 import org.usf.inspect.core.FtpCommand;
-import org.usf.inspect.core.FtpRequest2;
-import org.usf.inspect.core.FtpRequestCallback;
+import org.usf.inspect.core.FtpRequestSignal;
+import org.usf.inspect.core.FtpRequestUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Monitor.StatefulMonitor;
 import org.usf.inspect.core.SessionContextManager;
@@ -20,7 +20,7 @@ import com.jcraft.jsch.ChannelSftp;
  * @author u$f
  *
  */
-final class FtpRequestMonitor extends StatefulMonitor<FtpRequest2, FtpRequestCallback> {
+final class FtpRequestMonitor extends StatefulMonitor<FtpRequestSignal, FtpRequestUpdate> {
 
 	ExecutionListener<Object> connectionHandler(ChannelSftp sftp) {
 		return traceBegin(SessionContextManager::createFtpRequest, (req,o)->{
@@ -37,7 +37,7 @@ final class FtpRequestMonitor extends StatefulMonitor<FtpRequest2, FtpRequestCal
 	}
 	
 	//callback should be created before processing
-	protected FtpRequestCallback createCallback(FtpRequest2 session) { 
+	protected FtpRequestUpdate createCallback(FtpRequestSignal session) { 
 		return session.createCallback();
 	}
 	

@@ -12,8 +12,8 @@ import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Mail;
 import org.usf.inspect.core.MailAction;
 import org.usf.inspect.core.MailCommand;
-import org.usf.inspect.core.MailRequest2;
-import org.usf.inspect.core.MailRequestCallback;
+import org.usf.inspect.core.MailRequestSignal;
+import org.usf.inspect.core.MailRequestUpdate;
 import org.usf.inspect.core.Monitor.StatefulMonitor;
 import org.usf.inspect.core.SessionContextManager;
 
@@ -27,7 +27,7 @@ import jakarta.mail.Transport;
  * @author u$f
  *
  */
-final class MailRequestMonitor extends StatefulMonitor<MailRequest2, MailRequestCallback> {
+final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRequestUpdate> {
 	
 	ExecutionListener<Object> handleConnection(Transport trsp) {
 		return traceBegin(SessionContextManager::createMailRequest, (req,v)->{
@@ -41,7 +41,7 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequest2, MailRequest
 		}, stageHandler(CONNECTION, null, null)); //before end if thrw
 	}
 	
-	protected MailRequestCallback createCallback(MailRequest2 session) { 
+	protected MailRequestUpdate createCallback(MailRequestSignal session) { 
 		return session.createCallback();
 	}
 

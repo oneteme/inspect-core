@@ -14,16 +14,16 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class MainSessionCallback extends AbstractSessionCallback {
+public final class MainSessionUpdate extends AbstractSessionUpdate {
 
 	private Instant start; //updated sometime after initialization
 
 	@JsonCreator
-	public MainSessionCallback(String id) {
+	public MainSessionUpdate(String id) {
 		this(id, false);
 	}
 	
-	MainSessionCallback(String id, boolean startup) {
+	MainSessionUpdate(String id, boolean startup) {
 		super(id, startup);
 	}
 }

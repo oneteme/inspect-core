@@ -17,12 +17,12 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class FtpRequestCallback extends AbstractRequestCallback {
+public final class FtpRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
 
 	@JsonCreator
-	public FtpRequestCallback(String id) {
+	public FtpRequestUpdate(String id) {
 		super(id);
 	}
 

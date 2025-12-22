@@ -14,13 +14,13 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class LocalRequestCallback extends AbstractRequestCallback implements AtomicTrace {
+public final class LocalRequestUpdate extends AbstractRequestUpdate implements AtomicTrace {
 
 	private Instant start; //real start
 	private ExceptionInfo exception; 
 
 	@JsonCreator
-	public LocalRequestCallback(String id) {
+	public LocalRequestUpdate(String id) {
 		super(id);
 	}
 }

@@ -12,16 +12,16 @@ import lombok.Getter;
  *
  */
 @Getter
-public class MainSession2 extends AbstractSession2 {
+public final class MainSessionSignal extends AbstractSessionSignal {
 
 	private final String type;
 
-	public MainSession2(String id, Instant start, String threadName, String type) {
+	public MainSessionSignal(String id, Instant start, String threadName, String type) {
 		super(id, start, threadName);
 		this.type= type;
 	}
 
-	public MainSessionCallback createCallback() {
-		return new MainSessionCallback(getId(), STARTUP.name().equals(type));
+	public MainSessionUpdate createCallback() {
+		return new MainSessionUpdate(getId(), STARTUP.name().equals(type));
 	}
 }

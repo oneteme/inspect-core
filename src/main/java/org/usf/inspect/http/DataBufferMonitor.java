@@ -6,7 +6,6 @@ import static org.usf.inspect.core.InspectContext.context;
 
 import java.time.Instant;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -34,7 +33,6 @@ final class DataBufferMonitor implements ResponseContent {
 	
 	Flux<DataBuffer> handle(Flux<DataBuffer> flux, boolean readContent) {
 		start = now();
-		var done = new AtomicBoolean(false);
 		return flux.map(db-> {
 			try {
 				var nb = db.readableByteCount();
@@ -52,11 +50,7 @@ final class DataBufferMonitor implements ResponseContent {
 		.doOnNext(db-> size+= db.readableByteCount())
     	.doOnError(e-> throwable = e)
     	.doOnCancel(()-> throwable = new CancellationException("cancelled"))
-    	.doFinally(v-> { //called twice on cancel ?
-    		if(done.compareAndSet(false, true)) {
-    			listener.safeHandle(start, now(), this, throwable);
-    		}
-    	});
+    	.doFinally(v-> listener.safeHandle(start, now(), this, throwable));
 	}
 	
 	@Override

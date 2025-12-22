@@ -14,7 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public abstract class AbstractRequest2 implements Initializer {
+public abstract class AbstractRequestSignal implements TraceSignal {
 
 	private final String id;
 	private final String sessionId;

@@ -73,7 +73,7 @@ public class MethodExecutionMonitor implements Ordered {
 			req.setType(EXEC.name());
 			req.setName(resolveStageName(point));
 			req.setLocation(locationFrom(point));
-			//set user !
+			req.setUser(userProvider.getUser(point, req.getName()));
 		}));
 	}
 
@@ -83,7 +83,7 @@ public class MethodExecutionMonitor implements Ordered {
 			req.setType(CACHE.name());
 			req.setName(getCacheableName(point));
 			req.setLocation(locationFrom(point));
-			//set user !
+			req.setUser(userProvider.getUser(point, req.getName()));
 		}));
 	}
 

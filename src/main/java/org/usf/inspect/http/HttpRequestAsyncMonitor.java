@@ -32,30 +32,27 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 			traceStep((s,e,o,t)-> createStage(ASSEMBLY, s, e, t)));
 	}
 
-	public void postExchange(Throwable thrw) {
+	public void postExchange(ClientResponse res, Throwable thrw) {
 		var now = now();
-		traceStep((s,e,o,t)-> createStage(EXCHANGE, s, e, t))
-		.safeHandle(lastTimestamp, now, null, thrw);
-	}
-	
-	public ExecutionListener<ResponseContent> postResponse(ClientResponse response){ //read header after response
-		return traceStep((s,e,res,t)-> {
-			if(nonNull(res)) {
-				try {
-					postExchange(response.statusCode(), response.headers().asHttpHeaders());
-				}
-				catch (Exception ex) {
-					context().reportError(true, "HttpRequestMonitor.postExchange", ex);
-				}
-			}
+		if(nonNull(res)) {
 			try {
-				postResponse(res);
+				postExchange(res.statusCode(), res.headers().asHttpHeaders());
 			}
 			catch (Exception ex) {
-				context().reportError(true, "HttpRequestMonitor.postResponse", ex);
+				context().reportError(true, "HttpRequestMonitor.postExchange", ex);
 			}
-			return createStage(STREAM, lastTimestamp, e, t);
-		});
+		}
+		traceStep((s,e,o,t)-> createStage(EXCHANGE, s, e, t)).safeHandle(lastTimestamp, now, null, thrw);
+	}
+	
+	public void postResponse(Instant start, Instant end, ResponseContent ctn, Throwable thrw){ //read header after response
+		try {
+			super.postResponse(ctn);
+		}
+		catch (Exception ex) {
+			context().reportError(true, "HttpRequestMonitor.postResponse", ex);
+		}
+		traceStep((s,e,o,t)-> createStage(STREAM, s, e, t)).safeHandle(start, end, null, thrw);
 	}
 		
 	public void complete() {

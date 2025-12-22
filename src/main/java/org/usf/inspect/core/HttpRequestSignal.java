@@ -13,7 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class HttpRequest2 extends AbstractRequest2 {
+public final class HttpRequestSignal extends AbstractRequestSignal {
 
 	private String method; //GET, POST, PUT,..
 	private String protocol; //HTTP, HTTPS
@@ -25,7 +25,7 @@ public class HttpRequest2 extends AbstractRequest2 {
 	private long dataSize; //in bytes, -1 unknown
 	private String contentEncoding; //gzip, compress, identity,..
 
-	public HttpRequest2(String id, String sessionId, Instant start, String threadName) {
+	public HttpRequestSignal(String id, String sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 
@@ -37,7 +37,7 @@ public class HttpRequest2 extends AbstractRequest2 {
 		setQuery(uri.getQuery());
 	}
 
-	public HttpRequestCallback createCallback() {
-		return new HttpRequestCallback(getId());
+	public HttpRequestUpdate createCallback() {
+		return new HttpRequestUpdate(getId());
 	}
 }

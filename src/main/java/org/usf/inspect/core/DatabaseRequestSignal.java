@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DatabaseRequest2 extends AbstractRequest2 {
+public final class DatabaseRequestSignal extends AbstractRequestSignal {
 
 	private String scheme;
 	private String host; //IP, domaine
@@ -23,11 +23,11 @@ public class DatabaseRequest2 extends AbstractRequest2 {
 	private String productName;
 	private String productVersion;
 	
-	public DatabaseRequest2(String id, String sessionId, Instant start, String threadName) {
+	public DatabaseRequestSignal(String id, String sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 
-	public DatabaseRequestCallback createCallback() {
-		return new DatabaseRequestCallback(getId());
+	public DatabaseRequestUpdate createCallback() {
+		return new DatabaseRequestUpdate(getId());
 	}
 }

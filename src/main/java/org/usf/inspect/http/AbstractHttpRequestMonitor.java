@@ -17,8 +17,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.usf.inspect.core.HttpAction;
-import org.usf.inspect.core.HttpRequest2;
-import org.usf.inspect.core.HttpRequestCallback;
+import org.usf.inspect.core.HttpRequestSignal;
+import org.usf.inspect.core.HttpRequestUpdate;
 import org.usf.inspect.core.HttpRequestStage;
 import org.usf.inspect.core.Monitor.StatefulMonitor;
 
@@ -29,17 +29,16 @@ import lombok.Getter;
  * @author u$f
  *
  */
-class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequest2, HttpRequestCallback> {
+class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, HttpRequestUpdate> {
 
 	@Getter
 	private final String id = nextId();
 	
-	//callback should be created before processing
-	protected HttpRequestCallback createCallback(HttpRequest2 session) { 
+	protected HttpRequestUpdate createCallback(HttpRequestSignal session) { 
 		return session.createCallback();
 	}
 	
-	void fillRequest(HttpRequest2 req, HttpMethod method, URI uri, HttpHeaders headers) {
+	void fillRequest(HttpRequestSignal req, HttpMethod method, URI uri, HttpHeaders headers) {
 		if(nonNull(method)) {
 			req.setMethod(method.name());
 		}
@@ -65,19 +64,17 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequest2, HttpReque
 			callback.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
 			callback.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
 		}
+		callback.setDataSize(-1); //reset size before streaming
 	}
 	
 	void postResponse(ResponseContent cnt){
 //		request.setThreadName(threadName()); //deferred thread
-		var callback = getCallback();
 		if(nonNull(cnt)) {
+			var callback = getCallback();
 			callback.setDataSize(cnt.contentSize());
 			if(nonNull(cnt.contentBytes())) {
 				callback.setBodyContent(new String(cnt.contentBytes(), UTF_8));
 			}
-		}
-		else {
-			callback.setDataSize(-1);
 		}
 	}
 	
