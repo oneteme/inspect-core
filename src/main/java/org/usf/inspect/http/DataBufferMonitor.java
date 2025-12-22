@@ -26,7 +26,6 @@ import reactor.core.publisher.Flux;
 final class DataBufferMonitor implements ResponseContent {
 
 	private final ExecutionListener<ResponseContent> listener;
-	private final AtomicBoolean done = new AtomicBoolean(false);
 
 	private byte[] bytes;
 	private long size;
@@ -35,6 +34,7 @@ final class DataBufferMonitor implements ResponseContent {
 	
 	Flux<DataBuffer> handle(Flux<DataBuffer> flux, boolean readContent) {
 		start = now();
+		var done = new AtomicBoolean(false);
 		return flux.map(db-> {
 			try {
 				var nb = db.readableByteCount();
@@ -52,7 +52,7 @@ final class DataBufferMonitor implements ResponseContent {
 		.doOnNext(db-> size+= db.readableByteCount())
     	.doOnError(e-> throwable = e)
     	.doOnCancel(()-> throwable = new CancellationException("cancelled"))
-    	.doFinally(v-> { //called 2 times
+    	.doFinally(v-> { //called twice on cancel ?
     		if(done.compareAndSet(false, true)) {
     			listener.safeHandle(start, now(), this, throwable);
     		}

@@ -59,7 +59,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 		updateExecutionListener(context, hndl-> traceAroundMethod(createTestSession(now()), ses-> { 
 			ses.setName(context.getDisplayName());
 			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
-			//set user
+			//set test user
 		}));
 	}
 	

@@ -27,7 +27,7 @@ public final class Junit4TestMonitor implements TestRule {
 				exec(base::evaluate, traceAroundMethod(createTestSession(now()), ses-> {
 					ses.setName(dscr.getDisplayName());
 					ses.setLocation(dscr.getClassName(), dscr.getMethodName());
-					//set user
+					//set test user
 				}));
 			}
 		};
