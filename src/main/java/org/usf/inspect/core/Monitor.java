@@ -29,26 +29,26 @@ public interface Monitor {
 	static final String EXECUTION_HANDLER_ACTION = "Monitor.executionHandler";
 
 	static <R> ExecutionListener<R> traceAroundHttp(HttpSession2 session, SafeConsumer<HttpSession2> preProcess) {
-		return traceAround(session, HttpSession2::createCallback, preProcess, null);
+		return traceAtomic(session, HttpSession2::createCallback, preProcess, null);
 	}
 
 	static <R> ExecutionListener<R> traceAroundHttp(HttpSession2 session, SafeConsumer<HttpSession2> preProcess, BiConsumer<HttpSessionCallback, R> postProcess) {
-		return traceAround(session, HttpSession2::createCallback, preProcess, postProcess);
+		return traceAtomic(session, HttpSession2::createCallback, preProcess, postProcess);
 	}
 
 	static <R> ExecutionListener<R> traceAroundMethod(MainSession2 session, SafeConsumer<MainSession2> preProcess) {
-		return traceAround(session, MainSession2::createCallback, preProcess, null);
+		return traceAtomic(session, MainSession2::createCallback, preProcess, null);
 	}
 	
 	static <R> ExecutionListener<R> traceAroundMethod(MainSession2 session, SafeConsumer<MainSession2> preProcess, BiConsumer<MainSessionCallback, R> postProcess) {
-		return traceAround(session, MainSession2::createCallback, preProcess, postProcess);
+		return traceAtomic(session, MainSession2::createCallback, preProcess, postProcess);
 	}
 
 	static <R> ExecutionListener<R> traceAroundMethod(LocalRequest2 request, SafeConsumer<LocalRequest2> preProcess) {
-		return traceAround(request, LocalRequest2::createCallback, preProcess, null);
+		return traceAtomic(request, LocalRequest2::createCallback, preProcess, null);
 	}
 	
-	static <T extends Initializer, U extends Callback & AtomicTrace, R> ExecutionListener<R> traceAround(T session, Function<T, U> callbackFn, SafeConsumer<T> preProcess, BiConsumer<U, R> postProcess) {
+	static <T extends Initializer, U extends Callback & AtomicTrace, R> ExecutionListener<R> traceAtomic(T session, Function<T, U> callbackFn, SafeConsumer<T> preProcess, BiConsumer<U, R> postProcess) {
 		try {
 			if(nonNull(preProcess)) {
 				preProcess.accept(session);
@@ -107,7 +107,7 @@ public interface Monitor {
 	public abstract class StatefulMonitor<T extends Initializer, V extends Callback> {
 		
 		@Getter(AccessLevel.PROTECTED) 
-		private V callback; //make it private with accessor?
+		private V callback;
 		
 		protected abstract V createCallback(T session);
 

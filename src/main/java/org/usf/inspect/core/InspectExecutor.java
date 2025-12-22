@@ -54,12 +54,5 @@ public final class InspectExecutor {
 				context().reportError(true, "ExecutionMonitor.safeHandle", ex);
 			}
 		}
-		
-		default ExecutionListener<T> then(ExecutionListener<? super T> listener) {
-			return (s,e,o,t)-> {
-				this.safeHandle(s, e, o, t);
-				listener.handle(s, e, o, t);
-			};
-		}
 	}
 }

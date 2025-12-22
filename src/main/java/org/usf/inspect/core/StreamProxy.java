@@ -34,7 +34,7 @@ public final class StreamProxy {
 			var ctx = requireActiveContext();
 			if(nonNull(ctx)) {
 				stream = stream.parallel().map(c-> {
-					setActiveContext(ctx);
+					setActiveContext(ctx); // propagate context
 					return c;
 				});
 			}

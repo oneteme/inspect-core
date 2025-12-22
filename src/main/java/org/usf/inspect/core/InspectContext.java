@@ -52,7 +52,7 @@ public final class InspectContext implements Context {
 	private final ProcessingQueue<EventTrace> queue = new ProcessingQueue<>();
 	private final List<DispatchTask> tasks = synchronizedList(new ArrayList<>());
 	
-	private volatile boolean dispatching;
+	private volatile boolean dispatchNow;
 	
 	InspectContext(InspectCollectorConfiguration configuration, DispatcherAgent agent, EventTraceBus eventBus) {
 		if(configuration.isEnabled()) {
@@ -96,8 +96,8 @@ public final class InspectContext implements Context {
 		var max = configuration.getTracing().getQueueCapacity() *.9;
 		if(queue.size() > max) {
 			synchronized(this) {
-				if(!dispatching) {
-					dispatching = true;
+				if(!dispatchNow) { //make sure only one dispatching task is submitted
+					dispatchNow = true;
 					executor.submit(()-> { //added task
 						try {
 							if(queue.size() > max) { //double check, may be dispatched by scheduled task
@@ -106,9 +106,12 @@ public final class InspectContext implements Context {
 							}
 						}
 						finally {
-							dispatching = false;
+							dispatchNow = false;
 						}
 					});
+				}
+				else {
+					log.debug("dispatching task is already submitted");
 				}
 			}
 		}
@@ -131,8 +134,8 @@ public final class InspectContext implements Context {
 					: null;
 			queue.add(logEntry(REPORT, msg, arr)); //do not use emitTrace to avoid call hooks 
 		}
-		else { //debug mode
-			log.warn(msg);
+		if(configuration.isDebugMode()) {
+			log.debug(msg, cause);			
 		}
 	}
 
@@ -163,15 +166,14 @@ public final class InspectContext implements Context {
 	void dispatchTraces(boolean shutdown) { //last shutdown hook only
 		try {
 			if(atomicState.get().canDispatch()) {
-				var max = configuration.getTracing().getQueueCapacity();
-				queue.pollAll(max, snp->{
+				queue.pollAll(snp->{
 					mergeSessionMaskUpdates(snp);
 					var trc = snp;
 					eventBus.triggerTraceDispatch(this, unmodifiableList(trc));
 					log.trace("dispatching {} traces ..", trc.size());
 					trc = agent.dispatch(shutdown, trc);
 					if(trc.isEmpty()) {
-						log.trace("successfully dispatched {} items", trc.size());
+						log.trace("successfully dispatched {} items", snp.size());
 					}
 					else if(trc.size() < snp.size()) {
 						log.warn("partially dispatched traces, {} items could not be dispatched", trc.size());
@@ -190,7 +192,7 @@ public final class InspectContext implements Context {
 				removeIfCapacityExceeded(); // even not dispatched
 			}
 			catch (Exception e) {
-				warnException(e, "removeIfCapacityExceeded");
+				warnException(e, "failed to remove traces as capacity exceeded");
 			}
 		}
 	}
@@ -198,19 +200,33 @@ public final class InspectContext implements Context {
 	void removeIfCapacityExceeded() {
 		var max = configuration.getTracing().getQueueCapacity();
 		if(queue.size() > max) {
+			log.warn("queue capacity exceeded, removing traces ..");
 			var arr = new Class[] {AbstractStage.class, MachineResourceUsage.class, LogEntry.class, SessionMaskUpdate.class};
-			queue.pollAll(max, snp->{
-				for(var typ : arr) {
+			queue.pollAll(snp->{
+				var i=0;
+				do {
 					var size = snp.size();
-					if(size > max) {
-						snp.removeIf(typ::isInstance);
-						if(size > snp.size()) {
-							log.warn("removed {} traces of type {}", size - snp.size(), typ.getSimpleName());
-						}
+					snp.removeIf(arr[i]::isInstance);
+					if(size > snp.size()) {
+						log.warn("removed {} traces of type {}", size - snp.size(), arr[i].getSimpleName());
 					}
-					else {
-						break;
+				} while(++i<arr.length && snp.size() > max);
+				if(snp.size() > max) {
+					var size = snp.size();
+					var call = snp.stream()
+							.filter(Callback.class::isInstance)
+							.map(Callback.class::cast)
+							.collect(toMap(Callback::getId, identity()));
+					snp.removeIf(t-> t instanceof Initializer in && !call.containsKey(in.getId()));
+					snp.removeAll(call.values()); //remove callbacks after their initializers
+					if(size > snp.size()) {
+						log.warn("removed {} traces of type {}", size - snp.size(), "Initializer/Callback");
 					}
+				}
+				if(snp.size() > max) {
+					log.warn("still {} traces cannot be removed, clearing all the queue", snp.size());
+					snp.clear();
+					queue.setWaste(true); //disable further adding, avoid dispatch callback without initializer
 				}
 				return snp;
 			});
@@ -237,7 +253,7 @@ public final class InspectContext implements Context {
 	}
 
 	public boolean setState(DispatchState state) {
-		if(scheduling()) {
+		if(configuration.isEnabled() && scheduling()) { //cannot change state if disabled or shut down
 			atomicState.set(state);
 			return true;
 		}
@@ -271,19 +287,16 @@ public final class InspectContext implements Context {
 	}
 	
 	static void mergeSessionMaskUpdates(List<EventTrace> traces){
-		var call = traces.stream()
-		.filter(AbstractSessionCallback.class::isInstance)
-		.map(AbstractSessionCallback.class::cast)
-		.filter(c-> c.getRequestMask().get() > 0)
-		.map(c-> c.getId())
-		.collect(toSet());
-		
+		var call = traces.stream().mapMulti((t, c)-> {
+			if(t instanceof AbstractSessionCallback sc && sc.getRequestMask().get() > 0) {
+				c.accept(sc.getId());
+			}
+		}).collect(toSet());
 		var updt = traces.stream()
-		.filter(SessionMaskUpdate.class::isInstance)
-		.map(SessionMaskUpdate.class::cast)
-		.filter(u-> !call.contains(u.getId()))
-		.collect(toMap(SessionMaskUpdate::getId, identity(), (a,b)-> a.getMask() > b.getMask() ? a : b));
-
+			.filter(SessionMaskUpdate.class::isInstance)
+			.map(SessionMaskUpdate.class::cast)
+			.filter(u-> !call.contains(u.getId()))
+			.collect(toMap(SessionMaskUpdate::getId, identity(), (a,b)-> a.getMask() > b.getMask() ? a : b));
 		traces.removeIf(t -> t instanceof SessionMaskUpdate u && !updt.containsKey(u.getId()));
 	}
 
@@ -303,10 +316,10 @@ public final class InspectContext implements Context {
 		return sb.toString();
 	}
 
-	static void warnException(Throwable t, String msg, Object... args) {
+	void warnException(Throwable t, String msg, Object... args) {
 		log.warn(msg, args);
 		log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
-		if(log.isDebugEnabled()) {
+		if(configuration.isDebugMode()) {
 			while(nonNull(t.getCause()) && t != t.getCause()) {
 				t = t.getCause();
 				log.warn("  Caused by {} : {}", t.getClass().getSimpleName(), t.getMessage());
@@ -349,12 +362,14 @@ public final class InspectContext implements Context {
 		if(conf.isEnabled()) {
 			var eventBus = new EventTraceBus();
 			if(conf.getMonitoring().getResources().isEnabled()) {
+				log.info("machine resource monitoring is enabled");
 				eventBus.registerHook(new MachineResourceMonitor(conf.getMonitoring().getResources().getDisk()));
 			}
 //			if(conf.isDebugMode()) {
 //				bus.registerHook(new EventTraceDebugger())
 //			}
 			if(conf.getTracing().getDump().isEnabled()) {
+				log.info("event trace dumping is enabled, location={}", conf.getTracing().getDump().getLocation());
 				eventBus.registerHook(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), nextId()), mapper));
 			}
 			return new InspectContext(conf, agent, eventBus);

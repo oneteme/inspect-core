@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.usf.inspect.core.SessionContextManager;
 
+import reactor.core.publisher.Hooks;
+
 
 /**
  * 
@@ -27,6 +29,7 @@ public class ReactorModuleConfiguration {
 	static {
 		setExecutorServiceDecorator("inspect-executor-decorator", (sc,es)-> wrap(es, "ReactorExecutorService"));
 		onScheduleHook("inspect-schedule-hook", SessionContextManager::aroundRunnable); //custom schedules
+		Hooks.enableAutomaticContextPropagation();
 	}
 
     @Bean

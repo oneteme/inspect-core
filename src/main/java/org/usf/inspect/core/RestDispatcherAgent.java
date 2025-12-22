@@ -48,8 +48,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	private int attempts = 0;
 
 	private InstanceEnvironment instance;
-	private boolean registred = false;
-	
+	private boolean registred;
 
 	public RestDispatcherAgent(RestRemoteServerProperties properties, ObjectMapper mapper) {
 		this(properties, mapper, defaultRestTemplate(properties, mapper));
@@ -62,12 +61,12 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 
 	@Override
 	public List<EventTrace> dispatch(boolean complete, List<EventTrace> traces)  {
-		assertInstanceRegistred();
+		var id = getOrRegisterInstanceId();
 		try {
 			var uri = fromUriString(properties.getTracesURI())
 					.queryParam("attempts", ++attempts)
 					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
-					.buildAndExpand(instance.getId()).toUri();
+					.buildAndExpand(id).toUri();
 			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
 			attempts = 0;
 			return emptyList(); //no partial dispatch
@@ -76,48 +75,50 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 			if(shouldRetry(e)) {
 				throw new DispatchException("traces dispatch error", e);
 			} //else may be lost
+			log.warn("dispatching {} traces failed, will not retry", traces.size());
 			return emptyList();
 		}
 	}
 	
 	@Override
 	public void dispatch(File dumpFile) {
-		assertInstanceRegistred();
+		var id = getOrRegisterInstanceId();
 		try {
 			var uri = fromUriString(properties.getTracesURI())
 					.queryParam("attempts", attempts)
 					.queryParam("filename", dumpFile.getName())
-					.buildAndExpand(instance.getId()).toUri();
+					.buildAndExpand(id).toUri();
 			template.put(uri, mapper.readTree(dumpFile)); //use dispatch splitor
 		}
 		catch (RestClientException e) { //server / client ?
 			if(shouldRetry(e)) {
-				throw new DispatchException("dump file dispatch error", e);
+				throw new DispatchException("file dispatch error", e);
 			} //else may be lost
+			log.warn("file dispatch failed, will not retry {}", dumpFile);
 		}
 		catch (IOException e) {
-			throw new DispatchException("dump file read error " + dumpFile, e);
+			throw new DispatchException("file dispatch error", e);
 		}
 	}
 	
-	void assertInstanceRegistred() {
-		if(!registred) {
-			if(nonNull(instance)) {
-				try {
-					++attempts;
-					template.postForObject(properties.getInstanceURI(), instance, String.class);
-					registred = true;
-					attempts = 0;
-					log.info("instance was registred with id={}", instance.getId());
-				}
-				catch(RestClientException e) {//server / client ?
-					throw new DispatchException("instance register error", e);
-				}
+	String getOrRegisterInstanceId() {
+		if(registred) {
+			return instance.getId();
+		}
+		if(nonNull(instance)) {
+			try {
+				++attempts;
+				template.postForObject(properties.getInstanceURI(), instance, String.class);
+				registred = true;
+				attempts = 0;
+				log.info("instance was registred with id={}", instance.getId());
+				return instance.getId();
 			}
-			else {
-				throw new DispatchException("instance is null or not started yet");
+			catch(RestClientException e) {//server / client ?
+				throw new DispatchException("instance registration failed", e);
 			}
 		}
+		throw new DispatchException("instance environment not set");
 	}
 
 	boolean shouldRetry(RestClientException e) {
@@ -149,14 +150,14 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 //				.additionalInterceptors(new HttpRequestInterceptor())
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
 		if(properties.getCompressMinSize() > 0) {
-			rt = rt.interceptors(bodyCompressionInterceptor(properties));
+			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
 		}
 		return rt.build();
 	}
 
-	static ClientHttpRequestInterceptor bodyCompressionInterceptor(final RestRemoteServerProperties properties) {
+	static ClientHttpRequestInterceptor bodyCompressionInterceptor(int size) {
 		return (req, body, exec)->{
-			if(body.length >= properties.getCompressMinSize()) {
+			if(body.length >= size) {
 				var baos = new ByteArrayOutputStream();
 				try (var gos = new GZIPOutputStream(baos)) {
 					gos.write(body);

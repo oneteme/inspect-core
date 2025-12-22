@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.net.URI.create;
 import static java.time.Duration.ofDays;
-import static java.util.Objects.isNull;
 import static org.usf.inspect.core.Assertions.assertAbsolute;
 import static org.usf.inspect.core.Assertions.assertBetween;
 import static org.usf.inspect.core.Assertions.assertPositive;
@@ -27,25 +26,20 @@ import lombok.ToString;
 @JsonIgnoreProperties({"instanceURI", "tracesURI"})
 public final class RestRemoteServerProperties implements RemoteServerProperties {
 	
-	private static final String INSTANCE_DEFAULT_URI = "v4/trace/instance"; //[POST] Sync
-	private static final String TRACES_DEFAULT_URI  = "v4/trace/instance/{id}/session"; //[PUT] Async
-	
 	private URI host = create("http://localhost:9000/");
-	private String instanceURI;
-	private String tracesURI;
+	private String instanceURI = "v4/trace/instance"; //[POST] Sync
+	private String tracesURI = "v4/trace/instance/{id}/session"; //[PUT] Async
 	private int compressMinSize = 0; // size in bytes, 0: no compression
 	//v1.1
 	private Duration retentionMaxAge = ofDays(30);
-	private int packetSize = 100_000;
 	
 	@Override
 	public void validate() {
 		assertAbsolute(host, "host");
 		var base = host.resolve("/").toString(); // append '/' if not present
-		instanceURI = base + (isNull(instanceURI) ? INSTANCE_DEFAULT_URI : instanceURI);
-		tracesURI = base + (isNull(tracesURI) ? TRACES_DEFAULT_URI : tracesURI);
+		instanceURI = base + instanceURI;
+		tracesURI = base + tracesURI;
 		assertPositive(compressMinSize, "compress-min-size");
-		assertPositive(packetSize, "packet-size");
 		assertBetween(retentionMaxAge, ofDays(1), ofDays(365), "retention-max-age");
 	}
 }

@@ -33,14 +33,12 @@ public final class EventTraceDumper implements DispatchHook {
 		this.writer = mapper.writerFor(new TypeReference<Collection<EventTrace>>() {});
 	}
 
-//	@Override
+//	@Override disable for now
 	public void postDispatch(Context ctx, ProcessingQueue<EventTrace> manager) {
-//		if(manager.isQueueCapacityExceeded()) {
-			manager.pollAll(ctx.isCompleted() ? 0 : -1, trc->{
-				ctx.emitTask(dispatchFileTask(ctx, writeTraces(trc)));
-				return Collections.emptyList();
-			});
-//		}
+		manager.pollAll(trc->{
+			ctx.emitTask(dispatchFileTask(ctx, writeTraces(trc)));
+			return Collections.emptyList();
+		});
 	}
 	
 	File writeTraces(Collection<EventTrace> traces) {

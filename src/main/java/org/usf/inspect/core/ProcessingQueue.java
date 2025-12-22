@@ -19,21 +19,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class ProcessingQueue<T> {
 
-	private final ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>(); 
+	private final ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>();
+	private boolean waste;
 	
 	public boolean add(T o) { //return size, reduce sync call
-		return queue.add(o);
+		return waste || queue.add(o);
 	}
 
 	public boolean addAll(Collection<T> arr){
-		return queue.addAll(arr);
+		return waste || queue.addAll(arr);
 	}
 	
-	public void pollAll(int max, UnaryOperator<List<T>> op) {
+	public void pollAll(UnaryOperator<List<T>> op) {
 		List<T> items = new ArrayList<>();
 		try {
 			T obj;
 			var idx = 0;
+			var max = queue.size();
 			while (idx++<max && nonNull(obj = queue.poll())) { 
 		        items.add(obj);
 		    }
@@ -62,5 +64,9 @@ public final class ProcessingQueue<T> {
 	@Override
 	public String toString() {
 		return queue.toString();
+	}
+	
+	void setWaste(boolean waste) {
+		this.waste = waste;
 	}
 }
