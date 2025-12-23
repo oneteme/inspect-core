@@ -10,8 +10,8 @@ import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilde
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.Helper.formatLocation;
-import static org.usf.inspect.core.InspectContext.context;
-import static org.usf.inspect.core.InspectContext.initializeInspectContext;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceDispatcherHub.initializeInspectContext;
 import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createStartupSession;
@@ -77,11 +77,11 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	
 	@Primary
 	@Bean("inspectContext")
-	Context inspectContext(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
-		logLoadingBean("inspectContext", InspectContext.class);
+	TraceHub inspectContext(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+		logLoadingBean("inspectContext", TraceDispatcherHub.class);
 		initializeInspectContext(conf.validate(), createObjectMapper()); 
 		appEventListener(ofEpochMilli(appContext.getStartupDate()), provider); //early bean load
-		return context();
+		return hub();
 	}
 	
     @Bean
@@ -154,8 +154,8 @@ public class InspectConfiguration implements WebMvcConfigurer {
 
     @Bean
     ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
-    	var instance = newInstanceEnvironment(start, context().getConfiguration(), provider);
-		context().dispatch(instance);
+    	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider);
+		hub().dispatch(instance);
 		ExecutionListener<String> handler = traceAroundMethod(createStartupSession(start, instance.getId()),
 				ses-> ses.setName("main"), 
 				(call, loc)-> call.setLocation(loc));

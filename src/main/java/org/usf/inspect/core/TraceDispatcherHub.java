@@ -12,7 +12,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
-import static org.usf.inspect.core.DispatcherAgent.noAgent;
+import static org.usf.inspect.core.TraceExporter.noExporter;
 import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LogEntry.logEntry;
@@ -37,24 +37,24 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-public final class InspectContext implements Context {
+public final class TraceDispatcherHub implements TraceHub {
 
 	private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
-	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(InspectContext::daemonThread);
+	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(TraceDispatcherHub::daemonThread);
 	
-	private static Context singleton;
+	private static TraceHub singleton;
 	
 	@Getter 
 	private final InspectCollectorConfiguration configuration;
 	private final AtomicReference<DispatchState> atomicState;
-	private final DispatcherAgent agent;
+	private final TraceExporter agent;
 	private final EventTraceBus eventBus;
 	private final ProcessingQueue<EventTrace> queue = new ProcessingQueue<>();
 	private final List<DispatchTask> tasks = synchronizedList(new ArrayList<>());
 	
 	private volatile boolean dispatchNow;
 	
-	InspectContext(InspectCollectorConfiguration configuration, DispatcherAgent agent, EventTraceBus eventBus) {
+	TraceDispatcherHub(InspectCollectorConfiguration configuration, TraceExporter agent, EventTraceBus eventBus) {
 		if(configuration.isEnabled()) {
 			this.configuration = configuration;
 			this.atomicState = new AtomicReference<>(configuration.getScheduling().getState());
@@ -335,12 +335,12 @@ public final class InspectContext implements Context {
 	}
 	
 	static synchronized void initializeInspectContext(InspectCollectorConfiguration conf, ObjectMapper mapper) {
-		DispatcherAgent agent = null;
+		TraceExporter agent = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-			agent = new RestDispatcherAgent(prop, mapper);
+			agent = new RestTraceExporter(prop, mapper);
 		}
 		else if(isNull(conf.getTracing().getRemote())) {
-			agent = noAgent(); //no remote agent
+			agent = noExporter(); //no remote agent
 			log.warn("remote tracing is disabled, traces will be lost");
 		}
 		else {
@@ -349,7 +349,7 @@ public final class InspectContext implements Context {
 		singleton = createContext(conf, agent, mapper);
 	}
 
-	public static synchronized Context context() {
+	public static synchronized TraceHub hub() {
 		if(isNull(singleton)) {
 			var config = new InspectCollectorConfiguration();
 			config.setEnabled(false);
@@ -358,7 +358,7 @@ public final class InspectContext implements Context {
 		return singleton;
 	}
 	
-	public static Context createContext(InspectCollectorConfiguration conf, DispatcherAgent agent, ObjectMapper mapper) {
+	public static TraceHub createContext(InspectCollectorConfiguration conf, TraceExporter agent, ObjectMapper mapper) {
 		if(conf.isEnabled()) {
 			var eventBus = new EventTraceBus();
 			if(conf.getMonitoring().getResources().isEnabled()) {
@@ -372,7 +372,7 @@ public final class InspectContext implements Context {
 				log.info("event trace dumping is enabled, location={}", conf.getTracing().getDump().getLocation());
 				eventBus.registerHook(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), nextId()), mapper));
 			}
-			return new InspectContext(conf, agent, eventBus);
+			return new TraceDispatcherHub(conf, agent, eventBus);
 		}
 		return ()-> conf;
 	}

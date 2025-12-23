@@ -3,7 +3,7 @@ package org.usf.inspect.http;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.STREAM;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 
 import org.springframework.http.HttpRequest;
@@ -27,7 +27,7 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 						postExchange(res.getStatusCode(), res.getHeaders()); 
 					}
 					catch (Exception ex) {
-						context().reportError(true, "HttpRequestMonitor.exchangeHandler", ex);
+						hub().reportError(true, "HttpRequestMonitor.exchangeHandler", ex);
 					}
 				}
 				return createStage(EXCHANGE, s, e, t);
@@ -40,7 +40,7 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 				postResponse(cnt);
 			}
 			catch (Exception ex) {
-				context().reportError(true, "HttpRequestMonitor.responseHandler", ex);
+				hub().reportError(true, "HttpRequestMonitor.responseHandler", ex);
 			}
 			return createStage(STREAM, s, e, t);
 		}));

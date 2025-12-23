@@ -9,7 +9,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RequiredArgsConstructor
-public final class RestDispatcherAgent implements DispatcherAgent {
+public final class RestTraceExporter implements TraceExporter {
 
 	private final RestRemoteServerProperties properties;
 	private final ObjectMapper mapper;
@@ -50,7 +50,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	private InstanceEnvironment instance;
 	private boolean registred;
 
-	public RestDispatcherAgent(RestRemoteServerProperties properties, ObjectMapper mapper) {
+	public RestTraceExporter(RestRemoteServerProperties properties, ObjectMapper mapper) {
 		this(properties, mapper, defaultRestTemplate(properties, mapper));
 	}
 
@@ -81,7 +81,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	}
 	
 	@Override
-	public void dispatch(File dumpFile) {
+	public void dispatch(File dumpFile) { //TD send FileSystemResource ?
 		var id = getOrRegisterInstanceId();
 		try {
 			var uri = fromUriString(properties.getTracesURI())
@@ -129,14 +129,16 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 				if(nonNull(resp) && resp.retry()) {
 					return true; //retry only if server ask for it
 				}
-			} catch (IOException ioe) {/*ignore this exception */}
-			context().reportError(false, "RestDispatcherAgent.shouldRetry", e);
+			} catch (IOException ioe) {
+				hub().reportError(false, "RestDispatcherAgent.readValue", ioe);
+			}
+			hub().reportError(false, "RestDispatcherAgent.shouldRetry", e);
 			return false; //BadGateway or GatewayTimeout should not be retried
 		}
 		else if(e instanceof ResourceAccessException rae 
 				&& rae.getCause() instanceof SocketTimeoutException 
 				&& !rae.getMessage().contains("Connection timed out")) {
-			context().reportError(false, "RestDispatcherAgent.shouldRetry", e);
+			hub().reportError(false, "RestDispatcherAgent.shouldRetry", e);
 			return false; //only read timeout should not be retried
 		}
 		log.warn("bad request : {}", e.getMessage());
@@ -148,9 +150,8 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 		var plain = new StringHttpMessageConverter(); //for instanceID
 		var rt = new RestTemplateBuilder()
 				.messageConverters(json, plain) //minimum converters
-				.setConnectTimeout(ofSeconds(30))
-				.setReadTimeout(ofSeconds(60))
-//				.additionalInterceptors(new HttpRequestInterceptor())
+				.setConnectTimeout(ofSeconds(10))
+				.setReadTimeout(ofSeconds(30))
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
@@ -168,7 +169,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 					body = baos.toByteArray();
 				}
 				catch (Exception e) {/*do not throw exception */
-					context().reportError(false, "RestDispatcherAgent.bodyCompressionInterceptor", e);
+					hub().reportError(false, "RestDispatcherAgent.bodyCompressionInterceptor", e);
 				}
 			}
 			return exec.execute(req, body);

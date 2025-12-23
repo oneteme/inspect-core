@@ -6,7 +6,7 @@ import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
@@ -208,7 +208,7 @@ public final class SessionContextManager {
 		var ses = requireActiveContext();
 		if(nonNull(ses)) {
 			if(ses.updateMask(mask)) {
-				context().emitTrace(new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ses.getRequestMask().get()));
+				hub().emitTrace(new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ses.getRequestMask().get()));
 			}
 			return ses.getId();
 		}
@@ -233,7 +233,7 @@ public final class SessionContextManager {
 		if(nonNull(ctx)) {
 			log.setSessionId(ctx.getId());
 		}
-		context().emitTrace(ctx);
+		hub().emitTrace(ctx);
 	}
 
 	public static String nextId() {
@@ -241,14 +241,14 @@ public final class SessionContextManager {
 	}
 
 	static void reportNoActiveContext(String action) {
-		context().reportMessage(true, action, "no active context");
+		hub().reportMessage(true, action, "no active context");
 	}
 	
 	static void reportContextConflict(String action, String prev, String next) {
-		context().reportMessage(true, action, format("previous=%s, next=%s", prev, next));
+		hub().reportMessage(true, action, format("previous=%s, next=%s", prev, next));
 	}
 
 	static void reportIllegalContextState(String action, String msg) {
-		context().reportMessage(true, action, msg);
+		hub().reportMessage(true, action, msg);
 	}
 }

@@ -12,7 +12,7 @@ import static org.usf.inspect.core.FtpCommand.MKDIR;
 import static org.usf.inspect.core.FtpCommand.PUT;
 import static org.usf.inspect.core.FtpCommand.RENAME;
 import static org.usf.inspect.core.FtpCommand.RM;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectExecutor.exec;
 
@@ -253,7 +253,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	}
 
 	public static final ChannelSftp wrap(ChannelSftp channel, String beanName) {
-		if(context().getConfiguration().isEnabled()){
+		if(hub().getConfiguration().isEnabled()){
 			if(channel.getClass() != ChannelSftpWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "channelSftp"), channel.getClass());
 				return new ChannelSftpWrapper(channel);

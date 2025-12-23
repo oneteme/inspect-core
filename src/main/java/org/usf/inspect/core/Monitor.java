@@ -4,7 +4,7 @@ import static java.lang.String.format;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
@@ -53,10 +53,10 @@ public interface Monitor {
 			if(nonNull(preProcess)) {
 				preProcess.accept(session);
 			}
-			context().emitTrace(session);
+			hub().emitTrace(session);
 		}
 		catch (Exception e) {
-			context().reportError(true, EXECUTION_HANDLER_ACTION, e);
+			hub().reportError(true, EXECUTION_HANDLER_ACTION, e);
 		}
 		var callback = callbackFn.apply(session); 
 		if(callback instanceof AbstractSessionUpdate ses) {
@@ -69,7 +69,7 @@ public interface Monitor {
 						postProcess.accept(callback, o);
 					}
 					catch (Exception ex) {
-						context().reportError(true, EXECUTION_HANDLER_ACTION, ex);
+						hub().reportError(true, EXECUTION_HANDLER_ACTION, ex);
 					}
 				}
 				callback.setStart(s); //nullable
@@ -77,7 +77,7 @@ public interface Monitor {
 					callback.setException(fromException(t));
 				}
 				callback.setEnd(e);
-				context().emitTrace(callback);
+				hub().emitTrace(callback);
 			}
 			if(callback instanceof AbstractSessionUpdate ses) {
 				clearContext(ses);
@@ -90,15 +90,15 @@ public interface Monitor {
 			if(isNull(callback.getEnd())) {
 				return true;
 			}
-			context().reportMessage(true, action, format("'%s.end' is null", callback.getClass().getSimpleName()));
+			hub().reportMessage(true, action, format("'%s.end' is null", callback.getClass().getSimpleName()));
 		}
-		context().reportMessage(true, action, "callback is null");
+		hub().reportMessage(true, action, "callback is null");
 		return false;
 	}
 
 	static boolean assertMonitorNonNull(Object monitor, String action) {
 		if (isNull(monitor)) {
-			context().reportMessage(false, action, "monitor is null");
+			hub().reportMessage(false, action, "monitor is null");
 			return false;
 		}
 		return true;
@@ -118,9 +118,9 @@ public interface Monitor {
 					preProcess.accept(session, o);
 				}
 				catch (Exception ex) {
-					context().reportError(true, "StatefulMonitor.traceBegin", ex);
+					hub().reportError(true, "StatefulMonitor.traceBegin", ex);
 				}
-				context().emitTrace(session);
+				hub().emitTrace(session);
 				callback = createCallback(session); //cannot be null
 				if(nonNull(after)) {
 					after.safeHandle(s, e, o, t);
@@ -136,7 +136,7 @@ public interface Monitor {
 				if(assertStillOpened(callback, "StatefulMonitor.traceStep")) {
 					var stg = stageFn.createStage(s, e, o, t);
 					if(nonNull(stg)) {
-						context().emitTrace(stg);
+						hub().emitTrace(stg);
 					}
 				}
 			};
@@ -149,7 +149,7 @@ public interface Monitor {
 						after.safeHandle(s, e, o, t);
 					}
 					callback.setEnd(e);
-					context().emitTrace(callback);
+					hub().emitTrace(callback);
 				}
 			};
 		}

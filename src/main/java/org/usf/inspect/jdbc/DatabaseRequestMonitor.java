@@ -12,7 +12,7 @@ import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -141,11 +141,11 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	
 	void emitBatchStage() { //wait for last addBatch
 		if(nonNull(batchHandler)) { //batch & largeBatch
-			context().emitTrace(batchHandler.getStage());
+			hub().emitTrace(batchHandler.getStage());
 			batchHandler = null;
 		}
 		else {
-			context().reportMessage(false, "emitBatchStage", "empty batch or already traced");
+			hub().reportMessage(false, "emitBatchStage", "empty batch or already traced");
 		}
 	}
 
@@ -171,7 +171,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 				}
 			}
 			catch (Exception e) {
-				context().reportError(false, "DatabaseRequestMonitor.updateStageRowsCount", e);
+				hub().reportError(false, "DatabaseRequestMonitor.updateStageRowsCount", e);
 			}
 		}
 	}
@@ -203,7 +203,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 			mainCommand = mergeCommand(mainCommand, parseCommand(sql));
 		}
 		catch (Exception e) {
-			context().reportError(false, "parseAndMergeCommand", e);
+			hub().reportError(false, "parseAndMergeCommand", e);
 		}
 	}
 	
@@ -230,7 +230,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 			if(nonNull(t)) {
 				batchHandler = null; //reset batching trace
 				stage.setException(mainCauseException(t)); //may overwrite previous
-				context().emitTrace(stage);
+				hub().emitTrace(stage);
 			}
 		}
 	}

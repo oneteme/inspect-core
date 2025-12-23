@@ -10,7 +10,7 @@ import java.util.List;
  * @author u$f
  *
  */
-public interface DispatcherAgent {
+public interface TraceExporter {
 	
 	void dispatch(InstanceEnvironment instance); //callback ?
     
@@ -18,9 +18,9 @@ public interface DispatcherAgent {
 
 	void dispatch(File dumpFile);
 	
-	static DispatcherAgent noAgent() {
+	static TraceExporter noExporter() {
 		
-		return new DispatcherAgent() {
+		return new TraceExporter() {
 			
 			@Override
 			public void dispatch(InstanceEnvironment env) {

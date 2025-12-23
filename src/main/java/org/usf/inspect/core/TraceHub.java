@@ -8,7 +8,7 @@ import java.util.List;
  *
  */
 @FunctionalInterface
-public interface Context {
+public interface TraceHub {
 
 	InspectCollectorConfiguration getConfiguration();
 	

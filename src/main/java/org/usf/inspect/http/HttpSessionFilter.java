@@ -7,7 +7,7 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.Helper.evalExpression;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
 
@@ -60,7 +60,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 			throw e;
 		}
 		catch (Exception e) {//should never happen
-			context().reportError(false, "HttpSessionFilter.doFilterInternal", e);
+			hub().reportError(false, "HttpSessionFilter.doFilterInternal", e);
 			throw new IllegalStateException(e); 
 		}
 	}

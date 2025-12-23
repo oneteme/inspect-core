@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.time.Instant.now;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
 
@@ -51,7 +51,7 @@ public final class InspectExecutor {
 				handle(start, end, res, thrw);
 			}
 			catch (Throwable ex) {// do not throw exception
-				context().reportError(true, "ExecutionMonitor.safeHandle", ex);
+				hub().reportError(true, "ExecutionMonitor.safeHandle", ex);
 			}
 		}
 	}

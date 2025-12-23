@@ -29,11 +29,11 @@ public final class EventTraceBus {
 		triggerHooks(h-> h.onInstanceEmit(env));
 	}
 	
-	public void triggerSchedule(Context ctx){
+	public void triggerSchedule(TraceHub ctx){
 		triggerHooks(h-> h.onSchedule(ctx));
 	}
 	
-	public void triggerTraceDispatch(Context ctx, List<EventTrace> traces){
+	public void triggerTraceDispatch(TraceHub ctx, List<EventTrace> traces){
 		triggerHooks(h-> h.onDispatch(ctx, traces));
 	}
 	

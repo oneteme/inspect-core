@@ -2,7 +2,7 @@ package org.usf.inspect.http;
 
 import static java.time.Instant.now;
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
 import java.util.concurrent.CancellationException;
@@ -43,7 +43,7 @@ final class DataBufferMonitor implements ResponseContent {
 				}
 			}
 			catch (Exception e) {
-				context().reportError(false, "DataBufferMonitor.handle", e);
+				hub().reportError(false, "DataBufferMonitor.handle", e);
 			}
 			return db; //maybe consumed
 		})

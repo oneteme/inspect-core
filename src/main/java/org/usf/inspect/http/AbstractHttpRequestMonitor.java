@@ -6,7 +6,7 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
@@ -87,7 +87,7 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 			if(sid.equals(getCallback().getId())) {
 				return true;
 			}
-			context().reportMessage(false, "assertSameID", "session.id=" + sid);
+			hub().reportMessage(false, "assertSameID", "session.id=" + sid);
 		}
 		return false;
 	}

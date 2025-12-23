@@ -5,7 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.HttpAction.ASSEMBLY;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.STREAM;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 
 import java.time.Instant;
@@ -39,7 +39,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 				postExchange(res.statusCode(), res.headers().asHttpHeaders());
 			}
 			catch (Exception ex) {
-				context().reportError(true, "HttpRequestMonitor.postExchange", ex);
+				hub().reportError(true, "HttpRequestMonitor.postExchange", ex);
 			}
 		}
 		traceStep((s,e,o,t)-> createStage(EXCHANGE, s, e, t)).safeHandle(lastTimestamp, now, null, thrw);
@@ -50,7 +50,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 			super.postResponse(ctn);
 		}
 		catch (Exception ex) {
-			context().reportError(true, "HttpRequestMonitor.postResponse", ex);
+			hub().reportError(true, "HttpRequestMonitor.postResponse", ex);
 		}
 		traceStep((s,e,o,t)-> createStage(STREAM, s, e, t)).safeHandle(start, end, null, thrw);
 	}

@@ -2,7 +2,7 @@ package org.usf.inspect.jdbc;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.InspectExecutor.call;
 
 import java.sql.Connection;
@@ -46,7 +46,7 @@ public final class DataSourceWrapper implements DataSource {
 	}
 	
 	public static DataSource wrap(@NonNull DataSource ds, String beanName) {
-		if(context().getConfiguration().isEnabled()){
+		if(hub().getConfiguration().isEnabled()){
 			if(ds.getClass() != DataSourceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "dataSource"), ds.getClass());
 				return new DataSourceWrapper(ds);

@@ -34,7 +34,7 @@ public final class EventTraceDumper implements DispatchHook {
 	}
 
 //	@Override disable for now
-	public void postDispatch(Context ctx, ProcessingQueue<EventTrace> manager) {
+	public void postDispatch(TraceHub ctx, ProcessingQueue<EventTrace> manager) {
 		manager.pollAll(trc->{
 			ctx.emitTask(dispatchFileTask(ctx, writeTraces(trc)));
 			return Collections.emptyList();
@@ -54,7 +54,7 @@ public final class EventTraceDumper implements DispatchHook {
 		return f;
 	}
 	
-	DispatchTask dispatchFileTask(Context ctx, File f) {
+	DispatchTask dispatchFileTask(TraceHub ctx, File f) {
 		var fileRef = new File[] {f};
 		return agn->{
 			if(fileRef[0].exists()) {
@@ -78,7 +78,7 @@ public final class EventTraceDumper implements DispatchHook {
 		};
 	}
 	
-	void deleteFile(Context ctx, File file) {
+	void deleteFile(TraceHub ctx, File file) {
 		boolean done = false;
 		try {
 			delete(file.toPath());

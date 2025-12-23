@@ -39,7 +39,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 	}
 
 	@Override
-	public void onSchedule(Context ctx) {
+	public void onSchedule(TraceHub ctx) {
 		try{
 			var heap = bean.getHeapMemoryUsage();
 //			var meta = bean.getNonHeapMemoryUsage()

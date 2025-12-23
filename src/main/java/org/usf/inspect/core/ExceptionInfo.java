@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
 
 import lombok.Getter;
@@ -36,7 +36,7 @@ public final class ExceptionInfo {
 	}
 
 	public static ExceptionInfo fromException(Throwable thrw) {
-		var config = context().getConfiguration().getMonitoring().getException();
+		var config = hub().getConfiguration().getMonitoring().getException();
 		return fromException(thrw, config.getMaxCauseDepth(), config.getMaxStackTraceRows());
 	}
 	

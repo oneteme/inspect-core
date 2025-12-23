@@ -20,14 +20,6 @@ public enum RequestMask {
 	
 	private final int value;
 	
-	public static int mask(RequestMask... masks) {
-		var v = 0;
-		for(var m : masks) {
-			v |= m.value;
-		}
-		return v;
-	}
-
 	public boolean is(int value) {
 		return (value & this.value) == this.value;
 	}

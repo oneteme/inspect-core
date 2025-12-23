@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.aroundCallable;
 import static org.usf.inspect.core.SessionContextManager.aroundRunnable;
 
@@ -53,7 +53,7 @@ public class ExecutorServiceWrapper implements ExecutorService {
 	}
 
 	public static ExecutorService wrap(@NonNull ExecutorService es, String beanName) {
-		if(context().getConfiguration().isEnabled()){
+		if(hub().getConfiguration().isEnabled()){
 			if(es.getClass() != ExecutorServiceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "executorService"), es.getClass());
 				return new ExecutorServiceWrapper(es);

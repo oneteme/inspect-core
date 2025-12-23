@@ -15,7 +15,7 @@ import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.InspectContext.context;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.Monitor.assertStillOpened;
 import static org.usf.inspect.core.Monitor.traceAtomic;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
@@ -125,7 +125,7 @@ public final class HttpSessionMonitor {
 				}
 			}
 			catch (Exception e) {
-				context().reportError(true, "HttpSessionMonitor.postProcess", e);
+				hub().reportError(true, "HttpSessionMonitor.postProcess", e);
 			}
 		}
 	}
@@ -139,7 +139,7 @@ public final class HttpSessionMonitor {
 	void emitStage(HttpAction action) {
 		var end = now();
 		if(assertStillOpened(callback, "StatefulMonitor.traceStep")) {
-			context().emitTrace(callback.createStage(action, lastTimestamp, end, null));
+			hub().emitTrace(callback.createStage(action, lastTimestamp, end, null));
 		}
 		lastTimestamp = end;
 	}
