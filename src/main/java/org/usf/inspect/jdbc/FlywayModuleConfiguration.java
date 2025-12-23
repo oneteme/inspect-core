@@ -31,7 +31,7 @@ import org.springframework.context.annotation.DependsOn;
 public class FlywayModuleConfiguration {
 
 	@Bean
-	@DependsOn("inspectContext") //ensure inspectContext is loaded first
+	@DependsOn("inspectHub") //ensure inspectHub is loaded first
 	FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
 		return conf-> wrap(conf.getDataSource(), "flywayDataSource");
 	}

@@ -22,7 +22,7 @@ import org.springframework.ldap.core.ContextSource;
 public class DirectoryModuleConfiguration {
 	
 	@Bean
-	@DependsOn("inspectContext") //ensure inspectContext is loaded first
+	@DependsOn("inspectHub") //ensure inspectHub is loaded first
 	BeanPostProcessor contextSourceWrapper() {
 		return new BeanPostProcessor() {
 			@Override

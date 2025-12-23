@@ -65,7 +65,7 @@ public final class TraceDispatcherHub implements TraceHub {
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
 		else {
-			throw new IllegalStateException("cannot create InspectContext with disabled configuration");
+			throw new IllegalStateException("cannot create InspectHub with disabled configuration");
 		}
 	}
 	
@@ -334,7 +334,7 @@ public final class TraceDispatcherHub implements TraceHub {
 		return thread;
 	}
 	
-	static synchronized void initializeInspectContext(InspectCollectorConfiguration conf, ObjectMapper mapper) {
+	static synchronized void initializeTraceHub(InspectCollectorConfiguration conf, ObjectMapper mapper) {
 		TraceExporter agent = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
 			agent = new RestTraceExporter(prop, mapper);
@@ -346,19 +346,19 @@ public final class TraceDispatcherHub implements TraceHub {
 		else {
 			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
 		}
-		singleton = createContext(conf, agent, mapper);
+		singleton = createHub(conf, agent, mapper);
 	}
 
 	public static synchronized TraceHub hub() {
 		if(isNull(singleton)) {
 			var config = new InspectCollectorConfiguration();
 			config.setEnabled(false);
-			singleton = createContext(config, null, null);
+			singleton = createHub(config, null, null);
 		}
 		return singleton;
 	}
 	
-	public static TraceHub createContext(InspectCollectorConfiguration conf, TraceExporter agent, ObjectMapper mapper) {
+	public static TraceHub createHub(InspectCollectorConfiguration conf, TraceExporter agent, ObjectMapper mapper) {
 		if(conf.isEnabled()) {
 			var eventBus = new EventTraceBus();
 			if(conf.getMonitoring().getResources().isEnabled()) {

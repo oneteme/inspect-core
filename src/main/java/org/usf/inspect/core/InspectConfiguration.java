@@ -11,7 +11,7 @@ import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
-import static org.usf.inspect.core.TraceDispatcherHub.initializeInspectContext;
+import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
 import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createStartupSession;
@@ -76,23 +76,23 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	private final ApplicationContext appContext;
 	
 	@Primary
-	@Bean("inspectContext")
-	TraceHub inspectContext(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
-		logLoadingBean("inspectContext", TraceDispatcherHub.class);
-		initializeInspectContext(conf.validate(), createObjectMapper()); 
+	@Bean("inspectHub")
+	TraceHub inspectHub(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+		logLoadingBean("inspectHub", TraceDispatcherHub.class);
+		initializeTraceHub(conf.validate(), createObjectMapper()); 
 		appEventListener(ofEpochMilli(appContext.getStartupDate()), provider); //early bean load
 		return hub();
 	}
 	
     @Bean
-    @DependsOn("inspectContext")
+    @DependsOn("inspectHub")
 	HttpRoutePredicate routePredicate(InspectCollectorConfiguration conf) {
     	logRegistringBean("routePredicate", HttpRoutePredicate.class);
     	return compile(conf.getMonitoring().getHttpRoute());
 	}
 	
     @Bean //important! name == httpSessionFilter
-    @DependsOn("inspectContext") //ensure inspectContext is loaded first
+    @DependsOn("inspectHub") //ensure inspectHub is loaded first
     FilterRegistrationBean<Filter> httpSessionFilter(HttpUserProvider userProvider, HttpRoutePredicate routePredicate) {
     	logRegistringBean("httpSessionFilter", HttpSessionFilter.class);
     	var filter = new HttpSessionFilter(routePredicate, userProvider);
@@ -116,7 +116,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
     }
     
     @Bean
-    @DependsOn("inspectContext") //ensure inspectContext is loaded first
+    @DependsOn("inspectHub") //ensure inspectHub is loaded first
     RestTemplateCustomizer restTemplateCustomizer() {
     	return rt-> {
 			logRegistringBean("restRequestInterceptor", HttpRequestInterceptor.class);
@@ -131,14 +131,14 @@ public class InspectConfiguration implements WebMvcConfigurer {
     }
     
     @Bean // Cacheable, Traceable
-    @DependsOn("inspectContext") //ensure inspectContext is loaded first
+    @DependsOn("inspectHub") //ensure inspectHub is loaded first
     MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser) {
     	logRegistringBean("methodExecutionMonitor", MethodExecutionMonitor.class);
     	return new MethodExecutionMonitor(aspectUser);
     }
     
     @Bean
-    @DependsOn("inspectContext") //ensure inspectContext is loaded first
+    @DependsOn("inspectHub") //ensure inspectHub is loaded first
     BeanPostProcessor dataSourceWrapper() {
     	return new BeanPostProcessor() {
     		
@@ -158,7 +158,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
 		hub().dispatch(instance);
 		ExecutionListener<String> handler = traceAroundMethod(createStartupSession(start, instance.getId()),
 				ses-> ses.setName("main"), 
-				(call, loc)-> call.setLocation(loc));
+				MainSessionUpdate::setLocation);
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 				var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");

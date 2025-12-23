@@ -32,7 +32,7 @@ public class ReactorModuleConfiguration {
 	}
 
     @Bean
-    @DependsOn("inspectContext") //ensure inspectContext is loaded first
+    @DependsOn("inspectHub") //ensure inspectHub is loaded first
 	WebClientCustomizer webClientCustomizer() {
 		return wcb->{
 			logRegistringBean("webClientFilter", WebClientFilter.class);
