@@ -138,7 +138,7 @@ public final class HttpSessionMonitor {
 
 	void emitStage(HttpAction action) {
 		var end = now();
-		if(assertStillOpened(callback, "StatefulMonitor.traceStep")) {
+		if(assertStillOpened(callback, "HttpSessionMonitor.emitStage")) {
 			hub().emitTrace(callback.createStage(action, lastTimestamp, end, null));
 		}
 		lastTimestamp = end;
