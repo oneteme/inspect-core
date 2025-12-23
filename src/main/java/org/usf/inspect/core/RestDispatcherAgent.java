@@ -45,7 +45,7 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 	private final RestRemoteServerProperties properties;
 	private final ObjectMapper mapper;
 	private final RestTemplate template;
-	private int attempts = 0;
+	private int attempts;
 
 	private InstanceEnvironment instance;
 	private boolean registred;
@@ -121,20 +121,23 @@ public final class RestDispatcherAgent implements DispatcherAgent {
 		throw new DispatchException("instance environment not set");
 	}
 
+	//see https://www.baeldung.com/java-socket-connection-read-timeout
 	boolean shouldRetry(RestClientException e) {
 		if(e instanceof HttpServerErrorException rsp) {
-			try {
+			try { //internal server error or Service unavailable
 				var resp = mapper.readValue(rsp.getResponseBodyAsByteArray(), TraceFail.class);
 				if(nonNull(resp) && resp.retry()) {
-					return true;
+					return true; //retry only if server ask for it
 				}
 			} catch (IOException ioe) {/*ignore this exception */}
 			context().reportError(false, "RestDispatcherAgent.shouldRetry", e);
-			return false;  //TODO check other exceptions : BadGateway
+			return false; //BadGateway or GatewayTimeout should not be retried
 		}
-		else if(e instanceof ResourceAccessException rae && rae.getCause() instanceof SocketTimeoutException) {
+		else if(e instanceof ResourceAccessException rae 
+				&& rae.getCause() instanceof SocketTimeoutException 
+				&& !rae.getMessage().contains("Connection timed out")) {
 			context().reportError(false, "RestDispatcherAgent.shouldRetry", e);
-			return false; //timeout should not be retried, TODO connection/read timeout ?
+			return false; //only read timeout should not be retried
 		}
 		log.warn("bad request : {}", e.getMessage());
 		return true;

@@ -16,6 +16,7 @@ import lombok.Setter;
 @Setter
 public final class MainSessionUpdate extends AbstractSessionUpdate {
 
+	private final boolean startup;
 	private Instant start; //updated sometime after initialization
 
 	@JsonCreator
@@ -23,7 +24,14 @@ public final class MainSessionUpdate extends AbstractSessionUpdate {
 		this(id, false);
 	}
 	
+	//protected for startup use case
 	MainSessionUpdate(String id, boolean startup) {
-		super(id, startup);
+		super(id);
+		this.startup = startup;
+	}
+	
+	@Override
+	boolean isStartup() {
+		return startup;
 	}
 }

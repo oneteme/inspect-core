@@ -18,7 +18,8 @@ import lombok.Setter;
 @Setter
 public final class HttpSessionUpdate extends AbstractSessionUpdate implements HasStage {
 	
-	@JsonIgnore private final AtomicInteger stageCounter = new AtomicInteger();
+	@JsonIgnore 
+	private final AtomicInteger stageCounter = new AtomicInteger();
 
 	private int status; //2xx, 4xx, 5xx, 0 otherwise 
 	private long dataSize; //in bytes, -1 unknown
@@ -30,15 +31,10 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 	
 	@JsonCreator
 	public HttpSessionUpdate(String id) {
-		super(id, false);
+		super(id);
 	}
 
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
 		return createStage(type, start, end, null, t, HttpSessionStage::new);
-	}
-
-	@Override
-	public void setStart(Instant start) {
-		//do not set start
 	}
 }

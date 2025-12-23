@@ -26,19 +26,19 @@ public final class EventTraceBus {
 		dispatchHooks.remove(hook);
 	}
 	public void triggerInstanceEmit(InstanceEnvironment env){
-		triggerHooks(dispatchHooks, h -> h.onInstanceEmit(env));
+		triggerHooks(h-> h.onInstanceEmit(env));
 	}
 	
 	public void triggerSchedule(Context ctx){
-		triggerHooks(dispatchHooks, h-> h.onSchedule(ctx));
+		triggerHooks(h-> h.onSchedule(ctx));
 	}
 	
 	public void triggerTraceDispatch(Context ctx, List<EventTrace> traces){
-		triggerHooks(dispatchHooks, h-> h.onDispatch(ctx, traces));
+		triggerHooks(h-> h.onDispatch(ctx, traces));
 	}
 	
-	static <T> void triggerHooks(List<T> hooks, Consumer<? super T> post){
-		hooks.forEach(h -> {
+	void triggerHooks(Consumer<? super DispatchHook> post){
+		dispatchHooks.forEach(h -> {
 			try {
 				post.accept(h);
 			}

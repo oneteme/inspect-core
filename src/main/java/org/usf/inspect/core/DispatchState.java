@@ -13,7 +13,6 @@ public enum DispatchState  {
 	DISABLE(false, false),
 	COLLECT(true, false),
 	DISPATCH(true, true);
-	//waste mode 
 	
 	private final boolean canCollect;
 	private final boolean canDispatch;
