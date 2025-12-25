@@ -43,7 +43,7 @@ public final class SessionContextManager {
 	private static AbstractSessionUpdate startupContext; //avoid ThreadLocal for startup context
 	
     public static Runnable aroundRunnable(Runnable cmd) {
-    	var ses = requireActiveContext();
+    	var ses = activeContext(); //do not use requireActiveContext
 		if(nonNull(ses)) {
 			ses.threadCountUp();
 			return ()-> aroundRunnable(cmd::run, ses, ses::threadCountDown);
@@ -52,7 +52,7 @@ public final class SessionContextManager {
     }
     
     public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
-    	var ses = requireActiveContext();
+    	var ses = activeContext(); //do not use requireActiveContext
 		if(nonNull(ses)) {
 			ses.threadCountUp();
 			return ()-> aroundCallable(cmd::call, ses, ses::threadCountDown);
@@ -61,7 +61,7 @@ public final class SessionContextManager {
     }
     
     public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
-    	var ses = requireActiveContext();
+    	var ses = activeContext(); //do not use requireActiveContext
     	if(nonNull(ses)) {
 			ses.threadCountUp();
 			return ()-> aroundCallable(cmd::get, ses, ses::threadCountDown);

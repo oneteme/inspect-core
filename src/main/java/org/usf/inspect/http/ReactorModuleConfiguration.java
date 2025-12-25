@@ -25,9 +25,8 @@ import org.usf.inspect.core.SessionContextManager;
 public class ReactorModuleConfiguration {
 	
 	static {
-//		enableAutomaticContextPropagation() ; //global, may conflict with other libraries
-		setExecutorServiceDecorator("inspect-executor-decorator", (sc,es)-> wrap(es, "ReactorExecutorService"));
-		onScheduleHook("inspect-schedule-hook", SessionContextManager::aroundRunnable); //custom schedules
+		setExecutorServiceDecorator("inspect-executor-decorator", (sc,es)-> wrap(es, "ReactorExecutorService")); //for Schedulers.fromExecutorService(...)
+		onScheduleHook("inspect-schedule-hook", SessionContextManager::aroundRunnable); //for Schedulers.parallel(), single(), boundedElastic()
 	}
 
     @Bean
