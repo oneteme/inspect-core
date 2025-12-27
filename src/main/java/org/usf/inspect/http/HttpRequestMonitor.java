@@ -3,8 +3,8 @@ package org.usf.inspect.http;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.STREAM;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpResponse;

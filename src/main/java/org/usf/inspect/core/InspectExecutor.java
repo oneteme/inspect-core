@@ -1,6 +1,6 @@
 package org.usf.inspect.core;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
@@ -26,7 +26,7 @@ public final class InspectExecutor {
 	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionListener<? super T> handler) throws E {
 		T o = null;
 		Throwable t = null;
-		var s = now();
+		var s = systemUTC().instant();
 		try {
 			return (o = fn.call());
 		}
@@ -36,7 +36,7 @@ public final class InspectExecutor {
 		}
 		finally {
 			if(nonNull(handler)) {
-				handler.safeHandle(s, now(), o, t);
+				handler.safeHandle(s, systemUTC().instant(), o, t);
 			}
 		}
 	}

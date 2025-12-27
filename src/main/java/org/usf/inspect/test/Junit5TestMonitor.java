@@ -1,6 +1,6 @@
 package org.usf.inspect.test;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
 import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
 import static org.usf.inspect.core.Monitor.traceAroundMethod;
@@ -31,7 +31,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
-		setActiveContext(createTestSession(now()).createCallback()); //fake session, avoid no active session
+		setActiveContext(createTestSession(systemUTC().instant()).createCallback()); //fake session, avoid no active session
 	}
 
 	@Override
@@ -46,7 +46,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	
 	@Override
 	public void afterAll(ExtensionContext context) throws Exception {
-		setActiveContext(createTestSession(now()).createCallback()); //fake session, avoid no active session
+		setActiveContext(createTestSession(systemUTC().instant()).createCallback()); //fake session, avoid no active session
 	}
 
 	@Override
@@ -56,7 +56,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	}
 	
 	static void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
-		updateExecutionListener(context, hndl-> traceAroundMethod(createTestSession(now()), ses-> { 
+		updateExecutionListener(context, hndl-> traceAroundMethod(createTestSession(systemUTC().instant()), ses-> { 
 			ses.setName(context.getDisplayName());
 			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			//set test user
@@ -64,7 +64,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	}
 	
 	static void postProcess(ExtensionContext context){
-		var end = now();
+		var end = systemUTC().instant();
 		updateExecutionListener(context, hndl-> {
 			if(assertMonitorNonNull(hndl, "Junit5TestMonitor.postProcess")) {
 				hndl.safeHandle(null, end, null, context.getExecutionException().orElse(null));

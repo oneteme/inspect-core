@@ -2,9 +2,9 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.MailCommand.SEND;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;

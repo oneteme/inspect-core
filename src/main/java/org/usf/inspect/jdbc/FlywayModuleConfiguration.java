@@ -1,6 +1,6 @@
 package org.usf.inspect.jdbc;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
@@ -38,7 +38,7 @@ public class FlywayModuleConfiguration {
 
 	@Bean
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
-		return fly-> exec(fly::migrate, traceAroundMethod(createLocalRequest(now()), req->{
+		return fly-> exec(fly::migrate, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
 			req.setType(EXEC.name());
 			req.setName("migration");
 			req.setLocation(scriptLocation(fly));

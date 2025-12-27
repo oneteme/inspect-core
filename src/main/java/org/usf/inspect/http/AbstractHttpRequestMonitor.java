@@ -6,8 +6,8 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.nextId;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
@@ -18,8 +18,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpRequestSignal;
-import org.usf.inspect.core.HttpRequestUpdate;
 import org.usf.inspect.core.HttpRequestStage;
+import org.usf.inspect.core.HttpRequestUpdate;
 import org.usf.inspect.core.Monitor.StatefulMonitor;
 
 import lombok.Getter;

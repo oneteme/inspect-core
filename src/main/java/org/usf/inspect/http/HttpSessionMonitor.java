@@ -1,7 +1,7 @@
 package org.usf.inspect.http;
 
 import static java.net.URI.create;
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
@@ -15,12 +15,12 @@ import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
 import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
 import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.Monitor.assertStillOpened;
 import static org.usf.inspect.core.Monitor.traceAtomic;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
@@ -54,7 +54,7 @@ public final class HttpSessionMonitor {
 	private boolean async;
 	
 	public HttpSessionMonitor(HttpServletRequest request, HttpServletResponse response) {
-		this.lastTimestamp = now();
+		this.lastTimestamp = systemUTC().instant();
 		this.handler = traceAtomic(createHttpSession(lastTimestamp, request.getHeader(TRACE_HEADER)), this::createCallback,
 				ses->{
 					if(nonNull(request)) {
@@ -74,9 +74,9 @@ public final class HttpSessionMonitor {
 					if(nonNull(response)) {
 						call.setStatus(response.getStatus());
 						call.setDataSize(response.getBufferSize()); //!exact size
+						call.setContentType(response.getContentType());
 						call.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
 						call.setCacheControl(response.getHeader(CACHE_CONTROL));
-						call.setContentType(response.getContentType());
 					}
 				});
 	}
@@ -137,7 +137,7 @@ public final class HttpSessionMonitor {
 	}
 
 	void emitStage(HttpAction action) {
-		var end = now();
+		var end = systemUTC().instant();
 		if(assertStillOpened(callback, "HttpSessionMonitor.emitStage")) {
 			hub().emitTrace(callback.createStage(action, lastTimestamp, end, null));
 		}

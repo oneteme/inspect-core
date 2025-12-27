@@ -10,12 +10,12 @@ import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilde
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.Helper.formatLocation;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
-import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
 import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createStartupSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
 import static org.usf.inspect.http.HttpRoutePredicate.compile;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 

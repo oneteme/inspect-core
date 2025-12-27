@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 
 import java.io.File;
 import java.lang.management.MemoryMXBean;
@@ -43,7 +43,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 		try{
 			var heap = bean.getHeapMemoryUsage();
 //			var meta = bean.getNonHeapMemoryUsage()
-			ctx.emitTrace(new MachineResourceUsage(now(),
+			ctx.emitTrace(new MachineResourceUsage(systemUTC().instant(),
 					toMb(heap.getUsed()), 
 					toMb(heap.getCommitted()), 
 //					toMb(meta.getUsed()), 

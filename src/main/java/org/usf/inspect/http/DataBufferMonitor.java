@@ -1,6 +1,6 @@
 package org.usf.inspect.http;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
@@ -32,7 +32,7 @@ final class DataBufferMonitor implements ResponseContent {
 	private Throwable throwable;
 	
 	Flux<DataBuffer> handle(Flux<DataBuffer> flux, boolean readContent) {
-		start = now();
+		start = systemUTC().instant();
 		return flux.map(db-> {
 			try {
 				var nb = db.readableByteCount();
@@ -50,7 +50,7 @@ final class DataBufferMonitor implements ResponseContent {
 		.doOnNext(db-> size+= db.readableByteCount())
     	.doOnError(e-> throwable = e)
     	.doOnCancel(()-> throwable = new CancellationException("cancelled"))
-    	.doFinally(v-> listener.safeHandle(start, now(), this, throwable));
+    	.doFinally(v-> listener.safeHandle(start, systemUTC().instant(), this, throwable));
 	}
 	
 	@Override

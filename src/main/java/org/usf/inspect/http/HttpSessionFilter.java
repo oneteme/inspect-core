@@ -7,9 +7,9 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.Helper.evalExpression;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.io.IOException;
 import java.util.Map;

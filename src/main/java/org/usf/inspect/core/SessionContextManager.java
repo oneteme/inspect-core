@@ -6,7 +6,6 @@ import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
@@ -20,6 +19,7 @@ import static org.usf.inspect.core.RequestMask.LDAP;
 import static org.usf.inspect.core.RequestMask.LOCAL;
 import static org.usf.inspect.core.RequestMask.REST;
 import static org.usf.inspect.core.RequestMask.SMTP;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
 import java.util.concurrent.Callable;
@@ -69,12 +69,12 @@ public final class SessionContextManager {
 		return cmd;
     }
 
-    static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSessionUpdate ctx, Runnable callback) throws E {
-    	aroundCallable(task, ctx, callback);
+    public static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSessionUpdate ctx, Runnable doFinally) throws E {
+    	aroundCallable(task, ctx, doFinally);
     }
     
-    static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSessionUpdate ctx, Runnable callback) throws E {
-		var prv = activeContext();
+    public static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSessionUpdate ctx, Runnable doFinally) throws E {
+    	var prv = activeContext();
 		if(prv != ctx) {
 			setActiveContext(ctx);
 		}
@@ -88,8 +88,8 @@ public final class SessionContextManager {
 					setActiveContext(prv);
 				}
 			}
-			if(nonNull(callback)) {
-				callback.run();
+			if(nonNull(doFinally)) {
+				doFinally.run();
 			}
 		}	
 	}

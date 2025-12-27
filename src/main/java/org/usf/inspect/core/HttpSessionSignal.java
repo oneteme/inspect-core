@@ -25,10 +25,7 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 	private String authScheme; //Basic, Bearer, Digest, OAuth,..
 	private long dataSize; //in bytes, -1 unknown
 	private String contentEncoding; //gzip, compress, identity,..
-
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
-	private String cacheControl; //max-age, no-cache
-	private ExceptionInfo exception; //must replace failed
 	private boolean linked;
 
 	public HttpSessionSignal(String id, Instant start, String threadName) {

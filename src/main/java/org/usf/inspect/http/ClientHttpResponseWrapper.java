@@ -1,6 +1,6 @@
 package org.usf.inspect.http;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 
 import java.io.IOException;
@@ -27,7 +27,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 	private final ClientHttpResponse cr;
 	private final ExecutionListener<ResponseContent> listener;
 	private CacheableInputStream pipe;
-	private Instant start = now();
+	private Instant start = systemUTC().instant();
 
 	@Override
 	public InputStream getBody() throws IOException {
@@ -48,7 +48,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 			throw e;
 		}
 		finally {
-			listener.safeHandle(start, now(), pipe, t);
+			listener.safeHandle(start, systemUTC().instant(), pipe, t);
 		}
 	}
 }

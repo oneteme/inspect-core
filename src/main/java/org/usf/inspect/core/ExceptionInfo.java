@@ -1,8 +1,8 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

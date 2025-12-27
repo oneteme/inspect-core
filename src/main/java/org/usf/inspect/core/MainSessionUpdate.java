@@ -1,7 +1,5 @@
 package org.usf.inspect.core;
 
-import java.time.Instant;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -17,7 +15,6 @@ import lombok.Setter;
 public final class MainSessionUpdate extends AbstractSessionUpdate {
 
 	private final boolean startup;
-	private Instant start; //updated sometime after initialization
 
 	@JsonCreator
 	public MainSessionUpdate(String id) {
@@ -31,7 +28,7 @@ public final class MainSessionUpdate extends AbstractSessionUpdate {
 	}
 	
 	@Override
-	boolean isStartup() {
+	public boolean isStartup() {
 		return startup;
 	}
 }

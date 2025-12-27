@@ -25,9 +25,8 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 	private long dataSize; //in bytes, -1 unknown
 	private String contentType; //text/html, application/json, application/xml,.. in/out ?
 	private String contentEncoding; //gzip, compress, identity,..
-	private String bodyContent; //incoming content, //4xx, 5xx only
-	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private String cacheControl; //max-age, no-cache
+	private String bodyContent; //incoming content, //4xx, 5xx only
 	
 	@JsonCreator
 	public HttpSessionUpdate(String id) {

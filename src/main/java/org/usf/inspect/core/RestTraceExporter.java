@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.time.Clock.systemUTC;
 import static java.time.Duration.ofSeconds;
-import static java.time.Instant.now;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
@@ -65,7 +65,7 @@ public final class RestTraceExporter implements TraceExporter {
 		try {
 			var uri = fromUriString(properties.getTracesURI())
 					.queryParam("attempts", ++attempts)
-					.queryParamIfPresent ("end", complete ? Optional.of(now()) : empty())
+					.queryParamIfPresent ("end", complete ? Optional.of(systemUTC().instant()) : empty())
 					.buildAndExpand(id).toUri();
 			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
 			attempts = 0;

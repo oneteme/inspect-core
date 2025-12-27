@@ -1,6 +1,6 @@
 package org.usf.inspect.core;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 
 import java.time.Instant;
 
@@ -39,7 +39,7 @@ public final class LogEntry implements EventTrace {
 	}
 	
 	static LogEntry logEntry(Level lvl, String msg, StackTraceRow[] stack) {
-		return new LogEntry(now(), lvl, msg, stack);	
+		return new LogEntry(systemUTC().instant(), lvl, msg, stack);	
 	}
 
 	public enum Level {

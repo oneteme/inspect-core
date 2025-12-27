@@ -4,9 +4,9 @@ import static java.lang.String.format;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
 import java.util.function.BiConsumer;

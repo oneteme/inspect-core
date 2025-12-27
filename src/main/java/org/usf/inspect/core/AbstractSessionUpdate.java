@@ -6,6 +6,8 @@ import static org.usf.inspect.core.Helper.formatLocation;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -22,7 +24,6 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	private final String id;
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
 	private final AtomicInteger requestMask = new AtomicInteger(); // thread safe
-	private boolean async;
 	private Instant end;
 	@Setter private Instant start;
 	@Setter private String name; //title, topic
@@ -35,7 +36,9 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	}
 	
 	public void setEnd(Instant end){
-		this.async = threadCount.get() > 0; //still running threads at end time
+		if(threadCount.get() > 0) {
+			requestMask.updateAndGet(v-> -v);
+		}
 		this.end = end;
 	}
 	
@@ -59,8 +62,14 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	public boolean wasCompleted() {
 		return nonNull(getEnd()) && !isAsync();
 	}
+
+	@JsonIgnore
+	public boolean isAsync() {
+		return requestMask.get() < 0;
+	}
 	
-	boolean isStartup() {
+	@JsonIgnore
+	public boolean isStartup() {
 		return false;
 	}
 }

@@ -1,12 +1,12 @@
 package org.usf.inspect.http;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.HttpAction.ASSEMBLY;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.STREAM;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
 
@@ -33,7 +33,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 	}
 
 	public void postExchange(ClientResponse res, Throwable thrw) {
-		var now = now();
+		var now = systemUTC().instant();
 		if(nonNull(res)) {
 			try {
 				postExchange(res.statusCode(), res.headers().asHttpHeaders());
@@ -56,7 +56,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 	}
 		
 	public void complete() {
-		var now = now();
+		var now = systemUTC().instant();
 		traceEnd(null).safeHandle(lastTimestamp, now, null, null);
 	}
 	

@@ -12,13 +12,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
-import static org.usf.inspect.core.TraceExporter.noExporter;
 import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.REPORT;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
+import static org.usf.inspect.core.TraceExporter.noExporter;
 
 import java.util.ArrayList;
 import java.util.List;

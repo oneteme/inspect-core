@@ -1,6 +1,6 @@
 package org.usf.inspect.jdbc;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static org.usf.inspect.core.InspectExecutor.exec;
 
 import java.sql.ResultSet;
@@ -21,7 +21,7 @@ public final class ResultSetWrapper implements ResultSet {
 	@Delegate
 	private final ResultSet rs;
 	private final DatabaseRequestMonitor monitor;
-	private final Instant start = now();
+	private final Instant start = systemUTC().instant();
 	private int rows;
 
 	@Override

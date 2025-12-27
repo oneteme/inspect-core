@@ -1,6 +1,6 @@
 package org.usf.inspect.core;
 
-import static java.time.Instant.now;
+import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.evalExpression;
@@ -44,7 +44,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		var ste = outerStackTraceElement();
-		return call(fn, traceAroundMethod(createLocalRequest(now()), req->{
+		return call(fn, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
 			req.setType(type.name());
 			req.setName(nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse(null));
 			req.setLocation(ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse(null));
@@ -61,7 +61,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, traceAroundMethod(createBatchSession(now()), ses-> {
+		return call(point::proceed, traceAroundMethod(createBatchSession(systemUTC().instant()), ses-> {
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
@@ -69,7 +69,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundStage(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, traceAroundMethod(createLocalRequest(now()), req->{
+		return call(point::proceed, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
 			req.setType(EXEC.name());
 			req.setName(resolveStageName(point));
 			req.setLocation(locationFrom(point));
@@ -79,7 +79,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	@Around("@annotation(org.springframework.cache.annotation.Cacheable)")
 	Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, traceAroundMethod(createLocalRequest(now()), req->{
+		return call(point::proceed, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
 			req.setType(CACHE.name());
 			req.setName(getCacheableName(point));
 			req.setLocation(locationFrom(point));

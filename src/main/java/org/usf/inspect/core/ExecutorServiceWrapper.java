@@ -2,9 +2,9 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.SessionContextManager.aroundCallable;
 import static org.usf.inspect.core.SessionContextManager.aroundRunnable;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
