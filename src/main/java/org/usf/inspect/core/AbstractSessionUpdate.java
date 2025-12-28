@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.RequestMask.ASYNC;
 
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,7 +38,7 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	
 	public void setEnd(Instant end){
 		if(threadCount.get() > 0) {
-			requestMask.updateAndGet(v-> -v);
+			requestMask.updateAndGet(v-> v | ASYNC.getValue());
 		}
 		this.end = end;
 	}
@@ -65,7 +66,7 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 
 	@JsonIgnore
 	public boolean isAsync() {
-		return requestMask.get() < 0;
+		return (requestMask.get() & ASYNC.getValue()) == ASYNC.getValue();
 	}
 	
 	@JsonIgnore

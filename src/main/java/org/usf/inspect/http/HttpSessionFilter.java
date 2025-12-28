@@ -29,6 +29,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -37,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
+@RequiredArgsConstructor
 public final class HttpSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 
 	static final String SESSION_MONITOR = "inspect-http-request-monitor";
@@ -44,11 +46,6 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 
 	private final HttpRoutePredicate routePredicate;
 	private final HttpUserProvider userProvider;
-
-	public HttpSessionFilter(HttpRoutePredicate routePredicate, HttpUserProvider userProvider) {
-		this.routePredicate = routePredicate;
-		this.userProvider = userProvider;
-	}
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {

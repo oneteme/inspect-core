@@ -26,7 +26,7 @@ import lombok.Getter;
  */
 public interface Monitor {
 	
-	static final String EXECUTION_HANDLER_ACTION = "Monitor.executionHandler";
+	static final String TRACE_ATOMIC_ACTION = "Monitor.traceAtomic";
 
 	static <R> ExecutionListener<R> traceAroundHttp(HttpSessionSignal session, SafeConsumer<HttpSessionSignal> preProcess) {
 		return traceAtomic(session, HttpSessionSignal::createCallback, preProcess, null);
@@ -56,20 +56,20 @@ public interface Monitor {
 			hub().emitTrace(session);
 		}
 		catch (Exception e) {
-			hub().reportError(true, EXECUTION_HANDLER_ACTION, e);
+			hub().reportError(true, TRACE_ATOMIC_ACTION, e);
 		}
 		var callback = callbackFn.apply(session); 
-		if(callback instanceof AbstractSessionUpdate ses) {
-			setActiveContext(ses);
+		if(callback instanceof AbstractSessionUpdate ctx) {
+			setActiveContext(ctx);
 		}
 		return (s,e,o,t)-> {
-			if(assertStillOpened(callback, EXECUTION_HANDLER_ACTION)) {
+			if(assertStillOpened(callback, TRACE_ATOMIC_ACTION)) {
 				if(nonNull(postProcess)) {
 					try {
 						postProcess.accept(callback, o);
 					}
 					catch (Exception ex) {
-						hub().reportError(true, EXECUTION_HANDLER_ACTION, ex);
+						hub().reportError(true, TRACE_ATOMIC_ACTION, ex);
 					}
 				}
 				callback.setStart(s); //nullable
@@ -79,8 +79,8 @@ public interface Monitor {
 				callback.setEnd(e);
 				hub().emitTrace(callback);
 			}
-			if(callback instanceof AbstractSessionUpdate ses) {
-				clearContext(ses);
+			if(callback instanceof AbstractSessionUpdate ctx) {
+				clearContext(ctx);
 			}
 		};
 	}
@@ -92,7 +92,9 @@ public interface Monitor {
 			}
 			hub().reportMessage(true, action, format("'%s.end' is null", callback.getClass().getSimpleName()));
 		}
-		hub().reportMessage(true, action, "callback is null");
+		else {
+			hub().reportMessage(true, action, "callback is null");
+		}
 		return false;
 	}
 
@@ -118,7 +120,7 @@ public interface Monitor {
 					preProcess.accept(session, o);
 				}
 				catch (Exception ex) {
-					hub().reportError(true, "StatefulMonitor.traceBegin", ex);
+					hub().reportError(true, this.getClass().getSimpleName() + ".traceBegin", ex);
 				}
 				hub().emitTrace(session);
 				callback = createCallback(session); //cannot be null
@@ -133,7 +135,7 @@ public interface Monitor {
 		
 		protected <R> ExecutionListener<R> traceStep(StageCreator<R> stageFn){
 			return (s,e,o,t)-> {
-				if(assertStillOpened(callback, "StatefulMonitor.traceStep")) {
+				if(assertStillOpened(callback, this.getClass().getSimpleName() + ".traceStep")) {
 					var stg = stageFn.createStage(s, e, o, t);
 					if(nonNull(stg)) {
 						hub().emitTrace(stg);
@@ -144,7 +146,7 @@ public interface Monitor {
 		
 		protected <R> ExecutionListener<R> traceEnd(ExecutionListener<? super R> after){
 			return (s,e,o,t)-> {
-				if(assertStillOpened(callback, "StatefulMonitor.traceEnd")) {
+				if(assertStillOpened(callback, this.getClass().getSimpleName() + ".traceEnd")) {
 					if(nonNull(after)) {
 						after.safeHandle(s, e, o, t);
 					}
