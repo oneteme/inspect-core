@@ -33,7 +33,7 @@ public class FlywayModuleConfiguration {
 	@Bean
 	@DependsOn("inspectHub") //ensure inspectHub is loaded first
 	FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
-		return conf-> wrap(conf.getDataSource(), "flywayDataSource");
+		return conf-> conf.dataSource(wrap(conf.getDataSource(), "flywayDataSource"));
 	}
 
 	@Bean
