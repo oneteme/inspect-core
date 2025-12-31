@@ -26,7 +26,6 @@ import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import org.usf.inspect.core.LogEntry.Level;
-import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -41,46 +40,47 @@ public final class SessionContextManager {
 
 	private static final ThreadLocal<AbstractSessionUpdate> localTrace = new ThreadLocal<>(); //replaceable ScopedValue in Java 21+
 	private static AbstractSessionUpdate startupContext; //avoid ThreadLocal for startup context
-	
+
     public static Runnable aroundRunnable(Runnable cmd) {
-    	var ses = activeContext(); //do not use requireActiveContext
-		return isNull(ses) ? cmd : ()-> aroundRunnable(ses, cmd::run);
+    	var ctx = activeContext(); //do not use requireActiveContext
+		return isNull(ctx) ? cmd : aroundRunnable(cmd, ctx);
+    }
+    
+    public static Runnable aroundRunnable(Runnable cmd, AbstractSessionUpdate ctx) {
+		return aroundCallable(()-> {cmd.run(); return null;}, ctx)::call;
     }
     
     public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
-    	var ses = activeContext(); //do not use requireActiveContext
-		return isNull(ses) ? cmd : ()-> aroundCallable(ses, cmd::call);
+    	var ctx = activeContext(); //do not use requireActiveContext
+		return isNull(ctx) ? cmd : aroundCallable(cmd::call, ctx)::call;
     }
     
     public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
-    	var ses = activeContext(); //do not use requireActiveContext
-		return isNull(ses) ? cmd : ()-> aroundCallable(ses, cmd::get);
+    	var ctx = activeContext(); //do not use requireActiveContext
+		return isNull(ctx) ? cmd : aroundCallable(cmd::get, ctx)::call;
     }
-
-    public static <E extends Exception> void aroundRunnable(AbstractSessionUpdate ctx, SafeRunnable<E> cmd) throws E {
-    	aroundCallable(ctx, ()-> { cmd.run(); return null;});
-    }
-    
-    public static <T, E extends Exception> T aroundCallable(AbstractSessionUpdate ctx, SafeCallable<T, E> call) throws E {
-    	var prv = activeContext();
-		if(prv != ctx) {
-			setActiveContext(ctx);
-		}
-		try {
-			ctx.threadCountUp();
-			return call.call();
-		}
-		finally {
-			if(prv != ctx) {
-				clearContext(ctx);
-				if(nonNull(prv)) {
-					setActiveContext(prv);
-				}
-			}
-			ctx.threadCountDown();
-		}	
+    public static <T, E extends Throwable> SafeCallable<T, E> aroundCallable(SafeCallable<T, E> cmd, AbstractSessionUpdate ctx) {
+    	ctx.threadCountUp(); //outer increment
+    	return ()-> {
+        	var prv = activeContext();
+    		if(prv != ctx) {
+    			setActiveContext(ctx);
+    		}
+    		try {
+    			return cmd.call();
+    		}
+    		finally {
+    			if(prv != ctx) {
+    				clearContext(ctx);
+    				if(nonNull(prv)) {
+    					setActiveContext(prv);
+    				}
+    			}
+    			ctx.threadCountDown();
+    		}	
+    	};
 	}
-	
+    
 	public static AbstractSessionUpdate requireActiveContext() {
 		var ses = activeContext();
 		if(isNull(ses)) {

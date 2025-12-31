@@ -22,22 +22,22 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T> {
 
 	@Override
 	public void onSubscribe(Subscription s) {
-		aroundRunnable(ctx, ()-> sub.onSubscribe(s));
+		aroundRunnable(()-> sub.onSubscribe(s), ctx);
 	}
 	
 	@Override
 	public void onNext(T t) {
-		aroundRunnable(ctx, ()-> sub.onNext(t));
+		aroundRunnable(()-> sub.onNext(t), ctx);
 	}
 
 	@Override
 	public void onError(Throwable t) {
-		aroundRunnable(ctx, ()-> sub.onError(t));
+		aroundRunnable(()-> sub.onError(t), ctx);
 	}
 
 	@Override
 	public void onComplete() {
-		aroundRunnable(ctx, sub::onComplete);
+		aroundRunnable(sub::onComplete, ctx);
 	}
 
 	@Override
