@@ -39,46 +39,35 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionContextManager {
 
-	private static final ThreadLocal<AbstractSessionUpdate> localTrace = new InheritableThreadLocal<>();
+	private static final ThreadLocal<AbstractSessionUpdate> localTrace = new ThreadLocal<>(); //replaceable ScopedValue in Java 21+
 	private static AbstractSessionUpdate startupContext; //avoid ThreadLocal for startup context
 	
     public static Runnable aroundRunnable(Runnable cmd) {
     	var ses = activeContext(); //do not use requireActiveContext
-		if(nonNull(ses)) {
-			ses.threadCountUp();
-			return ()-> aroundRunnable(cmd::run, ses, ses::threadCountDown);
-		}
-		return cmd;
+		return isNull(ses) ? cmd : ()-> aroundRunnable(ses, cmd::run);
     }
     
     public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
     	var ses = activeContext(); //do not use requireActiveContext
-		if(nonNull(ses)) {
-			ses.threadCountUp();
-			return ()-> aroundCallable(cmd::call, ses, ses::threadCountDown);
-		}
-		return cmd;
+		return isNull(ses) ? cmd : ()-> aroundCallable(ses, cmd::call);
     }
     
     public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
     	var ses = activeContext(); //do not use requireActiveContext
-    	if(nonNull(ses)) {
-			ses.threadCountUp();
-			return ()-> aroundCallable(cmd::get, ses, ses::threadCountDown);
-		}
-		return cmd;
+		return isNull(ses) ? cmd : ()-> aroundCallable(ses, cmd::get);
     }
 
-    public static <E extends Exception> void aroundRunnable(SafeRunnable<E> task, AbstractSessionUpdate ctx, Runnable doFinally) throws E {
-    	aroundCallable(task, ctx, doFinally);
+    public static <E extends Exception> void aroundRunnable(AbstractSessionUpdate ctx, SafeRunnable<E> cmd) throws E {
+    	aroundCallable(ctx, ()-> { cmd.run(); return null;});
     }
     
-    public static <T, E extends Exception> T aroundCallable(SafeCallable<T, E> call, AbstractSessionUpdate ctx, Runnable doFinally) throws E {
+    public static <T, E extends Exception> T aroundCallable(AbstractSessionUpdate ctx, SafeCallable<T, E> call) throws E {
     	var prv = activeContext();
 		if(prv != ctx) {
 			setActiveContext(ctx);
 		}
 		try {
+			ctx.threadCountUp();
 			return call.call();
 		}
 		finally {
@@ -88,9 +77,7 @@ public final class SessionContextManager {
 					setActiveContext(prv);
 				}
 			}
-			if(nonNull(doFinally)) {
-				doFinally.run();
-			}
+			ctx.threadCountDown();
 		}	
 	}
 	

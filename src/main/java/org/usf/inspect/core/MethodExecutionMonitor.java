@@ -43,7 +43,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
-		var ste = outerStackTraceElement();
+		var ste = outerStackTraceElement(); //optimize by avoiding creating stacktrace in traceAroundMethod
 		return call(fn, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
 			req.setType(type.name());
 			req.setName(nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse(null));

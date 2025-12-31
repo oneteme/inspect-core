@@ -18,26 +18,26 @@ import reactor.util.context.Context;
 public final class CoreSubscriberProxy<T> implements CoreSubscriber<T> {
 
 	private final CoreSubscriber<T> sub;
-	private final AbstractSessionUpdate session;
+	private final AbstractSessionUpdate ctx;
 
 	@Override
 	public void onSubscribe(Subscription s) {
-		aroundRunnable(()-> sub.onSubscribe(s), session, null);
+		aroundRunnable(ctx, ()-> sub.onSubscribe(s));
 	}
 	
 	@Override
 	public void onNext(T t) {
-		aroundRunnable(()-> sub.onNext(t), session, null);
+		aroundRunnable(ctx, ()-> sub.onNext(t));
 	}
 
 	@Override
 	public void onError(Throwable t) {
-		aroundRunnable(()-> sub.onError(t), session, null);
+		aroundRunnable(ctx, ()-> sub.onError(t));
 	}
 
 	@Override
 	public void onComplete() {
-		aroundRunnable(sub::onComplete, session, null);
+		aroundRunnable(ctx, sub::onComplete);
 	}
 
 	@Override

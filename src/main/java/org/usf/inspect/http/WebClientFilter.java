@@ -36,13 +36,19 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 					});
 					return res.mutate().body(f-> buff.handle(f, res.statusCode().isError())).build();
 				})
-				.doOnNext(r-> mnt.postExchange(r, null))
-				.doOnError(e-> mnt.postExchange(null, e)) //DnsNameResolverTimeoutException 
-				.doOnCancel(()-> mnt.postExchange(null, new CancellationException("cancelled")))
+				.doOnNext(r-> postExchange(mnt, r, null, sync))
+				.doOnError(e-> postExchange(mnt, null, e, sync)) //DnsNameResolverTimeoutException 
+				.doOnCancel(()-> postExchange(mnt, null, new CancellationException("cancelled"), sync))
 				.doFinally(s-> { //called twice on cancel ?
 					if(sync.decrementAndGet() == 0) {
 						mnt.complete(); 
 					}
 				});
-	}	
+	}
+	
+	void postExchange(HttpRequestAsyncMonitor mnt, ClientResponse res, Throwable thrw, AtomicInteger sync) {
+		if(sync.get() > 0) {
+			mnt.postExchange(res, thrw);
+		}
+	}
 }

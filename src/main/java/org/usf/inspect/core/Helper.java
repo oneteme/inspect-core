@@ -27,7 +27,8 @@ public final class Helper {
 	private static final String ROOT_PACKAGE = Helper.class.getPackageName();
 	
 	public static String threadName() {
-		return currentThread().getName();
+		var t = currentThread();
+		return t.isVirtual() ?  ""+t.threadId() : t.getName();
 	}
 	
 	public static String extractAuthScheme(String authHeader) { //nullable
