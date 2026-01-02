@@ -29,7 +29,9 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 				.map(res->{
 					sync.incrementAndGet();
 					var buff = new DataBufferMonitor((s,e,ctn,t)->{
-						mnt.postResponse(s, e, ctn, t);
+						if(sync.get() > 1) {
+							mnt.postResponse(s, e, ctn, t);
+						}
 						if(sync.decrementAndGet() == 0) {
 							mnt.complete(); //sometimes buffering ends after exchange.doFinally
 						}
