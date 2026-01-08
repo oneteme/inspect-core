@@ -232,7 +232,7 @@ public final class SessionContextManager {
 		if(nonNull(ctx)) {
 			log.setSessionId(ctx.getId());
 		}
-		hub().emitTrace(ctx);
+		hub().emitTrace(log);
 	}
 
 	public static String nextId() {
