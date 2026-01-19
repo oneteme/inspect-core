@@ -11,6 +11,7 @@ import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
 import lombok.AccessLevel;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
@@ -58,7 +59,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 		return wrap(trsp, null);
 	}
 	
-	public static TransportWrapper wrap(Transport trsp, String beanName) {
+	public static TransportWrapper wrap(@NonNull Transport trsp, String beanName) {
 		if(hub().getConfiguration().isEnabled()){
 			logWrappingBean(requireNonNullElse(beanName, "transport"), trsp.getClass());
 		}

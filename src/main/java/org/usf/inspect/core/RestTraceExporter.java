@@ -124,21 +124,24 @@ public final class RestTraceExporter implements TraceExporter {
 	//see https://www.baeldung.com/java-socket-connection-read-timeout
 	boolean shouldRetry(RestClientException e) {
 		if(e instanceof HttpServerErrorException rsp) {
-			try { //internal server error or Service unavailable
-				var resp = mapper.readValue(rsp.getResponseBodyAsByteArray(), TraceFail.class);
-				if(nonNull(resp) && resp.retry()) {
-					return true; //retry only if server ask for it
+			var body = rsp.getResponseBodyAsByteArray();
+			if(nonNull(body) && body.length > 0) {
+				try { //internal server error or Service unavailable
+					var resp = mapper.readValue(body, TraceFail.class);
+					if(nonNull(resp) && resp.retry()) {
+						return true; //retry only if server ask for it
+					}
+				} catch (IOException ioe) {
+					hub().reportError(false, "RestTraceExporter.readValue", ioe);
 				}
-			} catch (IOException ioe) {
-				hub().reportError(false, "RestDispatcherAgent.readValue", ioe);
 			}
-			hub().reportError(false, "RestDispatcherAgent.shouldRetry", e);
+			hub().reportError(false, "RestTraceExporter.shouldRetry", e);
 			return false; //BadGateway or GatewayTimeout should not be retried
 		}
 		else if(e instanceof ResourceAccessException rae 
 				&& rae.getCause() instanceof SocketTimeoutException 
 				&& !rae.getMessage().contains("Connection timed out")) {
-			hub().reportError(false, "RestDispatcherAgent.shouldRetry", e);
+			hub().reportError(false, "RestTraceExporter.shouldRetry", e);
 			return false; //only read timeout should not be retried
 		}
 		log.warn("bad request : {}", e.getMessage());
@@ -169,7 +172,7 @@ public final class RestTraceExporter implements TraceExporter {
 					body = baos.toByteArray();
 				}
 				catch (Exception e) {/*do not throw exception */
-					hub().reportError(false, "RestDispatcherAgent.bodyCompressionInterceptor", e);
+					hub().reportError(false, "RestTraceExporter.bodyCompressionInterceptor", e);
 				}
 			}
 			return exec.execute(req, body);

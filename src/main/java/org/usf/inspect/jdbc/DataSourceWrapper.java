@@ -41,7 +41,7 @@ public final class DataSourceWrapper implements DataSource {
 		return new ConnectionWrapper(call(()-> ds.getConnection(username, password), monitor.connectionHandler()), monitor);
 	}
 	
-	public static DataSource wrap(@NonNull DataSource ds) {
+	public static DataSource wrap(DataSource ds) {
 		return wrap(ds, null);
 	}
 	

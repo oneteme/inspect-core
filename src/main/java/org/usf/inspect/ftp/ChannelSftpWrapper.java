@@ -26,6 +26,7 @@ import com.jcraft.jsch.SftpException;
 import com.jcraft.jsch.SftpProgressMonitor;
 
 import lombok.AccessLevel;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -252,7 +253,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		return wrap(channel, null);
 	}
 
-	public static final ChannelSftp wrap(ChannelSftp channel, String beanName) {
+	public static final ChannelSftp wrap(@NonNull ChannelSftp channel, String beanName) {
 		if(hub().getConfiguration().isEnabled()){
 			if(channel.getClass() != ChannelSftpWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "channelSftp"), channel.getClass());
