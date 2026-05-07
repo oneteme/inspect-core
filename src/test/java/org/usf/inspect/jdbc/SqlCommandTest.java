@@ -3,6 +3,7 @@ package org.usf.inspect.jdbc;
 import static java.lang.System.lineSeparator;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.usf.inspect.core.DatabaseCommand.extractCommands;
 import static org.usf.inspect.core.DatabaseCommand.parseCommand;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,9 +39,9 @@ class SqlCommandTest {
 		"SQL,'CREATE TABLE students;CREATE VIEW for_students;'",
 	})
 	void testMainCommand(DatabaseCommand cmd, String sql) {
-		assertEquals(cmd, parseCommand(sql));
-		assertEquals(cmd, parseCommand(sql.toLowerCase()));
-		assertEquals(cmd, parseCommand(indent(sql)));
+		assertEquals(cmd, extractCommands(sql));
+		assertEquals(cmd, extractCommands(sql.toLowerCase()));
+		assertEquals(cmd, extractCommands(indent(sql)));
 	}
 
 	@ParameterizedTest
