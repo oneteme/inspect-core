@@ -60,7 +60,7 @@ public final class TraceDispatcherHub implements TraceHub {
 			this.atomicState = new AtomicReference<>(configuration.getScheduling().getState());
 			this.agent = agent;
 			this.eventBus = eventBus;
-			var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 15s
+			var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
 			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
@@ -201,22 +201,26 @@ public final class TraceDispatcherHub implements TraceHub {
 		var max = configuration.getTracing().getQueueCapacity();
 		if(queue.size() > max) {
 			log.warn("queue capacity exceeded, removing traces ..");
-			var arr = new Class[] {AbstractStage.class, MachineResourceUsage.class, SessionMaskUpdate.class, LogEntry.class};
 			queue.pollAll(snp->{
-				var i=0;
-				do {
-					removeInstanceOf(snp, arr[i]);
-				} while(++i<arr.length && snp.size() > max);
-				if(snp.size() > max) {
-					removeInstanceOf(snp, AbstractRequestSignal.class, AbstractRequestUpdate.class);
+				try {
+					var i=0;
+					var arr = new Class[] {AbstractStage.class, MachineResourceUsage.class, SessionMaskUpdate.class, LogEntry.class};
+					do {
+						removeInstanceOf(snp, arr[i]);
+					} while(++i<arr.length && snp.size() > max);
+					if(snp.size() > max) {
+						removeInstanceOf(snp, AbstractRequestSignal.class, AbstractRequestUpdate.class);
+					}
+					if(snp.size() > max) {
+						removeInstanceOf(snp, AbstractSessionSignal.class, AbstractSessionUpdate.class);
+					}
 				}
-				if(snp.size() > max) {
-					removeInstanceOf(snp, AbstractSessionSignal.class, AbstractSessionUpdate.class);
-				}
-				if(snp.size() > max) {
-					log.warn("still {} traces cannot be removed, clearing all the queue", snp.size());
-					snp.clear();
-					queue.setWaste(true); //disable further adding, avoid dispatch callback without initializer
+				finally {
+					if(snp.size() > max) {
+						log.warn("still {} traces cannot be removed, clearing all the queue", snp.size());
+						snp.clear();
+						queue.setWaste(true); //disable further adding, avoid dispatch callback without initializer
+					}
 				}
 				return snp;
 			});

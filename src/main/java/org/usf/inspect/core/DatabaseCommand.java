@@ -12,6 +12,8 @@ import static org.usf.inspect.core.CommandType.ROLE;
 import static org.usf.inspect.core.CommandType.SCRIPT;
 import static org.usf.inspect.core.CommandType.SETUP;
 
+import java.sql.Statement;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -19,6 +21,10 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.util.TablesNamesFinder;
 
 /**
  * 
@@ -52,7 +58,7 @@ public enum DatabaseCommand {
 	
 	public static final Pattern SQL_PATTERN = 
 			compile(".+;.*\\w+", DOTALL);
-
+	
 	public static DatabaseCommand parseCommand(@NonNull String query){
 		if(SQL_PATTERN.matcher(query).find()) { //multiple 
 			return SQL;
@@ -98,4 +104,31 @@ public enum DatabaseCommand {
 		}
 		return from;
 	}
+
+	public static void extract(String sql) {
+        try {
+            // 1. Parser la requête
+            var statement = CCJSqlParserUtil.parse(sql);
+
+            // 2. Récupérer le type de commande (SELECT, INSERT, UPDATE, DELETE, etc.)
+            // getClass().getSimpleName() renvoie "Select", "Update", "Insert"...
+            String commandType = statement.getClass().getSimpleName().toUpperCase();
+
+            // 3. Extraire toutes les tables (incluant les schémas si présents)
+            var tablesNamesFinder = new TablesNamesFinder();
+            List<String> tableList = tablesNamesFinder.getTableList(statement);
+
+            // Affichage des résultats
+            System.out.println("Commande : " + commandType);
+            System.out.println("Tables impactées : " + tableList);
+            
+        } catch (Exception e) {
+            System.err.println("Erreur de parsing : " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        extract("SELECT * FROM production.users u JOIN logs.access l ON u.id = l.user_id");
+        extract("INSERT INTO archive.history (id, data) VALUES (1, 'test')");
+    }
 }
