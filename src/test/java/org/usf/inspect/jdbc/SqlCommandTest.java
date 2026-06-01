@@ -42,7 +42,7 @@ class SqlCommandTest {
 		"SQL,'DELETE FROM Students WHERE RollNo = 25; SELECT FirstName FROM Student  WHERE RollNo > 15;",
 		"CREATE,'CREATE TABLE students;CREATE VIEW for_students as select *;'",
 	})
-	void testMainCommand(DatabaseCommand cmd, String sql) throws JSQLParserException {
+	void testMainCommand(DatabaseCommand cmd, String sql) {
 		assertEquals(cmd, extractCommand(sql));
 		assertEquals(cmd, extractCommand(sql.toLowerCase()));
 		assertEquals(cmd, extractCommand(indent(sql)));
