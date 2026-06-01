@@ -2,12 +2,15 @@ package org.usf.inspect.core;
  
 import static java.lang.Character.isWhitespace;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.CommandType.EDIT;
 import static org.usf.inspect.core.CommandType.EMIT;
 import static org.usf.inspect.core.CommandType.READ;
 import static org.usf.inspect.core.CommandType.ROLE;
 import static org.usf.inspect.core.CommandType.SCRIPT;
 import static org.usf.inspect.core.CommandType.SETUP;
+
+import java.util.Objects;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -64,50 +67,15 @@ public enum DatabaseCommand {
 		if(idx < sql.length()) {
 			do {
 	    		DatabaseCommand cmd = null;
-		        if(sql.regionMatches(true, idx, "SELECT ", 0, 7)) {
-		        	cmd = SELECT;
-		        }
-		        else if(sql.regionMatches(true, idx, "INSERT ", 0, 7)) {
-		        	cmd = INSERT;
-		        }
-		        else if(sql.regionMatches(true, idx, "DELETE ", 0, 7)) {
-		        	cmd = DELETE;
-		        }
-		        else if(sql.regionMatches(true, idx, "UPDATE ", 0, 7)) {
-		        	cmd = UPDATE;
-		        }
-		        else if(sql.regionMatches(true, idx, "MERGE ", 0, 6)) {
-		        	cmd = MERGE;
-		        }
-		        else if(sql.regionMatches(true, idx, "CREATE ", 0, 7)) {
-		        	cmd = CREATE;
-		        }
-		        else if(sql.regionMatches(true, idx, "DROP ", 0, 5)) {
-		        	cmd = DROP;
-		        }
-		        else if(sql.regionMatches(true, idx, "ALTER ", 0, 6)) {
-		        	cmd = ALTER;
-		        }
-		        else if(sql.regionMatches(true, idx, "TRUNCATE ", 0, 9)) {
-		        	cmd = TRUNCATE;
-		        }
-		        else if(sql.regionMatches(true, idx, "GRANT ", 0, 6)) {
-		        	cmd = GRANT;
-		        }
-		        else if(sql.regionMatches(true, idx, "REVOKE ", 0, 5)) {
-		        	cmd = REVOKE;
-		        }
-		        else if(sql.regionMatches(true, idx, "GET ", 0, 4)) {
-		        	cmd = GET;
-		        }
-		        else if(sql.regionMatches(true, idx, "SET ", 0, 4)) {
-		        	cmd = SET;
-		        }
-		        else {
-		        	cmd = SQL;
-		        }
+	    		for(var c : values()) {
+	    			var s = c.name();
+			        if(sql.regionMatches(true, idx, s, 0, s.length()) && sql.length() > idx+s.length() && isWhitespace(sql.charAt(idx+s.length()))) {
+			        	cmd = c;
+			        	break;
+			        }
+	    		}
 		        main = mergeCommand(main, cmd);	        
-	    	} while(main != SQL && (idx=skipWhiteSpace(sql, jumpTo(sql, idx, ';')+1)) < sql.length());
+	    	} while(nonNull(main) && main != SQL && (idx=skipWhiteSpace(sql, jumpTo(sql, idx, ';')+1)) < sql.length());
 		}
         return main;
     }

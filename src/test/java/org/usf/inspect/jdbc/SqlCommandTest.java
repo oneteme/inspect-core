@@ -94,7 +94,7 @@ class SqlCommandTest {
 		return WHITESPACE + 
 				s.replaceAll("\s+(WHERE|FROM|SET)", lineSeparator()+"$1")
 				.replaceAll("(\\)|;)\s*", "$1"+lineSeparator()) +
-				WHITESPACE + ";";
+				WHITESPACE ;
 	}
 	
 	static String addComment(String s) {
