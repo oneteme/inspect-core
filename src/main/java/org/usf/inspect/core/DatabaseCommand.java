@@ -136,20 +136,4 @@ public enum DatabaseCommand {
 		}
 		return isNull(main) ? cmd : SQL;
 	}
-	
-	public static void main(String[] args) {
-		System.out.println(extractCommand(v));
-	}
-	
-	static String v = """
-		WITH -- DUMMY COMMENT )'(
-		cte AS -- DUMMY COMMENT )'(
-		(SELECT -- DUMMY COMMENT )'(
-		id FROM -- DUMMY COMMENT )'(
-		(SELECT -- DUMMY COMMENT )'(
-		id FROM -- DUMMY COMMENT )'(
-		users) x) SELECT -- DUMMY COMMENT )'(
-		* FROM -- DUMMY COMMENT )'(
-		cte;
-	""";
 }
