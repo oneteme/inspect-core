@@ -1,12 +1,9 @@
 package org.usf.inspect.jdbc;
 
 import static java.lang.System.lineSeparator;
-import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.usf.inspect.core.DatabaseCommand.extractCommand;
-
-import java.util.concurrent.ExecutorService;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -21,8 +18,8 @@ import net.sf.jsqlparser.JSQLParserException;
 @Testable
 class SqlCommandTest {
 	
-	private static final String WHITESPACE = " \t " + lineSeparator();
-	private static final ExecutorService E = newSingleThreadExecutor();
+	private static final String WHITESPACE = " \t " + lineSeparator(); 
+	private static final String COMMENT = "-- DUMMY COMMENT )'( "; 
 	
 	@ParameterizedTest
 	@CsvSource({

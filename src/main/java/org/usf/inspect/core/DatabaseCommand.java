@@ -33,7 +33,6 @@ public enum DatabaseCommand {
 	
 	private final CommandType type;
 
-	// CCJSQL parser
 	public static DatabaseCommand extractCommand(String sql) {
 		if(isNull(sql) || sql.isBlank()) {
 			return null;
