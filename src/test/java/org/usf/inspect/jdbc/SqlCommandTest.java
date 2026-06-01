@@ -11,8 +11,6 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.platform.commons.annotation.Testable;
 import org.usf.inspect.core.DatabaseCommand;
 
-import net.sf.jsqlparser.JSQLParserException;
-
 //https://www.guru99.com/sql-commands-dbms-query.html
 
 @Testable
