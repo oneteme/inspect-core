@@ -41,15 +41,15 @@ public enum DatabaseCommand {
 		var idx = skipWhiteSpace(sql, 0);
 		var len = sql.length();
     	if(sql.regionMatches(true, idx, "WITH ", 0, 5)) {
-    		idx = jumpTo(sql, idx, '(')+1;
-			var prth = 1;
+    		idx = jumpTo(sql, idx+5, '(');
+			var prth = 0;
 			char c = 0;
 			for(; idx < len; idx++) {
 				c = sql.charAt(idx);
 				if(c == '(') {
 					++prth;
 				}
-				if(c == ')' && --prth == 0) {
+				else if(c == ')' && --prth == 0) {
 		    		idx = skipWhiteSpace(sql, ++idx);
 		    		if(sql.charAt(idx) == ',') {
 		    			idx = jumpTo(sql, idx, '(');
@@ -59,6 +59,7 @@ public enum DatabaseCommand {
 		    			break;
 		    		}
 				}
+				idx = skipComment(sql, idx);
 			}
     		idx = skipWhiteSpace(sql, idx);
     	}
@@ -80,40 +81,28 @@ public enum DatabaseCommand {
         return main;
     }
 	
-	static int skipWhiteSpace(String s, int idx) {
-		while(idx < s.length() && isWhitespace(s.charAt(idx))) {
-			idx++;
-		}
-		return idx;
-	}
-	
 	static int jumpTo(String s, int idx, char to) {
 		var len =  s.length();
-		var inQuotes = false;
+		var qot = false;
 		while(idx < len) {
+			idx = skipComment(s, idx);
 			char c = s.charAt(idx);
-			if (inQuotes) {
-	            if (c == '\\' && idx+1<len) {
+			if (qot) {
+	            if (c=='\\' && idx+1<len) {
 	            	++idx; //skip escaped char
 	            }
-	            else if (c == '\'') {
-	                if (idx+1 < len && s.charAt(idx + 1) == '\'') { // double quotes
+	            else if (c=='\'') {
+	                if (idx+1<len && s.charAt(idx + 1)=='\'') { // double quotes
 	                	++idx; // skip escaped quote
 	                }
 	                else {
-	                	inQuotes = false; 
+	                	qot = false; 
 	                }
 	            }
 	        }
 			else if (c == '\'') {
-	            inQuotes = true;
+	            qot = true;
 	        }
-			else if(c == '-' && idx+1 < len && s.charAt(idx+1) == '-') {
-				while(idx < len && s.charAt(idx) != '\n') {
-					idx++;
-				}
-				continue;
-			}
 			else if(c == to) {
 				break;
 			}
@@ -122,10 +111,45 @@ public enum DatabaseCommand {
 		return idx;
 	}
 	
+	static int skipWhiteSpace(String s, int idx) {
+		while(idx<s.length() && isWhitespace(s.charAt(idx))) {
+			idx++;
+		}
+		return idx;
+	}
+	
+	static int skipComment(String s, int idx) {
+		var len =  s.length();
+		var c = s.charAt(idx);
+		if(c=='-' && idx+1<len && s.charAt(idx+1)=='-') {
+			idx+=2;
+			while(idx<len && s.charAt(idx)!='\n') {
+				++idx;
+			}
+		}
+		return idx; //return index of \n
+	}
+	
 	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
 		if(main == cmd || isNull(cmd)) {
 			return main;
 		}
 		return isNull(main) ? cmd : SQL;
 	}
+	
+	public static void main(String[] args) {
+		System.out.println(extractCommand(v));
+	}
+	
+	static String v = """
+		WITH -- DUMMY COMMENT )'(
+		cte AS -- DUMMY COMMENT )'(
+		(SELECT -- DUMMY COMMENT )'(
+		id FROM -- DUMMY COMMENT )'(
+		(SELECT -- DUMMY COMMENT )'(
+		id FROM -- DUMMY COMMENT )'(
+		users) x) SELECT -- DUMMY COMMENT )'(
+		* FROM -- DUMMY COMMENT )'(
+		cte;
+	""";
 }

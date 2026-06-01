@@ -31,7 +31,7 @@ class SqlCommandTest {
 		"TRUNCATE,'TRUNCATE TABLE students;'",
 		"GRANT,'GRANT SELECT ON Users TO''Tom''@''localhost;'",
 		"REVOKE,'REVOKE SELECT, UPDATE ON student FROM BCA, MCA;'",
-		"INSERT,'INSERT INTO students (RollNo, FIrstName, LastName) VALUES (''60'', ''Tom'', ''Erichsen'')'",
+		"INSERT,'INSERT INTO students (RollNo, FIrstName, LastName) VALUES (''60'', ''Tom'', ''value (fake parenthèse)'')'",
 		"UPDATE,'UPDATE students SET FirstName = ''Jhon'', LastName= ''Wick'' WHERE StudID = 3'",
 		"DELETE,'DELETE FROM Students WHERE RollNo =25;",
 		"SELECT,'SELECT FirstName  FROM Student  WHERE RollNo > 15;'",
