@@ -4,7 +4,7 @@ import static java.lang.System.lineSeparator;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.DatabaseCommand.extractCommands;
+import static org.usf.inspect.core.DatabaseCommand.extractCommand;
 
 import java.util.concurrent.ExecutorService;
 
@@ -46,9 +46,9 @@ class SqlCommandTest {
 		"CREATE,'CREATE TABLE students;CREATE VIEW for_students as select *;'",
 	})
 	void testMainCommand(DatabaseCommand cmd, String sql) throws JSQLParserException {
-		assertEquals(cmd, extractCommands(sql));
-		assertEquals(cmd, extractCommands(sql.toLowerCase()));
-		assertEquals(cmd, extractCommands(indent(sql)));
+		assertEquals(cmd, extractCommand(sql));
+		assertEquals(cmd, extractCommand(sql.toLowerCase()));
+		assertEquals(cmd, extractCommand(indent(sql)));
 	}
 
 	@ParameterizedTest
@@ -59,7 +59,7 @@ class SqlCommandTest {
 		"'WITH avg_salary AS (SELECT AVG salary) AS moy FROM employees) SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'",
 	})
 	void testMainCommand_unknown(String sql) {
-		assertNull(extractCommands(sql));
+		assertNull(extractCommand(sql));
 	}
 	
 	static String indent(String s) {
