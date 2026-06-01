@@ -10,7 +10,7 @@ import static org.usf.inspect.core.DatabaseAction.EXECUTE;
 import static org.usf.inspect.core.DatabaseAction.FETCH;
 import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.SQL;
-import static org.usf.inspect.core.DatabaseCommand.parseCommand;
+import static org.usf.inspect.core.DatabaseCommand.extractCommand;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
@@ -68,6 +68,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	}
 
 	//callback should be created before processing
+	@Override
 	protected DatabaseRequestUpdate createCallback(DatabaseRequestSignal session) { 
 		return session.createCallback();
 	}
@@ -200,7 +201,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	
 	void parseAndMergeCommand(String sql) {
 		try {
-			mainCommand = mergeCommand(mainCommand, parseCommand(sql));
+			mainCommand = mergeCommand(mainCommand, extractCommand(sql));
 		}
 		catch (Exception e) {
 			hub().reportError(false, "parseAndMergeCommand", e);

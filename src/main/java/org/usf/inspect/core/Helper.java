@@ -59,6 +59,7 @@ public final class Helper {
 	}
 
 	//e.g. batch name (arg param)
+	@Deprecated(since="0.4.0", forRemoval=true) //use SpelEvaluator.evalMethodExpression instead
 	public static Object evalExpression(String exp, Object root, Class<?> clazz, String[] params, Object[] args) {
 		if(exp.contains("#")) {
 			var ctx = new StandardEvaluationContext(root);

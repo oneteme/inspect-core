@@ -1,10 +1,7 @@
 package org.usf.inspect.core;
-
-import static java.util.regex.Pattern.CASE_INSENSITIVE;
-import static java.util.regex.Pattern.DOTALL;
-import static java.util.regex.Pattern.MULTILINE;
-import static java.util.regex.Pattern.compile;
-import static java.util.stream.Collectors.joining;
+ 
+import static java.lang.Character.isWhitespace;
+import static java.util.Objects.isNull;
 import static org.usf.inspect.core.CommandType.EDIT;
 import static org.usf.inspect.core.CommandType.EMIT;
 import static org.usf.inspect.core.CommandType.READ;
@@ -12,25 +9,15 @@ import static org.usf.inspect.core.CommandType.ROLE;
 import static org.usf.inspect.core.CommandType.SCRIPT;
 import static org.usf.inspect.core.CommandType.SETUP;
 
-import java.sql.Statement;
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
-
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.util.TablesNamesFinder;
-
+ 
 /**
- * 
- * @author u$f
- *
- */
+* 
+* @author u$f
+*
+*/
 @Slf4j
 @Getter
 @RequiredArgsConstructor
@@ -38,97 +25,141 @@ public enum DatabaseCommand {
 	
 	CREATE(SETUP), DROP(SETUP), ALTER(SETUP), TRUNCATE(SETUP), //DDL
 	GRANT(ROLE), REVOKE(ROLE), //DCL
-	INSERT(EMIT), UPDATE(EDIT), DELETE(EDIT), //DML
+	INSERT(EMIT), UPDATE(EDIT), DELETE(EDIT), MERGE(EDIT), //DML
 	SELECT(READ), //DQL
 	//TCL 
 	SET(null), GET(null), //OTHER
 	CALL(SCRIPT), SQL(SCRIPT); //multiple command
 	
 	private final CommandType type;
-	
-	public static final Pattern PATTERN =
-			compile(Stream.of(values())
-			.filter(c-> c != SQL) // not a command
-			.map(Object::toString)
-			.collect(joining("|", "^\s*(", ")\s*"))
-			, MULTILINE | CASE_INSENSITIVE);
 
-	public static final Pattern WITH_PATTERN =
-			compile("^\s*WITH\s+\\w+\s+AS\s*", MULTILINE | CASE_INSENSITIVE);
-	
-	public static final Pattern SQL_PATTERN = 
-			compile(".+;.*\\w+", DOTALL);
-	
-	public static DatabaseCommand parseCommand(@NonNull String query){
-		if(SQL_PATTERN.matcher(query).find()) { //multiple 
-			return SQL;
+	// CCJSQL parser
+	public static DatabaseCommand extractCommand(String sql) {
+		if(isNull(sql) || sql.isBlank()) {
+			return null;
 		}
-		var idx = skipWithClause(query);
-		var m = PATTERN.matcher(query).region(idx, query.length());
-		return m.find() ? valueOf(m.group(1).toUpperCase()) : null;
-	}
-	
-	private static int skipWithClause(String s) {
-		var idx = 0;
-		var m = WITH_PATTERN.matcher(s);
-		if(m.find()) {
-			var p = compile("^\s*,\s*\\w+\s+AS\s*", MULTILINE | CASE_INSENSITIVE); //multiple
-			do {
-				idx = jumpParentheses(s, m.end());
-				if(idx == m.end()) {
-					log.warn("'(' expected at {} after WITH clause : {}", idx, s);
-					break;
+		var idx = skipWhiteSpace(sql, 0);
+    	if(sql.regionMatches(true, idx, "WITH ", 0, 5)) {
+    		idx = jumpTo(sql, idx, '(')+1;
+			var prth = 1;
+			char c = 0;
+			for(; idx < sql.length(); idx++) {
+				c = sql.charAt(idx);
+				if(c == '(') {
+					++prth;
 				}
-				m = p.matcher(s).region(idx, s.length());
-			} while(m.find());
+				if(c == ')' && --prth == 0) {
+		    		idx = skipWhiteSpace(sql, ++idx);
+		    		if(sql.charAt(idx) == ',') {
+		    			idx = jumpTo(sql, idx, '(');
+	    				prth = 1;
+		    		}
+		    		else {
+		    			break;
+		    		}
+				}
+			}
+    		idx = skipWhiteSpace(sql, idx);
+    	}
+    	DatabaseCommand main = null;
+		if(idx < sql.length()) {
+			do {
+	    		DatabaseCommand cmd = null;
+		        if(sql.regionMatches(true, idx, "SELECT ", 0, 7)) {
+		        	cmd = SELECT;
+		        }
+		        else if(sql.regionMatches(true, idx, "INSERT ", 0, 7)) {
+		        	cmd = INSERT;
+		        }
+		        else if(sql.regionMatches(true, idx, "DELETE ", 0, 7)) {
+		        	cmd = DELETE;
+		        }
+		        else if(sql.regionMatches(true, idx, "UPDATE ", 0, 7)) {
+		        	cmd = UPDATE;
+		        }
+		        else if(sql.regionMatches(true, idx, "MERGE ", 0, 6)) {
+		        	cmd = MERGE;
+		        }
+		        else if(sql.regionMatches(true, idx, "CREATE ", 0, 7)) {
+		        	cmd = CREATE;
+		        }
+		        else if(sql.regionMatches(true, idx, "DROP ", 0, 5)) {
+		        	cmd = DROP;
+		        }
+		        else if(sql.regionMatches(true, idx, "ALTER ", 0, 6)) {
+		        	cmd = ALTER;
+		        }
+		        else if(sql.regionMatches(true, idx, "TRUNCATE ", 0, 9)) {
+		        	cmd = TRUNCATE;
+		        }
+		        else if(sql.regionMatches(true, idx, "GRANT ", 0, 6)) {
+		        	cmd = GRANT;
+		        }
+		        else if(sql.regionMatches(true, idx, "REVOKE ", 0, 5)) {
+		        	cmd = REVOKE;
+		        }
+		        else if(sql.regionMatches(true, idx, "GET ", 0, 4)) {
+		        	cmd = GET;
+		        }
+		        else if(sql.regionMatches(true, idx, "SET ", 0, 4)) {
+		        	cmd = SET;
+		        }
+		        else {
+		        	cmd = SQL;
+		        }
+		        main = mergeCommand(main, cmd);	        
+	    	} while(main != SQL && (idx=skipWhiteSpace(sql, jumpTo(sql, idx, ';')+1)) < sql.length());
+		}
+        return main;
+    }
+	
+	
+	static int skipWhiteSpace(String s, int idx) {
+		while(idx < s.length() && isWhitespace(s.charAt(idx))) {
+			idx++;
 		}
 		return idx;
 	}
 	
-	private static int jumpParentheses(CharSequence query, int from) {
-		var deep = 0;
-		for(var i=from; i<query.length(); i++) {
-			if(query.charAt(i) == '(') {
-				deep++;
-			}
-			else if(query.charAt(i) == ')') {
-				deep--;
-				if(deep == 0) {
-					return ++i;
+	static int jumpTo(String s, int idx, char to) {
+		var len =  s.length();
+		var inQuotes = false;
+		while(idx < len) {
+			char c = s.charAt(idx);
+			if (inQuotes) {
+	            if (c == '\\' && idx + 1 < len) {
+	                idx += 2;
+	            }
+	            if (c == '\'') {
+	                if (idx + 1 < len && s.charAt(idx + 1) == '\'') { // double quotes
+	                    idx ++; 
+	                }
+	                else {
+	                	inQuotes = false; 
+	                }
+	            }
+	        }
+			else if (c == '\'') {
+	            inQuotes = true;
+	        }
+			else if(c == '-' && idx+1 < len && s.charAt(idx+1) == '-') {
+				while(idx < len && s.charAt(idx) != '\n') {
+					idx++;
 				}
-				else if(deep < 0) {
-					log.warn("unexpected character ')' at {} : {}", i, query);
-					break; //bad query
-				}
+				continue;
 			}
+			else if(c == to) {
+				break;
+			}
+			idx++;
 		}
-		return from;
+		return idx;
 	}
-
-	public static void extract(String sql) {
-        try {
-            // 1. Parser la requête
-            var statement = CCJSqlParserUtil.parse(sql);
-
-            // 2. Récupérer le type de commande (SELECT, INSERT, UPDATE, DELETE, etc.)
-            // getClass().getSimpleName() renvoie "Select", "Update", "Insert"...
-            String commandType = statement.getClass().getSimpleName().toUpperCase();
-
-            // 3. Extraire toutes les tables (incluant les schémas si présents)
-            var tablesNamesFinder = new TablesNamesFinder();
-            List<String> tableList = tablesNamesFinder.getTableList(statement);
-
-            // Affichage des résultats
-            System.out.println("Commande : " + commandType);
-            System.out.println("Tables impactées : " + tableList);
-            
-        } catch (Exception e) {
-            System.err.println("Erreur de parsing : " + e.getMessage());
-        }
-    }
-
-    public static void main(String[] args) {
-        extract("SELECT * FROM production.users u JOIN logs.access l ON u.id = l.user_id");
-        extract("INSERT INTO archive.history (id, data) VALUES (1, 'test')");
-    }
+	
+	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
+		if(main == cmd || isNull(cmd)) {
+			return main;
+		}
+		return isNull(main) ? cmd : SQL;
+	}
 }
