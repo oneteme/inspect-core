@@ -10,8 +10,6 @@ import static org.usf.inspect.core.CommandType.ROLE;
 import static org.usf.inspect.core.CommandType.SCRIPT;
 import static org.usf.inspect.core.CommandType.SETUP;
 
-import java.util.Objects;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,11 +39,12 @@ public enum DatabaseCommand {
 			return null;
 		}
 		var idx = skipWhiteSpace(sql, 0);
+		var len = sql.length();
     	if(sql.regionMatches(true, idx, "WITH ", 0, 5)) {
     		idx = jumpTo(sql, idx, '(')+1;
 			var prth = 1;
 			char c = 0;
-			for(; idx < sql.length(); idx++) {
+			for(; idx < len; idx++) {
 				c = sql.charAt(idx);
 				if(c == '(') {
 					++prth;
@@ -64,12 +63,13 @@ public enum DatabaseCommand {
     		idx = skipWhiteSpace(sql, idx);
     	}
     	DatabaseCommand main = null;
-		if(idx < sql.length()) {
+		if(idx < len) {
 			do {
 	    		DatabaseCommand cmd = null;
-	    		for(var c : values()) {
+	    		for(var c : values()) { //exclude SQL !
 	    			var s = c.name();
-			        if(sql.regionMatches(true, idx, s, 0, s.length()) && sql.length() > idx+s.length() && isWhitespace(sql.charAt(idx+s.length()))) {
+	    			var cLen = s.length();
+			        if(sql.regionMatches(true, idx, s, 0, cLen) && idx+cLen<len && isWhitespace(sql.charAt(idx+cLen))) {
 			        	cmd = c;
 			        	break;
 			        }
@@ -79,7 +79,6 @@ public enum DatabaseCommand {
 		}
         return main;
     }
-	
 	
 	static int skipWhiteSpace(String s, int idx) {
 		while(idx < s.length() && isWhitespace(s.charAt(idx))) {
@@ -94,12 +93,12 @@ public enum DatabaseCommand {
 		while(idx < len) {
 			char c = s.charAt(idx);
 			if (inQuotes) {
-	            if (c == '\\' && idx + 1 < len) {
-	                idx += 2;
+	            if (c == '\\' && idx+1<len) {
+	            	++idx; //skip escaped char
 	            }
-	            if (c == '\'') {
-	                if (idx + 1 < len && s.charAt(idx + 1) == '\'') { // double quotes
-	                    idx ++; 
+	            else if (c == '\'') {
+	                if (idx+1 < len && s.charAt(idx + 1) == '\'') { // double quotes
+	                	++idx; // skip escaped quote
 	                }
 	                else {
 	                	inQuotes = false; 
@@ -118,7 +117,7 @@ public enum DatabaseCommand {
 			else if(c == to) {
 				break;
 			}
-			idx++;
+			++idx;
 		}
 		return idx;
 	}
