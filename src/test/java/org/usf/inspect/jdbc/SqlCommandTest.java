@@ -1,9 +1,14 @@
 package org.usf.inspect.jdbc;
 
+import static java.lang.String.join;
 import static java.lang.System.lineSeparator;
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
+import static java.util.regex.Pattern.compile;
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.usf.inspect.core.DatabaseCommand.extractCommand;
+
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -17,7 +22,10 @@ import org.usf.inspect.core.DatabaseCommand;
 class SqlCommandTest {
 	
 	private static final String WHITESPACE = " \t " + lineSeparator(); 
-	private static final String COMMENT = "-- DUMMY COMMENT )'( "; 
+	private static final String COMMENT = "-- DUMMY COMMENT )'( --" + lineSeparator();
+	private static final String[] keywords = { "CREATE", "DROP", "ALTER", "TRUNCATE", "GRANT", "REVOKE", "INSERT", "UPDATE", "WITH", "MERGE", "SELECT", "FROM", "AS" };
+	private static final Pattern pattern = compile("\\b(" + join("|", keywords) + ")\\b\\s*", CASE_INSENSITIVE);
+	private static final String replacement = "$1 " + COMMENT + "\s";
 	
 	@ParameterizedTest
 	@CsvSource({
@@ -43,7 +51,32 @@ class SqlCommandTest {
 	void testMainCommand(DatabaseCommand cmd, String sql) {
 		assertEquals(cmd, extractCommand(sql));
 		assertEquals(cmd, extractCommand(sql.toLowerCase()));
-		assertEquals(cmd, extractCommand(indent(sql)));
+		assertEquals(cmd, extractCommand(addComment(sql)));
+//		assertEquals(cmd, extractCommand(indent(sql)));
+	}
+	@ParameterizedTest
+	@CsvSource({
+		"'CREATE SCHEMA university;'",
+		"'CREATE TABLE students;'",
+		"'CREATE VIEW for_students as select *;'",
+		"'DROP OBJECT_TYPE object_name;'",
+		"'DROP SCHEMA university;",
+		"'DROP TABLE student;",
+		"'ALTER TABLE student ADD subject VARCHAR;'",
+		"'TRUNCATE TABLE students;'",
+		"'GRANT SELECT ON Users TO''Tom''@''localhost;'",
+		"'REVOKE SELECT, UPDATE ON student FROM BCA, MCA;'",
+		"'INSERT INTO students (RollNo, FIrstName, LastName) VALUES (''60'', ''Tom'', ''Erichsen'')'",
+		"'UPDATE students SET FirstName = ''Jhon'', LastName= ''Wick'' WHERE StudID = 3'",
+		"'DELETE FROM Students WHERE RollNo =25;",
+		"'SELECT FirstName  FROM Student  WHERE RollNo > 15;'",
+		"'WITH avg_salary AS (SELECT AVG(salary) AS moy FROM employees) SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'",
+		"'WITH cte_sales AS(SELECT EmployeeID, COUNT(OrderID) as Orders, ShipperID FROM Orders GROUP BY EmployeeID, ShipperID), shipper_cte AS (SELECT * FROM cte_sales WHERE ShipperID=2 or ShipperID=3) SELECT ShipperID, AVG(Orders) average_order_per_employee FROM shipper_cte GROUP BY ShipperID;'",
+		"'DELETE FROM Students WHERE RollNo = 25; SELECT FirstName FROM Student  WHERE RollNo > 15;",
+		"'CREATE TABLE students;CREATE VIEW for_students as select *;'",
+	})
+	void testAddComment( String sql) {
+//		assertEquals(sql, addComment(sql));
 	}
 
 	@ParameterizedTest
@@ -62,5 +95,9 @@ class SqlCommandTest {
 				s.replaceAll("\s+(WHERE|FROM|SET)", lineSeparator()+"$1")
 				.replaceAll("(\\)|;)\s*", "$1"+lineSeparator()) +
 				WHITESPACE + ";";
+	}
+	
+	static String addComment(String s) {
+		return pattern.matcher(s).replaceAll(replacement);
 	}
 }
