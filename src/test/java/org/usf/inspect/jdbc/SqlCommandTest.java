@@ -41,8 +41,8 @@ class SqlCommandTest {
 		"CREATE,'CREATE TABLE students;CREATE VIEW for_students as select *;'",
 	})
 	void testMainCommand(DatabaseCommand cmd, String sql) {
-//		assertEquals(cmd, extractCommand(sql));
-//		assertEquals(cmd, extractCommand(sql.toLowerCase()));
+		assertEquals(cmd, extractCommand(sql));
+		assertEquals(cmd, extractCommand(sql.toLowerCase()));
 		assertEquals(cmd, extractCommand(indent(sql)));
 	}
 
