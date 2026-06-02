@@ -68,14 +68,14 @@ public enum DatabaseCommand {
 	    		for(var c : values()) { //exclude SQL !
 	    			var s = c.name();
 	    			var cLen = s.length();
-			        if(sql.regionMatches(true, idx, s, 0, cLen) && idx+cLen<len && isWhitespace(sql.charAt(idx+cLen))) {
+			        if(sql.regionMatches(true, idx, s, 0, cLen) && idx+cLen<len && isWhitespacePlus(sql.charAt(idx+cLen))) {
 			        	cmd = c;
 			        	idx+= cLen+1;
 			        	break;
 			        }
 	    		}
 		        main = mergeCommand(main, cmd);	        
-	    	} while(nonNull(main) && main != SQL && (idx=nextToken(sql, nextChar(sql, idx+1, ';'))) < len);
+	    	} while(nonNull(main) && main != SQL && (idx=nextToken(sql, nextChar(sql, idx, ';'))) < len);
 		}
         return main;
     }
@@ -113,7 +113,7 @@ public enum DatabaseCommand {
 		var len = s.length();
 		do {
 			idx++;
-		} while(skipComment(s,idx)<len && isWhitespace(s.charAt(idx)));
+		}while((idx=skipComment(s,idx))<len && isWhitespacePlus(s.charAt(idx)));
 		return idx;
 	}
 	
@@ -134,12 +134,8 @@ public enum DatabaseCommand {
 		return idx;
 	}
 	
-	static int skipWhiteSpace(String s, int idx) {
-		var len = s.length();
-		while(idx<len && isWhitespace(s.charAt(idx))) {
-			++idx;
-		}
-		return idx;
+	static boolean isWhitespacePlus(char c) {
+		return isWhitespace(c) || c == ' ';
 	}
 	
 	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
@@ -148,4 +144,16 @@ public enum DatabaseCommand {
 		}
 		return isNull(main) ? cmd : SQL;
 	}
+	
+	public static void main(String[] args) {
+		System.out.println(extractCommand(query));
+	}
+	
+	
+	static String query = """
+			SELECT -- DUMMY COMMENT )'(
+ * FROM -- DUMMY COMMENT )'(
+ users; DELETE FROM -- DUMMY COMMENT )'(
+ users WHERE id = 1;
+ """;
 }
