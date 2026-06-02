@@ -7,6 +7,7 @@ import static org.usf.inspect.core.DatabaseCommand.extractCommand;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.platform.commons.annotation.Testable;
 import org.usf.inspect.core.DatabaseCommand;
@@ -48,6 +49,7 @@ class SqlCommandTest {
 
 	@ParameterizedTest
 	@NullSource
+	@EmptySource
 	@CsvSource({
 		"DUMMY SQL COMMAND",
 		"'WITH avg_salary AS query SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'",
