@@ -4,6 +4,8 @@ import static java.lang.String.join;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.lineSeparator;
 import static java.nio.file.Files.newBufferedWriter;
+import static java.time.LocalDateTime.now;
+import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 import static org.junit.Assert.assertNull;
@@ -15,6 +17,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,6 +37,8 @@ class SqlCommandTest {
 	private static final String[] keywords = { "CREATE", "DROP", "ALTER", "TRUNCATE", "GRANT", "REVOKE", "INSERT", "UPDATE", "WITH", "MERGE", "SELECT", "FROM", "AS" };
 	private static final Pattern pattern = compile("\\b(" + join("|", keywords) + ")\\b\\s*", CASE_INSENSITIVE);
 	private static final String replacement = "$1 " + COMMENT + "\s";
+	private static final String now = now().format(ofPattern("yyyyMMdd_HHmmss"));
+	private static final Path csv = Paths.get("parser_" + now + ".csv");
 	
 	@ParameterizedTest
 	@CsvSource({
@@ -143,15 +149,15 @@ class SqlCommandTest {
 		"SELECT,'SELECT * FROM logs WHERE message LIKE ''%;%'';'",
 		"SQL,'WITH a AS (SELECT 1) SELECT * from t; DROP TABLE users; SELECT 2;'"
 	})
-	void testMainCommand(DatabaseCommand cmd, String sql) {
+	void testMainCommand(DatabaseCommand cmd, String sql) throws InterruptedException {
 		assertEquals(cmd, extractCommand(sql));
 		assertEquals(cmd, extractCommand(sql.toLowerCase()));
 		assertEquals(cmd, extractCommand(addComment(sql)));
 		assertEquals(cmd, extractCommand(indent(sql)));
 //		try {
+//			Thread.sleep(1);
 //			generateCSV(sql);
 //		} catch (IOException e) {
-//			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
 	}
@@ -179,29 +185,23 @@ class SqlCommandTest {
 	}
 	
 	static void generateCSV(String sql) throws IOException {
-	    Path csv = Paths.get("parser.csv");
+		try (BufferedWriter writer = newBufferedWriter(csv)) {
+			writer.write("iteration,command,elapsed_ms,query");
+			writer.newLine();
 
-	    try (BufferedWriter writer = newBufferedWriter(csv)) {
-	        writer.write("iteration,command,elapsed_ms");
-	        writer.newLine();
+			System.out.println("\nQuery : " + sql + "\n");
+			for (int i = 0; i < 20; i++) {
+				long t = currentTimeMillis();
+				String regCommand = extractCommand(sql).toString();
+				long elapsedReg = currentTimeMillis() - t;
 
-	        System.out.println("\nQuery : " + sql + "\n");
-	        writer.write(sql);
-	        for (int i = 0; i < 20; i++) {
-	            long t = currentTimeMillis();
-	            String regCommand = extractCommand(sql).toString();
-	            long elapsedReg = currentTimeMillis() - t;
+				writer.write((i + 1) + "," + regCommand + "," + elapsedReg + "ms," + sql);
+				writer.newLine();
+			}
+			writer.newLine();
+		}
 
-	            writer.write(
-	                (i + 1) + ","
-	                + regCommand + ","
-	                + elapsedReg
-	            );
-	            writer.newLine();
-	        }
-	    }
-
-	    System.out.println("CSV generated at: " + csv.toAbsolutePath());
+		System.out.println("CSV generated at: " + csv.toAbsolutePath());
 	}
 	
 }
