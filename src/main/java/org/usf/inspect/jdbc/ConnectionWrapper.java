@@ -95,7 +95,6 @@ public final class ConnectionWrapper implements Connection {
 		return new CallableStatementWrapper(call(()-> cn.prepareCall(sql, resultSetType, resultSetConcurrency, resultSetHoldability), monitor.statementStageHandler(sql)), monitor);
 	}
 	
-	
 	@Override
 	public Savepoint setSavepoint() throws SQLException {
 		return call(cn::setSavepoint, monitor.stageHandler(SAVEPOINT));

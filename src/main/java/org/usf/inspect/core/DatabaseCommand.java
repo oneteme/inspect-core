@@ -109,27 +109,19 @@ public enum DatabaseCommand {
 		return idx;
 	}
 	
-	static int skipWhiteSpace(String s, int idx) {
-		var len = s.length();
-		while(idx<len && isWhitespace(s.charAt(idx))) {
-			idx++;
-		}
-		return idx;
-	}
-	
 	static int nextToken(String s, int idx) {
 		var len = s.length();
 		do {
 			idx++;
-		}while(skipComment(s,idx)<len && isWhitespace(s.charAt(idx)));
+		} while(skipComment(s,idx)<len && isWhitespace(s.charAt(idx)));
 		return idx;
 	}
 	
 	static int skipComment(String s, int idx) {
 		var len = s.length();
-		if(idx < len) {
+		if(idx+1 < len) {
 			var c = s.charAt(idx);
-			if(c=='-' && idx+1<len && s.charAt(idx+1)=='-') {
+			if(c=='-' && s.charAt(idx+1)=='-') {
 				idx+=2;
 				while(idx<len && s.charAt(idx)!='\n') {
 					++idx;
@@ -138,6 +130,14 @@ public enum DatabaseCommand {
 					++idx;
 				}
 			}
+		}
+		return idx;
+	}
+	
+	static int skipWhiteSpace(String s, int idx) {
+		var len = s.length();
+		while(idx<len && isWhitespace(s.charAt(idx))) {
+			++idx;
 		}
 		return idx;
 	}
