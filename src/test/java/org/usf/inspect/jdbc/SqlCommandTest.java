@@ -1,13 +1,20 @@
 package org.usf.inspect.jdbc;
 
 import static java.lang.String.join;
+import static java.lang.System.currentTimeMillis;
 import static java.lang.System.lineSeparator;
+import static java.nio.file.Files.newBufferedWriter;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.usf.inspect.core.DatabaseCommand.extractCommand;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -141,32 +148,14 @@ class SqlCommandTest {
 		assertEquals(cmd, extractCommand(sql.toLowerCase()));
 		assertEquals(cmd, extractCommand(addComment(sql)));
 		assertEquals(cmd, extractCommand(indent(sql)));
+//		try {
+//			generateCSV(sql);
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
-	@ParameterizedTest
-	@CsvSource({
-		"'CREATE SCHEMA university;'",
-		"'CREATE TABLE students;'",
-		"'CREATE VIEW for_students as select *;'",
-		"'DROP OBJECT_TYPE object_name;'",
-		"'DROP SCHEMA university;",
-		"'DROP TABLE student;",
-		"'ALTER TABLE student ADD subject VARCHAR;'",
-		"'TRUNCATE TABLE students;'",
-		"'GRANT SELECT ON Users TO''Tom''@''localhost;'",
-		"'REVOKE SELECT, UPDATE ON student FROM BCA, MCA;'",
-		"'INSERT INTO students (RollNo, FIrstName, LastName) VALUES (''60'', ''Tom'', ''Erichsen'')'",
-		"'UPDATE students SET FirstName = ''Jhon'', LastName= ''Wick'' WHERE StudID = 3'",
-		"'DELETE FROM Students WHERE RollNo =25;",
-		"'SELECT FirstName  FROM Student  WHERE RollNo > 15;'",
-		"'WITH avg_salary AS (SELECT AVG(salary) AS moy FROM employees) SELECT id, first_name, last_name,salary - moy  AS diff FROM employees, avg_salary;'",
-		"'WITH cte_sales AS(SELECT EmployeeID, COUNT(OrderID) as Orders, ShipperID FROM Orders GROUP BY EmployeeID, ShipperID), shipper_cte AS (SELECT * FROM cte_sales WHERE ShipperID=2 or ShipperID=3) SELECT ShipperID, AVG(Orders) average_order_per_employee FROM shipper_cte GROUP BY ShipperID;'",
-		"'DELETE FROM Students WHERE RollNo = 25; SELECT FirstName FROM Student  WHERE RollNo > 15;",
-		"'CREATE TABLE students;CREATE VIEW for_students as select *;'",
-	})
-	void testAddComment( String sql) {
-//		assertEquals(sql, addComment(sql));
-	}
-
+	
 	@ParameterizedTest
 	@NullSource
 	@CsvSource({
@@ -188,4 +177,31 @@ class SqlCommandTest {
 	static String addComment(String s) {
 		return pattern.matcher(s).replaceAll(replacement);
 	}
+	
+	static void generateCSV(String sql) throws IOException {
+	    Path csv = Paths.get("parser.csv");
+
+	    try (BufferedWriter writer = newBufferedWriter(csv)) {
+	        writer.write("iteration,command,elapsed_ms");
+	        writer.newLine();
+
+	        System.out.println("\nQuery : " + sql + "\n");
+	        writer.write(sql);
+	        for (int i = 0; i < 20; i++) {
+	            long t = currentTimeMillis();
+	            String regCommand = extractCommand(sql).toString();
+	            long elapsedReg = currentTimeMillis() - t;
+
+	            writer.write(
+	                (i + 1) + ","
+	                + regCommand + ","
+	                + elapsedReg
+	            );
+	            writer.newLine();
+	        }
+	    }
+
+	    System.out.println("CSV generated at: " + csv.toAbsolutePath());
+	}
+	
 }
