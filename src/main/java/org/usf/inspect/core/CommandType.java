@@ -13,8 +13,8 @@ public enum CommandType {
 	EDIT, //rename, delete, update, ..
 	EMIT, //insert, send, push, publish, ..
 	ROLE, // grant, chmod, ..
-	ACCESS, //cd,
 	SETUP, //create, drop, ..
+	ACCESS, //cd,
 	SCRIPT; //multiple command
 	
 	public static String merge(String main, CommandType type) {
