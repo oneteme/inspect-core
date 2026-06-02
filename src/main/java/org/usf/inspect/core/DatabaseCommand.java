@@ -38,30 +38,28 @@ public enum DatabaseCommand {
 		if(isNull(sql) || sql.isBlank()) {
 			return null;
 		}
-		var idx = skipWhiteSpace(sql, 0);
 		var len = sql.length();
+		var idx = nextToken(sql, -1);
     	if(sql.regionMatches(true, idx, "WITH ", 0, 5)) {
-    		idx = jumpTo(sql, idx+5, '(');
-			var prth = 0;
+    		idx = nextChar(sql, idx+5, '(');
+			var prth = 1;
 			char c = 0;
-			for(; idx < len; idx++) {
+			while((idx= nextToken(sql, idx)) < len) {
 				c = sql.charAt(idx);
 				if(c == '(') {
 					++prth;
 				}
 				else if(c == ')' && --prth == 0) {
-		    		idx = skipWhiteSpace(sql, ++idx);
+		    		idx = nextToken(sql, idx);
 		    		if(sql.charAt(idx) == ',') {
-		    			idx = jumpTo(sql, idx, '(');
+		    			idx = nextChar(sql, idx, '(');
 	    				prth = 1;
 		    		}
 		    		else {
 		    			break;
 		    		}
 				}
-				idx = skipComment(sql, idx);
 			}
-    		idx = skipWhiteSpace(sql, idx);
     	}
     	DatabaseCommand main = null;
 		if(idx < len) {
@@ -72,27 +70,27 @@ public enum DatabaseCommand {
 	    			var cLen = s.length();
 			        if(sql.regionMatches(true, idx, s, 0, cLen) && idx+cLen<len && isWhitespace(sql.charAt(idx+cLen))) {
 			        	cmd = c;
+			        	idx+= cLen+1;
 			        	break;
 			        }
 	    		}
 		        main = mergeCommand(main, cmd);	        
-	    	} while(nonNull(main) && main != SQL && (idx=skipWhiteSpace(sql, jumpTo(sql, idx, ';')+1)) < sql.length());
+	    	} while(nonNull(main) && main != SQL && (idx=nextToken(sql, nextChar(sql, idx+1, ';'))) < len);
 		}
         return main;
     }
 	
-	static int jumpTo(String s, int idx, char to) {
-		var len =  s.length();
+	static int nextChar(String s, int idx, char to) {
+		var len = s.length();
 		var qot = false;
-		while(idx < len) {
-			idx = skipComment(s, idx);
+		while((idx=skipComment(s, idx)) < len) {
 			char c = s.charAt(idx);
 			if (qot) {
 	            if (c=='\\' && idx+1<len) {
 	            	++idx; //skip escaped char
 	            }
 	            else if (c=='\'') {
-	                if (idx+1<len && s.charAt(idx + 1)=='\'') { // double quotes
+	                if (idx+1<len && s.charAt(idx+1)=='\'') {
 	                	++idx; // skip escaped quote
 	                }
 	                else {
@@ -112,22 +110,36 @@ public enum DatabaseCommand {
 	}
 	
 	static int skipWhiteSpace(String s, int idx) {
-		while(idx<s.length() && isWhitespace(s.charAt(idx))) {
+		var len = s.length();
+		while(idx<len && isWhitespace(s.charAt(idx))) {
 			idx++;
 		}
 		return idx;
 	}
 	
+	static int nextToken(String s, int idx) {
+		var len = s.length();
+		do {
+			idx++;
+		}while(skipComment(s,idx)<len && isWhitespace(s.charAt(idx)));
+		return idx;
+	}
+	
 	static int skipComment(String s, int idx) {
-		var len =  s.length();
-		var c = s.charAt(idx);
-		if(c=='-' && idx+1<len && s.charAt(idx+1)=='-') {
-			idx+=2;
-			while(idx<len && s.charAt(idx)!='\n') {
-				++idx;
+		var len = s.length();
+		if(idx < len) {
+			var c = s.charAt(idx);
+			if(c=='-' && idx+1<len && s.charAt(idx+1)=='-') {
+				idx+=2;
+				while(idx<len && s.charAt(idx)!='\n') {
+					++idx;
+				}
+				if(idx<len) { //skip \n
+					++idx;
+				}
 			}
 		}
-		return idx; //return index of \n
+		return idx;
 	}
 	
 	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
