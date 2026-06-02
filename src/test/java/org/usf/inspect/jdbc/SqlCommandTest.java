@@ -184,24 +184,24 @@ class SqlCommandTest {
 		return pattern.matcher(s).replaceAll(replacement);
 	}
 	
-	static void generateCSV(String sql) throws IOException {
-		try (BufferedWriter writer = newBufferedWriter(csv)) {
-			writer.write("iteration,command,elapsed_ms,query");
-			writer.newLine();
-
-			System.out.println("\nQuery : " + sql + "\n");
-			for (int i = 0; i < 20; i++) {
-				long t = currentTimeMillis();
-				String regCommand = extractCommand(sql).toString();
-				long elapsedReg = currentTimeMillis() - t;
-
-				writer.write((i + 1) + "," + regCommand + "," + elapsedReg + "ms," + sql);
-				writer.newLine();
-			}
-			writer.newLine();
-		}
-
-		System.out.println("CSV generated at: " + csv.toAbsolutePath());
-	}
+//	static void generateCSV(String sql) throws IOException {
+//		try (BufferedWriter writer = newBufferedWriter(csv)) {
+//			writer.write("iteration,command,elapsed_ms,query");
+//			writer.newLine();
+//
+//			System.out.println("\nQuery : " + sql + "\n");
+//			for (int i = 0; i < 20; i++) {
+//				long t = currentTimeMillis();
+//				String regCommand = extractCommand(sql).toString();
+//				long elapsedReg = currentTimeMillis() - t;
+//
+//				writer.write((i + 1) + "," + regCommand + "," + elapsedReg + "ms," + sql);
+//				writer.newLine();
+//			}
+//			writer.newLine();
+//		}
+//
+//		System.out.println("CSV generated at: " + csv.toAbsolutePath());
+//	}
 	
 }
