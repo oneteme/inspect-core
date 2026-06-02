@@ -144,16 +144,4 @@ public enum DatabaseCommand {
 		}
 		return isNull(main) ? cmd : SQL;
 	}
-	
-	public static void main(String[] args) {
-		System.out.println(extractCommand(query));
-	}
-	
-	
-	static String query = """
-			SELECT -- DUMMY COMMENT )'(
- * FROM -- DUMMY COMMENT )'(
- users; DELETE FROM -- DUMMY COMMENT )'(
- users WHERE id = 1;
- """;
 }
