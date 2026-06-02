@@ -9,6 +9,7 @@ import static org.usf.inspect.core.DatabaseCommand.SET;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectExecutor.exec;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -78,6 +79,22 @@ public final class ConnectionWrapper implements Connection {
 	public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
 		return new PreparedStatementWrapper(call(()-> cn.prepareStatement(sql, columnNames), monitor.statementStageHandler(sql)), monitor);
 	}
+	
+	@Override
+	public CallableStatement prepareCall(String sql) throws SQLException {
+		return new CallableStatementWrapper(call(()-> cn.prepareCall(sql), monitor.statementStageHandler(sql)), monitor);
+	}
+	
+	@Override
+	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+		return new CallableStatementWrapper(call(()-> cn.prepareCall(sql, resultSetType, resultSetConcurrency), monitor.statementStageHandler(sql)), monitor);
+	}
+	
+	@Override
+	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+		return new CallableStatementWrapper(call(()-> cn.prepareCall(sql, resultSetType, resultSetConcurrency, resultSetHoldability), monitor.statementStageHandler(sql)), monitor);
+	}
+	
 	
 	@Override
 	public Savepoint setSavepoint() throws SQLException {

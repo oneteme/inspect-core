@@ -17,14 +17,12 @@ import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 import org.springframework.boot.web.servlet.error.ErrorController;
-import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.SpelEvaluator;
 import org.usf.inspect.core.TraceableStage;
 
 import jakarta.servlet.FilterChain;
