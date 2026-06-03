@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.lang.Character.isWhitespace;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.CommandType.CONTEXT;
 import static org.usf.inspect.core.CommandType.EDIT;
 import static org.usf.inspect.core.CommandType.EMIT;
 import static org.usf.inspect.core.CommandType.READ;
@@ -29,7 +30,7 @@ public enum DatabaseCommand {
 	INSERT(EMIT), UPDATE(EDIT), DELETE(EDIT), MERGE(EDIT), //DML
 	SELECT(READ), //DQL
 	//TCL 
-	SET(null), GET(null), //OTHER
+	SET(CONTEXT), GET(CONTEXT), //OTHER
 	CALL(SCRIPT), SQL(SCRIPT); //multiple command
 	
 	private final CommandType type;
@@ -135,7 +136,7 @@ public enum DatabaseCommand {
 	}
 	
 	static boolean isWhitespacePlus(char c) {
-		return isWhitespace(c) || c == ' ';
+		return isWhitespace(c) || c == ' '; //TODO check this
 	}
 	
 	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {

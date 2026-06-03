@@ -1,6 +1,6 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.CommandType.ACCESS;
+import static org.usf.inspect.core.CommandType.CONTEXT;
 import static org.usf.inspect.core.CommandType.EDIT;
 import static org.usf.inspect.core.CommandType.EMIT;
 import static org.usf.inspect.core.CommandType.READ;
@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum FtpCommand {
 
-	CD(ACCESS), //access
+	CD(CONTEXT), 
 	GET(READ), LS(READ), //read
 	PUT(EMIT), MKDIR(EDIT), RENAME(EDIT), RM(EDIT), //write
 	CHMOD(ROLE), CHOWN(ROLE), CHGRP(ROLE); //role
