@@ -42,7 +42,7 @@ public enum DatabaseCommand {
 		var len = sql.length();
 		var idx = nextToken(sql, -1);
     	if(sql.regionMatches(true, idx, "WITH ", 0, 5)) {
-    		idx = nextChar(sql, idx+5, '(');
+    		idx = nextChar(sql, idx+4, '(');
 			var prth = 1;
 			char c = 0;
 			while((idx= nextToken(sql, idx)) < len) {
@@ -76,7 +76,7 @@ public enum DatabaseCommand {
 			        }
 	    		}
 		        main = mergeCommand(main, cmd);	        
-	    	} while(nonNull(main) && main != SQL && (idx=nextToken(sql, nextChar(sql, idx, ';'))) < len);
+	    	} while(nonNull(main) && main != SQL && (idx=nextToken(sql, nextChar(sql, idx-1, ';'))) < len);
 		}
         return main;
     }
@@ -84,14 +84,14 @@ public enum DatabaseCommand {
 	static int nextChar(String s, int idx, char to) {
 		var len = s.length();
 		var qot = false;
-		while((idx=skipComment(s, idx)) < len) {
+		while((idx=skipComment(s, ++idx)) < len) {
 			char c = s.charAt(idx);
 			if (qot) {
 	            if (c=='\\' && idx+1<len) {
 	            	++idx; //skip escaped char
 	            }
 	            else if (c=='\'') {
-	                if (idx+1<len && s.charAt(idx+1)=='\'') {
+	                if (idx+1<len && c==s.charAt(idx+1)) {
 	                	++idx; // skip escaped quote
 	                }
 	                else {
@@ -105,16 +105,13 @@ public enum DatabaseCommand {
 			else if(c == to) {
 				break;
 			}
-			++idx;
 		}
 		return idx;
 	}
 	
 	static int nextToken(String s, int idx) {
 		var len = s.length();
-		do {
-			idx++;
-		}while((idx=skipComment(s,idx))<len && isWhitespacePlus(s.charAt(idx)));
+		while((idx=skipComment(s,++idx))<len && isWhitespacePlus(s.charAt(idx)));
 		return idx;
 	}
 	
@@ -122,13 +119,13 @@ public enum DatabaseCommand {
 		var len = s.length();
 		if(idx+1 < len) {
 			var c = s.charAt(idx);
-			if(c=='-' && s.charAt(idx+1)=='-') {
+			if(c=='-' && c==s.charAt(idx+1)) {
 				idx+=2;
 				while(idx<len && s.charAt(idx)!='\n') {
 					++idx;
 				}
-				if(idx<len) { //skip \n
-					++idx;
+				if(idx<len) {
+					++idx; //skip \n
 				}
 			}
 		}
