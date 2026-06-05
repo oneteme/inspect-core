@@ -22,6 +22,7 @@ class SqlCommandTest {
 	
 	@ParameterizedTest
 	@CsvSource({
+		"SELECT, SELECT \'\'\'\';'",
 		"CREATE,'CREATE SCHEMA university;'",
 		"CREATE,'CREATE TABLE students;'",
 		"CREATE,'CREATE VIEW for_students as select *;'",

@@ -11,6 +11,8 @@ import static org.usf.inspect.core.CommandType.ROLE;
 import static org.usf.inspect.core.CommandType.SCRIPT;
 import static org.usf.inspect.core.CommandType.SETUP;
 
+import java.util.stream.Stream;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,9 @@ public enum DatabaseCommand {
 	CALL(SCRIPT), SQL(SCRIPT); //multiple command
 	
 	private final CommandType type;
+	
+	//avoid clone array each time
+	public static final DatabaseCommand[] CACHE = Stream.of(values()).filter(e-> e!= SQL).toArray(DatabaseCommand[]::new);
 
 	public static DatabaseCommand extractCommand(String sql) {
 		if(isNull(sql) || sql.isBlank()) {
@@ -66,7 +71,7 @@ public enum DatabaseCommand {
 		if(idx < len) {
 			do {
 	    		DatabaseCommand cmd = null;
-	    		for(var c : values()) { //exclude SQL !
+	    		for(var c : CACHE) {
 	    			var s = c.name();
 	    			var cLen = s.length();
 			        if(sql.regionMatches(true, idx, s, 0, cLen) && idx+cLen<len && isWhitespacePlus(sql.charAt(idx+cLen))) {
