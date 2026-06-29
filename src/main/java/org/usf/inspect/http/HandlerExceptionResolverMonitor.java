@@ -7,9 +7,9 @@ import org.springframework.core.Ordered;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.ModelAndView;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+
 import lombok.RequiredArgsConstructor;
+
 
 /**
  * 
@@ -27,7 +27,7 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 	 * @return {@code null} for default processing in the resolution chain
 	 */
 	@Override
-	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+	public ModelAndView resolveException(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response, Object handler, Exception ex) {
 		if(routePredicate.accept(request)) {
 			var mnt = currentHttpMonitor(request);
 			if(assertMonitorNonNull(mnt, "HandlerExceptionResolverMonitor.resolveException")) { //non filtered requests

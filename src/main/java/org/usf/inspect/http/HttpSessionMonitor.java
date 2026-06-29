@@ -32,9 +32,9 @@ import org.usf.inspect.core.HttpSessionSignal;
 import org.usf.inspect.core.HttpSessionUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+
 import lombok.RequiredArgsConstructor;
+
 
 /**
  * 
@@ -53,7 +53,7 @@ public final class HttpSessionMonitor {
 	private HttpSessionUpdate callback;
 	private boolean async;
 	
-	public HttpSessionMonitor(HttpServletRequest request, HttpServletResponse response) {
+	public HttpSessionMonitor(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response) {
 		this.lastTimestamp = systemUTC().instant();
 		this.handler = traceAtomic(createHttpSession(lastTimestamp, request.getHeader(TRACE_HEADER)), this::createCallback,
 				ses->{
@@ -144,7 +144,7 @@ public final class HttpSessionMonitor {
 		lastTimestamp = end;
 	}
 
-    static URI fromRequest(HttpServletRequest req) {
+    static URI fromRequest(javax.servlet.http.HttpServletRequest req) {
     	var c = req.getRequestURL().toString();
         return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
     }

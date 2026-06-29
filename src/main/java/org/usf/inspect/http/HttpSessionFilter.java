@@ -25,12 +25,11 @@ import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.TraceableStage;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.servlet.ServletException;
 
 /**
  * 
@@ -48,12 +47,12 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	private final HttpUserProvider userProvider;
 	
 	@Override
-	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
+	protected void doFilterInternal(javax.servlet.http.HttpServletRequest req, javax.servlet.http.HttpServletResponse res, javax.servlet.FilterChain filterChain) throws IOException, ServletException {
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
 			exec(()-> filterChain.doFilter(req, res), filterHandler(req, res));	
 		}
-		catch (IOException | ServletException | RuntimeException e) {
+		catch (IOException | javax.servlet.ServletException | RuntimeException e) {
 			throw e;
 		}
 		catch (Exception e) {//should never happen
@@ -62,7 +61,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		}
 	}
 	
-	private ExecutionListener<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
+	private ExecutionListener<Void> filterHandler(javax.servlet.http.HttpServletRequest req, javax.servlet.http.HttpServletResponse res) {
 		var mnt = currentHttpMonitor(req);
 		if(isNull(mnt)) {
 			mnt = new HttpSessionMonitor(req, res);
@@ -72,7 +71,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
 
 	@Override
-	protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+	protected boolean shouldNotFilter(javax.servlet.http.HttpServletRequest request) throws javax.servlet.ServletException {
 		return !routePredicate.accept(request);
 	}
 
@@ -82,7 +81,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
 	
 	@Override
-	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+	public boolean preHandle(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response, Object handler) throws Exception {
 		if(shouldIntercept(handler)) {  //avoid unfiltred request
 			var mnt = currentHttpMonitor(request);
 			if(assertMonitorNonNull(mnt, "HttpSessionFilter.preHandle")) {
@@ -93,7 +92,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
 	
 	@Override
-	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+	public void postHandle(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
 		if(shouldIntercept(handler)) { //avoid unfiltred request
 			var mnt = currentHttpMonitor(request);
 			if(assertMonitorNonNull(mnt, "HttpSessionFilter.postHandle")) {
@@ -103,7 +102,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
 
 	@Override
-	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+	public void afterCompletion(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response, Object handler, Exception ex) throws Exception {
 		if(shouldIntercept(handler)) { //avoid unfiltred request 
 			var mnt = currentHttpMonitor(request);
 			if(assertMonitorNonNull(mnt, "HttpSessionFilter.afterCompletion")) {
@@ -114,7 +113,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		}
 	}
 	
-	private String resolveEndpointName(Object handler, HttpServletRequest req) {
+	private String resolveEndpointName(Object handler, javax.servlet.http.HttpServletRequest req) {
 		if(handler instanceof HandlerMethod mth) {
 			var ant = mth.getMethodAnnotation(TraceableStage.class);
 			if(nonNull(ant) && !ant.name().isEmpty()) {
@@ -133,7 +132,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
 	
 	@SuppressWarnings("unchecked")
-	private static String defaultEndpointName(HttpServletRequest req) {
+	private static String defaultEndpointName(javax.servlet.http.HttpServletRequest req) {
 		var arr = req.getRequestURI().substring(1).split("/");
 		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
 		return isNull(map) ? join("_", arr) : Stream.of(arr)
@@ -146,7 +145,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 				!(mth.getBean() instanceof ErrorController);
 	}
     
-    static HttpSessionMonitor currentHttpMonitor(HttpServletRequest req) {
+    static HttpSessionMonitor currentHttpMonitor(javax.servlet.http.HttpServletRequest req) {
     	return (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
     }
 }

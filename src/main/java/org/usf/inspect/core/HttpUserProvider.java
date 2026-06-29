@@ -4,7 +4,6 @@ import static java.util.Optional.ofNullable;
 
 import java.security.Principal;
 
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 
@@ -13,7 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
  */
 public interface HttpUserProvider {
 	
-	default String getUser(HttpServletRequest req, String apiName) {
+	default String getUser(javax.servlet.http.HttpServletRequest req, String apiName) {
     	return ofNullable(req.getUserPrincipal())
     			.map(Principal::getName)
     			.orElse(null);

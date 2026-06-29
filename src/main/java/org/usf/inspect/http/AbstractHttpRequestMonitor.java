@@ -15,7 +15,7 @@ import java.time.Instant;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.HttpStatus;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpRequestSignal;
 import org.usf.inspect.core.HttpRequestStage;
@@ -53,7 +53,7 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 		}
 	}
 
-	void postExchange(HttpStatusCode status, HttpHeaders headers) {
+	void postExchange(HttpStatus status, HttpHeaders headers) {
 //		request.setThreadName(threadName()); //deferred thread
 		var callback = getCallback();
     	if(nonNull(status)) {

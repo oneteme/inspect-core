@@ -28,7 +28,12 @@ public final class Helper {
 	
 	public static String threadName() {
 		var t = currentThread();
-		return t.isVirtual() ?  ""+t.threadId() : t.getName();
+		try {
+			var m = Thread.class.getMethod("isVirtual");
+			return (boolean) m.invoke(t) ? "" + t.getId() : t.getName();
+		} catch (Exception e) {
+			return t.getName();
+		}
 	}
 	
 	public static String extractAuthScheme(String authHeader) { //nullable
@@ -59,7 +64,10 @@ public final class Helper {
 	}
 
 	//e.g. batch name (arg param)
-	@Deprecated(since="0.4.0", forRemoval=true) //use SpelEvaluator.evalMethodExpression instead
+	/**
+	 * @deprecated use SpelEvaluator.evalMethodExpression instead
+	 */
+	@Deprecated(since="0.4.0", forRemoval=true)
 	public static Object evalExpression(String exp, Object root, Class<?> clazz, String[] params, Object[] args) {
 		if(exp.contains("#")) {
 			var ctx = new StandardEvaluationContext(root);

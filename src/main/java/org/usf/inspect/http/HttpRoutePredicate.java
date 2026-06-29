@@ -7,9 +7,8 @@ import java.util.function.Predicate;
 
 import org.springframework.util.AntPathMatcher;
 import org.usf.inspect.core.HttpRouteMonitoringProperties;
-
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+
 
 /**
  * 
@@ -19,10 +18,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class HttpRoutePredicate {
 	
-	private final Predicate<HttpServletRequest> predicate;
+	private final Predicate<javax.servlet.http.HttpServletRequest> predicate;
 	
 	public static HttpRoutePredicate compile(HttpRouteMonitoringProperties config) {
-		Predicate<HttpServletRequest> filter = req-> true;
+		Predicate<javax.servlet.http.HttpServletRequest> filter = req-> true;
 		if(!config.getExcludes().isEmpty()) {
 			var pArr = config.excludedPaths();
 			if(nonNull(pArr) && pArr.length > 0) {
@@ -37,7 +36,7 @@ public final class HttpRoutePredicate {
 		return new HttpRoutePredicate(filter);
 	}
 
-	public boolean accept(HttpServletRequest t) {
+	public boolean accept(javax.servlet.http.HttpServletRequest t) {
 		return predicate.test(t);
 	}
 }
