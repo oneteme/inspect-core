@@ -2,6 +2,10 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.CommandType.merge;
+import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
+
+import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.ErrorCode.SUCCESS;
 
 import java.time.Instant;
 
@@ -20,6 +24,8 @@ import lombok.Setter;
 public final class FtpRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
+	FtpErrorHandler ftpErrorHandler= new FtpErrorHandler();
+	private int failureCode;
 
 	@JsonCreator
 	public FtpRequestUpdate(String id) {
@@ -31,7 +37,14 @@ public final class FtpRequestUpdate extends AbstractRequestUpdate {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}
 		if(nonNull(thrw)) {
-			failed = true; 
+			failed = true;
+			try{
+			failureCode= ftpErrorHandler.checkException(mainCauseException(thrw));
+		} catch (Exception e) {
+			failureCode = UNKNOWN_ERROR.getCode();
+		  }
+		} else {
+			failureCode = SUCCESS.getCode();
 		}
 		var stg = createStage(type, start, end, cmd, thrw, FtpRequestStage::new);
 		stg.setArgs(args);

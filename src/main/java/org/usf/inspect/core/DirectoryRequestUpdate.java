@@ -2,6 +2,9 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.CommandType.merge;
+import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
+import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.ErrorCode.SUCCESS;
 
 import java.time.Instant;
 
@@ -20,6 +23,8 @@ import lombok.Setter;
 public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 
 	 private boolean failed;
+	 private int failureCode;
+	LdapErrorHandler ldapErrorHandler= new LdapErrorHandler();
 
 	@JsonCreator
 	public DirectoryRequestUpdate(String id) {
@@ -31,7 +36,15 @@ public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}
 		if(nonNull(thrw)) {
-			failed = true; 
+			failed = true;
+		    try{
+			failureCode = ldapErrorHandler.checkException(mainCauseException(thrw));
+		} catch (Exception e) {
+			failureCode = UNKNOWN_ERROR.getCode();
+		}
+	}
+		else {
+			failureCode = SUCCESS.getCode();
 		}
 		var stg = createStage(type, start, end, cmd, thrw, DirectoryRequestStage::new);
 		stg.setArgs(args);

@@ -10,6 +10,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.Getter;
 import lombok.Setter;
 
+import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
+
 /**
  * 
  * @author u$f
@@ -20,7 +23,10 @@ import lombok.Setter;
 public final class DatabaseRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
-	
+	private int failureCode;
+	JdbcErrorHandler  jdbcErrorHandler= new JdbcErrorHandler();
+	static final int SUCCESS=-1000;
+
 	@JsonCreator
 	public DatabaseRequestUpdate(String id) {
 		super(id);
@@ -37,10 +43,18 @@ public final class DatabaseRequestUpdate extends AbstractRequestUpdate {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}
 		if(nonNull(thrw)) {
-			failed = true; 
+			failed = true;
+			try {
+			failureCode= jdbcErrorHandler.checkException(mainCauseException(thrw));
+			} catch (Exception e) {
+				failureCode = UNKNOWN_ERROR.getCode();
+			}
+		} else {
+			failureCode = SUCCESS;
 		}
 		var stg = createStage(type, start, end, cmd, thrw, DatabaseRequestStage::new);
 		stg.setArgs(args);
 		return stg;
 	}
+
 }

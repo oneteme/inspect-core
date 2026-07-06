@@ -7,6 +7,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.Getter;
 import lombok.Setter;
 
+
+import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
+
 /**
  * 
  * @author u$f
@@ -22,6 +27,8 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	private String contentEncoding; //gzip, compress, identity,..
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	private boolean linked;
+	HttpErrorHandler httpErrorHandler= new HttpErrorHandler();
+	private int failureCode;
 
 	@JsonCreator
 	public HttpRequestUpdate(String id) {
@@ -29,6 +36,13 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	}
 
 	public HttpRequestStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
+		if(nonNull(t)) {
+			try{
+			failureCode = httpErrorHandler.checkException(mainCauseException(t));
+			} catch (Exception e) {
+			failureCode = UNKNOWN_ERROR.getCode();
+		    }
+	    }
 		return createStage(type, start, end, null, t, HttpRequestStage::new);
 	}
 }

@@ -2,6 +2,10 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.CommandType.merge;
+import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.ErrorCode.SUCCESS;
+
+import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
 
 import java.time.Instant;
 
@@ -9,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
 import lombok.Setter;
+
 
 /**
  * 
@@ -20,6 +25,8 @@ import lombok.Setter;
 public final class MailRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
+	private int failureCode;
+	private  MailErrorHandler mailErrorHandler = new MailErrorHandler();
 
 	@JsonCreator
 	public MailRequestUpdate(String id) {
@@ -37,7 +44,15 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}
 		if(nonNull(thrw)) {
-			failed = true; 
+			try{
+			failed = true;
+			failureCode = mailErrorHandler.checkException(mainCauseException(thrw));
+			} catch (Exception e) {
+				failureCode = UNKNOWN_ERROR.getCode();
+			}
+		}
+		else {
+			failureCode = SUCCESS.getCode();
 		}
 		return createStage(action, start, end, cmd, thrw, MailRequestStage::new);
 	}
