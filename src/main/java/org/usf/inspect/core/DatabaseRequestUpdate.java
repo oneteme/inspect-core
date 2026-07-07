@@ -4,6 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.CommandType.merge;
 
 import java.time.Instant;
+import java.util.function.ToIntFunction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -32,20 +33,21 @@ public final class DatabaseRequestUpdate extends AbstractRequestUpdate {
 		super(id);
 	}
 	
-	public DatabaseRequestStage createStage(DatabaseAction type, Instant start, Instant end, Throwable thrw, DatabaseCommand cmd, long[] count) {
-		var stg = createStage(type, start, end, thrw, cmd);
+	public DatabaseRequestStage createStage(DatabaseAction type, Instant start, Instant end, Throwable thrw, DatabaseCommand cmd, ToIntFunction<Throwable> fn, long[] count) {
+		var stg = createStage(type, start, end, thrw,  cmd,fn);
 		stg.setCount(count);
 		return stg;
 	}
 		
-	public DatabaseRequestStage createStage(DatabaseAction type, Instant start, Instant end, Throwable thrw, DatabaseCommand cmd, String... args) {
+	public DatabaseRequestStage createStage(DatabaseAction type, Instant start, Instant end, Throwable thrw, DatabaseCommand cmd,  ToIntFunction<Throwable> fn, String... args) {
 		if(nonNull(cmd)) {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}
+		Throwable ex = null;
 		if(nonNull(thrw)) {
-			failed = true;
+			ex = ExceptionInfo.rootCauseException(thrw);
 			try {
-			failureCode= jdbcErrorHandler.checkException(mainCauseException(thrw));
+			failureCode= fn.applyAsInt(ex);
 			} catch (Exception e) {
 				failureCode = UNKNOWN_ERROR.getCode();
 			}

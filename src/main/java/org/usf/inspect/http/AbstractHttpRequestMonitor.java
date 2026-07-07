@@ -5,6 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.usf.inspect.core.ErrorCode.*;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -79,7 +80,7 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 	}
 	
 	HttpRequestStage createStage(HttpAction action, Instant start,Instant end, Throwable thrw) {
-		return getCallback().createStage(action, start, end, thrw);
+		return getCallback().createStage(action, start, end, thrw,this::checkException);
 	}
 	
 	boolean assertSameID(String sid) {
@@ -91,4 +92,33 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 		}
 		return false;
 	}
+
+	public int checkException(Throwable t) {
+		return switch (t) {
+
+			// Timeout reseau
+			case java.net.http.HttpTimeoutException e-> TIMEOUT_OR_INTERRUPTION.getCode();
+
+			// Timeout reseau
+			case java.net.SocketTimeoutException e-> TIMEOUT_OR_INTERRUPTION.getCode();
+
+			// Timeout reseau
+			case java.util.concurrent.TimeoutException e -> TIMEOUT_OR_INTERRUPTION.getCode();
+
+			// Thread interrompu
+			case InterruptedException e-> TIMEOUT_OR_INTERRUPTION.getCode();
+
+
+			case java.net.SocketException e -> CONNECTION_UNAVAILABLE.getCode();
+
+			// DNS
+			case java.net.UnknownHostException e-> CONNECTION_UNAVAILABLE.getCode();
+
+			// Adresse invalide
+			case java.nio.channels.UnresolvedAddressException e-> CONNECTION_UNAVAILABLE.getCode();
+
+			default -> UNKNOWN_ERROR.getCode();
+		};
+	}
+
 }

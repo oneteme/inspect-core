@@ -1,6 +1,7 @@
 package org.usf.inspect.ftp;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ErrorCode.*;
 import static org.usf.inspect.core.FtpAction.CONNECTION;
 import static org.usf.inspect.core.FtpAction.DISCONNECTION;
 import static org.usf.inspect.core.FtpAction.EXECUTE;
@@ -50,6 +51,32 @@ final class FtpRequestMonitor extends StatefulMonitor<FtpRequestSignal, FtpReque
 	}
 
 	<T> ExecutionListener<T> stageHandler(FtpAction action, FtpCommand cmd, String... args) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, args));
+		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, this::checkException, args));
+	}
+
+
+
+	public int checkException(Throwable t) {
+		return switch(t) {
+
+			case java.net.UnknownHostException e->
+					CONNECTION_UNAVAILABLE.getCode();
+
+			//timeout
+			case java.net.SocketTimeoutException e->
+					TIMEOUT_OR_INTERRUPTION.getCode();
+
+			case java.net.SocketException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+			case com.jcraft.jsch.JSchException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+			// SFTP métier
+			case com.jcraft.jsch.SftpException e ->
+					e.id;
+
+			default -> UNKNOWN_ERROR.getCode();
+		};
 	}
 }

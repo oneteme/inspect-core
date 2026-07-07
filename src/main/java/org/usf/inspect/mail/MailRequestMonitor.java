@@ -2,10 +2,15 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ErrorCode.*;
+import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
+import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
@@ -28,7 +33,11 @@ import jakarta.mail.Transport;
  *
  */
 final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRequestUpdate> {
-	
+
+	private static final Pattern SMTP_CODE =
+			Pattern.compile("\\b\\d{3}\\b");
+
+
 	ExecutionListener<Object> handleConnection(Transport trsp) {
 		return traceBegin(SessionContextManager::createMailRequest, (req,v)->{
 			var url = trsp.getURLName();
@@ -54,7 +63,7 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 	}
 	
 	<T> ExecutionListener<T> stageHandler(MailAction action, MailCommand cmd, Message msg) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, createMailTrace(msg)));
+		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, createMailTrace(msg), this::checkException));
 	}
 	
 	static Mail createMailTrace(Message msg) throws MessagingException {
@@ -75,5 +84,57 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 		return isNull(address) || address.length == 0
 			? null 
 			: Stream.of(address).map(Address::toString).toArray(String[]::new);
+	}
+
+
+
+	public int checkException(Throwable t) {
+		return switch(t) {
+
+
+			case java.io.InterruptedIOException e ->
+					TIMEOUT_OR_INTERRUPTION.getCode();
+
+			case java.net.UnknownHostException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+
+			case java.net.SocketException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+			case jakarta.mail.AuthenticationFailedException e ->
+					AUTHENTIFICATION_ERROR.getCode();
+
+
+			case jakarta.mail.MessagingException e ->
+					extractSmtpCode(e);
+
+
+			default ->
+					UNKNOWN_ERROR.getCode();
+		};
+	}
+
+
+	private int extractSmtpCode(MessagingException e) {
+
+		String msg = e.getMessage();
+
+		if (msg == null) {
+			return CONNECTION_UNAVAILABLE.getCode();
+		}
+
+		Matcher matcher = SMTP_CODE.matcher(msg);
+
+		if (matcher.find()) {
+			try {
+				return Integer.parseInt(matcher.group(1));
+			} catch (NumberFormatException ex) {
+				return UNKNOWN_ERROR.getCode();
+			}
+		}
+
+		return UNKNOWN_ERROR.getCode();
+
 	}
 }

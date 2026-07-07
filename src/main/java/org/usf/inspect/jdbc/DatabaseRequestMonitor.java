@@ -11,11 +11,14 @@ import static org.usf.inspect.core.DatabaseAction.FETCH;
 import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.extractCommand;
+import static org.usf.inspect.core.ErrorCode.*;
+import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -87,7 +90,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 			parseAndMergeCommand(sql);
 		}
 		return isNull(batchHandler) ? traceStep((s,e,v,t)-> {
-			var stg = getCallback().createStage(BATCH, s, e, t, null, new long[] {1});
+			var stg = getCallback().createStage(BATCH, s, e, t, null,this::checkException, new long[] {1});
 			if(nonNull(t)) {
 				return stg;
 			}
@@ -155,7 +158,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 			parseAndMergeCommand(sql); //command set on exec stg
 		}
 		return traceStep((s,e,o,t)-> {
-			lastExec = getCallback().createStage(EXECUTE, s, e, t, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			lastExec = getCallback().createStage(EXECUTE, s, e, t, mainCommand,this::checkException, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
@@ -178,7 +181,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	}
 
 	public <T> ExecutionListener<T> fetch(Instant start, int n) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
+		return traceStep((s,e,o,t)-> getCallback().createStage(FETCH, start, e, t, null,this::checkException, new long[] {n})); //differed start
 	}
 	
 	public ExecutionListener<Object> disconnectionHandler() {
@@ -190,7 +193,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	}
 
 	<T> ExecutionListener<T> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, args));
+		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd,this::checkException, args));
 	}
 	
 	static long[] appendLong(long[]arr, long v) {
@@ -234,5 +237,75 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 				hub().emitTrace(stage);
 			}
 		}
+	}
+
+	public int checkException(Throwable t) {
+		return switch (t) {
+
+			case java.sql.SQLTimeoutException e->
+					TIMEOUT_OR_INTERRUPTION.getCode();
+
+			case java.net.SocketTimeoutException e ->
+					TIMEOUT_OR_INTERRUPTION.getCode();
+
+			//à garder ou pas ??
+			case java.io.EOFException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+			case java.net.UnknownHostException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+			case java.net.SocketException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+
+			case InterruptedException e ->
+					TIMEOUT_OR_INTERRUPTION.getCode();
+
+			case java.sql.SQLTransientConnectionException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+			case java.sql.SQLNonTransientConnectionException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+			case java.sql.SQLRecoverableException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+
+
+			case SQLException e ->
+					mapSqlException(e);
+
+			default ->
+					UNKNOWN_ERROR.getCode();
+
+		};
+	}
+
+
+
+
+
+
+	private int mapSqlException(SQLException e) {
+
+		int errorCode = e.getErrorCode();
+		String sqlState = e.getSQLState();
+
+		// H2 / MySQL / Oracle utilisent souvent errorCode
+		if (errorCode != 0) {
+			return errorCode;
+		}
+
+		// PostgreSQL : souvent errorCode = 0
+		if (sqlState != null) {
+			try {
+				// transformer le SQLState en code métier
+				return Integer.parseInt(sqlState.substring(0, 2));
+			} catch (NumberFormatException | IndexOutOfBoundsException ex) {
+				return UNKNOWN_ERROR.getCode();
+			}
+		}
+
+		return UNKNOWN_ERROR.getCode();
 	}
 }

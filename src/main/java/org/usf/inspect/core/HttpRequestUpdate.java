@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.function.ToIntFunction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -35,10 +36,12 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 		super(id);
 	}
 
-	public HttpRequestStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
+	public HttpRequestStage createStage(HttpAction type, Instant start, Instant end, Throwable t, ToIntFunction<Throwable> fn) {
+		Throwable ex = null;
 		if(nonNull(t)) {
+			ex = ExceptionInfo.rootCauseException(t);
 			try{
-			failureCode = httpErrorHandler.checkException(mainCauseException(t));
+			failureCode = fn.applyAsInt(ex);
 			} catch (Exception e) {
 			failureCode = UNKNOWN_ERROR.getCode();
 		    }

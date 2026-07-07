@@ -8,11 +8,15 @@ import static org.usf.inspect.core.ErrorCode.SUCCESS;
 import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
 
 import java.time.Instant;
+import java.util.function.Function;
+import java.util.function.IntFunction;
+import java.util.function.ToIntFunction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.usf.inspect.mail.MailErrorHandler;
 
 
 /**
@@ -26,27 +30,28 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
 	private int failureCode;
-	private  MailErrorHandler mailErrorHandler = new MailErrorHandler();
+	private  ProtocolErrorHandler mailErrorHandler = new MailErrorHandler();
 
 	@JsonCreator
 	public MailRequestUpdate(String id) {
 		super(id);
 	}
 
-	public MailRequestStage createStage(MailAction action, Instant start, Instant end, Throwable thrw, MailCommand cmd, Mail mail) {
-		var stg = createStage(action, start, end, thrw, cmd);
+	public MailRequestStage createStage(MailAction action, Instant start, Instant end, Throwable thrw, MailCommand cmd, Mail mail, ToIntFunction<Throwable> fn) {
+		var stg = createStage(action, start, end, thrw, cmd, fn);
 		stg.setMail(mail);
 		return stg;
 	}
 	
-	public MailRequestStage createStage(MailAction action, Instant start, Instant end, Throwable thrw, MailCommand cmd) {
+	public MailRequestStage createStage(MailAction action, Instant start, Instant end, Throwable thrw, MailCommand cmd, ToIntFunction<Throwable> fn) {
 		if(nonNull(cmd)) {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}
+		Throwable ex = null;
 		if(nonNull(thrw)) {
+			ex = ExceptionInfo.rootCauseException(thrw);
 			try{
-			failed = true;
-			failureCode = mailErrorHandler.checkException(mainCauseException(thrw));
+				failureCode = fn.applyAsInt(ex);
 			} catch (Exception e) {
 				failureCode = UNKNOWN_ERROR.getCode();
 			}
@@ -54,6 +59,6 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 		else {
 			failureCode = SUCCESS.getCode();
 		}
-		return createStage(action, start, end, cmd, thrw, MailRequestStage::new);
+		return createStage(action, start, end, cmd, ex, MailRequestStage::new);
 	}
 }

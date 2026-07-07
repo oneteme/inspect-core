@@ -8,6 +8,7 @@ import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 import static org.usf.inspect.core.ErrorCode.SUCCESS;
 
 import java.time.Instant;
+import java.util.function.ToIntFunction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -32,7 +33,7 @@ public final class FtpRequestUpdate extends AbstractRequestUpdate {
 		super(id);
 	}
 
-	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, Throwable thrw, FtpCommand cmd, String... args) {
+	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, Throwable thrw, FtpCommand cmd, ToIntFunction<Throwable> fn, String... args) {
 		if(nonNull(cmd)) {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}

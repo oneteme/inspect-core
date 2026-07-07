@@ -7,6 +7,7 @@ import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 import static org.usf.inspect.core.ErrorCode.SUCCESS;
 
 import java.time.Instant;
+import java.util.function.ToIntFunction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -31,7 +32,7 @@ public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 		super(id);
 	}
 
-	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, Throwable thrw, DirCommand cmd, String... args) {
+	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, Throwable thrw, DirCommand cmd, ToIntFunction<Throwable> fn, String... args) {
 		if(nonNull(cmd)) {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}
