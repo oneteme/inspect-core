@@ -11,7 +11,7 @@ import lombok.Setter;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
-import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
+
 
 /**
  * 
@@ -28,7 +28,6 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	private String contentEncoding; //gzip, compress, identity,..
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	private boolean linked;
-	HttpErrorHandler httpErrorHandler= new HttpErrorHandler();
 	private int failureCode;
 
 	@JsonCreator

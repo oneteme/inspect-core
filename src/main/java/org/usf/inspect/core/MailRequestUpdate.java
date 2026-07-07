@@ -5,18 +5,14 @@ import static org.usf.inspect.core.CommandType.merge;
 import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 import static org.usf.inspect.core.ErrorCode.SUCCESS;
 
-import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
 
 import java.time.Instant;
-import java.util.function.Function;
-import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.usf.inspect.mail.MailErrorHandler;
 
 
 /**
@@ -30,7 +26,7 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
 	private int failureCode;
-	private  ProtocolErrorHandler mailErrorHandler = new MailErrorHandler();
+
 
 	@JsonCreator
 	public MailRequestUpdate(String id) {

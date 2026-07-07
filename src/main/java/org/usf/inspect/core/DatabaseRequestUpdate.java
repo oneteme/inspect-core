@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
-import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
+
 
 /**
  * 
@@ -25,7 +25,6 @@ public final class DatabaseRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
 	private int failureCode;
-	JdbcErrorHandler  jdbcErrorHandler= new JdbcErrorHandler();
 	static final int SUCCESS=-1000;
 
 	@JsonCreator

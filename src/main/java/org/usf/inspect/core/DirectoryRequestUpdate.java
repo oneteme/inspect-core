@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.CommandType.merge;
-import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
 import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 import static org.usf.inspect.core.ErrorCode.SUCCESS;
 
@@ -25,7 +24,6 @@ public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 
 	 private boolean failed;
 	 private int failureCode;
-	LdapErrorHandler ldapErrorHandler= new LdapErrorHandler();
 
 	@JsonCreator
 	public DirectoryRequestUpdate(String id) {
@@ -36,10 +34,11 @@ public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 		if(nonNull(cmd)) {
 			setCommand(merge(getCommand(), cmd.getType()));
 		}
+		Throwable ex = null;
 		if(nonNull(thrw)) {
-			failed = true;
+			ex = ExceptionInfo.rootCauseException(thrw);
 		    try{
-			failureCode = ldapErrorHandler.checkException(mainCauseException(thrw));
+			failureCode = fn.applyAsInt(ex);
 		} catch (Exception e) {
 			failureCode = UNKNOWN_ERROR.getCode();
 		}

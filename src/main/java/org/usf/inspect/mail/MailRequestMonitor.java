@@ -7,7 +7,7 @@ import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
-import static org.usf.inspect.core.ProtocolErrorHandler.mainCauseException;
+
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
