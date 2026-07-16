@@ -24,7 +24,7 @@ import lombok.Setter;
 public final class FtpRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
-	private int failureCode;
+	private int status;
 
 	@JsonCreator
 	public FtpRequestUpdate(String id) {
@@ -39,12 +39,12 @@ public final class FtpRequestUpdate extends AbstractRequestUpdate {
 		if(nonNull(thrw)) {
 			ex = ExceptionInfo.rootCauseException(thrw);
 			try{
-			failureCode= fn.applyAsInt(ex);
+			status= fn.applyAsInt(ex);
 		} catch (Exception e) {
-			failureCode = UNKNOWN_ERROR.getCode();
+			status = UNKNOWN_ERROR.getCode();
 		  }
 		} else {
-			failureCode = SUCCESS.getCode();
+			status = SUCCESS.getCode();
 		}
 		var stg = createStage(type, start, end, cmd, thrw, FtpRequestStage::new);
 		stg.setArgs(args);

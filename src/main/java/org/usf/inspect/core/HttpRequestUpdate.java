@@ -28,7 +28,6 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	private String contentEncoding; //gzip, compress, identity,..
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	private boolean linked;
-	private int failureCode;
 
 	@JsonCreator
 	public HttpRequestUpdate(String id) {
@@ -40,9 +39,9 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 		if(nonNull(t)) {
 			ex = ExceptionInfo.rootCauseException(t);
 			try{
-			failureCode = fn.applyAsInt(ex);
+			status = fn.applyAsInt(ex);
 			} catch (Exception e) {
-			failureCode = UNKNOWN_ERROR.getCode();
+			status = UNKNOWN_ERROR.getCode();
 		    }
 	    }
 		return createStage(type, start, end, null, t, HttpRequestStage::new);

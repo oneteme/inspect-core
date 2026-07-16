@@ -24,7 +24,7 @@ import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 public final class DatabaseRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
-	private int failureCode;
+	private int status;
 	static final int SUCCESS=-1000;
 
 	@JsonCreator
@@ -46,12 +46,12 @@ public final class DatabaseRequestUpdate extends AbstractRequestUpdate {
 		if(nonNull(thrw)) {
 			ex = ExceptionInfo.rootCauseException(thrw);
 			try {
-			failureCode= fn.applyAsInt(ex);
+			status= fn.applyAsInt(ex);
 			} catch (Exception e) {
-				failureCode = UNKNOWN_ERROR.getCode();
+				status = UNKNOWN_ERROR.getCode();
 			}
 		} else {
-			failureCode = SUCCESS;
+			status = SUCCESS;
 		}
 		var stg = createStage(type, start, end, cmd, thrw, DatabaseRequestStage::new);
 		stg.setArgs(args);
