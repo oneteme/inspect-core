@@ -31,8 +31,6 @@ import org.usf.inspect.core.SessionContextManager;
  */
 final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSignal, DirectoryRequestUpdate> {
 
-	private static final Pattern SMTP_CODE =
-			Pattern.compile("\\b\\d{3}\\b");
 
 	ExecutionListener<DirContext> handleConnection() {
 		return traceBegin(SessionContextManager::createNamingRequest, (req,dir)->{
@@ -76,50 +74,45 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSign
 	public int checkException(Throwable t) {
 		return switch(t) {
 
-
-			case java.io.InterruptedIOException e ->
+			// serveur LDAP indisponible
+			case javax.naming.ServiceUnavailableException e ->
+					CONNECTION_UNAVAILABLE.getCode();
+			//timeout
+			case javax.naming.CommunicationException e ->
 					TIMEOUT_OR_INTERRUPTION.getCode();
 
-			case java.net.UnknownHostException e ->
+			//à garder ou pas ??
+			case java.io.EOFException e ->
 					CONNECTION_UNAVAILABLE.getCode();
 
-
-			case java.net.SocketException e ->
+			case javax.naming.InterruptedNamingException e ->
 					CONNECTION_UNAVAILABLE.getCode();
 
-			case jakarta.mail.AuthenticationFailedException e ->
-					AUTHENTIFICATION_ERROR.getCode();
+			// connexion OK mais erreur LDAP
+			case javax.naming.NamingException e ->
+					extractLdapCode(e);
 
-
-			case jakarta.mail.MessagingException e ->
-					extractSmtpCode(e);
-
-
-			default ->
-					UNKNOWN_ERROR.getCode();
+			default -> UNKNOWN_ERROR.getCode();
 		};
 	}
 
-	private int extractSmtpCode(MessagingException e) {
 
+	/**
+	 * Extrait le code d'erreur LDAP (ex. "error code 49") du message de l'exception.
+	 * La regex recherche "error code" suivi d'un ou plusieurs espaces, puis d'un nombre.
+	 */
+	private int extractLdapCode(javax.naming.NamingException e) {
 		String msg = e.getMessage();
 
-		if (msg == null) {
-			return CONNECTION_UNAVAILABLE.getCode();
-		}
+		if (msg != null) {
+			Matcher m = Pattern.compile("error code\\s+(\\d+)").matcher(msg);
 
-		Matcher matcher = SMTP_CODE.matcher(msg);
-
-		if (matcher.find()) {
-			try {
-				return Integer.parseInt(matcher.group(1));
-			} catch (NumberFormatException ex) {
-				return UNKNOWN_ERROR.getCode();
+			if (m.find()) {
+				return Integer.parseInt(m.group(1));
 			}
 		}
 
 		return UNKNOWN_ERROR.getCode();
-
 	}
 
 }

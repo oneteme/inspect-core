@@ -35,7 +35,7 @@ import jakarta.mail.Transport;
 final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRequestUpdate> {
 
 	private static final Pattern SMTP_CODE =
-			Pattern.compile("\\b\\d{3}\\b");
+			Pattern.compile("\\b(\\d{3})\\b");
 
 
 	ExecutionListener<Object> handleConnection(Transport trsp) {
@@ -128,7 +128,7 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 
 		if (matcher.find()) {
 			try {
-				return Integer.parseInt(matcher.group(1));
+				return Integer.parseInt(matcher.group());
 			} catch (NumberFormatException ex) {
 				return UNKNOWN_ERROR.getCode();
 			}

@@ -300,7 +300,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		if (sqlState != null) {
 			try {
 				// transformer le SQLState en code métier
-				return Integer.parseInt(sqlState.substring(0, 2));
+				return Integer.parseInt(sqlState.substring(0, 5));
 			} catch (NumberFormatException | IndexOutOfBoundsException ex) {
 				return UNKNOWN_ERROR.getCode();
 			}
