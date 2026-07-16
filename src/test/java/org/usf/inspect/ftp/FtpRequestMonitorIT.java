@@ -1,9 +1,5 @@
 package org.usf.inspect.ftp;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.channels.SeekableByteChannel;
@@ -32,6 +28,8 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 
 class FtpRequestMonitorIT {
@@ -212,7 +210,6 @@ class FtpRequestMonitorIT {
 
 
         // Première requête : le serveur répond encore
-        SftpException firstException =
                 assertThrows(
                         SftpException.class,
                         () -> sftp.put(
@@ -263,11 +260,12 @@ class FtpRequestMonitorIT {
 
 
         int code =
-                monitor.checkException(exception);
+                monitor.checkException(exception != null ? exception : null);
 
 
       // Une exception doit bien être remontée
         assertNotNull(exception);
+        assertNotEquals(0, code);
 
         sftp.disconnect();
         session.disconnect();

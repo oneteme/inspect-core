@@ -86,7 +86,7 @@ class DirectoryRequestMonitorIT {
      * Vérifie le traitement d'une exception LDAP lors d'une recherche sur une entrée inexistante.
      */
     @Test
-    void should_connect_and_raise_ldap_exception() throws Exception {
+    void should_connect_and_raise_ldap_exception() {
 
         NamingException ex = assertThrows(
                 NamingException.class,
@@ -102,7 +102,7 @@ class DirectoryRequestMonitorIT {
                 new DirectoryRequestMonitor();
 
         int code = monitor.checkException(ex);
-        assertNotNull(code);
+        assertNotEquals(0, code);
 
     }
 
@@ -112,7 +112,7 @@ class DirectoryRequestMonitorIT {
      */
     @Test
     void shouldDetectConnectionLostWhenLdapServerStops()
-            throws Exception {
+           {
 
 
         // arrêt serveur pour simuler une perte de disponibilité LDAP
@@ -135,6 +135,6 @@ class DirectoryRequestMonitorIT {
         // Vérifie que l'exception est correctement identifiée comme une erreur de connexion
         int code = monitor.checkException(ex);
 
-        assertNotNull(code);
+        assertNotEquals(0, code);
     }
 }

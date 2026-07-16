@@ -58,7 +58,7 @@ class FtpRequestMonitorTest {
     }
 
     @Test
-    void should_return_sftp_exception_id() throws Exception {
+    void should_return_sftp_exception_id()  {
 
         SftpException exception =
                 new SftpException(4, "Failure");

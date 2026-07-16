@@ -3,9 +3,7 @@ package org.usf.inspect.mail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.InterruptedIOException;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.Properties;
 
 import jakarta.mail.AuthenticationFailedException;

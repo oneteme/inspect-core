@@ -1,7 +1,6 @@
 package org.usf.inspect.dir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -9,7 +8,6 @@ import static org.usf.inspect.core.ErrorCode.CONNECTION_UNAVAILABLE;
 import static org.usf.inspect.core.ErrorCode.TIMEOUT_OR_INTERRUPTION;
 import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 
-import java.net.URI;
 import java.util.Hashtable;
 
 import javax.naming.CommunicationException;

@@ -13,11 +13,9 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-//@Slf4j
+
 class DatabaseSqlExceptionIT {
 
-    private static final org.slf4j.Logger log =
-            org.slf4j.LoggerFactory.getLogger(DatabaseSqlExceptionIT.class);
 
     private Server server;
 
@@ -113,7 +111,7 @@ class DatabaseSqlExceptionIT {
                     );
 
             int code = monitor.checkException(exception);
-            assertNotNull(code);
+            assertNotEquals(0, code);
 
 
         }

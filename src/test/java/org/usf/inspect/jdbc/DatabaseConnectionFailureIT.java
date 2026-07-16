@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.h2.tools.Server;
@@ -90,7 +89,7 @@ class DatabaseConnectionFailureIT {
         int code = monitor.checkException(exception != null ? exception : null);
 
         assertNotNull(exception);
-        assertNotNull(code);
+        assertNotEquals(0, code);
 
         cnx.close();
     }
@@ -128,6 +127,7 @@ class DatabaseConnectionFailureIT {
         int code = monitor.checkException(exception);
 
         assertNotNull(exception);
+        assertNotEquals(0, code);
 
         cnx.close();
     }
@@ -180,8 +180,8 @@ void shouldDetectConnectionLostWhenServerStopsDuringQuery() throws Exception {
             new DatabaseRequestMonitor(new ConnectionMetadataCache());
 
     int code = monitor.checkException(exception);
+    assertNotEquals(0, code);
 
-    assertNotNull(code);
 
     try {
         cnx.close();
