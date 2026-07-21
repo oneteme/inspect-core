@@ -25,7 +25,7 @@ import lombok.Setter;
 public final class MailRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
-	private int status;
+	//private int status;
 
 
 	@JsonCreator
@@ -47,13 +47,13 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 		if(nonNull(thrw)) {
 			ex = ExceptionInfo.rootCauseException(thrw);
 			try{
-				status = fn.applyAsInt(ex);
+				setStatus(fn.applyAsInt(ex));
 			} catch (Exception e) {
-				status = UNKNOWN_ERROR.getCode();
+				setStatus(UNKNOWN_ERROR.getCode());
 			}
 		}
 		else {
-			status = SUCCESS.getCode();
+			setStatus(SUCCESS.getCode());
 		}
 		return createStage(action, start, end, cmd, ex, MailRequestStage::new);
 	}

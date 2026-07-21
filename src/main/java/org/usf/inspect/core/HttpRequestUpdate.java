@@ -22,7 +22,7 @@ import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 @Setter
 public final class HttpRequestUpdate extends AbstractRequestUpdate {
 
-	private int status; //2xx, 4xx, 5xx, 0 otherwise 
+	//private int status; //2xx, 4xx, 5xx, 0 otherwise
 	private long dataSize; //in bytes, -1 unknown
 	private String contentType; //text/html, application/json, application/xml,.. in/out ?
 	private String contentEncoding; //gzip, compress, identity,..
@@ -39,9 +39,9 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 		if(nonNull(t)) {
 			ex = ExceptionInfo.rootCauseException(t);
 			try{
-			status = fn.applyAsInt(ex);
+			setStatus(fn.applyAsInt(ex));
 			} catch (Exception e) {
-			status = UNKNOWN_ERROR.getCode();
+			setStatus(UNKNOWN_ERROR.getCode());
 		    }
 	    }
 		return createStage(type, start, end, null, t, HttpRequestStage::new);

@@ -23,7 +23,7 @@ import lombok.Setter;
 public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 
 	 private boolean failed;
-	 private int status;
+	 //private int status;
 
 	@JsonCreator
 	public DirectoryRequestUpdate(String id) {
@@ -38,13 +38,13 @@ public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 		if(nonNull(thrw)) {
 			ex = ExceptionInfo.rootCauseException(thrw);
 		    try{
-			status = fn.applyAsInt(ex);
+			setStatus(fn.applyAsInt(ex));
 		} catch (Exception e) {
-			status = UNKNOWN_ERROR.getCode();
+			setStatus(UNKNOWN_ERROR.getCode());
 		}
 	}
 		else {
-			status = SUCCESS.getCode();
+			setStatus(SUCCESS.getCode());
 		}
 		var stg = createStage(type, start, end, cmd, thrw, DirectoryRequestStage::new);
 		stg.setArgs(args);
