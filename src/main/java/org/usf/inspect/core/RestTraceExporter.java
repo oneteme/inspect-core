@@ -153,6 +153,18 @@ public final class RestTraceExporter implements TraceExporter {
 				.setConnectTimeout(ofSeconds(10))
 				.setReadTimeout(ofSeconds(30))
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
+
+		// --- AJOUT AUTOMATIQUE DU HEADER BASIC AUTH POUR INSPECT-SERVER ---
+		if (properties.getNamespace() != null && !properties.getNamespace().isBlank()) {
+			String authHeader = AuthUtils.buildBasicAuthHeader(
+					properties.getNamespace(),
+					properties.getToken()
+			);
+			if (authHeader != null) {
+				rt = rt.defaultHeader(org.springframework.http.HttpHeaders.AUTHORIZATION, authHeader);
+			}
+		}
+
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
 		}
