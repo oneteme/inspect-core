@@ -50,7 +50,9 @@ inspect:
       remote:
         mode: REST
         host: https://inspect-server.example.com
-        retention-max-age: 30d
+        retention:
+          technical: 30d #default=30d
+          functional: 30d #default=30d
 ```
 
 Key Concepts

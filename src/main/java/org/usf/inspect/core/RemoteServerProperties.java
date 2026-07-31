@@ -14,8 +14,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 	    include = JsonTypeInfo.As.PROPERTY,
 	    property = "@type")
 public interface RemoteServerProperties {
-	
-	Duration getRetentionMaxAge();
-	
+
+	Retention getRetention();
+
+
 	void validate();
 }
