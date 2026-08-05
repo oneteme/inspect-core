@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -27,6 +28,7 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 	private String contentEncoding; //gzip, compress, identity,..
 	private String cacheControl; //max-age, no-cache
 	private String bodyContent; //incoming content, //4xx, 5xx only
+	private List<String> intermediateNodes; //intermediate nodes (Via, X-Forwarded-*, Server, etc.)
 	
 	@JsonCreator
 	public HttpSessionUpdate(String id) {

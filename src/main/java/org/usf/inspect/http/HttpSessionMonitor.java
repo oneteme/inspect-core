@@ -25,8 +25,13 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import org.springframework.http.HttpHeaders;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionSignal;
 import org.usf.inspect.core.HttpSessionUpdate;
@@ -57,15 +62,17 @@ public final class HttpSessionMonitor {
 		this.lastTimestamp = systemUTC().instant();
 		this.handler = traceAtomic(createHttpSession(lastTimestamp, request.getHeader(TRACE_HEADER)), this::createCallback,
 				ses->{
-					if(nonNull(request)) {
-						ses.setMethod(request.getMethod());
-						ses.setURI(fromRequest(request));
-						ses.setAuthScheme(extractAuthScheme(request.getHeader(AUTHORIZATION))); //extract user !?
-						ses.setDataSize(request.getContentLength());
-						ses.setContentEncoding(request.getHeader(CONTENT_ENCODING));
-						ses.setUserAgent(request.getHeader(USER_AGENT));
-					}
+					ses.setMethod(request.getMethod());
+					ses.setURI(fromRequest(request));
+					ses.setAuthScheme(extractAuthScheme(request.getHeader(AUTHORIZATION))); //extract user !?
+					ses.setDataSize(request.getContentLength());
+					ses.setContentEncoding(request.getHeader(CONTENT_ENCODING));
+					ses.setUserAgent(request.getHeader(USER_AGENT));
 					if(nonNull(response)) {
+						//AJOUTER POUR TESTER:
+					//	response.addHeader("Via", "1.1 proxy");
+					//	response.addHeader("X-Served-By", "server-01");
+					//	response.addHeader("Server", "nginx/1.24");
 						response.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 						response.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 					}
@@ -77,13 +84,15 @@ public final class HttpSessionMonitor {
 						call.setContentType(response.getContentType());
 						call.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
 						call.setCacheControl(response.getHeader(CACHE_CONTROL));
+						call.setIntermediateNodes(extractIntermediateNodes(toHttpHeaders(response)));
 					}
 				});
 	}
 	
 	//callback should be created before processing
 	HttpSessionUpdate createCallback(HttpSessionSignal session) { 
-		return callback = session.createCallback();
+		callback = session.createCallback();
+		return callback;
 	}
 	
 	public ExecutionListener<Void> preFilter(BooleanSupplier isAsync) {
@@ -92,7 +101,8 @@ public final class HttpSessionMonitor {
 			setActiveContext(callback); //new Thread
 		}
 		return (s,e,o,t)-> {
-			if(async = isAsync.getAsBoolean()) {
+			async = isAsync.getAsBoolean();
+			if(async) {
 				emitStage(DEFERRED);
 				if(nonNull(callback)) {
 					clearContext(callback);
@@ -148,4 +158,42 @@ public final class HttpSessionMonitor {
     	var c = req.getRequestURL().toString();
         return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
     }
+
+	private List<String> extractIntermediateNodes(HttpHeaders responseHeaders) {
+		List<String> nodes = new ArrayList<>();
+		addResponseIntermediateNodes(nodes, responseHeaders);
+		return nodes.isEmpty() ? null : nodes;
+	}
+
+	private void addResponseIntermediateNodes(List<String> nodes, HttpHeaders responseHeaders) {
+			if (nonNull(responseHeaders)) {
+			String via = responseHeaders.getFirst("Via");
+			if (nonNull(via) && !via.isBlank()) {
+				Arrays.stream(via.split(","))
+						.map(String::trim)
+						.forEach(v -> nodes.add("Via: " + v));
+			}
+
+			String servedBy = responseHeaders.getFirst("X-Served-By");
+			if (nonNull(servedBy) && !servedBy.isBlank()) {
+				nodes.add("Served-By: " + servedBy);
+			}
+
+			String server = responseHeaders.getFirst("Server");
+			if (nonNull(server) && !server.isBlank()) {
+				nodes.add("Server: " + server);
+			}
+		}
+	}
+
+
+	private HttpHeaders toHttpHeaders(HttpServletResponse response) {
+		var headers = new HttpHeaders();
+		for(var name : response.getHeaderNames()) {
+			for(var value : response.getHeaders(name)) {
+				headers.add(name, value);
+			}
+		}
+		return headers;
+	}
 }
