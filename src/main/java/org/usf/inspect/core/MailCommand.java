@@ -6,7 +6,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
+ * Enumerates the supported mail-related commands and their corresponding command types.
+ *
  * @author u$f
  *
  */

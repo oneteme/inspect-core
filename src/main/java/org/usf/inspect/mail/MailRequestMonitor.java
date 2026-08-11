@@ -23,9 +23,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
 
 /**
- * 
- * @author u$f
- *
+ * Monitors mail request lifecycle events and creates traced mail request updates.
  */
 final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRequestUpdate> {
 	
@@ -41,6 +39,12 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 		}, stageHandler(CONNECTION, null, null)); //before end if thrw
 	}
 	
+	/**
+	 * Creates the callback used to publish updates for the current mail request.
+	 *
+	 * @param session the current mail request signal.
+	 * @return the callback associated with the request signal.
+	 */
 	protected MailRequestUpdate createCallback(MailRequestSignal session) { 
 		return session.createCallback();
 	}

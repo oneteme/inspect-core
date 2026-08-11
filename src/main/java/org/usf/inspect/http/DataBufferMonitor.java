@@ -16,9 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * 
- * @author u$f
- *
+ * Monitors reactive data buffers and exposes captured response content.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -53,11 +51,21 @@ final class DataBufferMonitor implements ResponseContent {
     	.doFinally(v-> listener.safeHandle(start, systemUTC().instant(), this, throwable));
 	}
 	
+	/**
+	 * Returns the captured response bytes when buffering was enabled.
+	 *
+	 * @return the captured response bytes, or {@code null} when not cached
+	 */
 	@Override
 	public byte[] contentBytes() {
 		return bytes;
 	}
 	
+	/**
+	 * Returns the accumulated response size.
+	 *
+	 * @return the response size in bytes
+	 */
 	@Override
 	public long contentSize() {
 		return size;

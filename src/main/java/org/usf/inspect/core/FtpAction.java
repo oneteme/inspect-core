@@ -1,9 +1,7 @@
 package org.usf.inspect.core;
 
 /**
- * 
- * @author u$f
- *
+ * Enumerates FTP request actions.
  */
 public enum FtpAction {
 	

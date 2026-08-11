@@ -6,9 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 
- * @author u$f
- *
+ * Base stage metric for traced request and session operations.
  */
 @Getter
 @Setter
@@ -22,8 +20,12 @@ public abstract class AbstractStage implements Metric {
 	private int order; // stages has same start sometimes (duration=0)
 	private String command;
 	private String requestId;
-//	private String threadName
 
+	/**
+	 * Returns a formatted string representation of this stage.
+	 *
+	 * @return the formatted stage description
+	 */
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

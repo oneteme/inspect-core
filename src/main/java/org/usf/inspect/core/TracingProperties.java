@@ -8,6 +8,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
+ * Defines configuration properties for trace buffering, dumping, and remote export.
  * 
  * @author u$f
  *

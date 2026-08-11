@@ -4,9 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 
- * @author u$f
- *
+ * Stage information for an FTP request operation.
  */
 @Getter
 @Setter
@@ -14,6 +12,11 @@ public final class FtpRequestStage extends AbstractStage {
 
 	private String[] args;
 
+	/**
+	 * Returns a formatted string representation of this FTP stage.
+	 *
+	 * @return the formatted stage description
+	 */
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

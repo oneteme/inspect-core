@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
+ * Represents the initial signal captured for an incoming HTTP session.
  * 
  * @author u$f
  *
@@ -28,10 +29,22 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private boolean linked;
 
+	/**
+	 * Creates a new HTTP session signal for the supplied session metadata.
+	 * 
+	 * @param id the unique session identifier
+	 * @param start the session start instant
+	 * @param threadName the name of the thread that started the session
+	 */
 	public HttpSessionSignal(String id, Instant start, String threadName) {
 		super(id, start, threadName);
 	}
 
+	/**
+	 * Copies the components of the given URI into this HTTP session signal.
+	 * 
+	 * @param uri the URI to extract HTTP request information from
+	 */
 	public void setURI(URI uri) {
 		setProtocol(uri.getScheme());
 		setHost(uri.getHost());
@@ -40,6 +53,11 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 		setQuery(uri.getQuery());
 	}
 
+	/**
+	 * Creates a callback update object for the current HTTP session.
+	 * 
+	 * @return a new update bound to this session identifier
+	 */
 	public HttpSessionUpdate createCallback() {
 		return new HttpSessionUpdate(getId());
 	}

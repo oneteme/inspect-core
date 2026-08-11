@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
+ * Describes the machine resource limits detected for an inspected runtime environment.
  * 
  * @author u$f
  *

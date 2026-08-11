@@ -18,9 +18,7 @@ import org.springframework.context.annotation.DependsOn;
 import org.usf.inspect.core.SessionContextManager;
 
 /**
- * 
- * @author u$f
- *
+ * Configures Reactor hooks and WebClient customization for HTTP request tracing.
  */
 @Configuration
 @ConditionalOnClass(name="org.springframework.web.reactive.function.client.ExchangeFilterFunction")

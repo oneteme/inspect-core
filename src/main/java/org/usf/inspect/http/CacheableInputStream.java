@@ -10,13 +10,17 @@ import java.io.OutputStream;
 import lombok.experimental.Delegate;
 
 /**
- * 
- * @author u$f
- *
+ * Wraps an input stream and optionally caches up to 10 KB of read content.
  */
 public final class CacheableInputStream extends InputStream implements ResponseContent {
 	
 	static final OutputStream NO_OUT = new OutputStream() { //nullOutputStream may throws Exception
+		/**
+		 * Ignores the supplied byte.
+		 *
+		 * @param b the byte to ignore
+		 * @throws IOException if the write operation fails
+		 */
 		@Override
 		public void write(int b) throws IOException {/* do nothing */}
 	};
@@ -27,12 +31,24 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 	private final InputStream in;
 	private final OutputStream out;
 	private int length;
- 
+  
+	/**
+	 * Creates a cacheable input stream wrapper.
+	 *
+	 * @param in the wrapped input stream
+	 * @param cache whether response bytes should be cached
+	 */
 	public CacheableInputStream(InputStream in, boolean cache) {
 		this.in = in;
 		this.out = cache ? new ByteArrayOutputStream() : NO_OUT;
 	}
 	
+	/**
+	 * Reads the next byte from the wrapped stream and caches it when enabled.
+	 *
+	 * @return the next byte value, or {@code -1} at end of stream
+	 * @throws IOException if reading fails
+	 */
 	@Override
 	public int read() throws IOException {
 		var b = in.read();
@@ -40,6 +56,13 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 		return b;
 	}
 	
+	/**
+	 * Reads bytes into the supplied array and caches the consumed content when enabled.
+	 *
+	 * @param b the destination buffer
+	 * @return the number of bytes read, or {@code -1} at end of stream
+	 * @throws IOException if reading fails
+	 */
 	@Override
 	public int read(byte[] b) throws IOException {
 		var n = in.read(b);
@@ -47,6 +70,15 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 		return n;
 	}
 	
+	/**
+	 * Reads bytes into a portion of the supplied array and caches the consumed content when enabled.
+	 *
+	 * @param b the destination buffer
+	 * @param off the start offset in the array
+	 * @param len the maximum number of bytes to read
+	 * @return the number of bytes read, or {@code -1} at end of stream
+	 * @throws IOException if reading fails
+	 */
 	@Override
 	public int read(byte[] b, int off, int len) throws IOException {
 		var n = in.read(b, off, len);
@@ -54,6 +86,15 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 		return n;
 	}
 	
+	/**
+	 * Reads up to the requested number of bytes into the supplied array and caches them when enabled.
+	 *
+	 * @param b the destination buffer
+	 * @param off the start offset in the array
+	 * @param len the maximum number of bytes to read
+	 * @return the number of bytes read
+	 * @throws IOException if reading fails
+	 */
 	@Override
 	public int readNBytes(byte[] b, int off, int len) throws IOException {
 		var n = in.readNBytes(b, off, len);
@@ -61,6 +102,12 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 		return n;
 	}
 	
+	/**
+	 * Reads all remaining bytes from the wrapped stream and caches them when enabled.
+	 *
+	 * @return the remaining bytes from the stream
+	 * @throws IOException if reading fails
+	 */
 	@Override
 	public byte[] readAllBytes() throws IOException {
 		var b = in.readAllBytes();
@@ -68,6 +115,13 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 		return b;
 	}
 	
+	/**
+	 * Reads up to the requested number of bytes from the wrapped stream and caches them when enabled.
+	 *
+	 * @param len the maximum number of bytes to read
+	 * @return the bytes that were read
+	 * @throws IOException if reading fails
+	 */
 	@Override
 	public byte[] readNBytes(int len) throws IOException {
 		var b = in.readNBytes(len);
@@ -94,11 +148,20 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 			++length;
 		}
 	}
-	
+
+	/**
+	 * Return the remaining size in n (int).
+	 * if there is no more size left, return 0
+	 */
 	int remainingCacheCapacity(int n) {
-		return length < MAX_SIZE ? min(n, MAX_SIZE-length) : 0; // return remaining size
+		return length < MAX_SIZE ? min(n, MAX_SIZE-length) : 0;
 	}
 	
+	/**
+	 * Closes the cache stream, when present, and then closes the wrapped input stream.
+	 *
+	 * @throws IOException if closing either stream fails
+	 */
 	@Override
 	public void close() throws IOException {
 		try {
@@ -111,10 +174,20 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 		}
 	}
 	
+	/**
+	 * Returns the total number of bytes read from the wrapped stream.
+	 *
+	 * @return the total content size in bytes
+	 */
 	public long contentSize(){
 		return length;
 	}
 	
+	/**
+	 * Returns the cached bytes when caching is enabled.
+	 *
+	 * @return the cached bytes, or {@code null} when caching is disabled
+	 */
 	public byte[] contentBytes() {
 		return out instanceof ByteArrayOutputStream bos ? bos.toByteArray() : null;
 	}

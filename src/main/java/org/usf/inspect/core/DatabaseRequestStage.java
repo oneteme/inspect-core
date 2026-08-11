@@ -8,9 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 
- * @author u$f
- *
+ * Stage information for a database request operation.
  */
 @Getter
 @Setter
@@ -19,6 +17,11 @@ public final class DatabaseRequestStage extends AbstractStage {
 	private long[] count;
 	private String[] args; // only for BATCH|EXECUTE|FETCH
 		
+	/**
+	 * Returns a formatted string representation of this database stage.
+	 *
+	 * @return the formatted stage description
+	 */
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

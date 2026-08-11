@@ -11,9 +11,9 @@ import java.sql.SQLException;
 import lombok.Getter;
 
 /**
- * 
- * @author u$f
+ * Caches database connection metadata extracted from JDBC metadata.
  *
+ * @author u$f
  */
 @Getter
 final class ConnectionMetadataCache {
@@ -29,6 +29,12 @@ final class ConnectionMetadataCache {
 	private String driverVersion;
 	private boolean present;
 	
+	/**
+	 * Updates the cached metadata from the given JDBC metadata instance.
+	 *
+	 * @param meta the JDBC metadata to read
+	 * @throws SQLException if the metadata cannot be read
+	 */
 	public void update(DatabaseMetaData meta) throws SQLException {
 		var arr = decode(meta.getURL());
 		this.scheme = arr[0];

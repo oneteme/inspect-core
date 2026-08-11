@@ -6,7 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 
+ * Describes a single stage performed while handling a mail request.
+ *
  * @author u$f
  *
  */
@@ -16,6 +17,11 @@ public final class MailRequestStage extends AbstractStage {
 	
 	private Mail mail;
 
+	/**
+	 * Returns a formatted textual representation of this mail request stage.
+	 *
+	 * @return the formatted stage description
+	 */
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

@@ -7,7 +7,8 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 
+ * Properties for enabling and configuring machine resource (heap/disk) monitoring.
+ *
  * @author u$f
  *
  */

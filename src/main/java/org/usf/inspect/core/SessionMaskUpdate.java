@@ -4,7 +4,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
+ * Carries a session mask update event that changes the request filtering mask for a specific session.
+ *
  * @author u$f
  *
  */

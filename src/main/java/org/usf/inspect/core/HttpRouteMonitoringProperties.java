@@ -14,9 +14,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 
- * @author u$f
- *
+ * Configures HTTP route exclusion rules for monitoring.
  */
 @Getter
 @Setter
@@ -29,10 +27,20 @@ public final class HttpRouteMonitoringProperties {
 
 	private Map<String, String[]> excludes = emptyMap(); //method, path 
 	
+	/**
+	 * Returns the excluded HTTP methods.
+	 *
+	 * @return the excluded methods
+	 */
 	public String[] excludedMethods() {
 		return excludes.get(METH_KEY);
 	}
 	
+	/**
+	 * Returns the excluded HTTP paths.
+	 *
+	 * @return the excluded paths
+	 */
 	public String[] excludedPaths() {
 		return excludes.get(PATH_KEY);
 	}

@@ -11,6 +11,9 @@ import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+/**
+ * Decodes JDBC URLs into database connection metadata fragments.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class JdbcURLDecoder {
 	
@@ -22,6 +25,12 @@ public final class JdbcURLDecoder {
 	private static final Pattern STP4 = compile("^.*database(?:Name)?=(\\w+)", CASE_INSENSITIVE); //teradata|sqlserver
 	private static final Pattern STP5 = compile("^(file|mem):([\\w-\\.\\/]+)", CASE_INSENSITIVE);//H2 mem|file
 
+	/**
+	 * Decodes the given JDBC URL into scheme, host, port, and database name components.
+	 *
+	 * @param url the JDBC URL to decode
+	 * @return an array containing the decoded URL components
+	 */
 	public static String[] decode(String url) {
 		var m = STP1.matcher(url);
 		if(m.find()) {

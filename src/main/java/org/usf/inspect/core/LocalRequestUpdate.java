@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
+ * Represents an update emitted for a local request, including its actual start time and failure details.
  * 
  * @author u$f
  *
@@ -19,6 +20,11 @@ public final class LocalRequestUpdate extends AbstractRequestUpdate implements A
 	private Instant start; //real start
 	private ExceptionInfo exception; 
 
+	/**
+	 * Creates a local request update for the specified request identifier.
+	 *
+	 * @param id the identifier of the request being updated
+	 */
 	@JsonCreator
 	public LocalRequestUpdate(String id) {
 		super(id);

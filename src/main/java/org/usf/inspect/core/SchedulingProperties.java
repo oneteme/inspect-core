@@ -12,7 +12,8 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 
+ * Properties for the trace dispatch scheduler, controlling the dispatch interval and initial dispatch state.
+ *
  * @author u$f
  *
  */

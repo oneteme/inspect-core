@@ -18,6 +18,12 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Evaluates Spring Expression Language (SpEL) expressions in the context of a method invocation,
+ * with caching of parsed expressions for performance.
+ *
+ * @author u$f
+ */
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SpelEvaluator {
@@ -27,6 +33,16 @@ public final class SpelEvaluator {
 
 	private static final Map<String, Expression> EXPRESSION_CACHE = new ConcurrentHashMap<>();
 
+	/**
+	 * Evaluates the given SpEL expression in the context of the supplied method invocation.
+	 * Falls back to the method name when the expression is blank, and to the original expression string when evaluation fails.
+	 *
+	 * @param exprValue the SpEL expression to evaluate
+	 * @param targetObject the object on which the method was called
+	 * @param method the invoked method providing parameter names and declaring class
+	 * @param args the arguments passed to the method invocation
+	 * @return the string result of the evaluated expression
+	 */
 	public static String evalMethodExpression(String exprValue, Object targetObject, Method method, Object[] args) {
 		if (isNull(exprValue)|| exprValue.isEmpty()) {
 			return method.getName();

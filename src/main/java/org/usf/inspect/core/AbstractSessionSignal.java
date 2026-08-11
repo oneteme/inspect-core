@@ -9,9 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 /**
- * 
- * @author u$f
- *
+ * Signal that captures the start of a traced session.
  */
 @Getter
 @Setter

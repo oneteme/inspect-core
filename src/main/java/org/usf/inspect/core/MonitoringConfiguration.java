@@ -5,7 +5,8 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 
+ * Configuration for HTTP route, resource, and exception monitoring features.
+ *
  * @author u$f
  *
  */

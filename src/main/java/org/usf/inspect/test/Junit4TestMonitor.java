@@ -12,16 +12,26 @@ import org.junit.runners.model.Statement;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
- * @author u$f
- *
+ * Monitors JUnit 4 test execution and records test lifecycle events for Inspect.
  */
 @RequiredArgsConstructor
 public final class Junit4TestMonitor implements TestRule {
 	
+	/**
+	 * Wraps a JUnit 4 statement to trace the execution of the current test.
+	 *
+	 * @param base the original statement to execute.
+	 * @param dscr the description of the current test.
+	 * @return the statement wrapped with Inspect monitoring.
+	 */
 	@Override
 	public Statement apply(Statement base, Description dscr) {
 		return new Statement() {
+			/**
+			 * Evaluates the wrapped test statement while tracing the test execution.
+			 *
+			 * @throws Throwable if the wrapped statement fails.
+			 */
 			@Override
 			public void evaluate() throws Throwable {
 				exec(base::evaluate, traceAroundMethod(createTestSession(systemUTC().instant()), ses-> {

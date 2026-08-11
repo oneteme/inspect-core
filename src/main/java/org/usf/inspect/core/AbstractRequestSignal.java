@@ -7,9 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 /**
- * 
- * @author u$f
- *
+ * Base signal that describes a traced request at its start.
  */
 @Getter
 @Setter

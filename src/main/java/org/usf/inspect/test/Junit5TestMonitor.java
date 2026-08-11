@@ -20,35 +20,63 @@ import org.junit.jupiter.api.extension.TestWatcher;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 /**
- * 
- * @author u$f
- *
+ * Monitors JUnit 5 test execution and records test lifecycle events for Inspect.
  */
 public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, TestWatcher, AfterAllCallback {
 
 	private static final Namespace NAMESPACE = create(Junit5TestMonitor.class.getName());
 	private static final String SESSION_KEY = "inspect-junit-monitor";
 	
+	/**
+	 * Initializes a fallback test session before the test class lifecycle starts.
+	 *
+	 * @param context the current extension context.
+	 * @throws Exception if the setup fails.
+	 */
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
 		setActiveContext(createTestSession(systemUTC().instant()).createCallback()); //fake session, avoid no active session
 	}
 
+	/**
+	 * Starts monitoring for the current test before it executes.
+	 *
+	 * @param context the current extension context.
+	 * @throws Exception if the pre-processing fails.
+	 */
 	@Override
 	public void beforeEach(ExtensionContext context) throws Exception {
 		preProcess(context);
 	}
 
+	/**
+	 * Finishes monitoring for the current test after it executes.
+	 *
+	 * @param context the current extension context.
+	 * @throws Exception if the post-processing fails.
+	 */
 	@Override
 	public void afterEach(ExtensionContext context) throws Exception {
 		postProcess(context);
 	}
 	
+	/**
+	 * Restores a fallback test session after the test class lifecycle ends.
+	 *
+	 * @param context the current extension context.
+	 * @throws Exception if the cleanup fails.
+	 */
 	@Override
 	public void afterAll(ExtensionContext context) throws Exception {
 		setActiveContext(createTestSession(systemUTC().instant()).createCallback()); //fake session, avoid no active session
 	}
 
+	/**
+	 * Records a disabled test without executing its body.
+	 *
+	 * @param context the current extension context.
+	 * @param reason the optional reason why the test is disabled.
+	 */
 	@Override
 	public void testDisabled(ExtensionContext context, Optional<String> reason) {
 		preProcess(context);

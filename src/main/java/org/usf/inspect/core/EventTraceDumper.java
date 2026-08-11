@@ -18,9 +18,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 
- * @author u$f
- *
+ * Dispatch hook that persists traces to dump files for later dispatch.
  */
 @Slf4j
 public final class EventTraceDumper implements DispatchHook {
@@ -28,12 +26,24 @@ public final class EventTraceDumper implements DispatchHook {
 	private final Path baseDir;
 	private final ObjectWriter writer;
 	
+	/**
+	 * Creates a trace dumper.
+	 *
+	 * @param baseDir the base directory for dump files
+	 * @param mapper the object mapper used to serialize traces
+	 */
 	public EventTraceDumper(Path baseDir, ObjectMapper mapper) {
 		this.baseDir = baseDir;
 		this.writer = mapper.writerFor(new TypeReference<Collection<EventTrace>>() {});
 	}
 
 //	@Override disable for now
+	/**
+	 * Drains queued traces, writes them to disk, and schedules dispatch tasks for the dump files.
+	 *
+	 * @param ctx the trace hub context
+	 * @param manager the trace queue manager
+	 */
 	public void postDispatch(TraceHub ctx, ProcessingQueue<EventTrace> manager) {
 		manager.pollAll(trc->{
 			ctx.emitTask(dispatchFileTask(ctx, writeTraces(trc)));

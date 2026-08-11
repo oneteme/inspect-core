@@ -12,9 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
- * @author u$f
- *
+ * Captures controller exceptions for monitored HTTP requests.
  */
 @RequiredArgsConstructor
 public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver, Ordered {
@@ -22,8 +20,14 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 	private final HttpRoutePredicate routePredicate;
 	
 	/**
+	 * Resolves an exception by recording it on the current monitored HTTP session.
+	 *
 	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
 	 * 
+	 * @param request the current HTTP servlet request
+	 * @param response the current HTTP servlet response
+	 * @param handler the selected handler
+	 * @param ex the raised exception
 	 * @return {@code null} for default processing in the resolution chain
 	 */
 	@Override
@@ -37,6 +41,11 @@ public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver
 		return null;
 	}
 
+	/**
+	 * Returns the resolver order so exceptions are observed as early as possible.
+	 *
+	 * @return the highest precedence order value
+	 */
 	@Override
 	public int getOrder() {
 		return HIGHEST_PRECEDENCE;

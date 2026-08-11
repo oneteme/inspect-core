@@ -20,9 +20,7 @@ import org.usf.inspect.core.Monitor.StatefulMonitor;
 import org.usf.inspect.core.SessionContextManager;
 
 /**
- * 
- * @author u$f
- *
+ * Monitors directory context lifecycle events and emits directory request stages.
  */
 final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSignal, DirectoryRequestUpdate> {
 
@@ -41,6 +39,12 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSign
 	}
 	
 	//callback should be created before processing
+	/**
+	 * Creates the callback update associated with the current directory request session.
+	 *
+	 * @param session the directory request session signal
+	 * @return the callback update for the session
+	 */
 	protected DirectoryRequestUpdate createCallback(DirectoryRequestSignal session) { 
 		return session.createCallback();
 	}

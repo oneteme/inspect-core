@@ -34,9 +34,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 
- * @author u$f
+ * Exports trace data to a remote inspect server via HTTP REST calls,
+ * including instance registration and GZIP-compressed batch dispatch.
  *
+ * @author u$f
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -50,6 +51,12 @@ public final class RestTraceExporter implements TraceExporter {
 	private InstanceEnvironment instance;
 	private boolean registred;
 
+	/**
+	 * Creates a new exporter using default REST template settings.
+	 *
+	 * @param properties the remote server connection properties
+	 * @param mapper the object mapper used for serialization
+	 */
 	public RestTraceExporter(RestRemoteServerProperties properties, ObjectMapper mapper) {
 		this(properties, mapper, defaultRestTemplate(properties, mapper));
 	}

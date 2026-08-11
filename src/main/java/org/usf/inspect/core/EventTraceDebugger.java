@@ -3,9 +3,7 @@ package org.usf.inspect.core;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 
- * @author u$f
- *
+ * Placeholder dispatch hook for debugging emitted traces.
  */
 @Slf4j
 public final class EventTraceDebugger implements DispatchHook { //inspect.client.log : SESSION | REQUEST | STAGE

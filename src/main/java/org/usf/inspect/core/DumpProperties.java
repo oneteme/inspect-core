@@ -13,9 +13,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 
- * @author u$f
- *
+ * Configures trace dump file generation.
  */
 @Setter
 @Getter

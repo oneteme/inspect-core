@@ -3,9 +3,7 @@ package org.usf.inspect.core;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
- * 
- * @author u$f
- *
+ * Marker interface for trace events serialized by the system.
  */
 @JsonTypeInfo(
 	    use = JsonTypeInfo.Id.NAME,

@@ -15,9 +15,7 @@ import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 
- * @author u$f
- *
+ * Wraps a {@link ClientHttpResponse} to capture streamed response content.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -29,6 +27,12 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 	private CacheableInputStream pipe;
 	private Instant start = systemUTC().instant();
 
+	/**
+	 * Returns the response body stream, creating a cacheable wrapper on first access.
+	 *
+	 * @return the response body input stream
+	 * @throws IOException if the response body cannot be obtained
+	 */
 	@Override
 	public InputStream getBody() throws IOException {
 		if(isNull(pipe)) {
@@ -37,6 +41,9 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 		return pipe;
 	}
 	
+	/**
+	 * Closes the wrapped response and publishes the captured response content metadata.
+	 */
 	@Override
 	public void close() {
 		Throwable t = null;

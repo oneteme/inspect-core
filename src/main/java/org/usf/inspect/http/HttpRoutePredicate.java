@@ -12,15 +12,19 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
- * @author u$f
- *
+ * Evaluates whether an HTTP request should be monitored.
  */
 @RequiredArgsConstructor
 public final class HttpRoutePredicate {
 	
 	private final Predicate<HttpServletRequest> predicate;
 	
+	/**
+	 * Compiles a route predicate from the supplied monitoring configuration.
+	 *
+	 * @param config the HTTP route monitoring configuration
+	 * @return the compiled route predicate
+	 */
 	public static HttpRoutePredicate compile(HttpRouteMonitoringProperties config) {
 		Predicate<HttpServletRequest> filter = req-> true;
 		if(!config.getExcludes().isEmpty()) {
@@ -37,6 +41,12 @@ public final class HttpRoutePredicate {
 		return new HttpRoutePredicate(filter);
 	}
 
+	/**
+	 * Tests whether the supplied request should be monitored.
+	 *
+	 * @param t the HTTP servlet request to test
+	 * @return {@code true} when the request should be monitored
+	 */
 	public boolean accept(HttpServletRequest t) {
 		return predicate.test(t);
 	}

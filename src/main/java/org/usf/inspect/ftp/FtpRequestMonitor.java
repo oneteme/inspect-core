@@ -16,9 +16,7 @@ import org.usf.inspect.core.SessionContextManager;
 import com.jcraft.jsch.ChannelSftp;
 
 /**
- * 
- * @author u$f
- *
+ * Monitors FTP request lifecycle events and creates traced FTP request updates.
  */
 final class FtpRequestMonitor extends StatefulMonitor<FtpRequestSignal, FtpRequestUpdate> {
 
@@ -37,6 +35,12 @@ final class FtpRequestMonitor extends StatefulMonitor<FtpRequestSignal, FtpReque
 	}
 	
 	//callback should be created before processing
+	/**
+	 * Creates the callback used to publish updates for the current FTP request.
+	 *
+	 * @param session the current FTP request signal.
+	 * @return the callback associated with the request signal.
+	 */
 	protected FtpRequestUpdate createCallback(FtpRequestSignal session) { 
 		return session.createCallback();
 	}

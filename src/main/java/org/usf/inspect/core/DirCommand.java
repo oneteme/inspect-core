@@ -6,9 +6,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
- * @author u$f
- *
+ * Enumerates directory commands and their command types.
  */
 @Getter
 @RequiredArgsConstructor

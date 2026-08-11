@@ -11,9 +11,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 /**
- * 
- * @author u$f
- *
+ * Monitors synchronous outbound HTTP request execution and response streaming.
  */
 final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 

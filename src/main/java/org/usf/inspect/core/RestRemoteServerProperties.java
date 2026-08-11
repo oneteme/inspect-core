@@ -14,7 +14,9 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 
+ * Configuration properties for the REST-based remote inspect server connection, including endpoint URIs,
+ * GZIP compression threshold, and trace retention policy.
+ *
  * @author u$f
  *
  */

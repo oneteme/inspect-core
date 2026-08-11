@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
+ * Represents update data collected while processing an HTTP session.
  * 
  * @author u$f
  *
@@ -28,11 +29,25 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 	private String cacheControl; //max-age, no-cache
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	
+	/**
+	 * Creates a new HTTP session update for the given session identifier.
+	 * 
+	 * @param id the unique session identifier
+	 */
 	@JsonCreator
 	public HttpSessionUpdate(String id) {
 		super(id);
 	}
 
+	/**
+	 * Creates a new stage entry for the current HTTP session update.
+	 * 
+	 * @param type the action type represented by the stage
+	 * @param start the stage start instant
+	 * @param end the stage end instant
+	 * @param t the error captured for the stage, or {@code null} when none occurred
+	 * @return a new HTTP session stage initialized with the supplied values
+	 */
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
 		return createStage(type, start, end, null, t, HttpSessionStage::new);
 	}

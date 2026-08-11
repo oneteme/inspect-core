@@ -63,6 +63,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
+ * Registers the Spring beans required to collect and dispatch inspect traces.
  * 
  * @author u$f
  *
@@ -103,6 +104,11 @@ public class InspectConfiguration implements WebMvcConfigurer {
     }
 
 	@Override
+	/**
+	 * Adds the HTTP session interceptor to the Spring MVC interceptor registry.
+	 * 
+	 * @param registry the interceptor registry to customize
+	 */
     public void addInterceptors(InterceptorRegistry registry) {
 		if(appContext.containsBean("httpSessionFilter")) {
 	    	logRegistringBean("handlerInterceptor", HttpSessionFilter.class);
@@ -226,6 +232,11 @@ public class InspectConfiguration implements WebMvcConfigurer {
 		//		.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
 	}
 	
+	/**
+	 * Creates the Jackson module that registers inspect-core polymorphic subtypes.
+	 * 
+	 * @return the Jackson module containing inspect-core subtype registrations
+	 */
 	public static SimpleModule coreModule() {
 		return new SimpleModule("inspect-core-module").registerSubtypes(
 				new NamedType(LogEntry.class, 					"00"),  

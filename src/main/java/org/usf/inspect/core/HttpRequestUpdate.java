@@ -8,9 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 
- * @author u$f
- *
+ * Mutable update data for an HTTP request.
  */
 @Getter
 @Setter
@@ -23,11 +21,25 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	private boolean linked;
 
+	/**
+	 * Creates an HTTP request update.
+	 *
+	 * @param id the request identifier
+	 */
 	@JsonCreator
 	public HttpRequestUpdate(String id) {
 		super(id);
 	}
 
+	/**
+	 * Creates an HTTP request stage.
+	 *
+	 * @param type the HTTP action
+	 * @param start the stage start time
+	 * @param end the stage end time
+	 * @param t the failure cause, if any
+	 * @return the created stage
+	 */
 	public HttpRequestStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
 		return createStage(type, start, end, null, t, HttpRequestStage::new);
 	}

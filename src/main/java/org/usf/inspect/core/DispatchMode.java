@@ -1,9 +1,7 @@
 package org.usf.inspect.core;
 
 /**
- * 
- * @author u$f
- *
+ * Enumerates supported trace dispatch modes.
  */
 public enum DispatchMode {
 	

@@ -21,9 +21,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
 /**
- * 
- * @author u$f
+ * Configures Flyway integration for inspected JDBC data sources.
  *
+ * @author u$f
  */
 @Configuration
 @ConditionalOnClass(name="org.flywaydb.core.api.configuration.FluentConfiguration")
@@ -36,6 +36,11 @@ public class FlywayModuleConfiguration {
 		return conf-> conf.dataSource(wrap(conf.getDataSource(), "flywayDataSource"));
 	}
 
+	/**
+	 * Creates a migration strategy that traces Flyway migrations.
+	 *
+	 * @return the Flyway migration strategy
+	 */
 	@Bean
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
 		return fly-> exec(fly::migrate, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{

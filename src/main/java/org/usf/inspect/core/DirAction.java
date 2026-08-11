@@ -1,9 +1,7 @@
 package org.usf.inspect.core;
 
 /**
- * 
- * @author u$f
- *
+ * Enumerates directory service actions.
  */
 public enum DirAction {
 

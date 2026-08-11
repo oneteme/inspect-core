@@ -10,9 +10,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
- * @author u$f
- *
+ * Enumerates FTP commands and their command types.
  */
 @Getter
 @RequiredArgsConstructor

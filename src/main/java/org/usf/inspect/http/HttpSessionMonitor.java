@@ -37,12 +37,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
+ * Tracks the lifecycle of an HTTP server session across filter and interceptor stages.
+ *
  * Filter → Interceptor.preHandle → Deferred → Controller(task-?) →   Filter → Interceptor.preHandle → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
  * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
- * 
- * @author u$f 
- *
  */
 @RequiredArgsConstructor
 public final class HttpSessionMonitor {
@@ -53,6 +51,12 @@ public final class HttpSessionMonitor {
 	private HttpSessionUpdate callback;
 	private boolean async;
 	
+	/**
+	 * Creates a monitor for the supplied HTTP request and response.
+	 *
+	 * @param request the current HTTP servlet request
+	 * @param response the current HTTP servlet response
+	 */
 	public HttpSessionMonitor(HttpServletRequest request, HttpServletResponse response) {
 		this.lastTimestamp = systemUTC().instant();
 		this.handler = traceAtomic(createHttpSession(lastTimestamp, request.getHeader(TRACE_HEADER)), this::createCallback,
@@ -86,6 +90,12 @@ public final class HttpSessionMonitor {
 		return callback = session.createCallback();
 	}
 	
+	/**
+	 * Creates a listener that completes filter processing and handles asynchronous dispatch transitions.
+	 *
+	 * @param isAsync supplies whether asynchronous processing has started for the request
+	 * @return the listener that finishes the filter stage
+	 */
 	public ExecutionListener<Void> preFilter(BooleanSupplier isAsync) {
 		if(async && assertStillOpened(callback, "HttpSessionMonitor.preFilter")) { //!important async can be true or not set yet
 			emitStage(PROCESS);
@@ -104,16 +114,29 @@ public final class HttpSessionMonitor {
 		};
 	}
 	
+	/**
+	 * Emits the pre-processing stage for the current HTTP session.
+	 */
 	public void preProcess(){
 		emitStage(PRE_PROCESS);
 	}
 	
+	/**
+	 * Emits the processing stage for a synchronous HTTP session.
+	 */
 	public void process(){ //see this.asyncPostFilterHander
 		if(!async) {
 			emitStage(PROCESS);
 		}
 	}
 
+	/**
+	 * Finalizes the monitored request with endpoint metadata and an optional error.
+	 *
+	 * @param name the resolved endpoint name
+	 * @param user the resolved user identifier
+	 * @param thrw the unhandled throwable, if any
+	 */
 	public void postProcess(String name, String user, Throwable thrw){
 		if(assertStillOpened(callback, "HttpSessionMonitor.postProcess")) {
 			emitStage(POST_PROCESS);
@@ -130,6 +153,11 @@ public final class HttpSessionMonitor {
 		}
 	}
 	
+	/**
+	 * Records an exception for the current session when one has not been captured yet.
+	 *
+	 * @param thrw the throwable to record
+	 */
 	public void handleError(Throwable thrw) {
 		if(assertStillOpened(callback, "HttpSessionMonitor.handleError") && isNull(callback.getException())) {
 			callback.setException(fromException(thrw));

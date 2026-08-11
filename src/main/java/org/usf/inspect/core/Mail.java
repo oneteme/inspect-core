@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
+ * Represents email message metadata captured by the inspection core.
  * 
  * @author u$f
  *

@@ -32,9 +32,10 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 
- * @author u$f
+ * Central hub responsible for collecting, queuing and dispatching event traces to a remote server.
+ * Manages the dispatch scheduler, queue overflow protection, and shutdown hooks.
  *
+ * @author u$f
  */
 @Slf4j
 public final class TraceDispatcherHub implements TraceHub {
@@ -265,10 +266,21 @@ public final class TraceDispatcherHub implements TraceHub {
 		}
 	}
 
+	/**
+	 * Returns the current dispatch state of this hub.
+	 *
+	 * @return the current dispatch state
+	 */
 	public DispatchState getState() {
 		return atomicState.get();
 	}
 
+	/**
+	 * Updates the dispatch state when the hub is active.
+	 *
+	 * @param state the new dispatch state to apply
+	 * @return {@code true} if the state was updated, {@code false} if the hub is disabled or shut down
+	 */
 	public boolean setState(DispatchState state) {
 		if(configuration.isEnabled() && scheduling()) { //cannot change state if disabled or shut down
 			atomicState.set(state);
@@ -277,6 +289,11 @@ public final class TraceDispatcherHub implements TraceHub {
 		return false;
 	}
 	
+	/**
+	 * Returns a snapshot of the traces currently held in the queue.
+	 *
+	 * @return the list of queued traces
+	 */
 	public List<EventTrace> peek() {
 		return queue.peek();
 	}
@@ -366,6 +383,11 @@ public final class TraceDispatcherHub implements TraceHub {
 		singleton = createHub(conf, agent, mapper);
 	}
 
+	/**
+	 * Returns the singleton trace hub, creating a disabled no-op hub if none has been initialized.
+	 *
+	 * @return the active trace hub
+	 */
 	public static synchronized TraceHub hub() {
 		if(isNull(singleton)) {
 			var config = new InspectCollectorConfiguration();
@@ -375,6 +397,15 @@ public final class TraceDispatcherHub implements TraceHub {
 		return singleton;
 	}
 	
+	/**
+	 * Creates a new trace hub for the given configuration, exporter and object mapper.
+	 * Returns a minimal no-op hub when the configuration is disabled.
+	 *
+	 * @param conf the collector configuration
+	 * @param agent the trace exporter that sends traces to the remote server
+	 * @param mapper the object mapper used to serialize traces
+	 * @return the configured trace hub
+	 */
 	public static TraceHub createHub(InspectCollectorConfiguration conf, TraceExporter agent, ObjectMapper mapper) {
 		if(conf.isEnabled()) {
 			var eventBus = new EventTraceBus();

@@ -33,9 +33,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
- * @author u$f
+ * Tracks JDBC request lifecycle stages and emits database tracing events.
  *
+ * @author u$f
  */
 @RequiredArgsConstructor
 final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal, DatabaseRequestUpdate> {
@@ -48,6 +48,11 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	
 	BatchStageHandler batchHandler = null;
 	
+	/**
+	 * Creates a listener that traces connection acquisition.
+	 *
+	 * @return the listener used for connection tracing
+	 */
 	public ExecutionListener<Connection> connectionHandler() {
 		return traceBegin(SessionContextManager::createDatabaseRequest, (req,cnx)->{
 			if(nonNull(cnx) && !cache.isPresent()) {
@@ -68,11 +73,23 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	}
 
 	//callback should be created before processing
+	/**
+	 * Creates the callback used to publish updates for the current request.
+	 *
+	 * @param session the current database request signal
+	 * @return the callback associated with the request
+	 */
 	@Override
 	protected DatabaseRequestUpdate createCallback(DatabaseRequestSignal session) { 
 		return session.createCallback();
 	}
 	
+	/**
+	 * Creates a listener that traces statement creation.
+	 *
+	 * @param sql the SQL used to initialize the statement, or {@code null} for plain statements
+	 * @return the listener used for statement tracing
+	 */
 	public ExecutionListener<Object> statementStageHandler(String sql) {
 		mainCommand = null; //rest
 		if(nonNull(sql)) {
@@ -82,6 +99,12 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		return stageHandler(STATEMENT);
 	}
 
+	/**
+	 * Creates a listener that traces batch additions.
+	 *
+	 * @param sql the SQL statement being added to the batch, or {@code null} for prepared statements
+	 * @return the listener used for batch tracing
+	 */
 	public ExecutionListener<Void> addBatchStageHandler(String sql) {
 		if(nonNull(sql)) {
 			parseAndMergeCommand(sql);
@@ -96,22 +119,51 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		}) : batchHandler;
 	}
 	
+	/**
+	 * Creates a listener that traces query execution.
+	 *
+	 * @param sql the SQL query being executed, or {@code null} for prepared statements
+	 * @return the listener used for query execution tracing
+	 */
 	public ExecutionListener<ResultSet> executeQueryStageHandler(String sql) {
 		return executeStageHandler(sql, rs-> null); // no count 
 	}
 
+	/**
+	 * Creates a listener that traces statement execution.
+	 *
+	 * @param sql the SQL statement being executed, or {@code null} for prepared statements
+	 * @return the listener used for execution tracing
+	 */
 	public ExecutionListener<Boolean> executeStageHandler(String sql) {
 		return executeStageHandler(sql, b-> null); //-1 if select, cannot call  getUpdateCount
 	}
 
+	/**
+	 * Creates a listener that traces update execution.
+	 *
+	 * @param sql the SQL update statement being executed, or {@code null} for prepared statements
+	 * @return the listener used for update tracing
+	 */
 	public ExecutionListener<Integer> executeUpdateStageHandler(String sql) {
 		return executeStageHandler(sql, n-> new long[] {n});
 	}
 
+	/**
+	 * Creates a listener that traces large update execution.
+	 *
+	 * @param sql the SQL update statement being executed, or {@code null} for prepared statements
+	 * @return the listener used for large update tracing
+	 */
 	public ExecutionListener<Long> executeLargeUpdateStageHandler(String sql) {
 		return executeStageHandler(sql, n-> new long[] {n});
 	}
 
+	/**
+	 * Creates a listener that traces batch execution.
+	 *
+	 * @return the listener used for batch execution tracing
+	 */
 	public ExecutionListener<int[]> executeBatchStageHandler(){
 		emitBatchStage(); //before batch execute
 		return executeStageHandler(null, arr-> {
@@ -126,6 +178,11 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		});
 	}
 
+	/**
+	 * Creates a listener that traces large batch execution.
+	 *
+	 * @return the listener used for large batch execution tracing
+	 */
 	public ExecutionListener<long[]> executeLargeBatchStageHandler() {
 		emitBatchStage(); //before batch execute
 		return executeStageHandler(null, arr-> {
@@ -163,6 +220,11 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		});
 	}
 
+	/**
+	 * Updates the row count recorded for the last execution stage.
+	 *
+	 * @param rows the row count to append
+	 */
 	public void updateStageRowsCount(long rows) {
 		if(rows > -1) {
 			try { //lastStg may be already sent !!
@@ -177,10 +239,23 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		}
 	}
 
+	/**
+	 * Creates a listener that traces result set fetching.
+	 *
+	 * @param start the fetch start time
+	 * @param n the number of fetched rows
+	 * @param <T> the listener result type
+	 * @return the listener used for fetch tracing
+	 */
 	public <T> ExecutionListener<T> fetch(Instant start, int n) {
 		return traceStep((s,e,o,t)-> getCallback().createStage(FETCH, start, e, t, null, new long[] {n})); //differed start 
 	}
 	
+	/**
+	 * Creates a listener that traces connection closure.
+	 *
+	 * @return the listener used for disconnection tracing
+	 */
 	public ExecutionListener<Object> disconnectionHandler() {
 		return traceEnd(stageHandler(DISCONNECTION));
 	}
@@ -215,15 +290,31 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		return isNull(main) ? cmd : SQL;
 	}
 	
+	/**
+	 * Aggregates repeated batch additions into a single traced stage.
+	 */
 	@Getter
 	final class BatchStageHandler implements ExecutionListener<Void> {
 
 		private final DatabaseRequestStage stage;
 		
+		/**
+		 * Creates a handler for the given batch stage.
+		 *
+		 * @param stage the batch stage to update
+		 */
 		public BatchStageHandler(DatabaseRequestStage stage) {
 			this.stage = stage;
 		}
 
+		/**
+		 * Updates the tracked batch stage after a batch addition completes.
+		 *
+		 * @param start the operation start time
+		 * @param end the operation end time
+		 * @param o the operation result
+		 * @param t the failure thrown by the operation, if any
+		 */
 		@Override
 		public void handle(Instant start, Instant end, Void o, Throwable t) {
 			stage.getCount()[0]++;

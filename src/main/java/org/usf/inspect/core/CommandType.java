@@ -3,9 +3,7 @@ package org.usf.inspect.core;
 import static java.util.Objects.isNull;
 
 /**
- * 
- * @author u$f
- *
+ * Defines high-level categories for traced commands.
  */
 public enum CommandType {
 
@@ -19,6 +17,13 @@ public enum CommandType {
 	@Deprecated
 	ACCESS; 
 	
+	/**
+	 * Merges a primary command name with a derived command type.
+	 *
+	 * @param main the existing command name
+	 * @param type the command type to merge
+	 * @return the merged command name
+	 */
 	public static String merge(String main, CommandType type) {
 		if(isNull(type)) {
 			return main;

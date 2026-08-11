@@ -1,9 +1,7 @@
 package org.usf.inspect.core;
 
 /**
- * 
- * @author u$f
- *
+ * Enumerates database lifecycle and execution actions.
  */
 public enum DatabaseAction {
 	

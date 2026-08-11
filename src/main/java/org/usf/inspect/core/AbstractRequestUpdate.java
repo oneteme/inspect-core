@@ -10,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 /**
- * 
- * @author u$f
- *
+ * Base update that stores mutable state for a traced request.
  */
 @Getter
 @Setter
@@ -23,6 +21,6 @@ public class AbstractRequestUpdate implements TraceUpdate, HasStage {
 	private final AtomicInteger stageCounter = new AtomicInteger();
 	
 	private final String id;
-	private String command; //READ, EMIT, EDIT, ..
+	private String command; //READ, EMIT, EDIT etc. (Enum from CommandType.java)
 	private Instant end;
 }

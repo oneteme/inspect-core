@@ -18,10 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
  
 /**
-* 
-* @author u$f
-*
-*/
+ * Enumerates supported database commands and their command types.
+ */
 @Slf4j
 @Getter
 @RequiredArgsConstructor
@@ -40,6 +38,12 @@ public enum DatabaseCommand {
 	//avoid clone array each time
 	public static final DatabaseCommand[] CACHE = Stream.of(values()).filter(e-> e!= SQL).toArray(DatabaseCommand[]::new);
 
+	/**
+	 * Extracts the main database command from the given SQL text.
+	 *
+	 * @param sql the SQL text to inspect
+	 * @return the extracted command, or {@code null} when none can be determined
+	 */
 	public static DatabaseCommand extractCommand(String sql) {
 		if(isNull(sql) || sql.isBlank()) {
 			return null;

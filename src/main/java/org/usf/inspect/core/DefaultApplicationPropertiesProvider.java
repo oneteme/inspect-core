@@ -12,9 +12,8 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
  * @author u$f
- *
+ * Reads application metadata from the Spring environment.
  */
 @RequiredArgsConstructor
 public final class DefaultApplicationPropertiesProvider implements ApplicationPropertiesProvider {
@@ -51,7 +50,7 @@ public final class DefaultApplicationPropertiesProvider implements ApplicationPr
 		var envs = env.getActiveProfiles();
 		return nonNull(envs) ? join(",", envs) : null;
 	}
-	
+
 	@Override
 	public Map<String, String> additionalProperties() {
 		return emptyMap();

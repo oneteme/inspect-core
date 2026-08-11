@@ -10,6 +10,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 /**
+ * Describes the runtime environment of an inspected application instance.
  * 
  * @author u$f
  *

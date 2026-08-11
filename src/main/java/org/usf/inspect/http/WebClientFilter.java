@@ -15,12 +15,17 @@ import org.springframework.web.reactive.function.client.ExchangeFunction;
 import reactor.core.publisher.Mono;
 
 /**
- * 
- * @author u$f
- *
+ * Adds tracing information to WebClient requests and monitors reactive exchanges.
  */
 public final class WebClientFilter implements ExchangeFilterFunction { //see RestRequestInterceptor
 
+	/**
+	 * Filters a WebClient exchange, attaching a trace header and monitoring the response lifecycle.
+	 *
+	 * @param request the outgoing client request
+	 * @param exc the exchange function that executes the request
+	 * @return the monitored client response publisher
+	 */
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {//request.headers is ReadOnlyHttpHeaders
 		var mnt = new HttpRequestAsyncMonitor();

@@ -8,9 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 
- * @author u$f
- *
+ * Stage information for a directory request operation.
  */
 @Getter
 @Setter
@@ -18,6 +16,11 @@ public class DirectoryRequestStage extends AbstractStage {
 	
 	private String[] args;
 	//int count !?
+	/**
+	 * Returns a formatted string representation of this directory stage.
+	 *
+	 * @return the formatted stage description
+	 */
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

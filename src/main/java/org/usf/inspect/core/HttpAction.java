@@ -1,9 +1,7 @@
 package org.usf.inspect.core;
 
 /**
- * 
- * @author u$f
- *
+ * Enumerates HTTP request processing actions.
  */
 public enum HttpAction {
 

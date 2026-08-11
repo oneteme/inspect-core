@@ -25,15 +25,19 @@ import org.usf.inspect.core.Monitor.StatefulMonitor;
 import lombok.Getter;
 
 /**
- * 
- * @author u$f
- *
+ * Provides shared request tracing support for outbound HTTP monitors.
  */
 class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, HttpRequestUpdate> {
 
 	@Getter
 	private final String id = nextId();
 	
+	/**
+	 * Creates the callback update associated with the current HTTP request session.
+	 *
+	 * @param session the HTTP request session signal
+	 * @return the callback update for the session
+	 */
 	protected HttpRequestUpdate createCallback(HttpRequestSignal session) { 
 		return session.createCallback();
 	}
@@ -49,12 +53,15 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 			req.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
 			req.setDataSize(headers.getContentLength()); //-1 unknown !
 			req.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-			//req.setUser(decode AUTHORIZATION)
 		}
 	}
 
+	/***
+	 * Posts the exchange information to the current callback, updating its status, content type, content encoding, and linked trace ID if available.
+	 * @param status - HttpStatusCode - the HTTP status code of the response
+	 * @param headers - HttpHeaders - the HTTP headers of the response
+	 */
 	void postExchange(HttpStatusCode status, HttpHeaders headers) {
-//		request.setThreadName(threadName()); //deferred thread
 		var callback = getCallback();
     	if(nonNull(status)) {
 			callback.setStatus(status.value());
@@ -66,9 +73,12 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 		}
 		callback.setDataSize(-1); //reset size before streaming
 	}
-	
+
+	/**
+	 * Posts the response content to the current callback, updating its data size and body content if available.
+	 * @param cnt - ResponseContent - object containing the response data
+	 */
 	void postResponse(ResponseContent cnt){
-//		request.setThreadName(threadName()); //deferred thread
 		if(nonNull(cnt)) {
 			var callback = getCallback();
 			callback.setDataSize(cnt.contentSize());
@@ -81,7 +91,12 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 	HttpRequestStage createStage(HttpAction action, Instant start,Instant end, Throwable thrw) {
 		return getCallback().createStage(action, start, end, thrw);
 	}
-	
+
+	/**
+	 * Asserts that the provided session ID matches the current callback's ID.
+	 * @param sid
+	 * @return
+	 */
 	boolean assertSameID(String sid) {
 		if(nonNull(sid)) {
 			if(sid.equals(getCallback().getId())) {

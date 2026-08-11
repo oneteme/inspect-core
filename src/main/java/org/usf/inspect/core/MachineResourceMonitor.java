@@ -9,6 +9,7 @@ import java.lang.management.MemoryMXBean;
 import lombok.RequiredArgsConstructor;
 
 /**
+ * Monitors heap and disk usage information and emits resource snapshots into the tracing pipeline.
  * 
  * @author u$f
  *
@@ -21,16 +22,18 @@ public final class MachineResourceMonitor implements DispatchHook {
 	private final MemoryMXBean bean = getMemoryMXBean();
 	private final File file; 
 
+	/**
+	 * Populates the instance environment with static machine resource capacity information.
+	 *
+	 * @param instance the instance environment to enrich with machine resource data
+	 */
 	@Override
 	public void onInstanceEmit(InstanceEnvironment instance) {
 		try{
 			var heap = bean.getHeapMemoryUsage();
-//			var meta = bean.getNonHeapMemoryUsage()
 			instance.setResource(new MachineResource(
 					toMb(heap.getInit()), 
 					toMb(heap.getMax()), 
-//					toMb(meta.getInit()), 
-//					toMb(meta.getMax()),
 					toMb(file.getTotalSpace())));
 		}
 		catch(Exception e) {
@@ -38,16 +41,18 @@ public final class MachineResourceMonitor implements DispatchHook {
 		}
 	}
 
+	/**
+	 * Emits the current machine resource usage as a trace event.
+	 *
+	 * @param ctx the trace hub that receives the generated resource usage trace
+	 */
 	@Override
 	public void onSchedule(TraceHub ctx) {
 		try{
 			var heap = bean.getHeapMemoryUsage();
-//			var meta = bean.getNonHeapMemoryUsage()
 			ctx.emitTrace(new MachineResourceUsage(systemUTC().instant(),
 					toMb(heap.getUsed()), 
 					toMb(heap.getCommitted()), 
-//					toMb(meta.getUsed()), 
-//					toMb(meta.getCommitted()),
 					toMb(file.getTotalSpace() - file.getUsableSpace()))); // used space
 		}
 		catch(Exception e) {

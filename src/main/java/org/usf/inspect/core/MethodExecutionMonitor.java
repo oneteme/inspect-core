@@ -27,7 +27,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 
+ * Monitors traced method executions and wraps them in the appropriate inspect session or request context.
+ *
  * @author u$f
  *
  */
@@ -38,6 +39,15 @@ public class MethodExecutionMonitor implements Ordered {
 
 	private final AspectUserProvider userProvider;
 	
+	/**
+	 * Tracks the execution of a runnable local request, or a callable  local request in the next method
+	 *
+	 * @param <E> the checked exception type that may be thrown
+	 * @param type the local request type to assign
+	 * @param name the explicit request name, or {@code null} to derive it from the caller
+	 * @param fn the runnable to execute within the traced request
+	 * @throws E if the runnable throws an exception of type {@code E}
+	 */
 	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
 		trackCallble(type, name, fn);
 	}
@@ -80,6 +90,11 @@ public class MethodExecutionMonitor implements Ordered {
 		}));
 	}
 
+	/**
+	 * Returns the aspect order so method execution is monitored before transactional advice.
+	 *
+	 * @return the precedence order for this aspect
+	 */
 	@Override
 	public int getOrder() { //before @Transactional
 		return HIGHEST_PRECEDENCE;

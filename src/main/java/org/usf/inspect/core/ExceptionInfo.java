@@ -8,9 +8,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 
- * @author u$f
- *
+ * Serializable description of an exception and its cause chain.
  */
 @Getter
 @RequiredArgsConstructor
@@ -22,11 +20,22 @@ public final class ExceptionInfo {
 	private final StackTraceRow[] stackTraceRows; //optional, can be null
 	private final ExceptionInfo cause; //optional, can be null
 	
+	/**
+	 * Returns a concise string representation of this exception information.
+	 *
+	 * @return the exception type and message
+	 */
 	@Override
 	public String toString() {
 		return type + ": " + message;
 	}
 	
+	/**
+	 * Creates exception information for the deepest cause of the supplied throwable.
+	 *
+	 * @param t the throwable to inspect
+	 * @return the deepest cause information, or {@code null} when the throwable is {@code null}
+	 */
 	public static ExceptionInfo mainCauseException(Throwable t) {
 		if(nonNull(t)) {
 			while(nonNull(t.getCause()) && t != t.getCause()) t = t.getCause();
@@ -35,6 +44,12 @@ public final class ExceptionInfo {
 		return null;
 	}
 
+	/**
+	 * Creates exception information using the active monitoring configuration.
+	 *
+	 * @param thrw the throwable to convert
+	 * @return the created exception information, or {@code null} when the throwable is {@code null}
+	 */
 	public static ExceptionInfo fromException(Throwable thrw) {
 		var config = hub().getConfiguration().getMonitoring().getException();
 		return fromException(thrw, config.getMaxCauseDepth(), config.getMaxStackTraceRows());
