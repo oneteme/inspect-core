@@ -13,12 +13,7 @@ import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.MainSessionType.TEST;
-import static org.usf.inspect.core.RequestMask.FTP;
-import static org.usf.inspect.core.RequestMask.JDBC;
-import static org.usf.inspect.core.RequestMask.LDAP;
-import static org.usf.inspect.core.RequestMask.LOCAL;
-import static org.usf.inspect.core.RequestMask.REST;
-import static org.usf.inspect.core.RequestMask.SMTP;
+import static org.usf.inspect.core.RequestMask.*;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
@@ -201,6 +196,9 @@ public final class SessionContextManager {
 
 	public static DirectoryRequestSignal createNamingRequest(Instant start) {
 		return new DirectoryRequestSignal(nextId(), requireSessionIdFor(LDAP), start, threadName());
+	}
+	public static KafkaRequestSignal createKafkaRequest(Instant start) {
+		return new KafkaRequestSignal(nextId(), requireSessionIdFor(KAFKA), start, threadName());
 	}
 	
 	static String requireSessionIdFor(RequestMask mask) {

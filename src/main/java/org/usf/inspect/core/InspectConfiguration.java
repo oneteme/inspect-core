@@ -247,13 +247,16 @@ public class InspectConfiguration implements WebMvcConfigurer {
 				new NamedType(MailRequestSignal.class,  				"150"), 
 				new NamedType(MailRequestUpdate.class,  		"151"), 
 				new NamedType(DirectoryRequestSignal.class,			"160"),
-				new NamedType(DirectoryRequestUpdate.class,	"161"), 
-				new NamedType(HttpSessionStage.class,  			"210"), 
+				new NamedType(DirectoryRequestUpdate.class,	"161"),
+				new NamedType(KafkaRequestSignal.class, "170"),
+				new NamedType(KafkaRequestUpdate.class, "171"),
+				new NamedType(HttpSessionStage.class,  			"210"),
 				new NamedType(HttpRequestStage.class,  			"220"), 
 				new NamedType(DatabaseRequestStage.class,		"230"), 
 				new NamedType(FtpRequestStage.class,  			"240"),
 				new NamedType(MailRequestStage.class,  			"250"), 
-				new NamedType(DirectoryRequestStage.class,		"260"));
+				new NamedType(DirectoryRequestStage.class,		"260"),
+		        new NamedType(KafkaRequestStage.class,  "270"));
 	}
 
 	static InstanceEnvironment newInstanceEnvironment(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {

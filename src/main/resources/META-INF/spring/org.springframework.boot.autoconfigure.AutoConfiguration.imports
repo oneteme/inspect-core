@@ -2,3 +2,4 @@ org.usf.inspect.core.InspectConfiguration
 org.usf.inspect.jdbc.FlywayModuleConfiguration
 org.usf.inspect.http.ReactorModuleConfiguration
 org.usf.inspect.dir.DirectoryModuleConfiguration
+org.usf.inspect.kafka.KafkaModuleConfiguration
