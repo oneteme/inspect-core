@@ -2,8 +2,11 @@ package org.usf.inspect.http;
 
 import static java.net.URI.create;
 import static java.time.Clock.systemUTC;
+import static java.util.Arrays.stream;
+import static java.util.Collections.list;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.function.Predicate.not;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
@@ -25,13 +28,10 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
-import org.springframework.http.HttpHeaders;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionSignal;
 import org.usf.inspect.core.HttpSessionUpdate;
@@ -68,11 +68,8 @@ public final class HttpSessionMonitor {
 					ses.setDataSize(request.getContentLength());
 					ses.setContentEncoding(request.getHeader(CONTENT_ENCODING));
 					ses.setUserAgent(request.getHeader(USER_AGENT));
+					ses.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
 					if(nonNull(response)) {
-						//AJOUTER POUR TESTER:
-					//	response.addHeader("Via", "1.1 proxy");
-					//	response.addHeader("X-Served-By", "server-01");
-					//	response.addHeader("Server", "nginx/1.24");
 						response.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 						response.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 					}
@@ -84,15 +81,13 @@ public final class HttpSessionMonitor {
 						call.setContentType(response.getContentType());
 						call.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
 						call.setCacheControl(response.getHeader(CACHE_CONTROL));
-						call.setIntermediateNodes(extractIntermediateNodes(toHttpHeaders(response)));
 					}
 				});
 	}
 	
 	//callback should be created before processing
 	HttpSessionUpdate createCallback(HttpSessionSignal session) { 
-		callback = session.createCallback();
-		return callback;
+		return session.createCallback();
 	}
 	
 	public ExecutionListener<Void> preFilter(BooleanSupplier isAsync) {
@@ -159,41 +154,14 @@ public final class HttpSessionMonitor {
         return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
     }
 
-	private List<String> extractIntermediateNodes(HttpHeaders responseHeaders) {
-		List<String> nodes = new ArrayList<>();
-		addResponseIntermediateNodes(nodes, responseHeaders);
-		return nodes.isEmpty() ? null : nodes;
-	}
-
-	private void addResponseIntermediateNodes(List<String> nodes, HttpHeaders responseHeaders) {
-			if (nonNull(responseHeaders)) {
-			String via = responseHeaders.getFirst("Via");
-			if (nonNull(via) && !via.isBlank()) {
-				Arrays.stream(via.split(","))
-						.map(String::trim)
-						.forEach(v -> nodes.add("Via: " + v));
-			}
-
-			String servedBy = responseHeaders.getFirst("X-Served-By");
-			if (nonNull(servedBy) && !servedBy.isBlank()) {
-				nodes.add("Served-By: " + servedBy);
-			}
-
-			String server = responseHeaders.getFirst("Server");
-			if (nonNull(server) && !server.isBlank()) {
-				nodes.add("Server: " + server);
-			}
-		}
-	}
-
-
-	private HttpHeaders toHttpHeaders(HttpServletResponse response) {
-		var headers = new HttpHeaders();
-		for(var name : response.getHeaderNames()) {
-			for(var value : response.getHeaders(name)) {
-				headers.add(name, value);
-			}
-		}
-		return headers;
+	static String[] extractAllHeaderValues(HttpServletRequest request, String header) {
+		var values = request.getHeaders(header);
+		return isNull(values) 
+				? null
+				: list(values).stream()
+				.flatMap(v-> stream(v.split(",")))
+				.map(String::trim)
+				.filter(not(String::isBlank))
+				.toArray(String[]::new);
 	}
 }

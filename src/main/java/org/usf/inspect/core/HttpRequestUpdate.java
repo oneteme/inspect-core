@@ -1,7 +1,6 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
-import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -23,7 +22,6 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	private String contentEncoding; //gzip, compress, identity,..
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	private boolean linked;
-	private List<String> intermediateNodes; //intermediate nodes (Via, X-Forwarded-*, Server, etc.)
 
 	@JsonCreator
 	public HttpRequestUpdate(String id) {
