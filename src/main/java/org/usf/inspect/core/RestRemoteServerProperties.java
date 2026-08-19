@@ -7,9 +7,7 @@ import static org.usf.inspect.core.Assertions.assertBetween;
 import static org.usf.inspect.core.Assertions.assertPositive;
 
 import java.net.URI;
-import java.time.Duration;
 
-import com.fasterxml.jackson.annotation.JsonSetter;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -28,21 +26,8 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	private String instanceURI = "v4/trace/instance"; //[POST] Sync
 	private String tracesURI = "v4/trace/instance/{id}/session"; //[PUT] Async
 	private int compressMinSize = 0; // size in bytes, 0: no compression
-	//v1.1
-	//private Duration retentionMaxAge = ofDays(30);
-
-	private Retention retention = new Retention();
-
-	@JsonSetter("retentionMaxAge")
-	public void setRetentionMaxAge(Object raw) {
-		Duration d = (raw instanceof Number n)
-				? Duration.ofDays(n.longValue())
-				: (raw instanceof String s ? Duration.parse(s)
-				: (raw instanceof Duration duration ? duration : Duration.ofDays(30)));
-
-		this.retention.setDiagnostic(d);
-		this.retention.setAudit(d);
-	}
+	//v1.2
+	private Retention retentionMaxAge = new Retention();
 	
 	@Override
 	public void validate() {
@@ -51,11 +36,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 		instanceURI = base + instanceURI;
 		tracesURI = base + tracesURI;
 		assertPositive(compressMinSize, "compress-min-size");
-		if (retention == null) {
-			retention = new Retention(); // defaults
-		}
-		assertBetween(retention.getDiagnostic(), ofDays(1), ofDays(365), "retention.diagnostic");
-		assertBetween(retention.getAudit(), ofDays(1), ofDays(365), "retention.audit");
-
+		assertBetween(retentionMaxAge.getAudit(), ofDays(1), ofDays(365), "retention.audit");
+		assertBetween(retentionMaxAge.getDiagnostic(), ofDays(1), ofDays(365), "retention.diagnostic");
 	}
 }
