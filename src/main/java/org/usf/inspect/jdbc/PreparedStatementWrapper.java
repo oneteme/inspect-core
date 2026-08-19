@@ -17,7 +17,7 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-public final class PreparedStatementWrapper extends StatementWrapper implements PreparedStatement {
+public class PreparedStatementWrapper extends StatementWrapper implements PreparedStatement {
 
 	@Delegate(excludes = Statement.class)
 	private final PreparedStatement ps;

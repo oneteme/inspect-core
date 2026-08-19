@@ -90,7 +90,7 @@ public interface Monitor {
 			if(isNull(callback.getEnd())) {
 				return true;
 			}
-			hub().reportMessage(true, action, format("'%s.end' is null", callback.getClass().getSimpleName()));
+			hub().reportMessage(true, action, format("'%s.end' is not null", callback.getClass().getSimpleName()));
 		}
 		else {
 			hub().reportMessage(true, action, "callback is null");

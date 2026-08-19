@@ -9,8 +9,6 @@ import static org.usf.inspect.core.Assertions.assertPositive;
 import java.net.URI;
 import java.time.Duration;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -23,7 +21,6 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-@JsonIgnoreProperties({"instanceURI", "tracesURI"})
 public final class RestRemoteServerProperties implements RemoteServerProperties {
 	
 	private URI host = create("http://localhost:9000/");

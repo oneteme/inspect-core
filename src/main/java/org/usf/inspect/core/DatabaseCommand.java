@@ -1,10 +1,9 @@
 package org.usf.inspect.core;
-
-import static java.util.regex.Pattern.CASE_INSENSITIVE;
-import static java.util.regex.Pattern.DOTALL;
-import static java.util.regex.Pattern.MULTILINE;
-import static java.util.regex.Pattern.compile;
-import static java.util.stream.Collectors.joining;
+ 
+import static java.lang.Character.isWhitespace;
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.CommandType.CONTEXT;
 import static org.usf.inspect.core.CommandType.EDIT;
 import static org.usf.inspect.core.CommandType.EMIT;
 import static org.usf.inspect.core.CommandType.READ;
@@ -12,19 +11,17 @@ import static org.usf.inspect.core.CommandType.ROLE;
 import static org.usf.inspect.core.CommandType.SCRIPT;
 import static org.usf.inspect.core.CommandType.SETUP;
 
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
+ 
 /**
- * 
- * @author u$f
- *
- */
+* 
+* @author u$f
+*
+*/
 @Slf4j
 @Getter
 @RequiredArgsConstructor
@@ -32,70 +29,122 @@ public enum DatabaseCommand {
 	
 	CREATE(SETUP), DROP(SETUP), ALTER(SETUP), TRUNCATE(SETUP), //DDL
 	GRANT(ROLE), REVOKE(ROLE), //DCL
-	INSERT(EMIT), UPDATE(EDIT), DELETE(EDIT), //DML
+	INSERT(EMIT), UPDATE(EDIT), DELETE(EDIT), MERGE(EDIT), //DML
 	SELECT(READ), //DQL
 	//TCL 
-	SET(null), GET(null), //OTHER
+	SET(CONTEXT), GET(CONTEXT), //OTHER
 	CALL(SCRIPT), SQL(SCRIPT); //multiple command
 	
 	private final CommandType type;
 	
-	public static final Pattern PATTERN =
-			compile(Stream.of(values())
-			.filter(c-> c != SQL) // not a command
-			.map(Object::toString)
-			.collect(joining("|", "^\s*(", ")\s*"))
-			, MULTILINE | CASE_INSENSITIVE);
+	//avoid clone array each time
+	public static final DatabaseCommand[] CACHE = Stream.of(values()).filter(e-> e!= SQL).toArray(DatabaseCommand[]::new);
 
-	public static final Pattern WITH_PATTERN =
-			compile("^\s*WITH\s+\\w+\s+AS\s*", MULTILINE | CASE_INSENSITIVE);
-	
-	public static final Pattern SQL_PATTERN = 
-			compile(".+;.*\\w+", DOTALL);
-
-	public static DatabaseCommand parseCommand(@NonNull String query){
-		if(SQL_PATTERN.matcher(query).find()) { //multiple 
-			return SQL;
+	public static DatabaseCommand extractCommand(String sql) {
+		if(isNull(sql) || sql.isBlank()) {
+			return null;
 		}
-		var idx = skipWithClause(query);
-		var m = PATTERN.matcher(query).region(idx, query.length());
-		return m.find() ? valueOf(m.group(1).toUpperCase()) : null;
-	}
-	
-	private static int skipWithClause(String s) {
-		var idx = 0;
-		var m = WITH_PATTERN.matcher(s);
-		if(m.find()) {
-			var p = compile("^\s*,\s*\\w+\s+AS\s*", MULTILINE | CASE_INSENSITIVE); //multiple
-			do {
-				idx = jumpParentheses(s, m.end());
-				if(idx == m.end()) {
-					log.warn("'(' expected at {} after WITH clause : {}", idx, s);
-					break;
+		var len = sql.length();
+		var idx = nextToken(sql, -1);
+    	if(sql.regionMatches(true, idx, "WITH ", 0, 5)) {
+    		idx = nextChar(sql, idx+4, '(');
+			var prth = 1;
+			char c = 0;
+			while((idx= nextToken(sql, idx)) < len) {
+				c = sql.charAt(idx);
+				if(c == '(') {
+					++prth;
 				}
-				m = p.matcher(s).region(idx, s.length());
-			} while(m.find());
+				else if(c == ')' && --prth == 0) {
+		    		idx = nextToken(sql, idx);
+		    		if(sql.charAt(idx) == ',') {
+		    			idx = nextChar(sql, idx, '(');
+	    				prth = 1;
+		    		}
+		    		else {
+		    			break;
+		    		}
+				}
+			}
+    	}
+    	DatabaseCommand main = null;
+		if(idx < len) {
+			do {
+	    		DatabaseCommand cmd = null;
+	    		for(var c : CACHE) {
+	    			var s = c.name();
+	    			var cLen = s.length();
+			        if(sql.regionMatches(true, idx, s, 0, cLen) && idx+cLen<len && isWhitespacePlus(sql.charAt(idx+cLen))) {
+			        	cmd = c;
+			        	idx+= cLen+1;
+			        	break;
+			        }
+	    		}
+		        main = mergeCommand(main, cmd);	        
+	    	} while(nonNull(main) && main != SQL && (idx=nextToken(sql, nextChar(sql, idx-1, ';'))) < len);
+		}
+        return main;
+    }
+	
+	static int nextChar(String s, int idx, char to) {
+		var len = s.length();
+		var qot = false;
+		while((idx=skipComment(s, ++idx)) < len) {
+			char c = s.charAt(idx);
+			if (qot) {
+	            if (c=='\\' && idx+1<len) {
+	            	++idx; //skip escaped char
+	            }
+	            else if (c=='\'') {
+	                if (idx+1<len && c==s.charAt(idx+1)) {
+	                	++idx; // skip escaped quote
+	                }
+	                else {
+	                	qot = false; 
+	                }
+	            }
+	        }
+			else if (c == '\'') {
+	            qot = true;
+	        }
+			else if(c == to) {
+				break;
+			}
 		}
 		return idx;
 	}
 	
-	private static int jumpParentheses(CharSequence query, int from) {
-		var deep = 0;
-		for(var i=from; i<query.length(); i++) {
-			if(query.charAt(i) == '(') {
-				deep++;
-			}
-			else if(query.charAt(i) == ')') {
-				deep--;
-				if(deep == 0) {
-					return ++i;
+	static int nextToken(String s, int idx) {
+		var len = s.length();
+		while((idx=skipComment(s,++idx))<len && isWhitespacePlus(s.charAt(idx)));
+		return idx;
+	}
+	
+	static int skipComment(String s, int idx) {
+		var len = s.length();
+		if(idx+1 < len) {
+			var c = s.charAt(idx);
+			if(c=='-' && c==s.charAt(idx+1)) {
+				idx+=2;
+				while(idx<len && s.charAt(idx)!='\n') {
+					++idx;
 				}
-				else if(deep < 0) {
-					log.warn("unexpected character ')' at {} : {}", i, query);
-					break; //bad query
+				if(idx<len) {
+					++idx; //skip \n
 				}
 			}
 		}
-		return from;
+		return idx;
+	}
+	
+	static boolean isWhitespacePlus(char c) {
+		return isWhitespace(c) || c == ' '; //TODO check this
+	}
+	
+	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
+		if(main == cmd || isNull(cmd)) {
+			return main;
+		}
+		return isNull(main) ? cmd : SQL;
 	}
 }

@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class InspectExecutor {
-	
+
 	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionListener<? super Void> handler) throws E {
 		call(fn, handler);
 	}
@@ -53,6 +53,18 @@ public final class InspectExecutor {
 			catch (Throwable ex) {// do not throw exception
 				hub().reportError(true, "ExecutionMonitor.safeHandle", ex);
 			}
+		}
+		
+		default ExecutionListener<T> thenHandle(ExecutionListener<? super T> next) {
+			return (s,e,o,t)-> {
+				handle(s,e,o,t);
+				if(nonNull(next)) {
+					next.handle(s,e,o,t);
+				}
+				else {
+					hub().reportError(true, "ExecutionMonitor.thenHandle", new NullPointerException("next is null"));
+				}
+			};
 		}
 	}
 }

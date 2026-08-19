@@ -10,6 +10,7 @@ import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.ContextSource;
 
 import lombok.AccessLevel;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,7 +44,7 @@ public final class ContextSourceWrapper implements ContextSource {
 		return wrap(ctx, null);
 	}
 	
-	public static ContextSource wrap(ContextSource ctx, String beanName) {
+	public static ContextSource wrap(@NonNull ContextSource ctx, String beanName) {
 		if(hub().getConfiguration().isEnabled()){
 			if(ctx.getClass() != ContextSourceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "contextSource"), ctx.getClass());

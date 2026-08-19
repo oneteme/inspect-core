@@ -50,7 +50,7 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 		return (ScheduledExecutorService) es;
 	}
 
-	public static ScheduledExecutorService wrap(@NonNull ScheduledExecutorService es) {
+	public static ScheduledExecutorService wrap(ScheduledExecutorService es) {
 		return wrap(es, null);
 	}
 	

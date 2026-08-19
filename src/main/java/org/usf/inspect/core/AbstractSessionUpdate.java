@@ -52,11 +52,11 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 		return !mask.is(requestMask.getAndUpdate(v-> v|mask.getValue()));
 	}
 
-	void threadCountUp() {
+	public void threadCountUp() {
 		threadCount.incrementAndGet();
 	}
 	
-	void threadCountDown() {
+	public void threadCountDown() {
 		threadCount.decrementAndGet();
 	}
 

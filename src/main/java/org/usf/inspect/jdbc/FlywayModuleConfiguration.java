@@ -40,7 +40,7 @@ public class FlywayModuleConfiguration {
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
 		return fly-> exec(fly::migrate, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
 			req.setType(EXEC.name());
-			req.setName("migration");
+			req.setName("FlywayMigration");
 			req.setLocation(scriptLocation(fly));
 			req.setUser(fly.getConfiguration().getUser());
 		}));

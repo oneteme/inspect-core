@@ -1,6 +1,6 @@
 package org.usf.inspect.http;
 
-import static org.usf.inspect.core.SessionContextManager.aroundRunnable;
+import static org.usf.inspect.core.SessionContextManager.runWithContext;
 
 import org.reactivestreams.Subscription;
 import org.usf.inspect.core.AbstractSessionUpdate;
@@ -22,22 +22,22 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T> {
 
 	@Override
 	public void onSubscribe(Subscription s) {
-		aroundRunnable(ctx, ()-> sub.onSubscribe(s));
+		runWithContext(ctx, ()-> sub.onSubscribe(s), ctx::threadCountUp);
 	}
 	
 	@Override
 	public void onNext(T t) {
-		aroundRunnable(ctx, ()-> sub.onNext(t));
+		runWithContext(ctx, ()-> sub.onNext(t), null);
 	}
 
 	@Override
 	public void onError(Throwable t) {
-		aroundRunnable(ctx, ()-> sub.onError(t));
+		runWithContext(ctx, ()-> sub.onError(t), ctx::threadCountDown);
 	}
 
 	@Override
 	public void onComplete() {
-		aroundRunnable(ctx, sub::onComplete);
+		runWithContext(ctx, sub::onComplete, ctx::threadCountDown);
 	}
 
 	@Override

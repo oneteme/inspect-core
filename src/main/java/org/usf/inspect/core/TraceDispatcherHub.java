@@ -60,7 +60,7 @@ public final class TraceDispatcherHub implements TraceHub {
 			this.atomicState = new AtomicReference<>(configuration.getScheduling().getState());
 			this.agent = agent;
 			this.eventBus = eventBus;
-			var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 15s
+			var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
 			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
@@ -201,35 +201,52 @@ public final class TraceDispatcherHub implements TraceHub {
 		var max = configuration.getTracing().getQueueCapacity();
 		if(queue.size() > max) {
 			log.warn("queue capacity exceeded, removing traces ..");
-			var arr = new Class[] {AbstractStage.class, MachineResourceUsage.class, LogEntry.class, SessionMaskUpdate.class};
 			queue.pollAll(snp->{
-				var i=0;
-				do {
-					var size = snp.size();
-					snp.removeIf(arr[i]::isInstance);
-					if(size > snp.size()) {
-						log.warn("removed {} traces of type {}", size - snp.size(), arr[i].getSimpleName());
+				try {
+					var i=0;
+					var arr = new Class[] {AbstractStage.class, MachineResourceUsage.class, SessionMaskUpdate.class, LogEntry.class};
+					do {
+						removeInstanceOf(snp, arr[i]);
+					} while(++i<arr.length && snp.size() > max);
+					if(snp.size() > max) {
+						removeInstanceOf(snp, AbstractRequestSignal.class, AbstractRequestUpdate.class);
 					}
-				} while(++i<arr.length && snp.size() > max);
-				if(snp.size() > max) {
-					var size = snp.size();
-					var call = snp.stream()
-							.filter(TraceUpdate.class::isInstance)
-							.map(TraceUpdate.class::cast)
-							.collect(toMap(TraceUpdate::getId, identity()));
-					snp.removeIf(t-> t instanceof TraceSignal in && !call.containsKey(in.getId()));
-					snp.removeAll(call.values()); //remove callbacks after their initializers
-					if(size > snp.size()) {
-						log.warn("removed {} traces of type {}", size - snp.size(), "Initializer/Callback");
+					if(snp.size() > max) {
+						removeInstanceOf(snp, AbstractSessionSignal.class, AbstractSessionUpdate.class);
 					}
 				}
-				if(snp.size() > max) {
-					log.warn("still {} traces cannot be removed, clearing all the queue", snp.size());
-					snp.clear();
-					queue.setWaste(true); //disable further adding, avoid dispatch callback without initializer
+				finally {
+					if(snp.size() > max) {
+						log.warn("still {} traces cannot be removed, clearing all the queue", snp.size());
+						snp.clear();
+						queue.setWaste(true); //disable further adding, avoid dispatch callback without initializer
+					}
 				}
 				return snp;
 			});
+		}
+	}
+	
+	static void removeInstanceOf(List<?> traces, Class<?> type) {
+		var size = traces.size();
+		traces.removeIf(type::isInstance);
+		if(size > traces.size()) {
+			log.warn("removed {} traces of type {}", size-traces.size(), type.getSimpleName());
+		}
+	}
+	
+	static void removeInstanceOf(List<?> traces, Class<? extends TraceSignal> signalType, Class<? extends TraceUpdate> updateType) {
+		var size = traces.size();
+		var call = traces.stream().<TraceUpdate>mapMulti((t,acc)->{
+					if(updateType.isInstance(t)) {
+						acc.accept(updateType.cast(t));
+					}
+				})
+				.collect(toMap(TraceUpdate::getId, identity()));
+		traces.removeIf(t-> signalType.isInstance(t) && call.containsKey(signalType.cast(t).getId()));
+		traces.removeAll(call.values()); //remove callbacks after their initializers
+		if(size > traces.size()) {
+			log.warn("removed {} traces of type {}/{}", size-traces.size(), signalType.getSimpleName(), updateType.getSimpleName());
 		}
 	}
 

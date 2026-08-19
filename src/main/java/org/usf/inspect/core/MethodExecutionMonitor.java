@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.InspectExecutor.call;
@@ -13,6 +12,7 @@ import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SessionContextManager.createBatchSession;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
+import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -52,15 +52,13 @@ public class MethodExecutionMonitor implements Ordered {
 		}));
 	}
 
-	@Around("@annotation(TraceableStage)") //batch <> TraceableStage
-	Object aroundTraceable(ProceedingJoinPoint point) throws Throwable {
+	@Around("@annotation(TraceableStage) || @annotation(org.springframework.scheduling.annotation.Scheduled)") //batch <> TraceableStage
+	Object aroundMethod(ProceedingJoinPoint point) throws Throwable {
 		var ses = activeContext();
-		return isNull(ses) || ses.wasCompleted() 
-				? aroundBatch(point) 
-				: aroundStage(point);
+		return isNull(ses) || ses.wasCompleted() ? aroundJob(point) : aroundMethod(point, EXEC.name());
 	}
 
-	Object aroundBatch(ProceedingJoinPoint point) throws Throwable {
+	Object aroundJob(ProceedingJoinPoint point) throws Throwable {
 		return call(point::proceed, traceAroundMethod(createBatchSession(systemUTC().instant()), ses-> {
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
@@ -68,20 +66,15 @@ public class MethodExecutionMonitor implements Ordered {
 		}));
 	}
 
-	Object aroundStage(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
-			req.setType(EXEC.name());
-			req.setName(resolveStageName(point));
-			req.setLocation(locationFrom(point));
-			req.setUser(userProvider.getUser(point, req.getName()));
-		}));
-	}
-
 	@Around("@annotation(org.springframework.cache.annotation.Cacheable)")
 	Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
+		return aroundMethod(point, CACHE.name());
+	}
+	
+	Object aroundMethod(ProceedingJoinPoint point, String type) throws Throwable {
 		return call(point::proceed, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
-			req.setType(CACHE.name());
-			req.setName(getCacheableName(point));
+			req.setType(type);
+			req.setName(resolveStageName(point));
 			req.setLocation(locationFrom(point));
 			req.setUser(userProvider.getUser(point, req.getName()));
 		}));
@@ -91,27 +84,22 @@ public class MethodExecutionMonitor implements Ordered {
 	public int getOrder() { //before @Transactional
 		return HIGHEST_PRECEDENCE;
 	}
-
-	static String getCacheableName(ProceedingJoinPoint point) {
-		var sgn = (MethodSignature)point.getSignature();
-		var ant = sgn.getMethod().getAnnotation(Cacheable.class);
-		return ant.key().isEmpty() ? sgn.getName() : ant.key();
-	}
 	
 	static String resolveStageName(ProceedingJoinPoint point) {
 		var sgn = (MethodSignature)point.getSignature();
 		var ant = sgn.getMethod().getAnnotation(TraceableStage.class);
-		if(!ant.name().isEmpty()) {
-			try {
-				return evalExpression(ant.name(), point.getThis(), sgn.getDeclaringType(),  
-		        		sgn.getParameterNames(), point.getArgs()).toString();
-			}
-			catch (Exception e) {
-				log.warn("cannot eval expression ='%s' on %s.%s", 
-						ant.name(), sgn.getDeclaringType().getSimpleName(), sgn.getName());
-			}
+		if(nonNull(ant)) {
+			return ant.name().isEmpty()
+					? sgn.getName()
+					: evalMethodExpression(ant.name(), point.getThis(), sgn.getMethod(), point.getArgs());
 		}
-		return sgn.getName();
+		var cch = sgn.getMethod().getAnnotation(Cacheable.class);
+		if(nonNull(cch)) {
+			return cch.key().isEmpty()  
+					? sgn.getName()
+					: evalMethodExpression(cch.key(), point.getThis(), sgn.getMethod(), point.getArgs());
+		}
+		return sgn.getName(); //Scheduled
 	}
 
 	static String locationFrom(ProceedingJoinPoint point) {

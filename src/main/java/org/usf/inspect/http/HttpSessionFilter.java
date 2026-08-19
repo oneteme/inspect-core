@@ -124,7 +124,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 							new String[] {"request"}, new Object[] {req}).toString();
 				}
 				catch (Exception e) {
-					log.warn("cannot eval expression ='%s' on %s.%s", 
+					log.warn("cannot eval expression ='{}' on {}.{}", 
 							ant.name(), mth.getBeanType().getSimpleName(), mth.getMethod().getName());
 				}
 			}
