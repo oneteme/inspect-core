@@ -1,12 +1,15 @@
 package org.usf.inspect.core;
 
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.time.Clock.systemUTC;
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpHeaders.encodeBasicAuth;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -157,17 +160,9 @@ public final class RestTraceExporter implements TraceExporter {
 				.setReadTimeout(ofSeconds(30))
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
 
-		// --- AJOUT AUTOMATIQUE DU HEADER BASIC AUTH POUR INSPECT-SERVER ---
-		if (properties.getNamespace() != null && !properties.getNamespace().isBlank()) {
-			String authHeader = AuthUtils.buildBasicAuthHeader(
-					properties.getNamespace(),
-					properties.getToken()
-			);
-			if (authHeader != null) {
-				rt = rt.defaultHeader(org.springframework.http.HttpHeaders.AUTHORIZATION, authHeader);
-			}
+		if (nonNull(properties.getNamespace())) {
+			rt = rt.defaultHeader(AUTHORIZATION, encodeBasicAuth(properties.getNamespace(), properties.getToken(), ISO_8859_1));
 		}
-
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
 		}

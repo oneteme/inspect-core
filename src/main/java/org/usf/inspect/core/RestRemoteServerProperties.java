@@ -27,8 +27,8 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	private String instanceURI = "/v5/trace/instance"; //[POST] Sync
 	private String tracesURI = "/v5/trace/instance/{id}/session"; //[PUT] Async
 	private int compressMinSize = 0; // size in bytes, 0: no compression
-	//v1.1
 	private Duration retentionMaxAge = ofDays(30);
+	//v1.2
 	private String namespace;
 	private String token;
 	

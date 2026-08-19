@@ -28,17 +28,7 @@ public final class Helper {
 	
 	public static String threadName() {
 		var t = currentThread();
-		try {
-			// Java 21+ virtual threads support
-			var isVirtualMethod = t.getClass().getMethod("isVirtual");
-			var threadIdMethod = t.getClass().getMethod("threadId");
-			if ((Boolean) isVirtualMethod.invoke(t)) {
-				return "" + threadIdMethod.invoke(t);
-			}
-		} catch (Exception ignored) {
-			// Java 17 or method not available
-		}
-		return t.getName();
+		return t.isVirtual() ?  ""+t.threadId() : t.getName();
 	}
 	
 	public static String extractAuthScheme(String authHeader) { //nullable
