@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.time.Clock.systemUTC;
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptyList;
@@ -158,11 +157,8 @@ public final class RestTraceExporter implements TraceExporter {
 				.messageConverters(json, plain) //minimum converters
 				.setConnectTimeout(ofSeconds(10))
 				.setReadTimeout(ofSeconds(30))
-				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
-
-		if (nonNull(properties.getNamespace())) {
-			rt = rt.defaultHeader(AUTHORIZATION, encodeBasicAuth(properties.getNamespace(), properties.getToken(), ISO_8859_1));
-		}
+				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+				.defaultHeader(AUTHORIZATION, encodeBasicAuth(properties.getNamespace(), properties.getToken(), null));
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
 		}

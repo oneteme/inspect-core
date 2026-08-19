@@ -4,6 +4,7 @@ import static java.net.URI.create;
 import static java.time.Duration.ofDays;
 import static org.usf.inspect.core.Assertions.assertAbsolute;
 import static org.usf.inspect.core.Assertions.assertBetween;
+import static org.usf.inspect.core.Assertions.assertIdentifier;
 import static org.usf.inspect.core.Assertions.assertPositive;
 
 import java.net.URI;
@@ -30,7 +31,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	private Duration retentionMaxAge = ofDays(30);
 	//v1.2
 	private String namespace;
-	private String token;
+	private String token; //optional
 	
 	@Override
 	public void validate() {
@@ -40,5 +41,6 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 		tracesURI = base + tracesURI;
 		assertPositive(compressMinSize, "compress-min-size");
 		assertBetween(retentionMaxAge, ofDays(1), ofDays(365), "retention-max-age");
+		assertIdentifier(namespace, "namespace");
 	}
 }

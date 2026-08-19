@@ -39,6 +39,4 @@ public final class InstanceEnvironment {
 	private final InspectCollectorConfiguration configuration;
 	private MachineResource resource; //init/max heap +  init/max metaspace
 	private Instant end;
-	private String namespaceId;
-
 }
