@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.net.URI.create;
 import static java.time.Duration.ofDays;
+import static java.util.Objects.isNull;
 import static org.usf.inspect.core.Assertions.assertAbsolute;
 import static org.usf.inspect.core.Assertions.assertBetween;
 import static org.usf.inspect.core.Assertions.assertIdentifier;
@@ -42,5 +43,8 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 		assertPositive(compressMinSize, "compress-min-size");
 		assertBetween(retentionMaxAge, ofDays(1), ofDays(365), "retention-max-age");
 		assertIdentifier(namespace, "namespace");
+		if(isNull(token)) {
+			token = "";
+		}
 	}
 }

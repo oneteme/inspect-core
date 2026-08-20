@@ -158,7 +158,7 @@ public final class RestTraceExporter implements TraceExporter {
 				.setConnectTimeout(ofSeconds(10))
 				.setReadTimeout(ofSeconds(30))
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-				.defaultHeader(AUTHORIZATION, encodeBasicAuth(properties.getNamespace(), properties.getToken(), null));
+				.defaultHeader(AUTHORIZATION, "Basic " + encodeBasicAuth(properties.getNamespace(), properties.getToken(), null));
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
 		}
