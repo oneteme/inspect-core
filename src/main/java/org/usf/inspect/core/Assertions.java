@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.lang.String.format;
+import static java.util.Objects.isNull;
 
 import java.net.URI;
 
@@ -14,6 +15,12 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Assertions {
+	
+	public static void assertIdentifier(String id, String name) {
+		if(isNull(id) || !id.matches("[a-zA-Z0-9_\\-]+")) {
+			throw new IllegalArgumentException(format("%s='%s' is not a valid identifier", name, id));
+		}
+	}
 	
 	public static void assertAbsolute(URI uri, String name) {
 		if(!uri.isAbsolute()) {
