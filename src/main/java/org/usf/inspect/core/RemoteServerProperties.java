@@ -1,7 +1,5 @@
 package org.usf.inspect.core;
 
-import java.time.Duration;
-
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
@@ -14,8 +12,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 	    include = JsonTypeInfo.As.PROPERTY,
 	    property = "@type")
 public interface RemoteServerProperties {
-	
-	Duration getRetentionMaxAge();
-	
+
+	Retention getRetentionMaxAge();
+
 	void validate();
 }
