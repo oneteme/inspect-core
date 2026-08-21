@@ -27,6 +27,9 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 	private String contentEncoding; //gzip, compress, identity,..
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private boolean linked;
+	//v1.6
+	private String[] forwardedAddresses; // IP4|6
+
 
 	public HttpSessionSignal(String id, Instant start, String threadName) {
 		super(id, start, threadName);
