@@ -42,7 +42,12 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 		tracesURI = base + tracesURI;
 		assertPositive(compressMinSize, "compress-min-size");
 		assertBetween(retentionMaxAge, ofDays(1), ofDays(365), "retention-max-age");
-		assertIdentifier(namespace, "namespace");
+		if(isNull(namespace)) {
+			namespace = "";
+		}
+		else {
+			assertIdentifier(namespace, "namespace");
+		}
 		if(isNull(token)) {
 			token = "";
 		}
