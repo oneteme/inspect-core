@@ -12,7 +12,6 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;

@@ -2,8 +2,11 @@ package org.usf.inspect.http;
 
 import static java.net.URI.create;
 import static java.time.Clock.systemUTC;
+import static java.util.Arrays.stream;
+import static java.util.Collections.list;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.function.Predicate.not;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
@@ -25,7 +28,9 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionSignal;
@@ -57,14 +62,13 @@ public final class HttpSessionMonitor {
 		this.lastTimestamp = systemUTC().instant();
 		this.handler = traceAtomic(createHttpSession(lastTimestamp, request.getHeader(TRACE_HEADER)), this::createCallback,
 				ses->{
-					if(nonNull(request)) {
-						ses.setMethod(request.getMethod());
-						ses.setURI(fromRequest(request));
-						ses.setAuthScheme(extractAuthScheme(request.getHeader(AUTHORIZATION))); //extract user !?
-						ses.setDataSize(request.getContentLength());
-						ses.setContentEncoding(request.getHeader(CONTENT_ENCODING));
-						ses.setUserAgent(request.getHeader(USER_AGENT));
-					}
+					ses.setMethod(request.getMethod());
+					ses.setURI(fromRequest(request));
+					ses.setAuthScheme(extractAuthScheme(request.getHeader(AUTHORIZATION))); //extract user !?
+					ses.setDataSize(request.getContentLength());
+					ses.setContentEncoding(request.getHeader(CONTENT_ENCODING));
+					ses.setUserAgent(request.getHeader(USER_AGENT));
+					ses.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
 					if(nonNull(response)) {
 						response.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
 						response.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
@@ -83,7 +87,7 @@ public final class HttpSessionMonitor {
 	
 	//callback should be created before processing
 	HttpSessionUpdate createCallback(HttpSessionSignal session) { 
-		return callback = session.createCallback();
+		return session.createCallback();
 	}
 	
 	public ExecutionListener<Void> preFilter(BooleanSupplier isAsync) {
@@ -92,7 +96,8 @@ public final class HttpSessionMonitor {
 			setActiveContext(callback); //new Thread
 		}
 		return (s,e,o,t)-> {
-			if(async = isAsync.getAsBoolean()) {
+			async = isAsync.getAsBoolean();
+			if(async) {
 				emitStage(DEFERRED);
 				if(nonNull(callback)) {
 					clearContext(callback);
@@ -148,4 +153,15 @@ public final class HttpSessionMonitor {
     	var c = req.getRequestURL().toString();
         return create(isNull(req.getQueryString()) ? c : c + '?' + req.getQueryString());
     }
+
+	static String[] extractAllHeaderValues(HttpServletRequest request, String header) {
+		var values = request.getHeaders(header);
+		return isNull(values) 
+				? null
+				: list(values).stream()
+				.flatMap(v-> stream(v.split(",")))
+				.map(String::trim)
+				.filter(not(String::isBlank))
+				.toArray(String[]::new);
+	}
 }

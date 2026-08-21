@@ -44,13 +44,14 @@ inspect:
         max-cause-depth: -1
     tracing:
       queue-capacity: 1000
-      delay-if-pending: 0
       dump:
         enabled: false
       remote:
         mode: REST
         host: https://inspect-server.example.com
-        retention-max-age: 30d
+        retention-max-age:
+          audit: 30d
+          diagnostic: 10d
 ```
 
 Key Concepts
