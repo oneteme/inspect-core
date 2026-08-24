@@ -5,8 +5,10 @@ import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpHeaders.encodeBasicAuth;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -155,7 +157,8 @@ public final class RestTraceExporter implements TraceExporter {
 				.messageConverters(json, plain) //minimum converters
 				.setConnectTimeout(ofSeconds(10))
 				.setReadTimeout(ofSeconds(30))
-				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
+				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+				.defaultHeader(AUTHORIZATION, "Basic " + encodeBasicAuth(properties.getNamespace(), properties.getToken(), null));
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
 		}

@@ -25,5 +25,6 @@ public class AbstractRequestUpdate implements TraceUpdate, HasStage {
 	private final String id;
 	private String command; //READ, EMIT, EDIT, ..
 	private Instant end;
+	//v1.2
 	private int status;
 }

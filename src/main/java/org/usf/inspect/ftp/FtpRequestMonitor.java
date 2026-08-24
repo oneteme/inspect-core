@@ -1,7 +1,12 @@
 package org.usf.inspect.ftp;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorCode.*;
+import static org.usf.inspect.ExceptionCodes.INTERRUPTED;
+import static org.usf.inspect.ExceptionCodes.NO_ERROR;
+import static org.usf.inspect.ExceptionCodes.TIMEOUT;
+import static org.usf.inspect.ExceptionCodes.UNAVAILABLE;
+import static org.usf.inspect.ExceptionCodes.UNKNOWN;
 import static org.usf.inspect.core.FtpAction.CONNECTION;
 import static org.usf.inspect.core.FtpAction.DISCONNECTION;
 import static org.usf.inspect.core.FtpAction.EXECUTE;
@@ -54,29 +59,22 @@ final class FtpRequestMonitor extends StatefulMonitor<FtpRequestSignal, FtpReque
 		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, this::checkException, args));
 	}
 
-
-
 	public int checkException(Throwable t) {
+		if (isNull(t)) {
+	        return NO_ERROR;
+	    }
 		return switch(t) {
-
-			case java.net.UnknownHostException e->
-					CONNECTION_UNAVAILABLE.getCode();
-
-			//timeout
-			case java.net.SocketTimeoutException e->
-					TIMEOUT_OR_INTERRUPTION.getCode();
-
-			case java.net.SocketException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-			case com.jcraft.jsch.JSchException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
 			// SFTP métier
-			case com.jcraft.jsch.SftpException e ->
-					e.id;
-
-			default -> UNKNOWN_ERROR.getCode();
+			case com.jcraft.jsch.SftpException e -> e.id;
+			case com.jcraft.jsch.JSchException e -> UNAVAILABLE;
+			case java.net.UnknownHostException e-> UNAVAILABLE;
+			case java.net.SocketTimeoutException e-> TIMEOUT;
+			case java.net.SocketException e -> UNAVAILABLE;
+			case java.io.InterruptedIOException e-> INTERRUPTED;
+			case java.io.IOException e -> UNAVAILABLE;
+			case java.util.concurrent.TimeoutException e -> TIMEOUT;
+			case java.util.concurrent.ExecutionException e -> INTERRUPTED;
+			default -> UNKNOWN;
 		};
 	}
 }

@@ -23,7 +23,6 @@ import lombok.Setter;
 public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 
 	 private boolean failed;
-	 //private int status;
 
 	@JsonCreator
 	public DirectoryRequestUpdate(String id) {

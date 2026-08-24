@@ -24,7 +24,6 @@ import lombok.Setter;
 public final class FtpRequestUpdate extends AbstractRequestUpdate {
 
 	private boolean failed;
-	//private int status;
 
 	@JsonCreator
 	public FtpRequestUpdate(String id) {
