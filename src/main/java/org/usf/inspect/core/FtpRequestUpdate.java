@@ -1,14 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.CommandType.merge;
-
-import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
-import static org.usf.inspect.core.ErrorCode.SUCCESS;
-
-import java.time.Instant;
-import java.util.function.ToIntFunction;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -23,30 +14,15 @@ import lombok.Setter;
 @Setter
 public final class FtpRequestUpdate extends AbstractRequestUpdate {
 
+	@Deprecated(forRemoval = false, since = "1.2")
 	private boolean failed;
 
 	@JsonCreator
 	public FtpRequestUpdate(String id) {
 		super(id);
 	}
-
-	public FtpRequestStage createStage(FtpAction type, Instant start, Instant end, Throwable thrw, FtpCommand cmd, ToIntFunction<Throwable> fn, String... args) {
-		if(nonNull(cmd)) {
-			setCommand(merge(getCommand(), cmd.getType()));
-		}
-		Throwable ex = null;
-		if(nonNull(thrw)) {
-			ex = ExceptionInfo.rootCauseException(thrw);
-			try{
-			setStatus(fn.applyAsInt(ex));
-		} catch (Exception e) {
-			setStatus(UNKNOWN_ERROR.getCode());
-		  }
-		} else {
-			setStatus(SUCCESS.getCode());
-		}
-		var stg = createStage(type, start, end, cmd, thrw, FtpRequestStage::new);
-		stg.setArgs(args);
-		return stg;
+	
+	public FtpRequestStage createStage(){
+		return new FtpRequestStage(getId(), getStageCounter().getAndIncrement());
 	}
 }

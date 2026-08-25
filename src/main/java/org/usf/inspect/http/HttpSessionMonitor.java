@@ -28,9 +28,7 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.function.BooleanSupplier;
-import java.util.function.Predicate;
 
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionSignal;

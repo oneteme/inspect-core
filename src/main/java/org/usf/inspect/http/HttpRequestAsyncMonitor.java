@@ -36,10 +36,10 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 		var now = systemUTC().instant();
 		if(nonNull(res)) {
 			try {
-				postExchange(res.statusCode(), res.headers().asHttpHeaders());
+				postExchange(res.statusCode(), res.headers().asHttpHeaders(), thrw);
 			}
 			catch (Exception ex) {
-				hub().reportError(true, "HttpRequestMonitor.postExchange", ex);
+				hub().reportError(true, "HttpRequestAsyncMonitor.postExchange", ex);
 			}
 		}
 		traceStep((s,e,o,t)-> createStage(EXCHANGE, s, e, t)).safeHandle(lastTimestamp, now, null, thrw);
@@ -50,7 +50,7 @@ final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
 			super.postResponse(ctn);
 		}
 		catch (Exception ex) {
-			hub().reportError(true, "HttpRequestMonitor.postResponse", ex);
+			hub().reportError(true, "HttpRequestAsyncMonitor.postResponse", ex);
 		}
 		traceStep((s,e,o,t)-> createStage(STREAM, s, e, t)).safeHandle(start, end, null, thrw);
 	}

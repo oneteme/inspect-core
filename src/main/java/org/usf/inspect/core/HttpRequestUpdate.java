@@ -1,16 +1,9 @@
 package org.usf.inspect.core;
 
-import java.time.Instant;
-import java.util.function.ToIntFunction;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
 import lombok.Setter;
-
-
-import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
 
 
 /**
@@ -33,17 +26,8 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	public HttpRequestUpdate(String id) {
 		super(id);
 	}
-
-	public HttpRequestStage createStage(HttpAction type, Instant start, Instant end, Throwable t, ToIntFunction<Throwable> fn) {
-		Throwable ex = null;
-		if(nonNull(t)) {
-			ex = ExceptionInfo.rootCauseException(t);
-			try{
-			setStatus(fn.applyAsInt(ex));
-			} catch (Exception e) {
-			setStatus(UNKNOWN_ERROR.getCode());
-		    }
-	    }
-		return createStage(type, start, end, null, t, HttpRequestStage::new);
+	
+	public HttpRequestStage createStage(){
+		return new HttpRequestStage(getId(), getStageCounter().getAndIncrement());
 	}
 }

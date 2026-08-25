@@ -86,7 +86,7 @@ class DatabaseConnectionFailureIT {
                         new ConnectionMetadataCache()
                 );
 
-        int code = monitor.checkException(exception != null ? exception : null);
+        int code = monitor.resolveStatus(exception != null ? exception : null);
 
         assertNotNull(exception);
         assertNotEquals(0, code);
@@ -124,7 +124,7 @@ class DatabaseConnectionFailureIT {
                 new DatabaseRequestMonitor(
                         new ConnectionMetadataCache());
 
-        int code = monitor.checkException(exception);
+        int code = monitor.resolveStatus(exception);
 
         assertNotNull(exception);
         assertNotEquals(0, code);
@@ -179,7 +179,7 @@ void shouldDetectConnectionLostWhenServerStopsDuringQuery() throws Exception {
     DatabaseRequestMonitor monitor =
             new DatabaseRequestMonitor(new ConnectionMetadataCache());
 
-    int code = monitor.checkException(exception);
+    int code = monitor.resolveStatus(exception);
     assertNotEquals(0, code);
 
 

@@ -2,15 +2,18 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ErrorCode.*;
-import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.CommandType.merge;
+import static org.usf.inspect.core.ExceptionInfo.fromException2;
+import static org.usf.inspect.core.ExceptionInfo.rootCauseException;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_UNAUTHORIZED;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
+import static org.usf.inspect.core.RequestCommonStatus.statusFor;
 
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
@@ -33,10 +36,6 @@ import jakarta.mail.Transport;
  *
  */
 final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRequestUpdate> {
-
-	private static final Pattern SMTP_CODE =
-			Pattern.compile("\\b(\\d{3})\\b");
-
 
 	ExecutionListener<Object> handleConnection(Transport trsp) {
 		return traceBegin(SessionContextManager::createMailRequest, (req,v)->{
@@ -63,7 +62,27 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 	}
 	
 	<T> ExecutionListener<T> stageHandler(MailAction action, MailCommand cmd, Message msg) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, createMailTrace(msg), this::checkException));
+		return traceStep((s,e,o,t)-> {
+			var upd = getCallback();
+			var stg = upd.createStage();
+			stg.setName(action.name());
+			stg.setStart(s);
+			stg.setEnd(e);
+			if(nonNull(cmd)) {
+				stg.setCommand(cmd.name());
+				upd.setCommand(merge(upd.getCommand(), cmd.getType()));
+			}
+			if(nonNull(t)) {
+				var root = rootCauseException(t);
+				upd.setStatus(resolveStatus(root));
+				stg.setException(fromException2(root));
+			}
+			else {
+				upd.setStatus(SUCCESS);
+			}
+			stg.setMail(createMailTrace(msg));
+			return stg;
+		});
 	}
 	
 	static Mail createMailTrace(Message msg) throws MessagingException {
@@ -79,62 +98,22 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 		}
 		return null;
 	}
+
+	static int resolveStatus(Throwable t) {
+	    if (isNull(t)) {
+	        return SUCCESS;
+	    }
+	    return switch (t) {
+	        case jakarta.mail.AuthenticationFailedException e -> CLIENT_UNAUTHORIZED;
+	        case jakarta.mail.internet.ParseException e -> CLIENT_ERROR;
+	        case jakarta.mail.MessagingException e -> SERVER_ERROR;
+			default -> statusFor(t);
+	    };
+	}
 	
 	static String[] toStringArray(Address... address) {
 		return isNull(address) || address.length == 0
 			? null 
 			: Stream.of(address).map(Address::toString).toArray(String[]::new);
-	}
-
-
-
-	public int checkException(Throwable t) {
-		return switch(t) {
-
-
-			case java.io.InterruptedIOException e ->
-					TIMEOUT_OR_INTERRUPTION.getCode();
-
-			case java.net.UnknownHostException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-
-			case java.net.SocketException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-			case jakarta.mail.AuthenticationFailedException e ->
-					AUTHENTIFICATION_ERROR.getCode();
-
-
-			case jakarta.mail.MessagingException e ->
-					extractSmtpCode(e);
-
-
-			default ->
-					UNKNOWN_ERROR.getCode();
-		};
-	}
-
-
-	private int extractSmtpCode(MessagingException e) {
-
-		String msg = e.getMessage();
-
-		if (msg == null) {
-			return CONNECTION_UNAVAILABLE.getCode();
-		}
-
-		Matcher matcher = SMTP_CODE.matcher(msg);
-
-		if (matcher.find()) {
-			try {
-				return Integer.parseInt(matcher.group());
-			} catch (NumberFormatException ex) {
-				return UNKNOWN_ERROR.getCode();
-			}
-		}
-
-		return UNKNOWN_ERROR.getCode();
-
 	}
 }

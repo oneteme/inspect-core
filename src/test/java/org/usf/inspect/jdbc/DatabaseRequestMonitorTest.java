@@ -1,7 +1,13 @@
 package org.usf.inspect.jdbc;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.usf.inspect.core.ErrorCode.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_INTERRUPTED;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_REFUSED;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_TIMEOUT;
+import static org.usf.inspect.jdbc.DatabaseRequestMonitor.resolveStatus;
 
 import java.io.EOFException;
 import java.net.SocketException;
@@ -13,157 +19,76 @@ import java.sql.SQLRecoverableException;
 import java.sql.SQLTimeoutException;
 import java.sql.SQLTransientConnectionException;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class DatabaseRequestMonitorTest {
 
-    private DatabaseRequestMonitor monitor;
-
-    @BeforeEach
-    void setUp() {
-        monitor = new DatabaseRequestMonitor(new ConnectionMetadataCache());
-    }
-
     @Test
-    @DisplayName("Should map SQLTimeoutException")
     void shouldMapSqlTimeoutException() {
-
-        int code = monitor.checkException(new SQLTimeoutException());
-
-        assertEquals(TIMEOUT_OR_INTERRUPTION.getCode(), code);
+        assertEquals(SERVER_TIMEOUT, resolveStatus(new SQLTimeoutException()));
     }
 
     @Test
     void shouldMapSocketTimeoutException() {
-
-        int code = monitor.checkException(new SocketTimeoutException());
-
-        assertEquals(TIMEOUT_OR_INTERRUPTION.getCode(), code);
+        assertEquals(SERVER_TIMEOUT, resolveStatus(new SocketTimeoutException()));
     }
 
     @Test
     void shouldMapInterruptedException() {
-
-        int code = monitor.checkException(new InterruptedException());
-
-        assertEquals(TIMEOUT_OR_INTERRUPTION.getCode(), code);
+        assertEquals(CONN_INTERRUPTED, resolveStatus(new InterruptedException()));
     }
 
     @Test
     void shouldMapEofException() {
-
-        int code = monitor.checkException(new EOFException());
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_ERROR, resolveStatus(new EOFException()));
     }
 
     @Test
     void shouldMapUnknownHostException() {
-
-        int code = monitor.checkException(new UnknownHostException());
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_UNKNOWN_HOST, resolveStatus(new UnknownHostException()));
     }
 
     @Test
     void shouldMapSocketException() {
-
-        int code = monitor.checkException(new SocketException());
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_ERROR, resolveStatus(new SocketException()));
     }
 
     @Test
     void shouldMapSqlTransientConnectionException() {
-
-        int code = monitor.checkException(
-                new SQLTransientConnectionException());
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_ERROR, resolveStatus(new SQLTransientConnectionException()));
     }
 
     @Test
     void shouldMapSqlNonTransientConnectionException() {
-
-        int code = monitor.checkException(
-                new SQLNonTransientConnectionException());
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_REFUSED, resolveStatus(new SQLNonTransientConnectionException()));
     }
 
     @Test
     void shouldMapSqlRecoverableException() {
-
-        int code = monitor.checkException(
-                new SQLRecoverableException());
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_INTERRUPTED, resolveStatus(new SQLRecoverableException()));
     }
     @Test
     void shouldReturnVendorErrorCode() {
-
-        SQLException ex =
-                new SQLException(
-                        "Duplicate key",
-                        "23000",
-                        1062);
-
-        int code = monitor.checkException(ex);
-
-        assertEquals(1062, code);
+        assertEquals(SERVER_ERROR, resolveStatus(new SQLException("Duplicate key", "23000", 1062)));
     }
 
     @Test
     void shouldReturnSqlStatePrefix() {
-
-        SQLException ex =
-                new SQLException(
-                        "duplicate",
-                        "23505",
-                        0);
-
-        int code = monitor.checkException(ex);
-
-        assertEquals(23505, code);
+        assertEquals(SERVER_ERROR, resolveStatus(new SQLException("duplicate", "23505", 0)));
     }
 
     @Test
     void shouldReturnUnknownForInvalidSqlState() {
-
-        SQLException ex =
-                new SQLException(
-                        "error",
-                        "ABCDE",
-                        0);
-
-        int code = monitor.checkException(ex);
-
-        assertEquals(UNKNOWN_ERROR.getCode(), code);
+        assertEquals(SERVER_ERROR, resolveStatus(new SQLException("error", "ABCDE", 0)));
     }
 
     @Test
     void shouldReturnUnknownWhenSqlStateIsNull() {
-
-        SQLException ex =
-                new SQLException(
-                        "error",
-                        null,
-                        0);
-
-        int code = monitor.checkException(ex);
-
-        assertEquals(UNKNOWN_ERROR.getCode(), code);
+        assertEquals(SERVER_ERROR, resolveStatus(new SQLException("error", null, 0)));
     }
 
     @Test
     void shouldReturnUnknownError() {
-
-        int code =
-                monitor.checkException(
-                        new IllegalArgumentException());
-
-        assertEquals(UNKNOWN_ERROR.getCode(), code);
+        assertEquals(SERVER_ERROR, resolveStatus(new IllegalArgumentException()));
     }
 }

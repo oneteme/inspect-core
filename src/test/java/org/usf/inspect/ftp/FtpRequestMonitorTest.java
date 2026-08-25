@@ -1,80 +1,52 @@
 package org.usf.inspect.ftp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.ErrorCode.CONNECTION_UNAVAILABLE;
-import static org.usf.inspect.core.ErrorCode.TIMEOUT_OR_INTERRUPTION;
-import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.*;
+import static org.usf.inspect.ftp.FtpRequestMonitor.resolveStatus;
 
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
+import org.junit.jupiter.api.Test;
+
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
-import org.junit.jupiter.api.Test;
 
 class FtpRequestMonitorTest {
 
-    private final FtpRequestMonitor monitor = new FtpRequestMonitor();
-
     @Test
     void should_return_connection_unavailable_for_unknown_host() {
-
-        int code = monitor.checkException(
-                new UnknownHostException("unknown host")
-        );
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_UNKNOWN_HOST, resolveStatus(new UnknownHostException("unknown host")));
     }
 
     @Test
     void should_return_timeout_for_socket_timeout() {
-
-        int code = monitor.checkException(
-                new SocketTimeoutException("timeout")
-        );
-
-        assertEquals(TIMEOUT_OR_INTERRUPTION.getCode(), code);
+        assertEquals(SERVER_TIMEOUT, resolveStatus(new SocketTimeoutException("read timeout ...")));
+    }
+    
+    @Test
+    void should_return_timeout_for_socket_timeout2() {
+        assertEquals(CONN_TIMEOUT, resolveStatus(new SocketTimeoutException("connect timeout ...")));
     }
 
     @Test
     void should_return_connection_unavailable_for_socket_exception() {
-
-        int code = monitor.checkException(
-                new SocketException("socket error")
-        );
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_ERROR, resolveStatus(new SocketException("socket error")));
     }
 
     @Test
     void should_return_connection_unavailable_for_jsch_exception() {
-
-        int code = monitor.checkException(
-                new JSchException("connection failed")
-        );
-
-        assertEquals(CONNECTION_UNAVAILABLE.getCode(), code);
+        assertEquals(CONN_REFUSED, resolveStatus(new JSchException("connection failed")));
     }
 
     @Test
     void should_return_sftp_exception_id()  {
-
-        SftpException exception =
-                new SftpException(4, "Failure");
-
-        int code = monitor.checkException(exception);
-
-        assertEquals(4, code);
+        assertEquals(SERVER_ERROR, resolveStatus(new SftpException(4, "Failure"))); //TODO resolver vendor code
     }
 
     @Test
     void should_return_unknown_error_for_unexpected_exception() {
-
-        int code = monitor.checkException(
-                new RuntimeException("unexpected")
-        );
-
-        assertEquals(UNKNOWN_ERROR.getCode(), code);
+        assertEquals(SERVER_ERROR, resolveStatus(new RuntimeException("unexpected")));
     }
 }

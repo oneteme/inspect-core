@@ -34,6 +34,11 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 	}
 
 	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
-		return createStage(type, start, end, null, t, HttpSessionStage::new);
+		var stg = new HttpSessionStage(getId(), getStageCounter().incrementAndGet());
+		stg.setName(type.name());
+		stg.setStart(start);
+		stg.setEnd(end);
+		stg.setException(ExceptionInfo.fromException(t));
+		return stg;
 	}
 }

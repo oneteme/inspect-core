@@ -7,4 +7,8 @@ package org.usf.inspect.core;
  */
 public final class HttpSessionStage extends AbstractStage {
 
+	public HttpSessionStage(String requestId, int order) {
+		super(requestId, order);
+	}
+
 }

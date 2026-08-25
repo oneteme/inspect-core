@@ -23,6 +23,7 @@ import org.apache.sshd.sftp.server.SftpSubsystemProxy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.usf.inspect.core.RequestCommonStatus;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
@@ -158,8 +159,8 @@ class FtpRequestMonitorIT {
 
         // Vérifie le mapping effectué par FtpRequestMonitor
         assertEquals(
-                ChannelSftp.SSH_FX_PERMISSION_DENIED,
-                monitor.checkException(exception)
+        		RequestCommonStatus.CLIENT_UNAUTHORIZED,
+                monitor.resolveStatus(exception)
         );
 
         // Fermeture de la connexion
@@ -260,7 +261,7 @@ class FtpRequestMonitorIT {
 
 
         int code =
-                monitor.checkException(exception != null ? exception : null);
+                monitor.resolveStatus(exception != null ? exception : null);
 
 
       // Une exception doit bien être remontée

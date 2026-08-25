@@ -1,21 +1,27 @@
 package org.usf.inspect.dir;
 
 import static java.net.URI.create;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.CommandType.merge;
 import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
-import static org.usf.inspect.core.ErrorCode.*;
-import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.ExceptionInfo.fromException2;
+import static org.usf.inspect.core.ExceptionInfo.rootCauseException;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_UNAUTHORIZED;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_INTERRUPTED;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_REFUSED;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
+import static org.usf.inspect.core.RequestCommonStatus.statusFor;
 
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 
-import jakarta.mail.MessagingException;
 import org.usf.inspect.core.DirAction;
 import org.usf.inspect.core.DirCommand;
 import org.usf.inspect.core.DirectoryRequestSignal;
@@ -30,7 +36,6 @@ import org.usf.inspect.core.SessionContextManager;
  *
  */
 final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSignal, DirectoryRequestUpdate> {
-
 
 	ExecutionListener<DirContext> handleConnection() {
 		return traceBegin(SessionContextManager::createNamingRequest, (req,dir)->{
@@ -60,7 +65,27 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSign
 	}
 	
 	<T> ExecutionListener<T> stageHandler(DirAction action, DirCommand cmd, String... args) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, this::checkException, args));
+		return traceStep((s,e,o,t)-> {
+			var upd = getCallback();
+			var stg = upd.createStage();
+			stg.setName(action.name());
+			stg.setStart(s);
+			stg.setEnd(e);
+			if(nonNull(cmd)) {
+				stg.setCommand(cmd.name());
+				upd.setCommand(merge(upd.getCommand(), cmd.getType()));
+			}
+			if(nonNull(t)) {
+				var root = rootCauseException(t);
+				upd.setStatus(resolveStatus(root));
+				stg.setException(fromException2(root));
+			}
+			else {
+				upd.setStatus(SUCCESS);
+			}
+			stg.setArgs(args);
+			return stg;
+		});
 	}
 
 	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {
@@ -71,48 +96,22 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSign
 		return null;
 	}
 
-	public int checkException(Throwable t) {
-		return switch(t) {
-
-			// serveur LDAP indisponible
-			case javax.naming.ServiceUnavailableException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-			//timeout
-			case javax.naming.CommunicationException e ->
-					TIMEOUT_OR_INTERRUPTION.getCode();
-
-			//à garder ou pas ??
-			case java.io.EOFException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-			case javax.naming.InterruptedNamingException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-			// connexion OK mais erreur LDAP
-			case javax.naming.NamingException e ->
-					extractLdapCode(e);
-
-			default -> UNKNOWN_ERROR.getCode();
-		};
-	}
-
-
-	/**
-	 * Extrait le code d'erreur LDAP (ex. "error code 49") du message de l'exception.
-	 * La regex recherche "error code" suivi d'un ou plusieurs espaces, puis d'un nombre.
-	 */
-	private int extractLdapCode(javax.naming.NamingException e) {
-		String msg = e.getMessage();
-
-		if (msg != null) {
-			Matcher m = Pattern.compile("error code\\s+(\\d+)").matcher(msg);
-
-			if (m.find()) {
-				return Integer.parseInt(m.group(1));
-			}
-		}
-
-		return UNKNOWN_ERROR.getCode();
+	static int resolveStatus(Throwable t) {
+	    if (isNull(t)) {
+	        return SUCCESS;
+	    }
+	    return switch (t) {
+	    	case javax.naming.AuthenticationException e -> CLIENT_UNAUTHORIZED;
+	    	case javax.naming.NameNotFoundException e -> CLIENT_ERROR;
+        
+	        case javax.naming.ServiceUnavailableException e -> CONN_REFUSED;
+	        case javax.naming.CommunicationException e -> CONN_INTERRUPTED;
+	        case javax.naming.InterruptedNamingException e -> CONN_INTERRUPTED;
+	        
+	        case javax.naming.NamingException e -> SERVER_ERROR;
+	        
+			default -> statusFor(t);
+	    };
 	}
 
 }

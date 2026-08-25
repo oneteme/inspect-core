@@ -9,8 +9,11 @@ import org.h2.tools.Server;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.usf.inspect.core.RequestCommonStatus;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_CONFLICT;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
 
 
 
@@ -78,10 +81,10 @@ class DatabaseSqlExceptionIT {
                             new ConnectionMetadataCache()
                     );
 
-            int code = monitor.checkException(exception);
+            int code = monitor.resolveStatus(exception);
 
 
-            assertEquals(23505, code);
+            assertEquals(CLIENT_CONFLICT, code);
         }
     }
 
@@ -110,7 +113,7 @@ class DatabaseSqlExceptionIT {
                             new ConnectionMetadataCache()
                     );
 
-            int code = monitor.checkException(exception);
+            int code = monitor.resolveStatus(exception);
             assertNotEquals(0, code);
 
 

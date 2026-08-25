@@ -50,6 +50,10 @@ public final class ExceptionInfo {
 		return fromException(thrw, config.getMaxCauseDepth(), config.getMaxStackTraceRows());
 	}
 	
+	public static ExceptionInfo fromException2(Throwable thrw) { //TODO rename
+		return fromException(thrw, 0, 0);
+	}
+	
 	static ExceptionInfo fromException(Throwable thrw, int maxCauses, int maxRows) {
 		if(nonNull(thrw)) {
 			var cause = thrw.getCause();

@@ -3,6 +3,7 @@ package org.usf.inspect.jdbc;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.CommandType.merge;
 import static org.usf.inspect.core.DatabaseAction.BATCH;
 import static org.usf.inspect.core.DatabaseAction.CONNECTION;
 import static org.usf.inspect.core.DatabaseAction.DISCONNECTION;
@@ -11,14 +12,23 @@ import static org.usf.inspect.core.DatabaseAction.FETCH;
 import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.extractCommand;
-import static org.usf.inspect.core.ErrorCode.*;
-import static org.usf.inspect.core.ErrorCode.UNKNOWN_ERROR;
+import static org.usf.inspect.core.ExceptionInfo.fromException2;
 import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
+import static org.usf.inspect.core.ExceptionInfo.rootCauseException;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_CONFLICT;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_UNAUTHORIZED;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_INTERRUPTED;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_REFUSED;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_TIMEOUT;
+import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
+import static org.usf.inspect.core.RequestCommonStatus.statusFor;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -90,7 +100,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 			parseAndMergeCommand(sql);
 		}
 		return isNull(batchHandler) ? traceStep((s,e,v,t)-> {
-			var stg = getCallback().createStage(BATCH, s, e, t, null,this::checkException, new long[] {1});
+			var stg = createStage(s, e, t, BATCH, null, new long[] {1});
 			if(nonNull(t)) {
 				return stg;
 			}
@@ -158,7 +168,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 			parseAndMergeCommand(sql); //command set on exec stg
 		}
 		return traceStep((s,e,o,t)-> {
-			lastExec = getCallback().createStage(EXECUTE, s, e, t, mainCommand,this::checkException, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
+			lastExec = createStage(s, e, t, EXECUTE, mainCommand, nonNull(o) ? countFn.apply(o) : null); // o may be null, if execution failed
 			if(!prepared) { //else multiple preparedStmt execution
 				mainCommand = null;
 			}
@@ -181,7 +191,7 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	}
 
 	public <T> ExecutionListener<T> fetch(Instant start, int n) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(FETCH, start, e, t, null,this::checkException, new long[] {n})); //differed start
+		return traceStep((s,e,o,t)-> createStage(start, e, t, FETCH, null, new long[] {n})); //differed start
 	}
 	
 	public ExecutionListener<Object> disconnectionHandler() {
@@ -193,8 +203,37 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 	}
 
 	<T> ExecutionListener<T> stageHandler(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd,this::checkException, args));
+		return traceStep((s,e,o,t)-> createStage(s, e, t, action, cmd, args));
 	}
+	
+	 DatabaseRequestStage createStage(Instant start, Instant end, Throwable thrw, DatabaseAction action, DatabaseCommand cmd, long[] count) {
+		var stg = createStage(start, end, thrw, action, cmd);
+		stg.setCount(count);
+		return stg;
+	}
+	
+	DatabaseRequestStage createStage(Instant start, Instant end, Throwable thrw, DatabaseAction action, DatabaseCommand cmd, String... args) {
+		var upd = getCallback();
+		var stg = upd.createStage();
+		stg.setName(action.name());
+		stg.setStart(start);
+		stg.setEnd(end);
+		if(nonNull(cmd)) {
+			stg.setCommand(cmd.name());
+			upd.setCommand(merge(upd.getCommand(), cmd.getType()));
+		}
+		if(nonNull(thrw)) {
+			var root = rootCauseException(thrw);
+			upd.setStatus(resolveStatus(root));
+			stg.setException(fromException2(root));
+		}
+		else {
+			upd.setStatus(SUCCESS);
+		}
+		stg.setArgs(args);
+		return stg;
+	}
+	
 	
 	static long[] appendLong(long[]arr, long v) {
 		var a = copyOf(arr, arr.length+1);
@@ -239,73 +278,25 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		}
 	}
 
-	public int checkException(Throwable t) {
-		return switch (t) {
+	static int resolveStatus(Throwable t) {
+	    if (isNull(t)) {
+	        return SUCCESS;
+	    }
+	    return switch (t) {
 
-			case java.sql.SQLTimeoutException e->
-					TIMEOUT_OR_INTERRUPTION.getCode();
+	        case java.sql.SQLTransientConnectionException e -> CONN_ERROR;
+	        case java.sql.SQLNonTransientConnectionException e -> CONN_REFUSED;
+	        case java.sql.SQLRecoverableException e -> CONN_INTERRUPTED;
 
-			case java.net.SocketTimeoutException e ->
-					TIMEOUT_OR_INTERRUPTION.getCode();
+	        case java.sql.SQLTimeoutException e -> SERVER_TIMEOUT;
 
-			//à garder ou pas ??
-			case java.io.EOFException e ->
-					CONNECTION_UNAVAILABLE.getCode();
+	        case java.sql.SQLSyntaxErrorException e -> CLIENT_ERROR;
+	        case java.sql.SQLInvalidAuthorizationSpecException e -> CLIENT_UNAUTHORIZED;
+	        case java.sql.SQLIntegrityConstraintViolationException e -> CLIENT_CONFLICT;
 
-			case java.net.UnknownHostException e ->
-					CONNECTION_UNAVAILABLE.getCode();
+	        case java.sql.SQLException e -> SERVER_ERROR;
 
-			case java.net.SocketException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-
-			case InterruptedException e ->
-					TIMEOUT_OR_INTERRUPTION.getCode();
-
-			case java.sql.SQLTransientConnectionException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-			case java.sql.SQLNonTransientConnectionException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-			case java.sql.SQLRecoverableException e ->
-					CONNECTION_UNAVAILABLE.getCode();
-
-
-			case SQLException e ->
-					mapSqlException(e);
-
-			default ->
-					UNKNOWN_ERROR.getCode();
-
-		};
-	}
-
-
-
-
-
-
-	private int mapSqlException(SQLException e) {
-
-		int errorCode = e.getErrorCode();
-		String sqlState = e.getSQLState();
-
-		// H2 / MySQL / Oracle utilisent souvent errorCode
-		if (errorCode != 0) {
-			return errorCode;
-		}
-
-		// PostgreSQL : souvent errorCode = 0
-		if (sqlState != null) {
-			try {
-				// transformer le SQLState en code métier
-				return Integer.parseInt(sqlState.substring(0, 5));
-			} catch (NumberFormatException | IndexOutOfBoundsException ex) {
-				return UNKNOWN_ERROR.getCode();
-			}
-		}
-
-		return UNKNOWN_ERROR.getCode();
+	        default -> statusFor(t);
+	    };
 	}
 }
