@@ -18,6 +18,11 @@ public class DirectoryRequestStage extends AbstractStage {
 	
 	private String[] args;
 	//int count !?
+	
+	public DirectoryRequestStage(String requestId, int order) {
+		super(requestId, order);
+	}
+	
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

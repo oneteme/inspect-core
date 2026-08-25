@@ -18,6 +18,10 @@ public final class DatabaseRequestStage extends AbstractStage {
 
 	private long[] count;
 	private String[] args; // only for BATCH|EXECUTE|FETCH
+
+	public DatabaseRequestStage(String requestId, int order) {
+		super(requestId, order);
+	}
 		
 	@Override
 	public String toString() {

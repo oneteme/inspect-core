@@ -13,8 +13,12 @@ import lombok.Setter;
 @Getter
 @Setter
 public final class MailRequestStage extends AbstractStage {
-	
+
 	private Mail mail;
+	
+	public MailRequestStage(String requestId, int order) {
+		super(requestId, order);
+	}
 
 	@Override
 	public String toString() {

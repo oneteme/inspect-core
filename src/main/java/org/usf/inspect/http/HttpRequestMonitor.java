@@ -24,7 +24,7 @@ final class HttpRequestMonitor extends AbstractHttpRequestMonitor {
 			traceStep((s,e,res,t)-> {
 				if(nonNull(res)) {
 					try {//execute postExchange after reading response 
-						postExchange(res.getStatusCode(), res.getHeaders()); 
+						postExchange(res.getStatusCode(), res.getHeaders(), t); 
 					}
 					catch (Exception ex) {
 						hub().reportError(true, "HttpRequestMonitor.exchangeHandler", ex);

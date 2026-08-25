@@ -4,6 +4,8 @@ import static java.lang.String.format;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -75,6 +77,10 @@ public interface Monitor {
 				callback.setStart(s); //nullable
 				if(nonNull(t)) {
 					callback.setException(fromException(t));
+					callback.setStatus(SERVER_ERROR);
+				}
+				else {
+					callback.setStatus(SUCCESS);
 				}
 				callback.setEnd(e);
 				hub().emitTrace(callback);

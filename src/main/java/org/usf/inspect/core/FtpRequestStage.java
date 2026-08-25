@@ -14,6 +14,10 @@ public final class FtpRequestStage extends AbstractStage {
 
 	private String[] args;
 
+	public FtpRequestStage(String requestId, int order) {
+		super(requestId, order);
+	}
+
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

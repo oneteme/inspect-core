@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import java.time.Instant;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -12,18 +13,19 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@RequiredArgsConstructor
 public abstract class AbstractStage implements Metric {
+
+	private final String requestId;
+	private final int order; // stages has same start sometimes (duration=0)
 
 	private String name; // rename to type
 	private Instant start;
 	private Instant end;
 	private ExceptionInfo exception;
-	// v1.1
-	private int order; // stages has same start sometimes (duration=0)
 	private String command;
-	private String requestId;
 //	private String threadName
-
+	
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

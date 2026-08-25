@@ -1,14 +1,10 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.CommandType.merge;
-
-import java.time.Instant;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
 import lombok.Setter;
+
 
 /**
  * 
@@ -19,6 +15,7 @@ import lombok.Setter;
 @Getter
 public final class MailRequestUpdate extends AbstractRequestUpdate {
 
+	@Deprecated(forRemoval = false, since = "1.2")
 	private boolean failed;
 
 	@JsonCreator
@@ -26,19 +23,7 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 		super(id);
 	}
 
-	public MailRequestStage createStage(MailAction action, Instant start, Instant end, Throwable thrw, MailCommand cmd, Mail mail) {
-		var stg = createStage(action, start, end, thrw, cmd);
-		stg.setMail(mail);
-		return stg;
-	}
-	
-	public MailRequestStage createStage(MailAction action, Instant start, Instant end, Throwable thrw, MailCommand cmd) {
-		if(nonNull(cmd)) {
-			setCommand(merge(getCommand(), cmd.getType()));
-		}
-		if(nonNull(thrw)) {
-			failed = true; 
-		}
-		return createStage(action, start, end, cmd, thrw, MailRequestStage::new);
+	public MailRequestStage createStage(){
+		return new MailRequestStage(getId(), getStageCounter().getAndIncrement());
 	}
 }

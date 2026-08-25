@@ -1,17 +1,25 @@
 package org.usf.inspect.http;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
+import static org.usf.inspect.core.Helper.rootCauseException;
+import static org.usf.inspect.core.RequestCommonStatus.CONN_TIMEOUT;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_TIMEOUT;
+import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
+import static org.usf.inspect.core.RequestCommonStatus.statusFor;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
@@ -52,11 +60,14 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 		}
 	}
 
-	void postExchange(HttpStatusCode status, HttpHeaders headers) {
+	void postExchange(HttpStatusCode status, HttpHeaders headers, Throwable thrw) {
 //		request.setThreadName(threadName()); //deferred thread
 		var callback = getCallback();
     	if(nonNull(status)) {
 			callback.setStatus(status.value());
+		}
+    	else if(nonNull(thrw)) {
+    		callback.setStatus(resolveStatus(thrw));
 		}
 		if(nonNull(headers)) { //response
 			callback.setContentType(headers.getFirst(CONTENT_TYPE));
@@ -78,7 +89,26 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 	}
 	
 	HttpRequestStage createStage(HttpAction action, Instant start,Instant end, Throwable thrw) {
-		return getCallback().createStage(action, start, end, thrw);
+		var upd = getCallback();
+		var stg = upd.createStage();
+		stg.setName(action.name());
+		stg.setStart(start);
+		stg.setEnd(end);
+//		if(nonNull(cmd)) {
+//			stg.setCommand(cmd.name());
+//			upd.setCommand(merge(upd.getCommand(), cmd.getType()));
+//		}
+		if(nonNull(thrw)) {
+			var root = rootCauseException(thrw);
+			stg.setException(fromException(root, 0, 0)); //no stack trace
+//			if(upd.getStatus() < 0 ||  upd.getStatus() == SUCCESS) { //do not override status 
+//				upd.setStatus(resolveStatus(root))
+//			}
+		}
+		else {
+			upd.setStatus(SUCCESS);
+		}
+		return stg;
 	}
 	
 	boolean assertSameID(String sid) {
@@ -89,5 +119,17 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 			hub().reportMessage(false, "assertSameID", "session.id=" + sid);
 		}
 		return false;
+	}
+
+	static int resolveStatus(Throwable t) {
+	    if (isNull(t)) {
+	        return SUCCESS;
+	    }
+	    return switch (t) {
+	        case java.net.http.HttpConnectTimeoutException e -> CONN_TIMEOUT;
+	        case java.net.http.HttpTimeoutException e -> SERVER_TIMEOUT;
+
+	        default -> statusFor(t);
+	    };
 	}
 }
