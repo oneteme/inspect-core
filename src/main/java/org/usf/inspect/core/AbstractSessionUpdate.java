@@ -73,4 +73,9 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	public boolean isStartup() {
 		return false;
 	}
+	
+	@Override
+	public void setStatus(int status) {
+		throw new UnsupportedOperationException("not implemented");
+	}
 }

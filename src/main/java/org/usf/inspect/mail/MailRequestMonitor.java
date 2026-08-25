@@ -2,9 +2,17 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.CommandType.merge;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.CLIENT_UNAUTHORIZED;
+import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
+import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
+import static org.usf.inspect.core.RequestCommonStatus.statusFor;
 
 import java.util.stream.Stream;
 
@@ -28,7 +36,7 @@ import jakarta.mail.Transport;
  *
  */
 final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRequestUpdate> {
-	
+
 	ExecutionListener<Object> handleConnection(Transport trsp) {
 		return traceBegin(SessionContextManager::createMailRequest, (req,v)->{
 			var url = trsp.getURLName();
@@ -54,7 +62,29 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 	}
 	
 	<T> ExecutionListener<T> stageHandler(MailAction action, MailCommand cmd, Message msg) {
-		return traceStep((s,e,o,t)-> getCallback().createStage(action, s, e, t, cmd, createMailTrace(msg)));
+		return traceStep((s,e,o,t)-> {
+			var upd = getCallback();
+			var stg = upd.createStage();
+			stg.setName(action.name());
+			stg.setStart(s);
+			stg.setEnd(e);
+			if(nonNull(cmd)) {
+				stg.setCommand(cmd.name());
+				upd.setCommand(merge(upd.getCommand(), cmd.getType()));
+			}
+			if(nonNull(t)) {
+				var root = rootCauseException(t);
+				stg.setException(fromException(root, 0, 0)); //no stack trace
+				if(upd.getStatus() < 0 ||  upd.getStatus() == SUCCESS) {
+					upd.setStatus(resolveStatus(root));
+				}
+			}
+			else {
+				upd.setStatus(SUCCESS);
+			}
+			stg.setMail(createMailTrace(msg));
+			return stg;
+		});
 	}
 	
 	static Mail createMailTrace(Message msg) throws MessagingException {
@@ -69,6 +99,18 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 			return mail;
 		}
 		return null;
+	}
+
+	static int resolveStatus(Throwable t) {
+	    if (isNull(t)) {
+	        return SUCCESS;
+	    }
+	    return switch (t) {
+	        case jakarta.mail.AuthenticationFailedException e -> CLIENT_UNAUTHORIZED;
+	        case jakarta.mail.internet.ParseException e -> CLIENT_ERROR;
+	        case jakarta.mail.MessagingException e -> SERVER_ERROR;
+			default -> statusFor(t);
+	    };
 	}
 	
 	static String[] toStringArray(Address... address) {

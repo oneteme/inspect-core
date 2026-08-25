@@ -78,4 +78,12 @@ public final class Helper {
 	public static String formatLocation(String className, String methodName) {
 		return className + '.' + methodName + "()";
 	}
+
+	public static Throwable rootCauseException(Throwable t) {
+		if(nonNull(t)) {
+			while(nonNull(t.getCause()) && t != t.getCause()) t = t.getCause();
+			return t;
+		}
+		return t;
+	}
 }

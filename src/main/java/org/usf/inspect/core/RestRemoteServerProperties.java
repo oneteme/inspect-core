@@ -30,7 +30,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	private int compressMinSize = 0; // size in bytes, 0: no compression
 	//v1.2
 	private Retention retentionMaxAge = new Retention();
-	private String namespace;
+	private String namespace; //optional
 	private String token; //optional
 	
 	@Override

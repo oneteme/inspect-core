@@ -1,10 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.CommandType.merge;
-
-import java.time.Instant;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -19,22 +14,15 @@ import lombok.Setter;
 @Setter
 public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 
-	 private boolean failed;
+	@Deprecated(forRemoval = false, since = "1.2")
+	private boolean failed;
 
 	@JsonCreator
 	public DirectoryRequestUpdate(String id) {
 		super(id);
 	}
 
-	public DirectoryRequestStage createStage(DirAction type, Instant start, Instant end, Throwable thrw, DirCommand cmd, String... args) {
-		if(nonNull(cmd)) {
-			setCommand(merge(getCommand(), cmd.getType()));
-		}
-		if(nonNull(thrw)) {
-			failed = true; 
-		}
-		var stg = createStage(type, start, end, cmd, thrw, DirectoryRequestStage::new);
-		stg.setArgs(args);
-		return stg;
-	}	
+	public DirectoryRequestStage createStage(){
+		return new DirectoryRequestStage(getId(), getStageCounter().getAndIncrement());
+	}
 }
