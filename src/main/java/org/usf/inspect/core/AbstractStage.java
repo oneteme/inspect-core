@@ -25,6 +25,7 @@ public abstract class AbstractStage implements Metric {
 	private ExceptionInfo exception;
 	private String command;
 //	private String threadName
+//  private Map<String, String> attributes
 	
 	@Override
 	public String toString() {

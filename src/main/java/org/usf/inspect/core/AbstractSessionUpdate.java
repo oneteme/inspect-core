@@ -1,7 +1,6 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.RequestMask.ASYNC;
 
 import java.time.Instant;
@@ -31,10 +30,6 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	@Setter private String user;
 	@Setter private String location; //class.method, URL, endpoint
 	@Setter private ExceptionInfo exception; //TD trace exception separately
-	
-	public void setLocation(String className, String methodName) {
-		this.location = formatLocation(className, methodName);
-	}
 	
 	public void setEnd(Instant end){
 		if(threadCount.get() > 0) {

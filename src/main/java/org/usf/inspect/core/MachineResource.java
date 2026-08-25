@@ -17,5 +17,6 @@ public final class MachineResource {
 //	private final int minMeta
 //	private final int maxMeta
 	private final int diskTotalSpace;
+	private final int availableProcessors;
 	//threads, CPU, .. ?
 }
