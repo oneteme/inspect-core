@@ -6,9 +6,9 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.ExceptionInfo.fromException2;
-import static org.usf.inspect.core.ExceptionInfo.rootCauseException;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
+import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.RequestCommonStatus.CONN_TIMEOUT;
 import static org.usf.inspect.core.RequestCommonStatus.SERVER_TIMEOUT;
 import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
@@ -100,8 +100,10 @@ class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, Http
 //		}
 		if(nonNull(thrw)) {
 			var root = rootCauseException(thrw);
-//			upd.setStatus(resolveStatus(root));
-			stg.setException(fromException2(root));
+			stg.setException(fromException(root, 0, 0)); //no stack trace
+//			if(upd.getStatus() < 0 ||  upd.getStatus() == SUCCESS) { //do not override status 
+//				upd.setStatus(resolveStatus(root))
+//			}
 		}
 		else {
 			upd.setStatus(SUCCESS);

@@ -27,34 +27,12 @@ public final class ExceptionInfo {
 		return type + ": " + message;
 	}
 	
-	public static ExceptionInfo mainCauseException(Throwable t) {
-		if(nonNull(t)) {
-			while(nonNull(t.getCause()) && t != t.getCause()) t = t.getCause();
-			return new ExceptionInfo(t.getClass().getName(), t.getMessage(), null, null);
-		}
-		return null;
-	}
-
-	public static Throwable rootCauseException(Throwable t) {
-		if(nonNull(t)) {
-			while(nonNull(t.getCause()) && t != t.getCause()) t = t.getCause();
-			return t;
-		}
-		//si t déja null au début ce return va envoyer  null
-		return t;
-
-	}
-
 	public static ExceptionInfo fromException(Throwable thrw) {
 		var config = hub().getConfiguration().getMonitoring().getException();
 		return fromException(thrw, config.getMaxCauseDepth(), config.getMaxStackTraceRows());
 	}
 	
-	public static ExceptionInfo fromException2(Throwable thrw) { //TODO rename
-		return fromException(thrw, 0, 0);
-	}
-	
-	static ExceptionInfo fromException(Throwable thrw, int maxCauses, int maxRows) {
+	public static ExceptionInfo fromException(Throwable thrw, int maxCauses, int maxRows) {
 		if(nonNull(thrw)) {
 			var cause = thrw.getCause();
 			return new ExceptionInfo(

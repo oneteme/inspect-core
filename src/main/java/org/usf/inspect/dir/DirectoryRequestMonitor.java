@@ -7,8 +7,8 @@ import static org.usf.inspect.core.CommandType.merge;
 import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
-import static org.usf.inspect.core.ExceptionInfo.fromException2;
-import static org.usf.inspect.core.ExceptionInfo.rootCauseException;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.RequestCommonStatus.CLIENT_ERROR;
 import static org.usf.inspect.core.RequestCommonStatus.CLIENT_UNAUTHORIZED;
 import static org.usf.inspect.core.RequestCommonStatus.CONN_INTERRUPTED;
@@ -77,8 +77,10 @@ final class DirectoryRequestMonitor extends StatefulMonitor<DirectoryRequestSign
 			}
 			if(nonNull(t)) {
 				var root = rootCauseException(t);
-				upd.setStatus(resolveStatus(root));
-				stg.setException(fromException2(root));
+				stg.setException(fromException(root, 0, 0)); //no stack trace
+				if(upd.getStatus() < 0 ||  upd.getStatus() == SUCCESS) { //if success or no error, set status
+					upd.setStatus(resolveStatus(root));
+				}
 			}
 			else {
 				upd.setStatus(SUCCESS);

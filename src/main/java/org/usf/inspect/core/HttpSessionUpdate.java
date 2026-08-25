@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.ExceptionInfo.fromException;
+
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,7 +40,7 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 		stg.setName(type.name());
 		stg.setStart(start);
 		stg.setEnd(end);
-		stg.setException(ExceptionInfo.fromException(t));
+		stg.setException(fromException(t, 0, 0));
 		return stg;
 	}
 }

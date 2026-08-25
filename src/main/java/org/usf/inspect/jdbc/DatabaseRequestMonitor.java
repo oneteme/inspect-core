@@ -12,9 +12,8 @@ import static org.usf.inspect.core.DatabaseAction.FETCH;
 import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.extractCommand;
-import static org.usf.inspect.core.ExceptionInfo.fromException2;
-import static org.usf.inspect.core.ExceptionInfo.mainCauseException;
-import static org.usf.inspect.core.ExceptionInfo.rootCauseException;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.RequestCommonStatus.CLIENT_CONFLICT;
 import static org.usf.inspect.core.RequestCommonStatus.CLIENT_ERROR;
 import static org.usf.inspect.core.RequestCommonStatus.CLIENT_UNAUTHORIZED;
@@ -224,8 +223,10 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		}
 		if(nonNull(thrw)) {
 			var root = rootCauseException(thrw);
-			upd.setStatus(resolveStatus(root));
-			stg.setException(fromException2(root));
+			stg.setException(fromException(root, 0, 0)); //no stack trace
+			if(upd.getStatus() < 0 ||  upd.getStatus() == SUCCESS) { //if success or no error, set status
+				upd.setStatus(resolveStatus(root));
+			}
 		}
 		else {
 			upd.setStatus(SUCCESS);
@@ -267,12 +268,17 @@ final class DatabaseRequestMonitor extends StatefulMonitor<DatabaseRequestSignal
 		}
 
 		@Override
-		public void handle(Instant start, Instant end, Void o, Throwable t) {
+		public void handle(Instant start, Instant end, Void o, Throwable thrw) {
 			stage.getCount()[0]++;
 			stage.setEnd(end); //optim this		
-			if(nonNull(t)) {
+			if(nonNull(thrw)) {
 				batchHandler = null; //reset batching trace
-				stage.setException(mainCauseException(t)); //may overwrite previous
+				var root = rootCauseException(thrw);
+				stage.setException(fromException(root, 0, 0)); //no stack trace
+				var upd = getCallback();
+				if(upd.getStatus() < 0 ||  upd.getStatus() == SUCCESS) { //if success or no error, set status
+					upd.setStatus(resolveStatus(root));
+				}
 				hub().emitTrace(stage);
 			}
 		}

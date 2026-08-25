@@ -3,8 +3,8 @@ package org.usf.inspect.mail;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.CommandType.merge;
-import static org.usf.inspect.core.ExceptionInfo.fromException2;
-import static org.usf.inspect.core.ExceptionInfo.rootCauseException;
+import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
@@ -74,8 +74,10 @@ final class MailRequestMonitor extends StatefulMonitor<MailRequestSignal, MailRe
 			}
 			if(nonNull(t)) {
 				var root = rootCauseException(t);
-				upd.setStatus(resolveStatus(root));
-				stg.setException(fromException2(root));
+				stg.setException(fromException(root, 0, 0)); //no stack trace
+				if(upd.getStatus() < 0 ||  upd.getStatus() == SUCCESS) {
+					upd.setStatus(resolveStatus(root));
+				}
 			}
 			else {
 				upd.setStatus(SUCCESS);
