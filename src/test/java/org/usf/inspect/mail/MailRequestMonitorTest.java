@@ -3,7 +3,7 @@ package org.usf.inspect.mail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.usf.inspect.core.RequestCommonStatus.*;
-import static org.usf.inspect.mail.MailRequestMonitor.resolveStatus;
+import static org.usf.inspect.mail.MailRequestListener.resolveStatus;
 
 import java.net.SocketException;
 import java.util.Properties;

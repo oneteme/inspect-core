@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -9,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public interface HasStage {
 	
-	String getId();
+	UUID getId();
 	
 	AtomicInteger getStageCounter();
 }

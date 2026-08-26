@@ -2,7 +2,7 @@ package org.usf.inspect.ftp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.usf.inspect.core.RequestCommonStatus.*;
-import static org.usf.inspect.ftp.FtpRequestMonitor.resolveStatus;
+import static org.usf.inspect.ftp.FtpRequestListener.resolveStatus;
 
 import java.net.SocketException;
 import java.net.SocketTimeoutException;

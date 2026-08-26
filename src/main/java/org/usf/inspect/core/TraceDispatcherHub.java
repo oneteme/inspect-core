@@ -387,7 +387,7 @@ public final class TraceDispatcherHub implements TraceHub {
 //			}
 			if(conf.getTracing().getDump().isEnabled()) {
 				log.info("event trace dumping is enabled, location={}", conf.getTracing().getDump().getLocation());
-				eventBus.registerHook(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), nextId()), mapper));
+				eventBus.registerHook(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), nextId().toString()), mapper));
 			}
 			return new TraceDispatcherHub(conf, agent, eventBus);
 		}

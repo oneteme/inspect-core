@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -18,7 +19,7 @@ public final class DirectoryRequestSignal extends AbstractRequestSignal {
 	private String host;  //IP, domain
 	private int port; // positive number, -1 otherwise
 	
-	public DirectoryRequestSignal(String id, String sessionId, Instant start, String threadName) {
+	public DirectoryRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 

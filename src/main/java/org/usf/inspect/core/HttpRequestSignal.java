@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -25,7 +26,7 @@ public final class HttpRequestSignal extends AbstractRequestSignal {
 	private long dataSize; //in bytes, -1 unknown
 	private String contentEncoding; //gzip, compress, identity,..
 
-	public HttpRequestSignal(String id, String sessionId, Instant start, String threadName) {
+	public HttpRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 

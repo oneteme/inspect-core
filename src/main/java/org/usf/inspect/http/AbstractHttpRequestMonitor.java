@@ -6,7 +6,7 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.RequestCommonStatus.CONN_TIMEOUT;
@@ -19,6 +19,7 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -39,8 +40,9 @@ import lombok.Getter;
 class AbstractHttpRequestMonitor extends StatefulMonitor<HttpRequestSignal, HttpRequestUpdate> {
 
 	@Getter
-	private final String id = nextId();
+	private final UUID id = nextId();
 	
+	@Override
 	protected HttpRequestUpdate createCallback(HttpRequestSignal session) { 
 		return session.createCallback();
 	}

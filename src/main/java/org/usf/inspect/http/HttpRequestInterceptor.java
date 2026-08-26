@@ -23,7 +23,7 @@ public final class HttpRequestInterceptor implements ClientHttpRequestIntercepto
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		var mnt = new HttpRequestMonitor();
-		request.getHeaders().set(TRACE_HEADER, mnt.getId());
+		request.getHeaders().set(TRACE_HEADER, mnt.getId().toString());
 		var res = call(()-> execution.execute(request, body), mnt.exchangeHandler(request));
 		return new ClientHttpResponseWrapper(res, mnt.responseHandler());
 	}

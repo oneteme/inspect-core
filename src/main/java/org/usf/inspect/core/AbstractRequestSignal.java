@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +17,11 @@ import lombok.Setter;
 @RequiredArgsConstructor
 public abstract class AbstractRequestSignal implements TraceSignal {
 
-	private final String id;
-	private final String sessionId;
+	private final UUID id;
+	private final UUID sessionId;
 	private final Instant start;
 	private final String threadName;
 	private String user;
-	private String instanceId; //for distributed tracing
+	//server usage
+	private UUID instanceId;
 }

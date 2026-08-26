@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -18,11 +20,7 @@ public final class DirectoryRequestUpdate extends AbstractRequestUpdate {
 	private boolean failed;
 
 	@JsonCreator
-	public DirectoryRequestUpdate(String id) {
+	public DirectoryRequestUpdate(UUID id) {
 		super(id);
-	}
-
-	public DirectoryRequestStage createStage(){
-		return new DirectoryRequestStage(getId(), getStageCounter().getAndIncrement());
 	}
 }

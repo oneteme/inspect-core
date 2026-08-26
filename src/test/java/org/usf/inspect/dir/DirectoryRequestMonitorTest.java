@@ -7,8 +7,8 @@ import static org.mockito.Mockito.when;
 import static org.usf.inspect.core.RequestCommonStatus.CONN_INTERRUPTED;
 import static org.usf.inspect.core.RequestCommonStatus.CONN_REFUSED;
 import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
-import static org.usf.inspect.dir.DirectoryRequestMonitor.getEnvironmentVariable;
-import static org.usf.inspect.dir.DirectoryRequestMonitor.resolveStatus;
+import static org.usf.inspect.dir.DirectoryRequestListener.getEnvironmentVariable;
+import static org.usf.inspect.dir.DirectoryRequestListener.resolveStatus;
 
 import java.util.Hashtable;
 

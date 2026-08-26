@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class InstanceEnvironment {
 
-	private final String id;
+	private final UUID id;
 	private final Instant instant; //startup time TD : rename to start
 	private final InstanceType type; //server, client
 	private final String name; //project name

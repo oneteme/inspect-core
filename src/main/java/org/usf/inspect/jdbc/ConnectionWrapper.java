@@ -97,47 +97,47 @@ public final class ConnectionWrapper implements Connection {
 	
 	@Override
 	public Savepoint setSavepoint() throws SQLException {
-		return call(cn::setSavepoint, monitor.stageHandler(SAVEPOINT));
+		return call(cn::setSavepoint, monitor.stageListner(SAVEPOINT));
 	}
 	
 	@Override
 	public Savepoint setSavepoint(String name) throws SQLException {
-		return call(()-> cn.setSavepoint(name), monitor.stageHandler(SAVEPOINT));
+		return call(()-> cn.setSavepoint(name), monitor.stageListner(SAVEPOINT));
 	}
 	
 	@Override
 	public void commit() throws SQLException {
-		exec(cn::commit, monitor.stageHandler(COMMIT));
+		exec(cn::commit, monitor.stageListner(COMMIT));
 	}
 	
 	@Override
 	public void rollback() throws SQLException {
-		exec(cn::rollback, monitor.stageHandler(ROLLBACK));
+		exec(cn::rollback, monitor.stageListner(ROLLBACK));
 	}
 	
 	@Override
 	public void rollback(Savepoint savepoint) throws SQLException {
-		exec(()-> cn.rollback(savepoint), monitor.stageHandler(ROLLBACK));
+		exec(()-> cn.rollback(savepoint), monitor.stageListner(ROLLBACK));
 	}
 	
 	@Override
 	public DatabaseMetaData getMetaData() throws SQLException {
-		return new DatabaseMetaDataWrapper(call(cn::getMetaData, monitor.stageHandler(METADATA)), monitor);
+		return new DatabaseMetaDataWrapper(call(cn::getMetaData, monitor.stageListner(METADATA)), monitor);
 	}
 	
 	@Override
 	public void setCatalog(String catalog) throws SQLException {
-		 exec(()-> cn.setCatalog(catalog), monitor.stageHandler(EXECUTE, SET, "catalog="+catalog));
+		 exec(()-> cn.setCatalog(catalog), monitor.stageListner(EXECUTE, SET, "catalog="+catalog));
 	}
 	
 	@Override
 	public void setSchema(String schema) throws SQLException {
-		 exec(()-> cn.setSchema(schema), monitor.stageHandler(EXECUTE, SET, "schema="+schema));
+		 exec(()-> cn.setSchema(schema), monitor.stageListner(EXECUTE, SET, "schema="+schema));
 	}
 	
 	@Override
 	public void setAutoCommit(boolean autoCommit) throws SQLException {
-		 exec(()-> cn.setAutoCommit(autoCommit), monitor.stageHandler(EXECUTE, SET, "autoCommit="+autoCommit));
+		 exec(()-> cn.setAutoCommit(autoCommit), monitor.stageListner(EXECUTE, SET, "autoCommit="+autoCommit));
 	}
 	
 	@Override

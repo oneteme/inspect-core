@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,9 +14,10 @@ import lombok.Setter;
 @Setter
 public final class FtpRequestStage extends AbstractStage {
 
+	@Deprecated(since = "1.2", forRemoval = true)
 	private String[] args;
 
-	public FtpRequestStage(String requestId, int order) {
+	public FtpRequestStage(UUID requestId, int order) {
 		super(requestId, order);
 	}
 

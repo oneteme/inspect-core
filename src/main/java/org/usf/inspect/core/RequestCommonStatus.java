@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
  * @author u$f
  *
  */
+@Deprecated
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RequestCommonStatus {
 

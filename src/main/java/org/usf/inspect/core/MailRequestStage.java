@@ -2,6 +2,8 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 
+import java.util.UUID;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,7 +18,7 @@ public final class MailRequestStage extends AbstractStage {
 
 	private Mail mail;
 	
-	public MailRequestStage(String requestId, int order) {
+	public MailRequestStage(UUID requestId, int order) {
 		super(requestId, order);
 	}
 

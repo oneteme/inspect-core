@@ -25,34 +25,30 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	
 	@Delegate
 	private final Transport trsp;
-	private MailRequestMonitor monitor;
+	private final MailRequestListener monitor = new MailRequestListener();
 	
 	public void connect() throws MessagingException {
-		this.monitor = new MailRequestMonitor();
-		exec(trsp::connect, monitor.handleConnection(trsp));
+		exec(trsp::connect, monitor.connectionListener(trsp));
 	}
 
 	public void connect(String user, String password) throws MessagingException {
-		this.monitor = new MailRequestMonitor();
-		exec(()-> trsp.connect(user, password), monitor.handleConnection(trsp));
+		exec(()-> trsp.connect(user, password), monitor.connectionListener(trsp));
 	}
 
 	public void connect(String host, String user, String password) throws MessagingException {
-		this.monitor = new MailRequestMonitor();
-		exec(()-> trsp.connect(host, user, password), monitor.handleConnection(trsp));
+		exec(()-> trsp.connect(host, user, password), monitor.connectionListener(trsp));
 	}
 	
 	public void connect(String arg0, int arg1, String arg2, String arg3) throws MessagingException {
-		this.monitor = new MailRequestMonitor();
-		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), monitor.handleConnection(trsp));
+		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), monitor.connectionListener(trsp));
 	}
 	
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
-		exec(()-> trsp.sendMessage(arg0, arg1), monitor.executeStageHandler(SEND, arg0));
+		exec(()-> trsp.sendMessage(arg0, arg1), monitor.executeStageListener(SEND, arg0));
 	}
 
 	public void close() throws MessagingException {
-		exec(trsp::close, monitor.handleDisconnection());
+		exec(trsp::close, monitor.disconnectionListener());
 	}
 
 	public static TransportWrapper wrap(Transport trsp) {

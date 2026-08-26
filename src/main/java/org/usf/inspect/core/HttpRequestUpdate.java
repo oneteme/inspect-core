@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -23,10 +25,11 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	private boolean linked;
 
 	@JsonCreator
-	public HttpRequestUpdate(String id) {
+	public HttpRequestUpdate(UUID id) {
 		super(id);
 	}
 	
+	@Deprecated(forRemoval = true, since = "1.2")
 	public HttpRequestStage createStage(){
 		return new HttpRequestStage(getId(), getStageCounter().getAndIncrement());
 	}

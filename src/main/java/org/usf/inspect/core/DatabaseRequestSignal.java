@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -23,7 +24,7 @@ public final class DatabaseRequestSignal extends AbstractRequestSignal {
 	private String productName;
 	private String productVersion;
 	
-	public DatabaseRequestSignal(String id, String sessionId, Instant start, String threadName) {
+	public DatabaseRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 

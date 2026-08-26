@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 /**
  * 
  * @author u$f
@@ -7,7 +9,7 @@ package org.usf.inspect.core;
  */
 public final class HttpSessionStage extends AbstractStage {
 
-	public HttpSessionStage(String requestId, int order) {
+	public HttpSessionStage(UUID requestId, int order) {
 		super(requestId, order);
 	}
 

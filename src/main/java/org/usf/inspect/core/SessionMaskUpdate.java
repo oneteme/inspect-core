@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SessionMaskUpdate implements EventTrace {
 	
-	private final String id;
+	private final UUID id;
 	private final boolean main;
 	private final int mask;
 }

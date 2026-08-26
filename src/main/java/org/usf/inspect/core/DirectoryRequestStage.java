@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.util.Objects.nonNull;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -15,11 +16,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DirectoryRequestStage extends AbstractStage {
-	
+
+	@Deprecated(since = "1.2", forRemoval = true)
 	private String[] args;
-	//int count !?
 	
-	public DirectoryRequestStage(String requestId, int order) {
+	public DirectoryRequestStage(UUID requestId, int order) {
 		super(requestId, order);
 	}
 	

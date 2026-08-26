@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +21,7 @@ public final class FtpRequestSignal extends AbstractRequestSignal {
 	private String serverVersion;
 	private String clientVersion;
 	
-	public FtpRequestSignal(String id, String sessionId, Instant start, String threadName) {
+	public FtpRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 	

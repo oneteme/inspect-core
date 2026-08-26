@@ -102,7 +102,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 	                }
 	            }
 	        }
-        } catch (Exception e) {
+        } catch (ClassNotFoundException e) {
             //do nothing
         }
 		if(nonNull(method) && method.getReturnType() == double.class) {

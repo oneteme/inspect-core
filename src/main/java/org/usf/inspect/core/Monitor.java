@@ -3,7 +3,7 @@ package org.usf.inspect.core;
 import static java.lang.String.format;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
 import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
@@ -50,17 +50,17 @@ public interface Monitor {
 		return traceAtomic(request, LocalRequestSignal::createCallback, preProcess, null);
 	}
 	
-	static <T extends TraceSignal, U extends TraceUpdate & AtomicTrace, R> ExecutionListener<R> traceAtomic(T session, Function<T, U> callbackFn, SafeConsumer<T> preProcess, BiConsumer<U, R> postProcess) {
+	static <T extends TraceSignal, U extends TraceUpdate & AtomicTrace, R> ExecutionListener<R> traceAtomic(T signal, Function<T, U> callbackFn, SafeConsumer<T> preProcess, BiConsumer<U, R> postProcess) {
 		try {
 			if(nonNull(preProcess)) {
-				preProcess.accept(session);
+				preProcess.accept(signal);
 			}
-			hub().emitTrace(session);
+			hub().emitTrace(signal);
 		}
 		catch (Exception e) {
 			hub().reportError(true, TRACE_ATOMIC_ACTION, e);
 		}
-		var callback = callbackFn.apply(session); 
+		var callback = callbackFn.apply(signal); 
 		if(callback instanceof AbstractSessionUpdate ctx) {
 			setActiveContext(ctx);
 		}
@@ -76,7 +76,7 @@ public interface Monitor {
 				}
 				callback.setStart(s); //nullable
 				if(nonNull(t)) {
-					callback.setException(fromException(t));
+					hub().emitTrace(fromException(t));
 					callback.setStatus(SERVER_ERROR);
 				}
 				else {
@@ -139,10 +139,10 @@ public interface Monitor {
 			};
 		}
 		
-		protected <R> ExecutionListener<R> traceStep(StageCreator<R> stageFn){
+		protected <R> ExecutionListener<R> traceStep(StageBuilder<R> stageFn){
 			return (s,e,o,t)-> {
 				if(assertStillOpened(callback, this.getClass().getSimpleName() + ".traceStep")) {
-					var stg = stageFn.createStage(s, e, o, t);
+					var stg = stageFn.newStage(s, e, o, t);
 					if(nonNull(stg)) {
 						hub().emitTrace(stg);
 					}
@@ -163,8 +163,8 @@ public interface Monitor {
 		}
 	}
 	
-	interface StageCreator<R> {
+	public interface StageBuilder<R> {
 		
-		AbstractStage createStage(Instant start, Instant end, R obj, Throwable thrw) throws Exception;
+		AbstractStage newStage(Instant start, Instant end, R obj, Throwable thrw) throws Exception;
 	}
 }

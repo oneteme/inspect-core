@@ -1,8 +1,6 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.ExceptionInfo.fromException;
-
-import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -23,7 +21,6 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 	@JsonIgnore 
 	private final AtomicInteger stageCounter = new AtomicInteger();
 
-	private int status; //2xx, 4xx, 5xx, 0 otherwise 
 	private long dataSize; //in bytes, -1 unknown
 	private String contentType; //text/html, application/json, application/xml,.. in/out ?
 	private String contentEncoding; //gzip, compress, identity,..
@@ -31,16 +28,11 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 	private String bodyContent; //incoming content, //4xx, 5xx only
 	
 	@JsonCreator
-	public HttpSessionUpdate(String id) {
+	public HttpSessionUpdate(UUID id) {
 		super(id);
 	}
-
-	public HttpSessionStage createStage(HttpAction type, Instant start, Instant end, Throwable t) {
-		var stg = new HttpSessionStage(getId(), getStageCounter().incrementAndGet());
-		stg.setName(type.name());
-		stg.setStart(start);
-		stg.setEnd(end);
-		stg.setException(fromException(t, 0, 0));
-		return stg;
+	
+	public HttpSessionStage createStage() {
+		return new HttpSessionStage(getId(), getStageCounter().incrementAndGet());
 	}
 }

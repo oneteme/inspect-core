@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -17,12 +19,12 @@ public final class MainSessionUpdate extends AbstractSessionUpdate {
 	private final boolean startup;
 
 	@JsonCreator
-	public MainSessionUpdate(String id) {
+	public MainSessionUpdate(UUID id) {
 		this(id, false);
 	}
 	
 	//protected for startup use case
-	MainSessionUpdate(String id, boolean startup) {
+	MainSessionUpdate(UUID id, boolean startup) {
 		super(id);
 		this.startup = startup;
 	}

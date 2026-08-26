@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -31,7 +32,7 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 	private String[] forwardedAddresses; // IP address 
 
 
-	public HttpSessionSignal(String id, Instant start, String threadName) {
+	public HttpSessionSignal(UUID id, Instant start, String threadName) {
 		super(id, start, threadName);
 	}
 

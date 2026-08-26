@@ -6,13 +6,14 @@ import static java.util.Arrays.stream;
 import static java.util.Collections.list;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.UUID.fromString;
 import static java.util.function.Predicate.not;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
-import static org.usf.inspect.core.ExceptionInfo.fromException;
+import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.HttpAction.DEFERRED;
 import static org.usf.inspect.core.HttpAction.POST_PROCESS;
@@ -28,6 +29,7 @@ import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 import org.usf.inspect.core.HttpAction;
@@ -58,7 +60,7 @@ public final class HttpSessionMonitor {
 	
 	public HttpSessionMonitor(HttpServletRequest request, HttpServletResponse response) {
 		this.lastTimestamp = systemUTC().instant();
-		this.handler = traceAtomic(createHttpSession(lastTimestamp, request.getHeader(TRACE_HEADER)), this::createCallback,
+		this.handler = traceAtomic(createHttpSession(lastTimestamp, parseUUID(request.getHeader(TRACE_HEADER))), this::createCallback,
 				ses->{
 					ses.setMethod(request.getMethod());
 					ses.setURI(fromRequest(request));
@@ -68,7 +70,7 @@ public final class HttpSessionMonitor {
 					ses.setUserAgent(request.getHeader(USER_AGENT));
 					ses.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
 					if(nonNull(response)) {
-						response.addHeader(TRACE_HEADER, ses.getId()); //add headers before doFilter
+						response.addHeader(TRACE_HEADER, ses.getId().toString()); //add headers before doFilter
 						response.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
 					}
 				}, 
@@ -123,8 +125,8 @@ public final class HttpSessionMonitor {
 			try{
 				callback.setName(name);
 				callback.setUser(user);
-				if(nonNull(thrw) && isNull(callback.getException())) {// unhandeled exception in @ControllerAdvice
-					callback.setException(fromException(thrw));
+				if(nonNull(thrw)) {// unhandeled exception in @ControllerAdvice
+					hub().emitTrace(fromException(thrw));
 				}
 			}
 			catch (Exception e) {
@@ -134,18 +136,24 @@ public final class HttpSessionMonitor {
 	}
 	
 	public void handleError(Throwable thrw) {
-		if(assertStillOpened(callback, "HttpSessionMonitor.handleError") && isNull(callback.getException())) {
-			callback.setException(fromException(thrw));
+		if(assertStillOpened(callback, "HttpSessionMonitor.handleError")) {
+			hub().emitTrace(fromException(thrw));
 		}
 	}
 
 	void emitStage(HttpAction action) {
 		var end = systemUTC().instant();
 		if(assertStillOpened(callback, "HttpSessionMonitor.emitStage")) {
-			hub().emitTrace(callback.createStage(action, lastTimestamp, end, null));
+			var stg = callback.createStage();
+			stg.setName(action.name());
+			stg.setStart(lastTimestamp);
+			stg.setEnd(end);
+//			stg.setException(fromException(null, 0, 0));
+			hub().emitTrace(stg);
 		}
 		lastTimestamp = end;
 	}
+
 
     static URI fromRequest(HttpServletRequest req) {
     	var c = req.getRequestURL().toString();
@@ -161,5 +169,15 @@ public final class HttpSessionMonitor {
 				.map(String::trim)
 				.filter(not(String::isBlank))
 				.toArray(String[]::new);
+	}
+	
+	static UUID parseUUID(String id) {
+		if(nonNull(id)) {
+			try {
+				return fromString(id);
+			}
+			catch (Exception e) {/*do nothing*/}
+		}
+		return null;
 	}
 }

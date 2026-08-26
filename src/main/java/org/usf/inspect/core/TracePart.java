@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 /**
  * 
  * @author u$f
@@ -7,5 +9,5 @@ package org.usf.inspect.core;
  */
 public interface TracePart extends EventTrace {
 	
-	String getId();
+	UUID getId();
 }

@@ -1,3 +1,4 @@
+
 package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
@@ -51,20 +52,19 @@ public final class InspectExecutor {
 				handle(start, end, res, thrw);
 			}
 			catch (Throwable ex) {// do not throw exception
-				hub().reportError(true, "ExecutionMonitor.safeHandle", ex);
+				hub().reportError(true, "InspectExecutor.safeHandle", ex);
 			}
 		}
 		
 		default ExecutionListener<T> thenHandle(ExecutionListener<? super T> next) {
-			return (s,e,o,t)-> {
-				handle(s,e,o,t);
-				if(nonNull(next)) {
+			if(nonNull(next)) {
+				return (s,e,o,t)-> {
+					handle(s,e,o,t);
 					next.handle(s,e,o,t);
-				}
-				else {
-					hub().reportError(true, "ExecutionMonitor.thenHandle", new NullPointerException("next is null"));
-				}
-			};
+				};
+			}
+			hub().reportError(true, "InspectExecutor.thenHandle", new NullPointerException("next is null"));
+			return this;
 		}
 	}
 }

@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -19,10 +21,11 @@ public final class DatabaseRequestUpdate extends AbstractRequestUpdate {
 	private boolean failed;
 
 	@JsonCreator
-	public DatabaseRequestUpdate(String id) {
+	public DatabaseRequestUpdate(UUID id) {
 		super(id);
 	}
-	
+
+	@Deprecated(forRemoval = true, since = "1.2")
 	public DatabaseRequestStage createStage(){
 		return new DatabaseRequestStage(getId(), getStageCounter().getAndIncrement());
 	}

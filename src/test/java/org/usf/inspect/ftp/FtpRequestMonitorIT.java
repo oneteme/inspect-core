@@ -134,8 +134,8 @@ class FtpRequestMonitorIT {
         sftp.connect();
 
         // Classe testée
-        FtpRequestMonitor monitor =
-                new FtpRequestMonitor();
+        FtpRequestListener monitor =
+                new FtpRequestListener();
 
 
     // Une tentative d'écriture doit être refusée par le serveur
@@ -255,8 +255,8 @@ class FtpRequestMonitorIT {
 
         // Vérification du traitement de l'exception
 
-        FtpRequestMonitor monitor =
-                new FtpRequestMonitor();
+        FtpRequestListener monitor =
+                new FtpRequestListener();
 
 
 

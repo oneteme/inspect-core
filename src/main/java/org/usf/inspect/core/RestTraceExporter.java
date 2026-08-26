@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -103,7 +104,7 @@ public final class RestTraceExporter implements TraceExporter {
 		}
 	}
 	
-	String getOrRegisterInstanceId() {
+	UUID getOrRegisterInstanceId() {
 		if(registred) {
 			return instance.getId();
 		}
