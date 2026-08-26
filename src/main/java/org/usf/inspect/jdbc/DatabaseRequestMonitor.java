@@ -96,11 +96,11 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 	}
 	
 	public ExecutionListener<Connection> connectionHandler() {
-		return connectionListener(stageBuilder(CONNECTION, null, null)); //before end if thrw
+		return connectionListener(stageBuilder(CONNECTION, null));
 	}
 	
 	public ExecutionListener<Object> disconnectionHandler() {
-		return disconnectionListener(stageBuilder(DISCONNECTION, null, null));
+		return disconnectionListener(stageBuilder(DISCONNECTION, null));
 	}
 
 	public ExecutionListener<Object> statementStageHandler(String sql) {
@@ -109,7 +109,7 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 			prepared = true;
 			parseAndMergeCommand(sql);
 		}
-		return stageListner(STATEMENT);
+		return stageListener(STATEMENT);
 	}
 
 	public ExecutionListener<Void> addBatchStageHandler(String sql) {
@@ -211,16 +211,12 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 		return stageListener((s,e,o,t)-> createStage(start, e, FETCH, null, new long[] {n})); //differed start
 	}
 	
-	<T> ExecutionListener<T> stageListner(DatabaseAction action, String... args) {
-		return stageListner(action, null, nonNull(args) ? new StagePayload(args, null) : null);
+	<T> ExecutionListener<T> stageListener(DatabaseAction action, String... args) {
+		return stageListener(stageBuilder(action, null, args));
 	}
 
-	<T> ExecutionListener<T> stageListner(DatabaseAction action, DatabaseCommand cmd, StagePayload payload) {
-		return stageListener(stageBuilder(action, cmd, payload));
-	}
-	
-	<R> StageBuilder<R> stageBuilder(DatabaseAction action, DatabaseCommand cmd, StagePayload payload) {
-		return (s,e,o,t)-> createStage(s, e, action, cmd, payload);
+	<R> StageBuilder<R> stageBuilder(DatabaseAction action, DatabaseCommand cmd, String... args) {
+		return (s,e,o,t)-> createStage(s, e, action, cmd, nonNull(args) ? new StagePayload(args, null) : null);
 	}
 	
 	DatabaseRequestStage createStage(Instant start, Instant end, DatabaseAction action, DatabaseCommand cmd, long[] count) {
@@ -273,7 +269,7 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 		@Override
 		public DatabaseRequestStage newStage(Instant start, Instant end, Void obj, Throwable thrw) {
 			if(isNull(stage)) {
-				stage =  createStage(start, end, BATCH, null, new long[] {1}); 
+				stage = createStage(start, end, BATCH, null, new long[] {1}); 
 			}
 			else {
 				stage.getPayload().getCount()[0]++;

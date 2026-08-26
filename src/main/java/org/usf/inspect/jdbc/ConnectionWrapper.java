@@ -97,32 +97,32 @@ public final class ConnectionWrapper implements Connection {
 	
 	@Override
 	public Savepoint setSavepoint() throws SQLException {
-		return call(cn::setSavepoint, monitor.stageListner(SAVEPOINT));
+		return call(cn::setSavepoint, monitor.stageListener(SAVEPOINT));
 	}
 	
 	@Override
 	public Savepoint setSavepoint(String name) throws SQLException {
-		return call(()-> cn.setSavepoint(name), monitor.stageListner(SAVEPOINT));
+		return call(()-> cn.setSavepoint(name), monitor.stageListener(SAVEPOINT));
 	}
 	
 	@Override
 	public void commit() throws SQLException {
-		exec(cn::commit, monitor.stageListner(COMMIT));
+		exec(cn::commit, monitor.stageListener(COMMIT));
 	}
 	
 	@Override
 	public void rollback() throws SQLException {
-		exec(cn::rollback, monitor.stageListner(ROLLBACK));
+		exec(cn::rollback, monitor.stageListener(ROLLBACK));
 	}
 	
 	@Override
 	public void rollback(Savepoint savepoint) throws SQLException {
-		exec(()-> cn.rollback(savepoint), monitor.stageListner(ROLLBACK));
+		exec(()-> cn.rollback(savepoint), monitor.stageListener(ROLLBACK));
 	}
 	
 	@Override
 	public DatabaseMetaData getMetaData() throws SQLException {
-		return new DatabaseMetaDataWrapper(call(cn::getMetaData, monitor.stageListner(METADATA)), monitor);
+		return new DatabaseMetaDataWrapper(call(cn::getMetaData, monitor.stageListener(METADATA)), monitor);
 	}
 	
 	@Override

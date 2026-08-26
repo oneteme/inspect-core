@@ -54,6 +54,6 @@ public class PreparedStatementWrapper extends StatementWrapper implements Prepar
 	
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
-		return call(ps::getMetaData, monitor.stageListner(METADATA));
+		return call(ps::getMetaData, monitor.stageListener(METADATA));
 	}
 }
