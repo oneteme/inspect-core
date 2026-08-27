@@ -4,11 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.usf.inspect.core.RequestCommonStatus.CONN_INTERRUPTED;
-import static org.usf.inspect.core.RequestCommonStatus.CONN_REFUSED;
-import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
+import static org.usf.inspect.core.StatefulExecutionListener.CONN_INTERRUPTED;
+import static org.usf.inspect.core.StatefulExecutionListener.CONN_REFUSED;
+import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
 import static org.usf.inspect.dir.DirectoryRequestListener.getEnvironmentVariable;
-import static org.usf.inspect.dir.DirectoryRequestListener.resolveStatus;
 
 import java.util.Hashtable;
 
@@ -22,21 +21,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import jakarta.mail.Message;
+
 class DirectoryRequestMonitorTest {
+	
+	private final DirectoryRequestListener listener = new DirectoryRequestListener();
 
     @Test
     void should_return_connection_unavailable_when_service_is_unavailable() {
-        assertEquals(CONN_REFUSED, resolveStatus(new ServiceUnavailableException("Server unavailable")));
+        assertEquals(CONN_REFUSED, listener.resolveStatus(new ServiceUnavailableException("Server unavailable")));
     }
 
     @Test
     void should_return_timeout_when_communication_exception_occurs() {
-        assertEquals(CONN_INTERRUPTED, resolveStatus(new CommunicationException("Read timed out")));
+        assertEquals(CONN_INTERRUPTED, listener.resolveStatus(new CommunicationException("Read timed out")));
     }
 
     @Test
     void should_return_connection_unavailable_when_interrupted() {
-        assertEquals(CONN_INTERRUPTED, resolveStatus(new InterruptedNamingException("Interrupted")));
+        assertEquals(CONN_INTERRUPTED, listener.resolveStatus(new InterruptedNamingException("Interrupted")));
     }
 
     @ParameterizedTest
@@ -46,12 +49,12 @@ class DirectoryRequestMonitorTest {
         "Some LDAP failure",
     })
     void should_extract_ldap_error_code() {
-        assertEquals(SERVER_ERROR, resolveStatus(new NamingException())); //TODO resolve vendor code
+        assertEquals(SERVER_ERROR, listener.resolveStatus(new NamingException())); //TODO resolve vendor code
     }
 
     @Test
     void should_return_unknown_error_for_unknown_exception() {
-        int ex = resolveStatus(new IllegalArgumentException("test"));
+        int ex = listener.resolveStatus(new IllegalArgumentException("test"));
         assertEquals(SERVER_ERROR, ex);
     }
 
@@ -68,5 +71,4 @@ class DirectoryRequestMonitorTest {
         when(context.getEnvironment()).thenReturn(null);
         assertNull(getEnvironmentVariable(context, "missing.key", Object::toString));
     }
-
 }

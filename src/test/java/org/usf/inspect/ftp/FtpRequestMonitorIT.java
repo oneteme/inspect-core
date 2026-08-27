@@ -1,5 +1,10 @@
 package org.usf.inspect.ftp;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.channels.SeekableByteChannel;
@@ -19,18 +24,15 @@ import org.apache.sshd.sftp.server.FileHandle;
 import org.apache.sshd.sftp.server.SftpFileSystemAccessor;
 import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 import org.apache.sshd.sftp.server.SftpSubsystemProxy;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.usf.inspect.core.RequestCommonStatus;
+import org.usf.inspect.core.StatefulExecutionListener;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 
 class FtpRequestMonitorIT {
@@ -159,7 +161,7 @@ class FtpRequestMonitorIT {
 
         // Vérifie le mapping effectué par FtpRequestMonitor
         assertEquals(
-        		RequestCommonStatus.CLIENT_UNAUTHORIZED,
+        		StatefulExecutionListener.CLIENT_UNAUTHORIZED,
                 monitor.resolveStatus(exception)
         );
 

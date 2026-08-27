@@ -23,7 +23,18 @@ public final class MailRequestSignal extends AbstractRequestSignal {
 		super(id, sessionId, start, threadName);
 	}
 
+	@Deprecated
 	public MailRequestUpdate createCallback() {
 		return new MailRequestUpdate(getId());
+	}
+
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(getStart())
+				.withThread(getThreadName())
+				.withUrlAsTopic(protocol, host, port, null, null)
+				.withUser(getUser())
+				.format();
 	}
 }

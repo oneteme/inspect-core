@@ -18,7 +18,9 @@ import lombok.Setter;
 public final class LocalRequestUpdate extends AbstractRequestUpdate implements AtomicTrace {
 
 	private Instant start; //real start
-	//private ExceptionInfo exception; 
+	
+	@Deprecated(forRemoval = true, since = "v1.2")
+	private ExceptionTrace exception; 
 
 	@JsonCreator
 	public LocalRequestUpdate(UUID id) {

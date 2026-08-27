@@ -33,7 +33,8 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	
 	//v1.2
 	@Setter private int status; //RequestCommonStatus
-//	@Setter private ExceptionInfo exception; //TD trace exception separately
+	@Deprecated(forRemoval = true, since = "1.2")
+	@Setter private ExceptionTrace exception; //TD trace exception separately
 	
 	public void setEnd(Instant end){
 		if(threadCount.get() > 0) {

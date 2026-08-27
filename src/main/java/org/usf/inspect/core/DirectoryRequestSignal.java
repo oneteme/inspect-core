@@ -26,4 +26,14 @@ public final class DirectoryRequestSignal extends AbstractRequestSignal {
 	public DirectoryRequestUpdate createCallback() {
 		return new DirectoryRequestUpdate(getId());
 	}
+
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(getStart())
+				.withThread(getThreadName())
+				.withUrlAsTopic(protocol, host, port, null, null)
+				.withUser(getUser())
+				.format();
+	}
 }

@@ -1,8 +1,12 @@
 package org.usf.inspect.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.RequestCommonStatus.*;
-import static org.usf.inspect.http.AbstractHttpRequestMonitor.resolveStatus;
+import static org.usf.inspect.core.StatefulExecutionListener.CLIENT_TIMEOUT;
+import static org.usf.inspect.core.StatefulExecutionListener.CONN_ERROR;
+import static org.usf.inspect.core.StatefulExecutionListener.CONN_INTERRUPTED;
+import static org.usf.inspect.core.StatefulExecutionListener.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
+import static org.usf.inspect.core.StatefulExecutionListener.SERVER_TIMEOUT;
 
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -11,49 +15,49 @@ import java.net.http.HttpTimeoutException;
 import java.nio.channels.UnresolvedAddressException;
 import java.util.concurrent.TimeoutException;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.usf.inspect.core.RequestCommonStatus;
 
 class AbstractHttpRequestMonitorTest {
 
+	HttpRequestListener listener = new HttpRequestListener();
+	
     @Test
     void shouldMapHttpTimeoutException() {
-        assertEquals(SERVER_TIMEOUT, resolveStatus(new HttpTimeoutException("timeout")));
+        assertEquals(SERVER_TIMEOUT, listener.resolveStatus(new HttpTimeoutException("timeout")));
     }
 
     @Test
     void shouldMapSocketTimeoutException() {
-        assertEquals(SERVER_TIMEOUT, resolveStatus(new SocketTimeoutException("timeout"))); //TODO : connect | read timeout
+        assertEquals(SERVER_TIMEOUT, listener.resolveStatus(new SocketTimeoutException("timeout"))); //TODO : connect | read timeout
     }
 
     @Test
     void shouldMapTimeoutException() {
-        assertEquals(CLIENT_TIMEOUT, resolveStatus(new TimeoutException("timeout")));
+        assertEquals(CLIENT_TIMEOUT, listener.resolveStatus(new TimeoutException("timeout")));
     }
 
     @Test
     void shouldMapInterruptedException() {
-        assertEquals(CONN_INTERRUPTED,resolveStatus(new InterruptedException("interrupted")));
+        assertEquals(CONN_INTERRUPTED,listener.resolveStatus(new InterruptedException("interrupted")));
     }
 
     @Test
     void shouldMapSocketException() {
-        assertEquals(CONN_ERROR, resolveStatus(new SocketException("connection reset")));
+        assertEquals(CONN_ERROR, listener.resolveStatus(new SocketException("connection reset")));
     }
 
     @Test
     void shouldMapUnknownHostException() {
-        assertEquals(CONN_UNKNOWN_HOST, resolveStatus(new UnknownHostException("unknown host")));
+        assertEquals(CONN_UNKNOWN_HOST, listener.resolveStatus(new UnknownHostException("unknown host")));
     }
 
     @Test
     void shouldMapUnresolvedAddressException() {
-        assertEquals(CONN_UNKNOWN_HOST, resolveStatus(new UnresolvedAddressException()));
+        assertEquals(CONN_UNKNOWN_HOST, listener.resolveStatus(new UnresolvedAddressException()));
     }
 
     @Test
     void shouldMapUnknownException() {
-        assertEquals(SERVER_ERROR, resolveStatus(new RuntimeException("boom")));
+        assertEquals(SERVER_ERROR, listener.resolveStatus(new RuntimeException("boom")));
     }
 }

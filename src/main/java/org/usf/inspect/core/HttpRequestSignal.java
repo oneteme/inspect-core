@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -30,15 +29,14 @@ public final class HttpRequestSignal extends AbstractRequestSignal {
 		super(id, sessionId, start, threadName);
 	}
 
-	public void setURI(URI uri) {
-		setProtocol(uri.getScheme());
-		setHost(uri.getHost());
-		setPort(uri.getPort());
-		setPath(uri.getPath());
-		setQuery(uri.getQuery());
-	}
-
-	public HttpRequestUpdate createCallback() {
-		return new HttpRequestUpdate(getId());
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(getStart())
+				.withThread(getThreadName())
+				.withAction(method)
+				.withUrlAsTopic(protocol, host, port, path, query)
+				.withUser(getUser())
+				.format();
 	}
 }

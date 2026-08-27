@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -17,11 +17,11 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@RequiredArgsConstructor
+@NoArgsConstructor
 public abstract class AbstractStage implements Metric {
 
-	private final UUID requestId;
-	private final int order; // stages has same start sometimes (duration=0)
+	private UUID requestId;
+	private int order; // stages has same start sometimes (duration=0)
 
 	private String name; // rename to type
 	private Instant start;
@@ -33,12 +33,17 @@ public abstract class AbstractStage implements Metric {
 	private StagePayload payload;
 //	private String threadName
 	
+	AbstractStage(UUID requestId, int order) {
+		this.requestId = requestId;
+		this.order = order;
+	}
+	
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()
 				.withAction(name)
 				.withArgsAsTopic(command, nonNull(payload) && nonNull(payload.getArgs()) ? payload.getArgs() : null)
-				.withPeriod(getStart(), getEnd())
+				.withPeriod(start, end)
 				.withResult(nonNull(payload) && nonNull(payload.getCount()) ? Arrays.toString(payload.getCount()) : null)
 				.format();
 	}

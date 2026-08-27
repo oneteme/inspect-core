@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.Getter;
 import lombok.Setter;
 
-
 /**
  * 
  * @author u$f
@@ -17,7 +16,6 @@ import lombok.Setter;
 @Setter
 public final class HttpRequestUpdate extends AbstractRequestUpdate {
 
-	//private int status; //2xx, 4xx, 5xx, 0 otherwise
 	private long dataSize; //in bytes, -1 unknown
 	private String contentType; //text/html, application/json, application/xml,.. in/out ?
 	private String contentEncoding; //gzip, compress, identity,..
@@ -27,10 +25,5 @@ public final class HttpRequestUpdate extends AbstractRequestUpdate {
 	@JsonCreator
 	public HttpRequestUpdate(UUID id) {
 		super(id);
-	}
-	
-	@Deprecated(forRemoval = true, since = "1.2")
-	public HttpRequestStage createStage(){
-		return new HttpRequestStage(getId(), getStageCounter().getAndIncrement());
 	}
 }

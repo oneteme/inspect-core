@@ -37,12 +37,14 @@ final class MailRequestListener extends StatefulExecutionListener<Transport> {
 	@Override
 	protected MailRequestSignal signal(Instant start, Transport cnx) {
 		var sgn = createMailSignal(start);
-		var url = cnx.getURLName();
-		if(nonNull(url)) {
-			sgn.setProtocol(url.getProtocol());
-			sgn.setHost(url.getHost());
-			sgn.setPort(url.getPort());
-			sgn.setUser(url.getUsername());
+		if(nonNull(cnx)) {
+			var url = cnx.getURLName();
+			if(nonNull(url)) {
+				sgn.setProtocol(url.getProtocol());
+				sgn.setHost(url.getHost());
+				sgn.setPort(url.getPort());
+				sgn.setUser(url.getUsername());
+			}
 		}
 		return sgn;
 	}
@@ -84,8 +86,7 @@ final class MailRequestListener extends StatefulExecutionListener<Transport> {
 	
 	<R> StageBuilder<R> stageBuilder(MailAction action, MailCommand cmd, Message msg) {
 		return (s,e,o,t)-> {
-			var upd = getTrace();
-			var stg = new MailRequestStage(upd.getId(), getStageCounter().incrementAndGet());
+			var stg = new MailRequestStage(getTrace().getId(), getStageCounter().incrementAndGet());
 			stg.setName(action.name());
 			stg.setStart(s);
 			stg.setEnd(e);

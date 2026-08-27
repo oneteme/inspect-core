@@ -28,7 +28,13 @@ public final class DatabaseRequestSignal extends AbstractRequestSignal {
 		super(id, sessionId, start, threadName);
 	}
 
-	public DatabaseRequestUpdate createCallback() {
-		return new DatabaseRequestUpdate(getId());
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(getStart())
+				.withThread(getThreadName())
+				.withUrlAsTopic(scheme, host, port, schema, null)
+				.withUser(getUser())
+				.format();
 	}
 }

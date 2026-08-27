@@ -4,10 +4,10 @@ import static java.lang.String.format;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionTrace.fromException;
-import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
-import static org.usf.inspect.core.RequestCommonStatus.SUCCESS;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
+import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
+import static org.usf.inspect.core.StatefulExecutionListener.SUCCESS;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
@@ -15,11 +15,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
 import org.usf.inspect.core.SafeCallable.SafeConsumer;
 
-import lombok.AccessLevel;
-import lombok.Getter;
 
 /**
  * 
@@ -110,57 +107,6 @@ public interface Monitor {
 			return false;
 		}
 		return true;
-	}
-	
-	public abstract class StatefulMonitor<T extends TraceSignal, V extends TraceUpdate> {
-		
-		@Getter(AccessLevel.PROTECTED) 
-		private V callback;
-		
-		protected abstract V createCallback(T session);
-
-		protected <R> ExecutionListener<R> traceBegin(Function<Instant, T> sessionFn, SafeBiConsumer<T, R> preProcess, ExecutionListener<? super R> after){
-			return (s,e,o,t)-> {
-				var session = sessionFn.apply(s); //session cannot be null
-				try {
-					preProcess.accept(session, o);
-				}
-				catch (Exception ex) {
-					hub().reportError(true, this.getClass().getSimpleName() + ".traceBegin", ex);
-				}
-				hub().emitTrace(session);
-				callback = createCallback(session); //cannot be null
-				if(nonNull(after)) {
-					after.safeHandle(s, e, o, t);
-				}
-				if(nonNull(t)) { // if connection error
-					traceEnd(null).handle(s, e, null, t);
-				}
-			};
-		}
-		
-		protected <R> ExecutionListener<R> traceStep(StageBuilder<R> stageFn){
-			return (s,e,o,t)-> {
-				if(assertStillOpened(callback, this.getClass().getSimpleName() + ".traceStep")) {
-					var stg = stageFn.newStage(s, e, o, t);
-					if(nonNull(stg)) {
-						hub().emitTrace(stg);
-					}
-				}
-			};
-		}
-		
-		protected <R> ExecutionListener<R> traceEnd(ExecutionListener<? super R> after){
-			return (s,e,o,t)-> {
-				if(assertStillOpened(callback, this.getClass().getSimpleName() + ".traceEnd")) {
-					if(nonNull(after)) {
-						after.safeHandle(s, e, o, t);
-					}
-					callback.setEnd(e);
-					hub().emitTrace(callback);
-				}
-			};
-		}
 	}
 	
 	public interface StageBuilder<R> {

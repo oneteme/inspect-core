@@ -1,5 +1,10 @@
 package org.usf.inspect.jdbc;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.usf.inspect.core.StatefulExecutionListener.CLIENT_CONFLICT;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -9,11 +14,6 @@ import org.h2.tools.Server;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.usf.inspect.core.RequestCommonStatus;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.usf.inspect.core.RequestCommonStatus.CLIENT_CONFLICT;
-import static org.usf.inspect.core.RequestCommonStatus.SERVER_ERROR;
 
 
 
@@ -76,8 +76,8 @@ class DatabaseSqlExceptionIT {
                             """)
                     );
 
-            DatabaseRequestMonitor monitor =
-                    new DatabaseRequestMonitor(
+            DatabaseRequestListener monitor =
+                    new DatabaseRequestListener(
                             new ConnectionMetadataCache()
                     );
 
@@ -108,8 +108,8 @@ class DatabaseSqlExceptionIT {
                             """)
                     );
 
-            DatabaseRequestMonitor monitor =
-                    new DatabaseRequestMonitor(
+            DatabaseRequestListener monitor =
+                    new DatabaseRequestListener(
                             new ConnectionMetadataCache()
                     );
 

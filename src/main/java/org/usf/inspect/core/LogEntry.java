@@ -23,7 +23,7 @@ public final class LogEntry implements EventTrace {
 	private final Level level; //type
 	private final String message;
 	private final StackTraceRow[] stackRows;
-	private UUID sessionId; //nullable
+	private UUID sessionId; //optional
 	private UUID instanceId; //server usage 
 	
 	@Override

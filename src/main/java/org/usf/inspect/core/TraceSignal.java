@@ -10,7 +10,4 @@ import java.time.Instant;
 public interface TraceSignal extends TracePart {
 
 	Instant getStart();
-	
-	TraceUpdate createCallback(); //TODO rename -> update
-	
 }

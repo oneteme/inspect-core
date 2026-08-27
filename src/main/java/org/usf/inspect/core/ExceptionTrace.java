@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 /**
  * 
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @Getter
+@Setter
 @RequiredArgsConstructor
 public final class ExceptionTrace implements EventTrace {
 	
@@ -23,8 +25,8 @@ public final class ExceptionTrace implements EventTrace {
 	private final StackTraceRow[] stackTraceRows; //optional, can be null
 	private final ExceptionTrace cause; //optional, can be null
 	//v1.2
-	private final UUID traceId; //request | session
-	private final int offset; //order | duration
+	private UUID traceId; //request | session
+	private int offset; //order | duration
 	
 	@Override
 	public String toString() {

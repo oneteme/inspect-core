@@ -2,8 +2,9 @@ package org.usf.inspect.mail;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.usf.inspect.core.RequestCommonStatus.*;
-import static org.usf.inspect.mail.MailRequestListener.resolveStatus;
+import static org.usf.inspect.core.StatefulExecutionListener.CLIENT_UNAUTHORIZED;
+import static org.usf.inspect.core.StatefulExecutionListener.CONN_ERROR;
+import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
 
 import java.net.SocketException;
 import java.util.Properties;
@@ -25,32 +26,34 @@ import jakarta.mail.internet.MimeMessage;
 
 class MailRequestMonitorTest {
 
+	private final MailRequestListener listener = new MailRequestListener();
+	
     @RegisterExtension
     static GreenMailExtension greenMail = new GreenMailExtension(ServerSetupTest.SMTP);
 
     @Test
     void should_extract_smtp_code_from_messaging_exception() {
-        assertEquals(SERVER_ERROR, resolveStatus(new MessagingException("SMTP error 550 Mailbox unavailable")));
+        assertEquals(SERVER_ERROR, listener.resolveStatus(new MessagingException("SMTP error 550 Mailbox unavailable")));
     }
 
     @Test
     void should_return_unknown_when_messaging_exception_has_no_smtp_code() {
-        assertEquals(SERVER_ERROR, resolveStatus(new MessagingException("Connection failed")));
+        assertEquals(SERVER_ERROR, listener.resolveStatus(new MessagingException("Connection failed")));
     }
 
     @Test
     void should_return_connection_unavailable_when_message_is_null() {
-        assertEquals(SERVER_ERROR, resolveStatus(new MessagingException()));
+        assertEquals(SERVER_ERROR, listener.resolveStatus(new MessagingException()));
     }
 
     @Test
     void should_return_connection_unavailable_for_socket_exception() {
-        assertEquals(CONN_ERROR, resolveStatus(new SocketException("Connection reset")));
+        assertEquals(CONN_ERROR, listener.resolveStatus(new SocketException("Connection reset")));
     }
 
     @Test
     void should_return_authentication_error() {
-        assertEquals(CLIENT_UNAUTHORIZED, resolveStatus(new AuthenticationFailedException("bad credentials")));
+        assertEquals(CLIENT_UNAUTHORIZED, listener.resolveStatus(new AuthenticationFailedException("bad credentials")));
     }
 
     @Test //TODO : what for ??

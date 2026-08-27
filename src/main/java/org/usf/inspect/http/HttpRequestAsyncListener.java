@@ -5,7 +5,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.HttpAction.ASSEMBLY;
 import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.STREAM;
-import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
@@ -13,6 +12,7 @@ import java.time.Instant;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.usf.inspect.core.HttpAction;
+import org.usf.inspect.core.HttpRequestSignal;
 import org.usf.inspect.core.HttpRequestStage;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
@@ -21,48 +21,50 @@ import org.usf.inspect.core.InspectExecutor.ExecutionListener;
  * @author u$f
  *
  */
-final class HttpRequestAsyncMonitor extends AbstractHttpRequestMonitor {
+final class HttpRequestAsyncListener extends AbstractHttpRequestListener<ClientRequest> {
 
 	private volatile Instant lastTimestamp;
 	
-	public ExecutionListener<Object> preExchange(ClientRequest client) {
-		return traceBegin(t-> 
-			createHttpRequest(t, getId()),
-			(req,o)-> fillRequest(req, client.method(), client.url(), client.headers()), //before end if thrw
-			traceStep((s,e,o,t)-> createStage(ASSEMBLY, s, e, t)));
+	@Override
+	protected HttpRequestSignal signal(Instant start, ClientRequest cnx) throws Exception {
+		return signal(start, cnx.method(), cnx.url(), cnx.headers());
+	}
+	
+	public ExecutionListener<Object> assemblyStageListener(ClientRequest client) {
+		return connectionListener((s,e,o,t)-> createStage(ASSEMBLY, s, e), v-> client);
 	}
 
-	public void postExchange(ClientResponse res, Throwable thrw) {
+	public void exchangeStage(ClientResponse res, Throwable thrw) {
 		var now = systemUTC().instant();
 		if(nonNull(res)) {
 			try {
-				postExchange(res.statusCode(), res.headers().asHttpHeaders(), thrw);
+				traceHeaders(res.statusCode(), res.headers().asHttpHeaders());
 			}
 			catch (Exception ex) {
 				hub().reportError(true, "HttpRequestAsyncMonitor.postExchange", ex);
 			}
 		}
-		traceStep((s,e,o,t)-> createStage(EXCHANGE, s, e, t)).safeHandle(lastTimestamp, now, null, thrw);
+		stageListener((s,e,o,t)-> createStage(EXCHANGE, s, e)).safeHandle(lastTimestamp, now, null, thrw);
 	}
 	
-	public void postResponse(Instant start, Instant end, ResponseContent ctn, Throwable thrw){ //read header after response
+	public void streamStage(Instant start, Instant end, ResponseContent ctn, Throwable thrw){ //read header after response
 		try {
-			super.postResponse(ctn);
+			traceResponseContent(ctn);
 		}
 		catch (Exception ex) {
 			hub().reportError(true, "HttpRequestAsyncMonitor.postResponse", ex);
 		}
-		traceStep((s,e,o,t)-> createStage(STREAM, s, e, t)).safeHandle(start, end, null, thrw);
+		stageListener((s,e,o,t)-> createStage(STREAM, s, e)).safeHandle(start, end, null, thrw);
 	}
 		
 	public void complete() {
 		var now = systemUTC().instant();
-		traceEnd(null).safeHandle(lastTimestamp, now, null, null);
+		disconnectionListener(null).safeHandle(lastTimestamp, now, null, null);
 	}
 	
 	@Override
-	HttpRequestStage createStage(HttpAction action, Instant start, Instant end, Throwable thrw) {
+	HttpRequestStage createStage(HttpAction action, Instant start, Instant end) {
 		lastTimestamp = end; //host last stage end
-		return super.createStage(action, start, end, thrw);
+		return super.createStage(action, start, end);
 	}
 }

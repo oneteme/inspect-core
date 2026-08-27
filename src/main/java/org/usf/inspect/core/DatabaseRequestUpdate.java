@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.Getter;
 import lombok.Setter;
 
-
 /**
  * 
  * @author u$f

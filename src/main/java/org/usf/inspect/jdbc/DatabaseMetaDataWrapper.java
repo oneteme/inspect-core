@@ -1,6 +1,5 @@
 package org.usf.inspect.jdbc;
 
-import static org.usf.inspect.core.DatabaseAction.EXECUTE;
 import static org.usf.inspect.core.DatabaseCommand.GET;
 import static org.usf.inspect.core.InspectExecutor.call;
 
@@ -22,7 +21,7 @@ public final class DatabaseMetaDataWrapper implements DatabaseMetaData {
 	
 	@Delegate
 	private final DatabaseMetaData meta;
-	private final DatabaseRequestMonitor monitor;
+	private final DatabaseRequestListener monitor;
 	
 	@Override
 	public Connection getConnection() throws SQLException {
@@ -31,71 +30,71 @@ public final class DatabaseMetaDataWrapper implements DatabaseMetaData {
 	
 	@Override
 	public String getDatabaseProductName() throws SQLException {
-		return call(meta::getDatabaseProductName, monitor.stageListner(EXECUTE, GET, "PRODUCT"));
+		return call(meta::getDatabaseProductName, monitor.executeStageListener(GET, "PRODUCT"));
 	}
 	
 	@Override
 	public String getDatabaseProductVersion() throws SQLException {
-		return call(meta::getDatabaseProductVersion, monitor.stageListner(EXECUTE, GET, "PRODUCT"));
+		return call(meta::getDatabaseProductVersion, monitor.executeStageListener(GET, "PRODUCT"));
 	}
 	
 	@Override
 	public String getDriverName() throws SQLException {
-		return call(meta::getDriverName, monitor.stageListner(EXECUTE, GET, "DRIVER"));
+		return call(meta::getDriverName, monitor.executeStageListener(GET, "DRIVER"));
 	}
 	
 	@Override
 	public String getDriverVersion() throws SQLException {
-		return call(meta::getDriverVersion, monitor.stageListner(EXECUTE, GET, "DRIVER"));
+		return call(meta::getDriverVersion, monitor.executeStageListener(GET, "DRIVER"));
 	}
 	
 	@Override
 	public ResultSet getCatalogs() throws SQLException {
-		return new ResultSetWrapper(call(meta::getCatalogs, monitor.stageListner(EXECUTE, GET, "CATALOG")), monitor);
+		return new ResultSetWrapper(call(meta::getCatalogs, monitor.executeStageListener(GET, "CATALOG")), monitor);
 	}
 	
 	@Override
 	public ResultSet getSchemas() throws SQLException {
-		return new ResultSetWrapper(call(meta::getSchemas, monitor.stageListner(EXECUTE, GET, "SCHEMA")), monitor);
+		return new ResultSetWrapper(call(meta::getSchemas, monitor.executeStageListener(GET, "SCHEMA")), monitor);
 	}
 	
 	@Override
 	public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
-		return new ResultSetWrapper(call(()-> meta.getSchemas(catalog, schemaPattern), monitor.stageListner(EXECUTE, GET, "SCHEMA")), monitor);
+		return new ResultSetWrapper(call(()-> meta.getSchemas(catalog, schemaPattern), monitor.executeStageListener(GET, "SCHEMA")), monitor);
 	}
 
 	@Override
 	public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
-		return new ResultSetWrapper(call(()-> meta.getTables(catalog, schemaPattern, tableNamePattern, types), monitor.stageListner(EXECUTE, GET, "TABLE")), monitor);
+		return new ResultSetWrapper(call(()-> meta.getTables(catalog, schemaPattern, tableNamePattern, types), monitor.executeStageListener(GET, "TABLE")), monitor);
 	}
 	
 	@Override
 	public ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException {
-		return new ResultSetWrapper(call(()-> meta.getTablePrivileges(catalog, schemaPattern, tableNamePattern), monitor.stageListner(EXECUTE, GET, "TABLE")), monitor);
+		return new ResultSetWrapper(call(()-> meta.getTablePrivileges(catalog, schemaPattern, tableNamePattern), monitor.executeStageListener(GET, "TABLE")), monitor);
 	}
 	
 	@Override
 	public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-		return new ResultSetWrapper(call(()-> meta.getColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern), monitor.stageListner(EXECUTE, GET, "COLUMN")), monitor);
+		return new ResultSetWrapper(call(()-> meta.getColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern), monitor.executeStageListener(GET, "COLUMN")), monitor);
 	}
 	
 	@Override
 	public ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException {
-		return new ResultSetWrapper(call(()-> meta.getColumnPrivileges(catalog, schema, table, columnNamePattern), monitor.stageListner(EXECUTE, GET, "COLUMN")), monitor);
+		return new ResultSetWrapper(call(()-> meta.getColumnPrivileges(catalog, schema, table, columnNamePattern), monitor.executeStageListener(GET, "COLUMN")), monitor);
 	}
 	
 	@Override
 	public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
-		return new ResultSetWrapper(call(()-> meta.getPrimaryKeys(catalog, schema, table), monitor.stageListner(EXECUTE, GET, "KEYS")), monitor);
+		return new ResultSetWrapper(call(()-> meta.getPrimaryKeys(catalog, schema, table), monitor.executeStageListener(GET, "KEYS")), monitor);
 	}
 	
 	@Override
 	public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-		return new ResultSetWrapper(call(()-> meta.getImportedKeys(catalog, schema, table), monitor.stageListner(EXECUTE, GET, "KEYS")), monitor);
+		return new ResultSetWrapper(call(()-> meta.getImportedKeys(catalog, schema, table), monitor.executeStageListener(GET, "KEYS")), monitor);
 	}
 	
 	@Override
 	public ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException {
-		return new ResultSetWrapper(call(()-> meta.getExportedKeys(catalog, schema, table), monitor.stageListner(EXECUTE, GET, "KEYS")), monitor);
+		return new ResultSetWrapper(call(()-> meta.getExportedKeys(catalog, schema, table), monitor.executeStageListener(GET, "KEYS")), monitor);
 	}
 }

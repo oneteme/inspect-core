@@ -1,4 +1,3 @@
-
 package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
@@ -20,11 +19,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class InspectExecutor {
 
-	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionListener<? super Void> handler) throws E {
-		call(fn, handler);
+	public static <E extends Throwable> void exec(SafeRunnable<E> fn, ExecutionListener<? super Void> listener) throws E {
+		call(fn, listener);
 	}
 
-	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionListener<? super T> handler) throws E {
+	public static <T, E extends Throwable> T call(SafeCallable<T,E> fn, ExecutionListener<? super T> listener) throws E {
 		T o = null;
 		Throwable t = null;
 		var s = systemUTC().instant();
@@ -36,8 +35,12 @@ public final class InspectExecutor {
 			throw e;
 		}
 		finally {
-			if(nonNull(handler)) {
-				handler.safeHandle(s, systemUTC().instant(), o, t);
+			var e = systemUTC().instant();
+			if(nonNull(listener)) {
+				listener.safeHandle(s, e, o, t);
+			}
+			else {
+				hub().reportMessage(true, "InspectExecutor.call", "listener is null");
 			}
 		}
 	}
@@ -47,24 +50,13 @@ public final class InspectExecutor {
 		
 		void handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception;
 
-		default void safeHandle(Instant start, Instant end, T res, Throwable thrw) {
+		default void safeHandle(Instant start, Instant end, T obj, Throwable thrw) {
 			try {
-				handle(start, end, res, thrw);
+				handle(start, end, obj, thrw);
 			}
 			catch (Throwable ex) {// do not throw exception
-				hub().reportError(true, "InspectExecutor.safeHandle", ex);
+				hub().reportError(true, "ExecutionListener.safeHandle", ex);
 			}
-		}
-		
-		default ExecutionListener<T> thenHandle(ExecutionListener<? super T> next) {
-			if(nonNull(next)) {
-				return (s,e,o,t)-> {
-					handle(s,e,o,t);
-					next.handle(s,e,o,t);
-				};
-			}
-			hub().reportError(true, "InspectExecutor.thenHandle", new NullPointerException("next is null"));
-			return this;
 		}
 	}
 }

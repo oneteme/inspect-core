@@ -41,7 +41,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection> {
+final class DatabaseRequestListener extends StatefulExecutionListener<Connection> {
 
 	private final ConnectionMetadataCache cache; //required
 
@@ -49,7 +49,7 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 	private DatabaseCommand mainCommand;
 	private DatabaseRequestStage lastExec; // hold last stage
 	
-	BatchStageHandler batchHandler = null;
+	BatchStageBuilder batchStageBuilder;
 	
 	@Override
 	protected DatabaseRequestSignal signal(Instant start, Connection cnx) throws SQLException {
@@ -95,15 +95,15 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 	    };
 	}
 	
-	public ExecutionListener<Connection> connectionHandler() {
+	public ExecutionListener<Connection> connectionListener() {
 		return connectionListener(stageBuilder(CONNECTION, null));
 	}
 	
-	public ExecutionListener<Object> disconnectionHandler() {
+	public ExecutionListener<Object> disconnectionListener() {
 		return disconnectionListener(stageBuilder(DISCONNECTION, null));
 	}
 
-	public ExecutionListener<Object> statementStageHandler(String sql) {
+	public ExecutionListener<Object> statementStageListener(String sql) {
 		mainCommand = null; //rest
 		if(nonNull(sql)) {
 			prepared = true;
@@ -112,35 +112,35 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 		return stageListener(STATEMENT);
 	}
 
-	public ExecutionListener<Void> addBatchStageHandler(String sql) {
+	public ExecutionListener<Void> addBatchStageListener(String sql) {
 		if(nonNull(sql)) {
 			parseAndMergeCommand(sql);
 		}
-		if(isNull(batchHandler)) {
-			batchHandler = new BatchStageHandler(); 
+		if(isNull(batchStageBuilder)) {
+			batchStageBuilder = new BatchStageBuilder(); 
 		}
-		return stageListener(batchHandler);
+		return stageListener(batchStageBuilder);
 	}
 	
-	public ExecutionListener<ResultSet> executeQueryStageHandler(String sql) {
-		return executeStageHandler(sql, rs-> null); // no count 
+	public ExecutionListener<ResultSet> executeQueryStageListener(String sql) {
+		return executeStageListener(sql, rs-> null); // no count 
 	}
 
-	public ExecutionListener<Boolean> executeStageHandler(String sql) {
-		return executeStageHandler(sql, b-> null); //-1 if select, cannot call  getUpdateCount
+	public ExecutionListener<Boolean> executeStageListener(String sql) {
+		return executeStageListener(sql, b-> null); //-1 if select, cannot call  getUpdateCount
 	}
 
-	public ExecutionListener<Integer> executeUpdateStageHandler(String sql) {
-		return executeStageHandler(sql, n-> new long[] {n});
+	public ExecutionListener<Integer> executeUpdateStageListener(String sql) {
+		return executeStageListener(sql, n-> new long[] {n});
 	}
 
-	public ExecutionListener<Long> executeLargeUpdateStageHandler(String sql) {
-		return executeStageHandler(sql, n-> new long[] {n});
+	public ExecutionListener<Long> executeLargeUpdateStageListener(String sql) {
+		return executeStageListener(sql, n-> new long[] {n});
 	}
 
-	public ExecutionListener<int[]> executeBatchStageHandler(){
+	public ExecutionListener<int[]> executeBatchStageListener(){
 		emitBatchStage(); //before batch execute
-		return executeStageHandler(null, arr-> {
+		return executeStageListener(null, arr-> {
 			if(arr.length > 1) { 
 				var i=0;
 				while(++i<arr.length && arr[i]==arr[0]);
@@ -152,9 +152,9 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 		});
 	}
 
-	public ExecutionListener<long[]> executeLargeBatchStageHandler() {
+	public ExecutionListener<long[]> executeLargeBatchStageListener() {
 		emitBatchStage(); //before batch execute
-		return executeStageHandler(null, arr-> {
+		return executeStageListener(null, arr-> {
 			if(arr.length > 1) {
 				var i=0;
 				while(++i<arr.length && arr[i]==arr[0]);
@@ -167,16 +167,16 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 	}
 	
 	void emitBatchStage() { //wait for last addBatch
-		if(nonNull(batchHandler)) { //batch & largeBatch
-			hub().emitTrace(batchHandler.getStage());
-			batchHandler = null;
+		if(nonNull(batchStageBuilder)) { //batch & largeBatch
+			hub().emitTrace(batchStageBuilder.getStage());
+			batchStageBuilder = null;
 		}
 		else {
 			hub().reportMessage(false, "emitBatchStage", "empty batch or already traced");
 		}
 	}
 
-	private <T> ExecutionListener<T> executeStageHandler(String sql, Function<T, long[]> countFn) {
+	private <T> ExecutionListener<T> executeStageListener(String sql, Function<T, long[]> countFn) {
 		if(nonNull(sql)) { //statement
 			parseAndMergeCommand(sql); //command set on exec stg
 		}
@@ -207,11 +207,15 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 		}
 	}
 
-	public <T> ExecutionListener<T> fetch(Instant start, int n) {
+	public <T> ExecutionListener<T> fetchStageListener(Instant start, int n) {
 		return stageListener((s,e,o,t)-> createStage(start, e, FETCH, null, new long[] {n})); //differed start
 	}
 	
-	<T> ExecutionListener<T> stageListener(DatabaseAction action, String... args) {
+	public <T> ExecutionListener<T> executeStageListener(DatabaseCommand cmd, String... args) {
+		return stageListener(stageBuilder(EXECUTE, cmd, args));
+	}
+	
+	public <T> ExecutionListener<T> stageListener(DatabaseAction action, String... args) {
 		return stageListener(stageBuilder(action, null, args));
 	}
 
@@ -262,7 +266,7 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 	}
 	
 	@Getter
-	final class BatchStageHandler implements StageBuilder<Void> {
+	final class BatchStageBuilder implements StageBuilder<Void> {
 
 		private DatabaseRequestStage stage;
 		
@@ -276,7 +280,7 @@ final class DatabaseRequestMonitor extends StatefulExecutionListener<Connection>
 				stage.setEnd(end); //optim this	
 			}	
 			if(nonNull(thrw)) {
-				batchHandler = null; //reset batching trace
+				batchStageBuilder = null; //reset batching trace
 				return stage;
 			}
 			return null;

@@ -22,34 +22,34 @@ public class PreparedStatementWrapper extends StatementWrapper implements Prepar
 	@Delegate(excludes = Statement.class)
 	private final PreparedStatement ps;
 
-	public PreparedStatementWrapper(PreparedStatement ps, DatabaseRequestMonitor tracer) {
+	public PreparedStatementWrapper(PreparedStatement ps, DatabaseRequestListener tracer) {
 		super(ps, tracer);
 		this.ps = ps;
 	}
 
 	@Override
 	public void addBatch() throws SQLException {
-		exec(ps::addBatch, monitor.addBatchStageHandler(null));
+		exec(ps::addBatch, monitor.addBatchStageListener(null));
 	}
 	
 	@Override
 	public boolean execute() throws SQLException {
-		return call(ps::execute, monitor.executeStageHandler(null));
+		return call(ps::execute, monitor.executeStageListener(null));
 	}
 	
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		return new ResultSetWrapper(call(ps::executeQuery, monitor.executeQueryStageHandler(null)), monitor);
+		return new ResultSetWrapper(call(ps::executeQuery, monitor.executeQueryStageListener(null)), monitor);
 	}
 	
 	@Override
 	public int executeUpdate() throws SQLException {
-		return call(ps::executeUpdate, monitor.executeUpdateStageHandler(null));
+		return call(ps::executeUpdate, monitor.executeUpdateStageListener(null));
 	}
 	
 	@Override
 	public long executeLargeUpdate() throws SQLException {
-		return call(ps::executeLargeUpdate, monitor.executeLargeUpdateStageHandler(null));
+		return call(ps::executeLargeUpdate, monitor.executeLargeUpdateStageListener(null));
 	}
 	
 	@Override

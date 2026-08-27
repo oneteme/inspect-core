@@ -30,4 +30,15 @@ public class AbstractSessionSignal implements TraceSignal {
 	public void setLocation(String className, String methodName) {
 		this.location = formatLocation(className, methodName);
 	}
+
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(start)
+				.withThread(threadName)
+				.withAction(name)
+				.withUser(user)
+				.withArgsAsTopic(location, null)
+				.format();
+	}
 }

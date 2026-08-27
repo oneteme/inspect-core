@@ -47,4 +47,15 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 	public HttpSessionUpdate createCallback() {
 		return new HttpSessionUpdate(getId());
 	}
+
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(getStart())
+				.withThread(getThreadName())
+				.withAction(method)
+				.withUrlAsTopic(protocol, host, port, path, query)
+				.withUser(getUser())
+				.format();
+	}
 }

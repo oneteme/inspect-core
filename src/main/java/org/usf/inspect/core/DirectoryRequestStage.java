@@ -1,8 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
-
-import java.util.Arrays;
 import java.util.UUID;
 
 import lombok.Getter;
@@ -23,14 +20,5 @@ public class DirectoryRequestStage extends AbstractStage {
 	public DirectoryRequestStage(UUID requestId, int order) {
 		super(requestId, order);
 	}
-	
-	@Override
-	public String toString() {
-		return new EventTraceFormatter()
-		.withAction(getName())
-		.withArgsAsTopic(getCommand(), args)
-		.withPeriod(getStart(), getEnd())
-		.withResult(nonNull(args) ? Arrays.toString(args) : getException())
-		.format();
-	}	
+
 }

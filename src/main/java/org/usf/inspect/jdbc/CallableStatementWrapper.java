@@ -14,7 +14,7 @@ public class CallableStatementWrapper extends PreparedStatementWrapper implement
 	@Delegate
 	private final CallableStatement cs;
 
-	public CallableStatementWrapper(CallableStatement cs, DatabaseRequestMonitor monitor) {
+	public CallableStatementWrapper(CallableStatement cs, DatabaseRequestListener monitor) {
 		super(cs, monitor);
 		this.cs = cs;
 	}

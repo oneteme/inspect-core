@@ -26,7 +26,7 @@ public final class MachineResourceUsage implements EventTrace {
 	private final int usedDiskSpace;
 	//1.2
 	private final int activeThreadCount;
-	private final int strartedThreadCount;
+	private final int startedThreadCount;
 	private final int cpuUsage;
 
 	//server usage 
@@ -38,8 +38,8 @@ public final class MachineResourceUsage implements EventTrace {
 		return new EventTraceFormatter()
 		.withAction("METRIC")
 		.withInstant(instant)
-		.withMessageAsTopic(format("heap: %d/%d | disk:%d", 
-				usedHeap, commitedHeap, usedDiskSpace))
+		.withMessageAsTopic(format("heap: %d/%d | disk:%d | threads:%d/%d | cpu:%d%%", 
+				usedHeap, commitedHeap, usedDiskSpace, activeThreadCount, startedThreadCount, cpuUsage))
 		.format();
 	}
 }

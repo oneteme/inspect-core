@@ -26,9 +26,9 @@ public final class MailRequestStage extends AbstractStage {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withAction(getName())
-		.withArgsAsTopic(getCommand(), nonNull(mail) ? new Object[] {mail.getSubject()} : null)
+		.withArgsAsTopic(getCommand(), nonNull(getPayload()) && nonNull(getPayload().getArgs()) ? getPayload().getArgs() : null)
 		.withPeriod(getStart(), getEnd())
-		.withResult(getException())
+		.withResult(nonNull(mail) ? mail.getSubject() : null)
 		.format();
 	}
 }
