@@ -20,35 +20,40 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @see constructor
 	
 	@Delegate
 	private final Transport trsp;
-	private final MailRequestListener monitor = new MailRequestListener();
+	private final MailRequestListener listener;
+
+	public TransportWrapper(Transport trsp) {
+		this.trsp = trsp;
+		this.listener = new MailRequestListener();
+	}
 	
 	public void connect() throws MessagingException {
-		exec(trsp::connect, monitor.connectionListener(trsp));
+		exec(trsp::connect, listener.connectionListener(trsp));
 	}
 
 	public void connect(String user, String password) throws MessagingException {
-		exec(()-> trsp.connect(user, password), monitor.connectionListener(trsp));
+		exec(()-> trsp.connect(user, password), listener.connectionListener(trsp));
 	}
 
 	public void connect(String host, String user, String password) throws MessagingException {
-		exec(()-> trsp.connect(host, user, password), monitor.connectionListener(trsp));
+		exec(()-> trsp.connect(host, user, password), listener.connectionListener(trsp));
 	}
 	
 	public void connect(String arg0, int arg1, String arg2, String arg3) throws MessagingException {
-		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), monitor.connectionListener(trsp));
+		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), listener.connectionListener(trsp));
 	}
 	
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
-		exec(()-> trsp.sendMessage(arg0, arg1), monitor.executeStageListener(SEND, arg0));
+		exec(()-> trsp.sendMessage(arg0, arg1), listener.executeStageListener(SEND, arg0));
 	}
 
 	public void close() throws MessagingException {
-		exec(trsp::close, monitor.disconnectionListener());
+		exec(trsp::close, listener.disconnectionListener());
 	}
 
 	public static TransportWrapper wrap(Transport trsp) {

@@ -34,7 +34,7 @@ public class AbstractRequestUpdate implements TraceUpdate, HasStage {
 	public String toString() {
 		return new EventTraceFormatter()
 				.withInstant(end)
-				.withAction(command)
+//				.withAction(command)
 				.withMessageAsTopic(id.toString())
 				.withStatus(getStatus()+"")
 				.format();

@@ -27,7 +27,7 @@ public final class Helper {
 	private static final String ROOT_PACKAGE = Helper.class.getPackageName();
 	
 	public static String threadName() {
-		var t = currentThread();
+		var t = currentThread(); //java17 ?
 		return t.isVirtual() ?  ""+t.threadId() : t.getName();
 	}
 	

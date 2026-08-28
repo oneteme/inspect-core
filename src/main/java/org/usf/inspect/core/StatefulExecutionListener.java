@@ -15,6 +15,7 @@ import org.usf.inspect.core.Monitor.StageBuilder;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 
@@ -22,6 +23,7 @@ import lombok.Getter;
  *
  */
 @Getter(AccessLevel.PROTECTED)
+@RequiredArgsConstructor
 public abstract class StatefulExecutionListener<T> {
 
     public static final int CONN_ERROR   		= 0; // Generic I/O or Transport failure
@@ -29,6 +31,7 @@ public abstract class StatefulExecutionListener<T> {
     public static final int CONN_REFUSED       	= 2; // Connection refused or unreachable
     public static final int CONN_INTERRUPTED   	= 3; // Connection interrupted or cancelled
     public static final int CONN_TIMEOUT       	= 4; // Connection establishment timeout
+    public static final int CONN_SSL_ERROR      = 5; // SSL/TLS handshake or certificate failure
 
     public static final int SUCCESS            	= 200; // Success / OK
 
@@ -44,6 +47,11 @@ public abstract class StatefulExecutionListener<T> {
 	
 	private TraceUpdate trace;
 	private Instant start;
+	private final TraceHub hub;
+	
+	protected StatefulExecutionListener() {
+		this.hub = hub();
+	}
 	
 	protected abstract TraceSignal signal(Instant start, T cnx) throws Exception;
 	
@@ -77,6 +85,8 @@ public abstract class StatefulExecutionListener<T> {
 	        case java.lang.InterruptedException e -> CONN_INTERRUPTED;
 	        case java.util.concurrent.CancellationException e -> CONN_INTERRUPTED;
 	        
+	        case javax.net.ssl.SSLException e-> CONN_SSL_ERROR; 
+	        
 	        case java.io.IOException e -> CONN_ERROR;
 
 	        default -> SERVER_ERROR;
@@ -97,7 +107,7 @@ public abstract class StatefulExecutionListener<T> {
 			var cnx = mapper.apply(o);
 			var sgn = signal(s, cnx);
 			if(nonNull(sgn)) {
-				hub().emitTrace(sgn);
+				this.hub.emitTrace(sgn);
 				this.trace = update(sgn);
 				this.trace.setStatus(-1); //initial status
 				if(nonNull(stgBuilder)) {
@@ -118,11 +128,11 @@ public abstract class StatefulExecutionListener<T> {
 			if(nonNull(trace)) {
 				var stg = stgBuilder.newStage(s, e, o, t);
 				if(nonNull(stg)) {
-					hub().emitTrace(stg);
+					this.hub.emitTrace(stg);
 					if(nonNull(t)) {
 						var ex = exception(t, stg.getOrder());
 						if(nonNull(ex)) {
-							hub().emitTrace(ex);
+							this.hub.emitTrace(ex);
 						}
 					}
 				}
@@ -144,7 +154,7 @@ public abstract class StatefulExecutionListener<T> {
 						trace.setStatus(SUCCESS);
 					}
 					trace.setEnd(e);
-					hub().emitTrace(trace);
+					this.hub.emitTrace(trace);
 				}
 				else {
 					reportTraceIsNull("disconnectionListener");
@@ -167,6 +177,6 @@ public abstract class StatefulExecutionListener<T> {
 	}
 	
 	protected void report(String action, String msg) {
-		hub().reportMessage(true, this.getClass().getSimpleName() + "." + action, msg);
+		this.hub.reportMessage(true, this.getClass().getSimpleName() + "." + action, msg);
 	}
 }

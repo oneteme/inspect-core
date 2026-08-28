@@ -20,20 +20,27 @@ import org.usf.inspect.core.MailRequestStage;
 import org.usf.inspect.core.MailRequestUpdate;
 import org.usf.inspect.core.Monitor.StageBuilder;
 import org.usf.inspect.core.StatefulExecutionListener;
+import org.usf.inspect.core.TraceHub;
 import org.usf.inspect.core.TraceSignal;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Transport;
+import lombok.NoArgsConstructor;
 
 /**
  * 
  * @author u$f
  *
  */
+@NoArgsConstructor
 final class MailRequestListener extends StatefulExecutionListener<Transport> {
-	
+
+	public MailRequestListener(TraceHub hub) {
+		super(hub);
+	}
+
 	@Override
 	protected MailRequestSignal signal(Instant start, Transport cnx) {
 		var sgn = createMailSignal(start);
@@ -94,12 +101,12 @@ final class MailRequestListener extends StatefulExecutionListener<Transport> {
 				stg.setCommand(cmd.name());
 			}
 			stg.setPayload(null);
-			stg.setMail(createMailTrace(msg));
+			stg.setMail(mailTrace(msg));
 			return stg;
 		};
 	}
 	
-	static Mail createMailTrace(Message msg) throws MessagingException {
+	static Mail mailTrace(Message msg) throws MessagingException {
 		if(nonNull(msg)) {
 			var mail = new Mail();
 			mail.setSubject(msg.getSubject());
@@ -114,7 +121,7 @@ final class MailRequestListener extends StatefulExecutionListener<Transport> {
 	}
 	
 	static String[] toStringArray(Address... address) {
-		return isNull(address) || address.length == 0
+		return isNull(address)
 			? null 
 			: Stream.of(address).map(Address::toString).toArray(String[]::new);
 	}
