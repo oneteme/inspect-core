@@ -13,15 +13,13 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class DatabaseRequestSignal extends AbstractRemoteRequestSignal {
+public abstract class AbstractRemoteRequestSignal extends AbstractRequestSignal  {
 
-	private String name; //nullable
-	private String schema;
-	private String driverVersion;
-	private String productName;
-	private String productVersion;
+	private String protocol; //HTTP(S), SMTP(S), (S)FTPS
+	private String host; //IP, domain
+	private int port; // positive number, -1 otherwise
 	
-	public DatabaseRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
+	AbstractRemoteRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 
@@ -30,8 +28,9 @@ public final class DatabaseRequestSignal extends AbstractRemoteRequestSignal {
 		return new EventTraceFormatter()
 				.withInstant(getStart())
 				.withThread(getThreadName())
-				.withUrlAsTopic(getProtocol(), getHost(), getPort(), schema, null)
+				.withUrlAsTopic(protocol, host, port, null, null)
 				.withUser(getUser())
 				.format();
 	}
+
 }

@@ -26,19 +26,27 @@ import org.usf.inspect.core.HttpRequestStage;
 import org.usf.inspect.core.HttpRequestUpdate;
 import org.usf.inspect.core.Monitor.StageBuilder;
 import org.usf.inspect.core.StatefulExecutionListener;
+import org.usf.inspect.core.TraceHub;
 import org.usf.inspect.core.TraceSignal;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 
  * @author u$f
  *
  */
+@NoArgsConstructor
 abstract class AbstractHttpRequestListener<T> extends StatefulExecutionListener<T> {
 
 	@Getter
 	private final UUID id = nextId();
+
+	AbstractHttpRequestListener(TraceHub hub) {
+		super(hub);
+	}
+	
 
 	protected HttpRequestSignal signal(Instant start, HttpMethod method, URI uri, HttpHeaders headers) {
 		var sng = createHttpRequest(start, getId());
@@ -68,9 +76,6 @@ abstract class AbstractHttpRequestListener<T> extends StatefulExecutionListener<
 
 	@Override
 	protected int resolveStatus(Throwable t) {
-	    if (isNull(t)) {
-	        return SUCCESS;
-	    }
 	    return switch (t) {
 	        case java.net.http.HttpConnectTimeoutException e -> CONN_TIMEOUT;
 	        case java.net.http.HttpTimeoutException e -> SERVER_TIMEOUT;

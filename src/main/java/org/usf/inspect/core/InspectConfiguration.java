@@ -121,6 +121,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
     	return rt-> {
 			logRegistringBean("restRequestInterceptor", HttpRequestInterceptor.class);
 			rt.getInterceptors().add(0, new HttpRequestInterceptor());
+			//add ClientHttpRequestFactory if needed
 		};
     }
 

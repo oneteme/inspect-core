@@ -13,12 +13,9 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class HttpRequestSignal extends AbstractRequestSignal {
+public final class HttpRequestSignal extends AbstractRemoteRequestSignal {
 
 	private String method; //GET, POST, PUT,..
-	private String protocol; //HTTP, HTTPS
-	private String host; //IP, domain
-	private int port; // positive number, -1 otherwise
 	private String path; //request path
 	private String query; //request parameters
 	private String authScheme; //Basic, Bearer, Digest, OAuth,..
@@ -35,7 +32,7 @@ public final class HttpRequestSignal extends AbstractRequestSignal {
 				.withInstant(getStart())
 				.withThread(getThreadName())
 				.withAction(method)
-				.withUrlAsTopic(protocol, host, port, path, query)
+				.withUrlAsTopic(getProtocol(), getHost(), getPort(), path, query)
 				.withUser(getUser())
 				.format();
 	}

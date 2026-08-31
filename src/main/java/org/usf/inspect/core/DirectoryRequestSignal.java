@@ -13,11 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class DirectoryRequestSignal extends AbstractRequestSignal {
-
-	private String protocol; // ldap, ldaps
-	private String host;  //IP, domain
-	private int port; // positive number, -1 otherwise
+public final class DirectoryRequestSignal extends AbstractRemoteRequestSignal {
 	
 	public DirectoryRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
@@ -25,15 +21,5 @@ public final class DirectoryRequestSignal extends AbstractRequestSignal {
 
 	public DirectoryRequestUpdate createCallback() {
 		return new DirectoryRequestUpdate(getId());
-	}
-
-	@Override
-	public String toString() {
-		return new EventTraceFormatter()
-				.withInstant(getStart())
-				.withThread(getThreadName())
-				.withUrlAsTopic(protocol, host, port, null, null)
-				.withUser(getUser())
-				.format();
 	}
 }

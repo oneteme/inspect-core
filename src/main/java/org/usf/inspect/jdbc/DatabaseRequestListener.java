@@ -58,7 +58,7 @@ final class DatabaseRequestListener extends StatefulExecutionListener<Connection
 			cache.update(cnx.getMetaData());
 		}
 		if(cache.isPresent()) {
-			sgn.setScheme(cache.getScheme());
+			sgn.setProtocol(cache.getScheme());
 			sgn.setHost(cache.getHost());
 			sgn.setPort(cache.getPort());
 			sgn.setName(cache.getName()); //getCatalog

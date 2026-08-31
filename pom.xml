@@ -74,10 +74,10 @@
 		</dependency>
 <!-- Source: https://mvnrepository.com/artifact/jakarta.mail/jakarta.mail-api -->
 		<dependency>
-		    <groupId>jakarta.mail</groupId>
-		    <artifactId>jakarta.mail-api</artifactId>
-		    <version>2.1.5</version>
-		    <scope>provided</scope>
+	    <groupId>jakarta.mail</groupId>
+	    <artifactId>jakarta.mail-api</artifactId>
+	    <version>2.1.5</version>
+	    <scope>provided</scope>
 		</dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>
@@ -132,6 +132,12 @@
 	    <version>2.1.13</version>
 	    <scope>test</scope>
 	</dependency>
+	<dependency>
+    <groupId>com.squareup.okhttp3</groupId>
+    <artifactId>mockwebserver</artifactId>
+    <version>4.12.0</version>
+    <scope>test</scope>
+</dependency>
 		<dependency>
 			<groupId>org.apache.sshd</groupId>
 			<artifactId>sshd-sftp</artifactId>
