@@ -21,8 +21,12 @@ import org.usf.inspect.core.DirectoryRequestStage;
 import org.usf.inspect.core.DirectoryRequestUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Monitor.StageBuilder;
+
+import lombok.NoArgsConstructor;
+
 import org.usf.inspect.core.StagePayload;
 import org.usf.inspect.core.StatefulExecutionListener;
+import org.usf.inspect.core.TraceHub;
 import org.usf.inspect.core.TraceSignal;
 
 /**
@@ -30,7 +34,12 @@ import org.usf.inspect.core.TraceSignal;
  * @author u$f
  *
  */
+@NoArgsConstructor
 final class DirectoryRequestListener extends StatefulExecutionListener<DirContext> {
+
+	public DirectoryRequestListener(TraceHub hub) {
+		super(hub);
+	}
 
 	@Override
 	protected DirectoryRequestSignal signal(Instant start, DirContext cnx) throws NamingException {
@@ -57,6 +66,7 @@ final class DirectoryRequestListener extends StatefulExecutionListener<DirContex
 	    return switch (t) {
 	    	case javax.naming.AuthenticationException e -> CLIENT_UNAUTHORIZED;
 	    	case javax.naming.NameNotFoundException e -> CLIENT_ERROR;
+	    	case javax.naming.InvalidNameException e-> CLIENT_ERROR;
         
 	        case javax.naming.ServiceUnavailableException e -> CONN_REFUSED;
 	        case javax.naming.CommunicationException e -> CONN_INTERRUPTED;
@@ -98,7 +108,7 @@ final class DirectoryRequestListener extends StatefulExecutionListener<DirContex
 			if(nonNull(cmd)) {
 				stg.setCommand(cmd.name());
 			}
-			stg.setPayload(nonNull(args) ? new StagePayload(args, null) : null);
+			stg.setPayload(nonNull(args) && args.length > 0 ? new StagePayload(args, null) : null);
 			return stg;
 		};
 	}

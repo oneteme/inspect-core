@@ -130,7 +130,7 @@ class TransportWrapperTest {
 		int idx=0;
 
 		var sgn = assertRequestSignal("smtp", props.getProperty("mail.smtp.host"), -1, USER, beforeStart, MailRequestSignal.class, traces.get(idx++));
-		var stg = assertRequestStage(CONNECTION.name(), null, sgn.getId(), idx, sgn.getStart(), MailRequestStage.class, traces.get(idx++));
+		var stg = assertRequestStage(CONNECTION.name(), null, sgn.getId(), idx, null, sgn.getStart(), MailRequestStage.class, traces.get(idx++));
 		assertExceptionTrace(sgn.getId(), idx-1, traces.get(idx++));
 		assertRequestUpdate(status, sgn.getId(), null, stg.getEnd(), afterEnd, MailRequestUpdate.class, traces.get(idx));
 	}
@@ -163,10 +163,10 @@ class TransportWrapperTest {
 		var idx=0;
 
 		var signal = assertRequestSignal("smtp", HOST, -1, USER, beforeStart, MailRequestSignal.class, traces.get(idx++));
-		var cnxStg = assertRequestStage(CONNECTION.name(), null, signal.getId(), idx, signal.getStart(), MailRequestStage.class, traces.get(idx++));
-		var sndStg = assertRequestStage(EXECUTE.name(), SEND.name(), signal.getId(), idx, cnxStg.getEnd(), MailRequestStage.class, traces.get(idx++));
+		var cnxStg = assertRequestStage(CONNECTION.name(), null, signal.getId(), idx, null, signal.getStart(), MailRequestStage.class, traces.get(idx++));
+		var sndStg = assertRequestStage(EXECUTE.name(), SEND.name(), signal.getId(), idx, null, cnxStg.getEnd(), MailRequestStage.class, traces.get(idx++));
 		assertExceptionTrace(signal.getId(), idx-1, traces.get(idx++));
-		var dscStg = assertRequestStage(DISCONNECTION.name(), null, signal.getId(), idx-1, sndStg.getEnd(), MailRequestStage.class, traces.get(idx++));
+		var dscStg = assertRequestStage(DISCONNECTION.name(), null, signal.getId(), idx-1, null, sndStg.getEnd(), MailRequestStage.class, traces.get(idx++));
 		assertRequestUpdate(status, signal.getId(), "EMIT", dscStg.getEnd(), afterEnd, MailRequestUpdate.class, traces.get(idx));
 	}
 
@@ -191,11 +191,11 @@ class TransportWrapperTest {
 		var idx = 0;
 		
 		var signal = assertRequestSignal("smtp", HOST, -1, USER, beforeStart, MailRequestSignal.class, traces.get(idx++));
-		var prvStg = assertRequestStage(CONNECTION.name(), null, signal.getId(), idx, signal.getStart(), MailRequestStage.class, traces.get(idx++));
+		var prvStg = assertRequestStage(CONNECTION.name(), null, signal.getId(), idx, null, signal.getStart(), MailRequestStage.class, traces.get(idx++));
 		for(int i=0; i<nMail; i++) {
-			prvStg = assertRequestStage(EXECUTE.name(), SEND.name(), signal.getId(), idx, prvStg.getEnd(), MailRequestStage.class, traces.get(idx++));
+			prvStg = assertRequestStage(EXECUTE.name(), SEND.name(), signal.getId(), idx, null, prvStg.getEnd(), MailRequestStage.class, traces.get(idx++));
 		}
-		assertRequestStage(DISCONNECTION.name(), null, signal.getId(), idx, prvStg.getEnd(), MailRequestStage.class, traces.get(idx++));
+		assertRequestStage(DISCONNECTION.name(), null, signal.getId(), idx, null, prvStg.getEnd(), MailRequestStage.class, traces.get(idx++));
 		var cmd = nMail > 0 ? "EMIT" : null;
 		assertRequestUpdate(SUCCESS, signal.getId(), cmd, prvStg.getEnd(), afterEnd, MailRequestUpdate.class, traces.get(idx));
 	}

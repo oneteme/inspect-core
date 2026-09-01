@@ -98,7 +98,7 @@ final class FtpRequestListener extends StatefulExecutionListener<ChannelSftp> {
 			if(nonNull(cmd)) {
 				stg.setCommand(cmd.name());
 			}
-			stg.setPayload(nonNull(args) ? new StagePayload(args, null) : null);
+			stg.setPayload(nonNull(args) && args.length > 0 ? new StagePayload(args, null) : null);
 			return stg;
 		};
 	}

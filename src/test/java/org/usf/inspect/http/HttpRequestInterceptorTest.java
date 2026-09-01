@@ -121,7 +121,7 @@ class HttpRequestInterceptorTest {
   		assertEquals(4, traces.size());
   		var idx = 0;
   		var sgn = assertRequestSignal(scheme, host, port, null, beforeStart, HttpRequestSignal.class, traces.get(idx++));
-  		var stg = assertRequestStage(EXCHANGE.name(), null, sgn.getId(), idx, sgn.getStart(), HttpRequestStage.class, traces.get(idx++));
+  		var stg = assertRequestStage(EXCHANGE.name(), null, sgn.getId(), idx, null, sgn.getStart(), HttpRequestStage.class, traces.get(idx++));
   		assertExceptionTrace(sgn.getId(), stg.getOrder(), traces.get(idx++));
   		assertRequestUpdate(status, sgn.getId(), null, stg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
   	}
@@ -129,11 +129,9 @@ class HttpRequestInterceptorTest {
     @Test
     void test_http_call() {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("OK"));
-
-        var baseUrl = server.url("/api");
         
         var start = now();
-        assertDoesNotThrow(()-> template.getForEntity(baseUrl.toString(), String.class));
+        assertDoesNotThrow(()-> template.getForEntity(server.url("/api").toString(), String.class));
         var end = now();
         
         assertRequestTraces(start, end, hub.getTraces());
@@ -143,8 +141,8 @@ class HttpRequestInterceptorTest {
 		assertEquals(4, traces.size());
 		var idx = 0;
 		var signal = assertRequestSignal("http", server.getHostName(), server.getPort(), null, beforeStart, HttpRequestSignal.class, traces.get(idx++));
-		var strStg = assertRequestStage(EXCHANGE.name(), null, signal.getId(), idx, signal.getStart(), HttpRequestStage.class, traces.get(idx++));
-		var endStg = assertRequestStage(STREAM.name(), null, signal.getId(), idx, strStg.getEnd(), HttpRequestStage.class, traces.get(idx++));		
+		var strStg = assertRequestStage(EXCHANGE.name(), null, signal.getId(), idx, null, signal.getStart(), HttpRequestStage.class, traces.get(idx++));
+		var endStg = assertRequestStage(STREAM.name(), null, signal.getId(), idx, null, strStg.getEnd(), HttpRequestStage.class, traces.get(idx++));		
 		assertRequestUpdate(SUCCESS, signal.getId(), null, endStg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
 	}
 }
