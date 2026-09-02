@@ -17,7 +17,6 @@ import java.util.function.Function;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.SafeCallable.SafeConsumer;
 
-
 /**
  * 
  * @author u$f
@@ -27,26 +26,11 @@ public interface Monitor {
 	
 	static final String TRACE_ATOMIC_ACTION = "Monitor.traceAtomic";
 
-	static <R> ExecutionListener<R> traceAroundHttp(HttpSessionSignal session, SafeConsumer<HttpSessionSignal> preProcess) {
-		return traceAtomic(session, HttpSessionSignal::createCallback, preProcess, null);
-	}
-
-	static <R> ExecutionListener<R> traceAroundHttp(HttpSessionSignal session, SafeConsumer<HttpSessionSignal> preProcess, BiConsumer<HttpSessionUpdate, R> postProcess) {
-		return traceAtomic(session, HttpSessionSignal::createCallback, preProcess, postProcess);
-	}
-
-	static <R> ExecutionListener<R> traceAroundMethod(MainSessionSignal session, SafeConsumer<MainSessionSignal> preProcess) {
-		return traceAtomic(session, MainSessionSignal::createCallback, preProcess, null);
-	}
 	
 	static <R> ExecutionListener<R> traceAroundMethod(MainSessionSignal session, SafeConsumer<MainSessionSignal> preProcess, BiConsumer<MainSessionUpdate, R> postProcess) {
 		return traceAtomic(session, MainSessionSignal::createCallback, preProcess, postProcess);
 	}
 
-	static <R> ExecutionListener<R> traceAroundMethod(LocalRequestSignal request, SafeConsumer<LocalRequestSignal> preProcess) {
-		return traceAtomic(request, LocalRequestSignal::createCallback, preProcess, null);
-	}
-	
 	static <T extends TraceSignal, U extends TraceUpdate & AtomicTrace, R> ExecutionListener<R> traceAtomic(T signal, Function<T, U> callbackFn, SafeConsumer<T> preProcess, BiConsumer<U, R> postProcess) {
 		try {
 			if(nonNull(preProcess)) {

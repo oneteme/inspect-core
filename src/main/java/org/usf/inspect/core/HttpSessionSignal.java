@@ -44,6 +44,7 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 		setQuery(uri.getQuery());
 	}
 
+	@Deprecated
 	public HttpSessionUpdate createCallback() {
 		return new HttpSessionUpdate(getId());
 	}

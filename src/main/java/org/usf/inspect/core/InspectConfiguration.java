@@ -11,8 +11,6 @@ import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.Monitor.traceAroundMethod;
-import static org.usf.inspect.core.SessionContextManager.createStartupSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
@@ -46,7 +44,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.http.HandlerExceptionResolverMonitor;
 import org.usf.inspect.http.HttpRequestInterceptor;
 import org.usf.inspect.http.HttpRoutePredicate;
@@ -157,15 +154,17 @@ public class InspectConfiguration implements WebMvcConfigurer {
     @Bean
     ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
     	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider);
+    	var listener = new SessionExecutionListener();
 		hub().dispatch(instance);
-		ExecutionListener<String> handler = traceAroundMethod(createStartupSession(start, instance.getId()),
-				ses-> ses.setName("main"), 
-				MainSessionUpdate::setLocation);
+		var handler = listener.modifiableExecutionListener(start, sgn-> sgn.setName("main"));
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-				var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
 				var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
-				handler.safeHandle(null, ofEpochMilli(e.getTimestamp()), lct, exp);
+				handler.updateTrace(upd-> {
+					var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
+					((MainSessionUpdate)upd).setLocation(lct);
+				});
+				handler.safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);
 			}
 		};
     }
@@ -288,4 +287,5 @@ public class InspectConfiguration implements WebMvcConfigurer {
 		return "spring-collector/" //use getImplementationTitle
 				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
 	}
+
 }

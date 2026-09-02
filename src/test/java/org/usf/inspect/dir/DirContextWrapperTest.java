@@ -7,14 +7,15 @@ import static javax.naming.Context.PROVIDER_URL;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.usf.inspect.core.DirAction.CONNECTION;
+import static org.usf.inspect.core.DirAction.DISCONNECTION;
+import static org.usf.inspect.core.DirAction.EXECUTE;
 import static org.usf.inspect.core.DirCommand.LIST;
-import static org.usf.inspect.core.MailAction.CONNECTION;
-import static org.usf.inspect.core.MailAction.DISCONNECTION;
-import static org.usf.inspect.core.MailAction.EXECUTE;
-import static org.usf.inspect.core.MailCommand.SEND;
 import static org.usf.inspect.core.StatefulExecutionListener.CONN_REFUSED;
 import static org.usf.inspect.core.StatefulExecutionListener.CONN_UNKNOWN_HOST;
 import static org.usf.inspect.core.StatefulExecutionListener.SUCCESS;
+import static org.usf.inspect.core.TestTraceHub.clearTraces;
+import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
 import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
 import static org.usf.inspect.core.TraceAssertions.assertRequestStage;
@@ -31,18 +32,11 @@ import javax.naming.directory.InitialDirContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.usf.inspect.core.DirAction;
-import org.usf.inspect.core.DirCommand;
 import org.usf.inspect.core.DirectoryRequestSignal;
 import org.usf.inspect.core.DirectoryRequestStage;
 import org.usf.inspect.core.DirectoryRequestUpdate;
 import org.usf.inspect.core.EventTrace;
-import org.usf.inspect.core.MailRequestSignal;
-import org.usf.inspect.core.MailRequestStage;
-import org.usf.inspect.core.MailRequestUpdate;
 import org.usf.inspect.core.StagePayload;
-import org.usf.inspect.core.TestTraceHub;
-import org.usf.inspect.core.TraceAssertions;
 
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
@@ -57,13 +51,12 @@ class DirContextWrapperTest {
 	private static final String HOST = "localhost";
 	
 	private final InMemoryDirectoryServer server = setup();
-	private final TestTraceHub hub = new TestTraceHub();
-	private final DirectoryRequestListener listener = new DirectoryRequestListener(hub);
+	private final DirectoryRequestListener listener = new DirectoryRequestListener();
 	
 	
     @BeforeEach
     void setUp() throws Exception {
-    	hub.getTraces().clear();
+    	clearTraces();
         server.startListening();
     }
 
@@ -87,7 +80,7 @@ class DirContextWrapperTest {
 		assertThrows(type, ()-> createClient(host, port));
         var end = now();
         
-        assertConnectionFailedTraces(status, null, null, 0, start, end, hub.getTraces());
+        assertConnectionFailedTraces(status, null, null, 0, start, end, getTraces());
 	}
 	
 	static void assertConnectionFailedTraces(int status, String scheme, String host, int port, Instant beforeStart, Instant afterEnd, List<EventTrace> traces) {
@@ -113,7 +106,7 @@ class DirContextWrapperTest {
 		}
         var end = now();
         
-        assertRequestTraces(server.getListenPort(), start, end, new StagePayload(new String[] {"dc=jarvis,dc=usf"}, null), hub.getTraces());
+        assertRequestTraces(server.getListenPort(), start, end, new StagePayload(new String[] {"dc=jarvis,dc=usf"}, null), getTraces());
         
 //       System.err.println(TraceAssertions.performance(hub.getTraces()));
     }

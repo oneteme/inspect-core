@@ -47,11 +47,6 @@ public abstract class StatefulExecutionListener<T> {
 	
 	private TraceUpdate trace;
 	private Instant start;
-	private final TraceHub hub;
-	
-	protected StatefulExecutionListener() {
-		this.hub = hub();
-	}
 	
 	protected abstract TraceSignal signal(Instant start, T cnx) throws Exception;
 	
@@ -107,7 +102,7 @@ public abstract class StatefulExecutionListener<T> {
 			var cnx = mapper.apply(o);
 			var sgn = signal(s, cnx);
 			if(nonNull(sgn)) {
-				this.hub.emitTrace(sgn);
+				hub().emitTrace(sgn);
 				this.trace = update(sgn);
 				this.trace.setStatus(-1); //initial status
 				if(nonNull(stgBuilder)) {
@@ -128,11 +123,11 @@ public abstract class StatefulExecutionListener<T> {
 			if(nonNull(trace)) {
 				var stg = stgBuilder.newStage(s, e, o, t);
 				if(nonNull(stg)) {
-					this.hub.emitTrace(stg);
+					hub().emitTrace(stg);
 					if(nonNull(t)) {
 						var ex = exception(t, stg.getOrder());
 						if(nonNull(ex)) {
-							this.hub.emitTrace(ex);
+							hub().emitTrace(ex);
 						}
 					}
 				}
@@ -154,7 +149,7 @@ public abstract class StatefulExecutionListener<T> {
 						trace.setStatus(SUCCESS);
 					}
 					trace.setEnd(e);
-					this.hub.emitTrace(trace);
+					hub().emitTrace(trace);
 				}
 				else {
 					reportTraceIsNull("disconnectionListener");
@@ -177,6 +172,6 @@ public abstract class StatefulExecutionListener<T> {
 	}
 	
 	protected void report(String action, String msg) {
-		this.hub.reportMessage(true, this.getClass().getSimpleName() + "." + action, msg);
+		hub().reportMessage(true, this.getClass().getSimpleName() + "." + action, msg);
 	}
 }

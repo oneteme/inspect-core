@@ -22,6 +22,7 @@ public final class MainSessionSignal extends AbstractSessionSignal {
 		this.type= type;
 	}
 
+	@Deprecated
 	public MainSessionUpdate createCallback() {
 		return new MainSessionUpdate(getId(), STARTUP.name().equals(type));
 	}

@@ -21,8 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import jakarta.mail.Message;
-
 class DirectoryRequestMonitorTest {
 	
 	private final DirectoryRequestListener listener = new DirectoryRequestListener();

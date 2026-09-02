@@ -12,6 +12,8 @@ import static org.usf.inspect.core.StatefulExecutionListener.CONN_REFUSED;
 import static org.usf.inspect.core.StatefulExecutionListener.CONN_SSL_ERROR;
 import static org.usf.inspect.core.StatefulExecutionListener.CONN_UNKNOWN_HOST;
 import static org.usf.inspect.core.StatefulExecutionListener.SUCCESS;
+import static org.usf.inspect.core.TestTraceHub.clearTraces;
+import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
 import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
 import static org.usf.inspect.core.TraceAssertions.assertRequestStage;
@@ -33,7 +35,6 @@ import org.usf.inspect.core.EventTrace;
 import org.usf.inspect.core.HttpRequestSignal;
 import org.usf.inspect.core.HttpRequestStage;
 import org.usf.inspect.core.HttpRequestUpdate;
-import org.usf.inspect.core.TestTraceHub;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -45,10 +46,8 @@ class HttpRequestInterceptorTest {
 	
 	private final MockWebServer server = new MockWebServer();
 	
-	private final TestTraceHub hub = new TestTraceHub();
-
 	private final RestTemplate template = new RestTemplateBuilder()
-			.interceptors(new HttpRequestInterceptor(hub))
+			.interceptors(new HttpRequestInterceptor())
 			.setConnectTimeout(ofMillis(100))
 			.setReadTimeout(ofMillis(50))
 			.build();
@@ -56,7 +55,7 @@ class HttpRequestInterceptorTest {
     @BeforeEach
     void setUp() throws IOException {
         server.start();
-        hub.getTraces().clear();
+        clearTraces();
     }
 
     @AfterEach
@@ -114,7 +113,7 @@ class HttpRequestInterceptorTest {
         assertThrows(type, ()-> template.getForEntity(url, String.class));
         var end = now();
         
-        assertConnectionFailedTraces(status, scheme, host, port, start, end, hub.getTraces());
+        assertConnectionFailedTraces(status, scheme, host, port, start, end, getTraces());
     }
     
   	static void assertConnectionFailedTraces(int status, String scheme, String host, int port, Instant beforeStart, Instant afterEnd, List<EventTrace> traces){
@@ -134,7 +133,7 @@ class HttpRequestInterceptorTest {
         assertDoesNotThrow(()-> template.getForEntity(server.url("/api").toString(), String.class));
         var end = now();
         
-        assertRequestTraces(start, end, hub.getTraces());
+        assertRequestTraces(start, end, getTraces());
     }
     
 	void assertRequestTraces(Instant beforeStart, Instant afterEnd, List<EventTrace> traces){

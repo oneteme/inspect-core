@@ -366,6 +366,13 @@ public final class TraceDispatcherHub implements TraceHub {
 		singleton = createHub(conf, agent, mapper);
 	}
 
+	static synchronized TraceHub initializeTraceHub(TraceHub hub) {
+		if(isNull(singleton)) {
+			singleton = hub;
+		}
+		return singleton;
+	}
+
 	public static synchronized TraceHub hub() {
 		if(isNull(singleton)) {
 			var config = new InspectCollectorConfiguration();

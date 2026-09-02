@@ -1,26 +1,36 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import org.usf.inspect.core.EventTrace;
-import org.usf.inspect.core.InspectCollectorConfiguration;
-import org.usf.inspect.core.TraceHub;
+import lombok.NoArgsConstructor;
 
-import lombok.Getter;
-
+@NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class TestTraceHub implements TraceHub {
-
-	@Getter
+	
+	private static final TestTraceHub INSTANCE = (TestTraceHub) initializeTraceHub(new TestTraceHub());
+	
 	private final List<EventTrace> traces = new ArrayList<>();
 
 	@Override
 	public InspectCollectorConfiguration getConfiguration() {
-		return null; //TODO check this
+		var config = new InspectCollectorConfiguration();
+		config.setEnabled(true);
+		return config;
 	}
 
 	@Override
 	public boolean emitTrace(EventTrace trace) {
 		return traces.add(trace);
+	}
+	
+	public static List<EventTrace> getTraces() {
+		return INSTANCE.traces;
+	}
+	
+	public static void clearTraces() {
+		INSTANCE.traces.clear();
 	}
 }

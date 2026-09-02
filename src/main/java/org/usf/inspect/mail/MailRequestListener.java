@@ -20,7 +20,6 @@ import org.usf.inspect.core.MailRequestStage;
 import org.usf.inspect.core.MailRequestUpdate;
 import org.usf.inspect.core.Monitor.StageBuilder;
 import org.usf.inspect.core.StatefulExecutionListener;
-import org.usf.inspect.core.TraceHub;
 import org.usf.inspect.core.TraceSignal;
 
 import jakarta.mail.Address;
@@ -36,10 +35,6 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor
 final class MailRequestListener extends StatefulExecutionListener<Transport> {
-
-	public MailRequestListener(TraceHub hub) {
-		super(hub);
-	}
 
 	@Override
 	protected MailRequestSignal signal(Instant start, Transport cnx) {

@@ -21,6 +21,8 @@ import static org.usf.inspect.core.StatefulExecutionListener.CONN_TIMEOUT;
 import static org.usf.inspect.core.StatefulExecutionListener.CONN_UNKNOWN_HOST;
 import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
 import static org.usf.inspect.core.StatefulExecutionListener.SUCCESS;
+import static org.usf.inspect.core.TestTraceHub.clearTraces;
+import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
 import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
 import static org.usf.inspect.core.TraceAssertions.assertRequestStage;
@@ -41,7 +43,6 @@ import org.usf.inspect.core.EventTrace;
 import org.usf.inspect.core.MailRequestSignal;
 import org.usf.inspect.core.MailRequestStage;
 import org.usf.inspect.core.MailRequestUpdate;
-import org.usf.inspect.core.TestTraceHub;
 
 import com.icegreen.greenmail.util.GreenMail;
 
@@ -69,6 +70,7 @@ class TransportWrapperTest {
 
 	@BeforeEach
 	void setUp() {
+		clearTraces();
 		greenMail.start();
 	}
 
@@ -115,14 +117,13 @@ class TransportWrapperTest {
 	
 	void testConnectError(int status, Class<? extends Exception> type, Properties props) throws NoSuchProviderException{
         var ses = Session.getInstance(props); 
-		var hub = new TestTraceHub();
-		var wrp = new TransportWrapper(ses.getTransport(), new MailRequestListener(hub));
+		var wrp = new TransportWrapper(ses.getTransport(), new MailRequestListener());
 
 		var start = now();
 		assertThrows(type, wrp::connect); 
 		var end = now();
 		
-		assertConnectionFailedTraces(status, props, start, end, hub.getTraces());
+		assertConnectionFailedTraces(status, props, start, end, getTraces());
 	}
 	
 	static void assertConnectionFailedTraces(int status, Properties props, Instant beforeStart, Instant afterEnd, List<EventTrace> traces) {
@@ -140,8 +141,7 @@ class TransportWrapperTest {
         var props = initProperties(HOST, PORT, emptyMap());
 
         var ses = Session.getInstance(props);
-		var hub = new TestTraceHub();
-		var wrp = new TransportWrapper(ses.getTransport(), new MailRequestListener(hub));
+		var wrp = new TransportWrapper(ses.getTransport(), new MailRequestListener());
 
 		var start = now();
 		wrp.connect();
@@ -155,7 +155,7 @@ class TransportWrapperTest {
 			wrp.close();
 		}
 		var end = now();
-		assertConnectionLostTraces(CONN_ERROR, start, end, hub.getTraces());
+		assertConnectionLostTraces(CONN_ERROR, start, end, getTraces());
 	}
 	
 	static void assertConnectionLostTraces(int status, Instant beforeStart, Instant afterEnd, List<EventTrace> traces) {
@@ -210,8 +210,7 @@ class TransportWrapperTest {
 	}
 
 	static List<EventTrace> sendMail(Transport trsp, Message... arr) throws MessagingException {
-		var hub = new TestTraceHub();
-		var wrp = new TransportWrapper(trsp, new MailRequestListener(hub));
+		var wrp = new TransportWrapper(trsp, new MailRequestListener());
 		wrp.connect();
 		try {
 			if(nonNull(arr)) {
@@ -223,7 +222,7 @@ class TransportWrapperTest {
 		finally {
 			wrp.close();
 		}
-		return hub.getTraces();
+		return getTraces();
 	}
 	
 	static Properties initProperties(String host, String port, Map<String, Object> map) {

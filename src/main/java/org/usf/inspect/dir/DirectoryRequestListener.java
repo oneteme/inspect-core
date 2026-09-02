@@ -21,13 +21,11 @@ import org.usf.inspect.core.DirectoryRequestStage;
 import org.usf.inspect.core.DirectoryRequestUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Monitor.StageBuilder;
-
-import lombok.NoArgsConstructor;
-
 import org.usf.inspect.core.StagePayload;
 import org.usf.inspect.core.StatefulExecutionListener;
-import org.usf.inspect.core.TraceHub;
 import org.usf.inspect.core.TraceSignal;
+
+import lombok.NoArgsConstructor;
 
 /**
  * 
@@ -36,10 +34,6 @@ import org.usf.inspect.core.TraceSignal;
  */
 @NoArgsConstructor
 final class DirectoryRequestListener extends StatefulExecutionListener<DirContext> {
-
-	public DirectoryRequestListener(TraceHub hub) {
-		super(hub);
-	}
 
 	@Override
 	protected DirectoryRequestSignal signal(Instant start, DirContext cnx) throws NamingException {

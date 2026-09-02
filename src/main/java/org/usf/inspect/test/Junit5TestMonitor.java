@@ -3,7 +3,6 @@ package org.usf.inspect.test;
 import static java.time.Clock.systemUTC;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
 import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
-import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
@@ -18,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.TestWatcher;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
+import org.usf.inspect.core.SessionExecutionListener;
 
 /**
  * 
@@ -28,6 +28,8 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 
 	private static final Namespace NAMESPACE = create(Junit5TestMonitor.class.getName());
 	private static final String SESSION_KEY = "inspect-junit-monitor";
+	
+	private final SessionExecutionListener listener = new SessionExecutionListener();
 	
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
@@ -55,10 +57,10 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 		postProcess(context);
 	}
 	
-	static void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
-		updateExecutionListener(context, hndl-> traceAroundMethod(createTestSession(systemUTC().instant()), ses-> { 
-			ses.setName(context.getDisplayName());
-			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
+	void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
+		updateExecutionListener(context, hndl-> listener.executionListener(sgn-> { 
+			sgn.setName(context.getDisplayName());
+			sgn.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			//set test user
 		}));
 	}

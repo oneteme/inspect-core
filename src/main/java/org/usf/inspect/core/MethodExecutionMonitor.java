@@ -1,18 +1,16 @@
 package org.usf.inspect.core;
 
-import static java.time.Clock.systemUTC;
+import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.formatLocation;
-import static org.usf.inspect.core.Helper.outerStackTraceElement;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
-import static org.usf.inspect.core.SessionContextManager.createBatchSession;
-import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
+
+import java.lang.StackWalker.StackFrame;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -37,18 +35,29 @@ import lombok.extern.slf4j.Slf4j;
 public class MethodExecutionMonitor implements Ordered {
 
 	private final AspectUserProvider userProvider;
-	
+	private final SessionExecutionListener sessionListener = new SessionExecutionListener();
+	private final MethodExecutionListener methodListener = new MethodExecutionListener();
+
+	@Deprecated
 	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
 		trackCallble(type, name, fn);
 	}
 
+	@Deprecated
 	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
-		var ste = outerStackTraceElement(); //optimize by avoiding creating stacktrace in traceAroundMethod
-		return call(fn, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
-			req.setType(type.name());
-			req.setName(nonNull(name) ? name : ste.map(StackTraceElement::getMethodName).orElse(null));
-			req.setLocation(ste.map(e-> formatLocation(e.getClassName(), e.getMethodName())).orElse(null));
-			//set user !
+		var listener = new MethodExecutionListener();
+		return call(fn, listener.executionListener(sgn->{
+			var frm = upperStackFrame();
+			sgn.setName(name);
+			if(nonNull(type)) {
+				sgn.setType(type.name());
+			}
+			if(nonNull(frm)) {
+				if(isNull(sgn.getName())) {
+					sgn.setName(frm.getMethodName());
+				}
+				sgn.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
+			}
 		}));
 	}
 
@@ -59,7 +68,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundJob(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, traceAroundMethod(createBatchSession(systemUTC().instant()), ses-> {
+		return call(point::proceed, sessionListener.executionListener(ses-> {
 			ses.setName(resolveStageName(point));
 			ses.setLocation(locationFrom(point));
 			ses.setUser(userProvider.getUser(point, ses.getName()));
@@ -72,11 +81,10 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 	
 	Object aroundMethod(ProceedingJoinPoint point, String type) throws Throwable {
-		return call(point::proceed, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
-			req.setType(type);
-			req.setName(resolveStageName(point));
-			req.setLocation(locationFrom(point));
-			req.setUser(userProvider.getUser(point, req.getName()));
+		return call(point::proceed, methodListener.executionListener(sgn->{
+			sgn.setType(type);
+			sgn.setName(resolveStageName(point));
+			sgn.setLocation(locationFrom(point));
 		}));
 	}
 
@@ -105,5 +113,12 @@ public class MethodExecutionMonitor implements Ordered {
 	static String locationFrom(ProceedingJoinPoint point) {
 		var sgn = point.getSignature();
 		return formatLocation(sgn.getDeclaringTypeName(), sgn.getName());
+	}
+
+	static StackFrame upperStackFrame() {
+		return StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(fr -> fr
+				.skip(1) 
+			    .findFirst()
+			    .orElse(null));
 	}
 }

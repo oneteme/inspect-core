@@ -1,7 +1,6 @@
 package org.usf.inspect.http;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.fromString;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -26,7 +25,6 @@ import org.usf.inspect.core.HttpRequestStage;
 import org.usf.inspect.core.HttpRequestUpdate;
 import org.usf.inspect.core.Monitor.StageBuilder;
 import org.usf.inspect.core.StatefulExecutionListener;
-import org.usf.inspect.core.TraceHub;
 import org.usf.inspect.core.TraceSignal;
 
 import lombok.Getter;
@@ -42,11 +40,6 @@ abstract class AbstractHttpRequestListener<T> extends StatefulExecutionListener<
 
 	@Getter
 	private final UUID id = nextId();
-
-	AbstractHttpRequestListener(TraceHub hub) {
-		super(hub);
-	}
-	
 
 	protected HttpRequestSignal signal(Instant start, HttpMethod method, URI uri, HttpHeaders headers) {
 		var sng = createHttpRequest(start, getId());
@@ -128,7 +121,8 @@ abstract class AbstractHttpRequestListener<T> extends StatefulExecutionListener<
 		stg.setName(action.name());
 		stg.setStart(start);
 		stg.setEnd(end);
-//		stg.setPayload(null);
+//		stg.setCommand(null)
+//		stg.setPayload(null)
 		return stg;
 	}
 	
