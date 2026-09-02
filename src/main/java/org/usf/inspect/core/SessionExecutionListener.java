@@ -12,12 +12,12 @@ import java.time.Instant;
 public final class SessionExecutionListener extends AtomicExecutionListener<MainSessionSignal> {
 
 	@Override
-	protected MainSessionSignal signal(Instant start) {
+	public MainSessionSignal signal(Instant start) {
 		return createBatchSession(start);
 	}
 	
 	@Override
-	protected TraceUpdate update(TraceSignal signal) {
+	public MainSessionUpdate update(TraceSignal signal) {
 		return new MainSessionUpdate(signal.getId());
 	}
 }

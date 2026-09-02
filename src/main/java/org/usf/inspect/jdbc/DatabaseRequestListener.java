@@ -16,7 +16,6 @@ import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -41,7 +40,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-final class DatabaseRequestListener extends StatefulExecutionListener<Connection> {
+final class DatabaseRequestListener extends StatefulExecutionListener {
 
 	private final ConnectionMetadataCache cache; //required
 
@@ -50,34 +49,20 @@ final class DatabaseRequestListener extends StatefulExecutionListener<Connection
 	private DatabaseRequestStage lastExec; // hold last stage
 	
 	BatchStageBuilder batchStageBuilder;
-	
+
+
 	@Override
-	protected DatabaseRequestSignal signal(Instant start, Connection cnx) throws SQLException {
-		var sgn = createDatabaseSignal(start);
-		if(nonNull(cnx) && !cache.isPresent()) {
-			cache.update(cnx.getMetaData());
-		}
-		if(cache.isPresent()) {
-			sgn.setProtocol(cache.getScheme());
-			sgn.setHost(cache.getHost());
-			sgn.setPort(cache.getPort());
-			sgn.setName(cache.getName()); //getCatalog
-			sgn.setSchema(cache.getSchema());
-			sgn.setUser(cache.getUser());
-			sgn.setProductName(cache.getProductName());
-			sgn.setProductVersion(cache.getProductVersion());
-			sgn.setDriverVersion(cache.getDriverVersion());
-		}
-		return sgn;
+	public DatabaseRequestSignal signal(Instant start) {
+		return createDatabaseSignal(start);
 	}
 
 	@Override
-	protected DatabaseRequestUpdate update(TraceSignal signal) { 
+	public DatabaseRequestUpdate update(TraceSignal signal) { 
 		return new DatabaseRequestUpdate(signal.getId());
 	}
 	
 	@Override
-	protected int resolveStatus(Throwable t) {
+	public int resolveStatus(Throwable t) {
 	    return switch (t) {
 	        case java.sql.SQLTransientConnectionException e -> CONN_ERROR;
 	        case java.sql.SQLNonTransientConnectionException e -> CONN_REFUSED;
@@ -96,7 +81,23 @@ final class DatabaseRequestListener extends StatefulExecutionListener<Connection
 	}
 	
 	public ExecutionListener<Connection> connectionListener() {
-		return connectionListener(stageBuilder(CONNECTION, null));
+		return connectionListener(stageBuilder(CONNECTION, null), (trc,cnx)->{
+			var sgn = (DatabaseRequestSignal) trc;
+			if(nonNull(cnx) && !cache.isPresent()) {
+				cache.update(cnx.getMetaData());
+			}
+			if(cache.isPresent()) {
+				sgn.setProtocol(cache.getScheme());
+				sgn.setHost(cache.getHost());
+				sgn.setPort(cache.getPort());
+				sgn.setName(cache.getName()); //getCatalog
+				sgn.setSchema(cache.getSchema());
+				sgn.setUser(cache.getUser());
+				sgn.setProductName(cache.getProductName());
+				sgn.setProductVersion(cache.getProductVersion());
+				sgn.setDriverVersion(cache.getDriverVersion());
+			}
+		});
 	}
 	
 	public ExecutionListener<Object> disconnectionListener() {

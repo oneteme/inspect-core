@@ -13,17 +13,17 @@ import java.time.Instant;
 public final class MethodExecutionListener extends AtomicExecutionListener<LocalRequestSignal> {
 
 	@Override
-	protected LocalRequestSignal signal(Instant start) {
+	public LocalRequestSignal signal(Instant start) {
 		return createLocalRequest(start);
 	}
 	
 	@Override
-	protected TraceUpdate update(TraceSignal signal) {
+	public LocalRequestUpdate update(TraceSignal signal) {
 		return new LocalRequestUpdate(signal.getId());
 	}
 	
 	@Override
-	protected Throwable mapException(Throwable e) {
+	public Throwable exception(Throwable e) {
 		return rootCauseException(e);
 	}
 }

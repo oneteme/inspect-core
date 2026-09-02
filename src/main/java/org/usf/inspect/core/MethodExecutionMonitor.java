@@ -68,10 +68,10 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundJob(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, sessionListener.executionListener(ses-> {
-			ses.setName(resolveStageName(point));
-			ses.setLocation(locationFrom(point));
-			ses.setUser(userProvider.getUser(point, ses.getName()));
+		return call(point::proceed, sessionListener.executionListener(sgn-> {
+			sgn.setName(resolveStageName(point));
+			sgn.setLocation(locationFrom(point));
+			sgn.setUser(userProvider.getUser(point, sgn.getName()));
 		}));
 	}
 

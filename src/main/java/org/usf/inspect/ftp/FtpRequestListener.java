@@ -25,37 +25,26 @@ import org.usf.inspect.core.StatefulExecutionListener;
 import org.usf.inspect.core.TraceSignal;
 
 import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSchException;
 
 /**
  * 
  * @author u$f
  *
  */
-final class FtpRequestListener extends StatefulExecutionListener<ChannelSftp> {
+final class FtpRequestListener extends StatefulExecutionListener {
 	
 	@Override
-	protected FtpRequestSignal signal(Instant start, ChannelSftp cnx) throws JSchException {
-		var sgn = createFtpSignal(start);
-		sgn.setProtocol("sftp");
-		var cs = cnx.getSession(); //throws JSchException
-		if(nonNull(cs)) {
-			sgn.setHost(cs.getHost());
-			sgn.setPort(cs.getPort());
-			sgn.setUser(cs.getUserName());
-			sgn.setServerVersion(cs.getServerVersion());
-			sgn.setClientVersion(cs.getClientVersion());
-		}
-		return sgn;
+	public FtpRequestSignal signal(Instant start) {
+		return createFtpSignal(start);
 	}
 
 	@Override
-	protected FtpRequestUpdate update(TraceSignal signal) { 
+	public FtpRequestUpdate update(TraceSignal signal) { 
 		return new FtpRequestUpdate(signal.getId());
 	}
 
 	@Override
-	protected int resolveStatus(Throwable t) {
+	public int resolveStatus(Throwable t) {
 		return switch(t) {
 			case com.jcraft.jsch.JSchException e -> CONN_REFUSED;
 			case com.jcraft.jsch.SftpException e -> switch(e.id) { // funct.
@@ -68,15 +57,26 @@ final class FtpRequestListener extends StatefulExecutionListener<ChannelSftp> {
 		};
 	}
 
-	ExecutionListener<Void> connectionListener(ChannelSftp sftp) {
-		return connectionListener(stageBuilder(CONNECTION, null), v-> sftp); //before end if thrw
+	public ExecutionListener<Void> connectionListener(ChannelSftp sftp) {
+		return connectionListener(stageBuilder(CONNECTION, null), (trc,v)->{
+			var sgn = (FtpRequestSignal) trc;
+			sgn.setProtocol("sftp");
+			var cs = sftp.getSession(); //throws JSchException
+			if(nonNull(cs)) {
+				sgn.setHost(cs.getHost());
+				sgn.setPort(cs.getPort());
+				sgn.setUser(cs.getUserName());
+				sgn.setServerVersion(cs.getServerVersion());
+				sgn.setClientVersion(cs.getClientVersion());
+			}
+		}); //before end if thrw
 	}
 	
-	ExecutionListener<Void> disconnectionListener() {
+	public ExecutionListener<Void> disconnectionListener() {
 		return disconnectionListener(stageBuilder(DISCONNECTION, null));
 	}
 	
-	<T> ExecutionListener<T> executeStageListener(FtpCommand cmd, String... args) {
+	public <T> ExecutionListener<T> executeStageListener(FtpCommand cmd, String... args) {
 		return stageListener(EXECUTE, cmd, args);
 	}
 

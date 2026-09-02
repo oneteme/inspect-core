@@ -34,30 +34,20 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-final class MailRequestListener extends StatefulExecutionListener<Transport> {
+final class MailRequestListener extends StatefulExecutionListener {
 
 	@Override
-	protected MailRequestSignal signal(Instant start, Transport cnx) {
-		var sgn = createMailSignal(start);
-		if(nonNull(cnx)) {
-			var url = cnx.getURLName();
-			if(nonNull(url)) {
-				sgn.setProtocol(url.getProtocol());
-				sgn.setHost(url.getHost());
-				sgn.setPort(url.getPort());
-				sgn.setUser(url.getUsername());
-			}
-		}
-		return sgn;
+	public MailRequestSignal signal(Instant start) {
+		return createMailSignal(start);
 	}
 
 	@Override
-	protected MailRequestUpdate update(TraceSignal signal) { 
+	public MailRequestUpdate update(TraceSignal signal) { 
 		return new MailRequestUpdate(signal.getId());
 	}
 	
 	@Override
-	protected int resolveStatus(Throwable t) {
+	public int resolveStatus(Throwable t) {
 	    return switch (t) {
 	        case jakarta.mail.AuthenticationFailedException e -> CLIENT_UNAUTHORIZED;
 	        case jakarta.mail.internet.ParseException e -> CLIENT_ERROR;
@@ -67,18 +57,29 @@ final class MailRequestListener extends StatefulExecutionListener<Transport> {
 	}
 	
 	public ExecutionListener<Void> connectionListener(Transport trsp) {
-		return connectionListener(stageBuilder(CONNECTION, null, null), v-> trsp);
+		return connectionListener(stageBuilder(CONNECTION, null, null), (trc,cnx)->{
+			var sgn = (MailRequestSignal) trc;
+			if(nonNull(trsp)) {
+				var url = trsp.getURLName();
+				if(nonNull(url)) {
+					sgn.setProtocol(url.getProtocol());
+					sgn.setHost(url.getHost());
+					sgn.setPort(url.getPort());
+					sgn.setUser(url.getUsername());
+				}
+			}
+		});
 	}
 	
 	public ExecutionListener<Void> disconnectionListener() {
 		return disconnectionListener(stageBuilder(DISCONNECTION, null, null));
 	}
 
-	<T> ExecutionListener<T> executeStageListener(MailCommand cmd, Message msg) {
+	public <T> ExecutionListener<T> executeStageListener(MailCommand cmd, Message msg) {
 		return stageListener(EXECUTE, cmd, msg);
 	}
 	
-	<T> ExecutionListener<T> stageListener(MailAction action, MailCommand cmd, Message msg) {
+	public <T> ExecutionListener<T> stageListener(MailAction action, MailCommand cmd, Message msg) {
 		if(nonNull(cmd) && nonNull(getTrace())) {
 			var upd = (MailRequestUpdate) getTrace();
 			upd.setCommand(merge(upd.getCommand(), cmd.getType()));

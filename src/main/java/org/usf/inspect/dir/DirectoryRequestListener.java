@@ -33,30 +33,20 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-final class DirectoryRequestListener extends StatefulExecutionListener<DirContext> {
+final class DirectoryRequestListener extends StatefulExecutionListener {
 
 	@Override
-	protected DirectoryRequestSignal signal(Instant start, DirContext cnx) throws NamingException {
-		var sgn = createNamingSignal(start);
-		if(nonNull(cnx)) {
-			var url = getEnvironmentVariable(cnx, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
-			if(nonNull(url)) {
-				sgn.setProtocol(url.getScheme());
-				sgn.setHost(url.getHost());
-				sgn.setPort(url.getPort());
-			}
-			sgn.setUser(getEnvironmentVariable(cnx, "java.naming.security.principal", Object::toString));  //broke context dependency
-		}
-		return sgn;
+	public DirectoryRequestSignal signal(Instant start) {
+		return createNamingSignal(start);
 	}
 
 	@Override
-	protected DirectoryRequestUpdate update(TraceSignal signal) { 
+	public DirectoryRequestUpdate update(TraceSignal signal) { 
 		return new DirectoryRequestUpdate(signal.getId());
 	}
 
 	@Override
-	protected int resolveStatus(Throwable t) {
+	public int resolveStatus(Throwable t) {
 	    return switch (t) {
 	    	case javax.naming.AuthenticationException e -> CLIENT_UNAUTHORIZED;
 	    	case javax.naming.NameNotFoundException e -> CLIENT_ERROR;
@@ -72,15 +62,26 @@ final class DirectoryRequestListener extends StatefulExecutionListener<DirContex
 	    };
 	}
 	
-	ExecutionListener<DirContext> connectionListener() {
-		return connectionListener(stageBuilder(CONNECTION, null)); //before end if thrw
+	public ExecutionListener<DirContext> connectionListener() {
+		return connectionListener(stageBuilder(CONNECTION, null), (trc, cnx)->{
+			var sgn = (DirectoryRequestSignal) trc;
+			if(nonNull(cnx)) {
+				var url = getEnvironmentVariable(cnx, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
+				if(nonNull(url)) {
+					sgn.setProtocol(url.getScheme());
+					sgn.setHost(url.getHost());
+					sgn.setPort(url.getPort());
+				}
+				sgn.setUser(getEnvironmentVariable(cnx, "java.naming.security.principal", Object::toString));  //broke context dependency
+			}
+		}); //before end if thrw
 	}
 	
-	ExecutionListener<Void> disconnectionListener() {
+	public ExecutionListener<Void> disconnectionListener() {
 		return disconnectionListener(stageBuilder(DISCONNECTION, null));
 	}
 	
-	<T> ExecutionListener<T> stageHandler(DirCommand cmd, String... args) {
+	public <T> ExecutionListener<T> stageHandler(DirCommand cmd, String... args) {
 		return stageHandler(EXECUTE, cmd, args);
 	}
 	

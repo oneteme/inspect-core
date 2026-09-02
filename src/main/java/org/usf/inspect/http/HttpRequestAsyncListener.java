@@ -21,17 +21,14 @@ import org.usf.inspect.core.InspectExecutor.ExecutionListener;
  * @author u$f
  *
  */
-final class HttpRequestAsyncListener extends AbstractHttpRequestListener<ClientRequest> {
+final class HttpRequestAsyncListener extends AbstractHttpRequestListener {
 
 	private volatile Instant lastTimestamp;
 	
-	@Override
-	protected HttpRequestSignal signal(Instant start, ClientRequest cnx) throws Exception {
-		return signal(start, cnx.method(), cnx.url(), cnx.headers());
-	}
-	
 	public ExecutionListener<Object> assemblyStageListener(ClientRequest client) {
-		return connectionListener((s,e,o,t)-> createStage(ASSEMBLY, s, e), v-> client);
+		return connectionListener(
+				(s,e,o,t)-> createStage(ASSEMBLY, s, e), 
+				(trc, req)-> signal((HttpRequestSignal)trc, client.method(), client.url(), client.headers()));
 	}
 
 	public void exchangeStage(ClientResponse res, Throwable thrw) {

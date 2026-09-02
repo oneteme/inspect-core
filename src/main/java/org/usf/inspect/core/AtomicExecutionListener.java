@@ -5,8 +5,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
-import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
-import static org.usf.inspect.core.StatefulExecutionListener.SUCCESS;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
@@ -25,20 +23,8 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter(value = AccessLevel.PROTECTED)
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class AtomicExecutionListener<T extends TraceSignal> {
+public abstract class AtomicExecutionListener<T extends TraceSignal> implements Monitor2 {
 
-	protected abstract T signal(Instant start);
-
-	protected abstract TraceUpdate update(TraceSignal signal);
-	
-	protected Throwable mapException(Throwable e) {
-		return e;
-	}
-	
-	protected int resolveStatus(Throwable t) {
-		return SERVER_ERROR;
-	}
-	
 	public <R> ExecutionListener<R> executionListener(SafeConsumer<T> cons) {
 		return executionListener(systemUTC().instant(), cons);
 	}
@@ -57,8 +43,9 @@ public abstract class AtomicExecutionListener<T extends TraceSignal> {
 		return new ModifiableExecutionListener<>(upd, executionListener(upd));
 	}
 	
+	@SuppressWarnings("unchecked")
 	TraceUpdate traceUpdate(Instant start, SafeConsumer<T> cons) {
-		var sgn = signal(start);
+		var sgn = (T) signal(start);
 		try {
 			cons.accept(sgn);
 		}
@@ -77,7 +64,7 @@ public abstract class AtomicExecutionListener<T extends TraceSignal> {
 			if(nonNull(upd)) {
 				upd.setStart(s); //real method start
 				if(nonNull(t)) {
-					t = mapException(t);
+					t = exception(t);
 					hub().emitTrace(fromException(t));
 					upd.setStatus(resolveStatus(t));
 				}

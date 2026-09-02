@@ -5,8 +5,6 @@ import static org.usf.inspect.core.HttpAction.EXCHANGE;
 import static org.usf.inspect.core.HttpAction.STREAM;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
-import java.time.Instant;
-
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.usf.inspect.core.HttpRequestSignal;
@@ -20,18 +18,14 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-final class HttpRequestListener extends AbstractHttpRequestListener<HttpRequest> {
+final class HttpRequestListener extends AbstractHttpRequestListener {
 	
-	@Override
-	protected HttpRequestSignal signal(Instant start, HttpRequest cnx) throws Exception {
-		return signal(start, cnx.getMethod(), cnx.getURI(), cnx.getHeaders());
+	public ExecutionListener<ClientHttpResponse> exchangeStageListener(HttpRequest request) {
+		return connectionListener(stageBuilder(EXCHANGE), (trc, res)->
+			signal((HttpRequestSignal)trc, request.getMethod(), request.getURI(), request.getHeaders()));
 	}
 	
-	ExecutionListener<ClientHttpResponse> exchangeStageListener(HttpRequest request) {
-		return connectionListener(stageBuilder(EXCHANGE), v-> request);
-	}
-	
-	ExecutionListener<ResponseContent> streamStageListener(ClientHttpResponse res){
+	public ExecutionListener<ResponseContent> streamStageListener(ClientHttpResponse res){
 		if(nonNull(res)) {
 			try {//execute postExchange after reading response 
 				traceHeaders(res.getStatusCode(), res.getHeaders()); 

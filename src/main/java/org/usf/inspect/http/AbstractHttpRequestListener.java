@@ -36,13 +36,32 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-abstract class AbstractHttpRequestListener<T> extends StatefulExecutionListener<T> {
+abstract class AbstractHttpRequestListener extends StatefulExecutionListener {
 
 	@Getter
 	private final UUID id = nextId();
+	
+	@Override
+	public TraceSignal signal(Instant start) {
+		return createHttpRequest(start, getId());
+	}
 
-	protected HttpRequestSignal signal(Instant start, HttpMethod method, URI uri, HttpHeaders headers) {
-		var sng = createHttpRequest(start, getId());
+	@Override
+	public HttpRequestUpdate update(TraceSignal signal) { 
+		return new HttpRequestUpdate(signal.getId());
+	}
+
+	@Override
+	public int resolveStatus(Throwable t) {
+	    return switch (t) {
+	        case java.net.http.HttpConnectTimeoutException e -> CONN_TIMEOUT;
+	        case java.net.http.HttpTimeoutException e -> SERVER_TIMEOUT;
+
+	        default -> super.resolveStatus(t);
+	    };
+	}
+	
+	protected static HttpRequestSignal signal(HttpRequestSignal sng, HttpMethod method, URI uri, HttpHeaders headers) {
 		if(nonNull(method)) {
 			sng.setMethod(method.name());
 		}
@@ -60,21 +79,6 @@ abstract class AbstractHttpRequestListener<T> extends StatefulExecutionListener<
 			//req.setUser(decode AUTHORIZATION)
 		}
 		return sng;
-	}
-
-	@Override
-	protected HttpRequestUpdate update(TraceSignal signal) { 
-		return new HttpRequestUpdate(signal.getId());
-	}
-
-	@Override
-	protected int resolveStatus(Throwable t) {
-	    return switch (t) {
-	        case java.net.http.HttpConnectTimeoutException e -> CONN_TIMEOUT;
-	        case java.net.http.HttpTimeoutException e -> SERVER_TIMEOUT;
-
-	        default -> super.resolveStatus(t);
-	    };
 	}
 
 	void traceHeaders(HttpStatusCode status, HttpHeaders headers) {
