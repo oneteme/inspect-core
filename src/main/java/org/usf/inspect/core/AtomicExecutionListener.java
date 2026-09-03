@@ -1,8 +1,8 @@
 package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -23,62 +23,58 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter(value = AccessLevel.PROTECTED)
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class AtomicExecutionListener<T extends TraceSignal> implements Monitor2 {
-
-	public <R> ExecutionListener<R> executionListener(SafeConsumer<T> cons) {
+public abstract class AtomicExecutionListener implements Monitor2 {
+	
+	public <R> ExecutionListener<R> executionListener(SafeConsumer<TraceSignal> cons) {
 		return executionListener(systemUTC().instant(), cons);
 	}
 	
-	public <R> ExecutionListener<R> executionListener(Instant start, SafeConsumer<T> cons) {
-		var upd = traceUpdate(start, cons);
-		return executionListener(upd);
+	public <R> ExecutionListener<R> executionListener(Instant start, SafeConsumer<TraceSignal> cons) {
+		return executionListener(createSignal(start, cons));
 	}
 	
-	public <R> ModifiableExecutionListener<R> modifiableExecutionListener(SafeConsumer<T> cons) {
-		return modifiableExecutionListener(systemUTC().instant(), cons);
-	}
-	
-	public <R> ModifiableExecutionListener<R> modifiableExecutionListener(Instant start, SafeConsumer<T> cons) {
-		var upd = traceUpdate(start, cons);
+	public <R> ModifiableExecutionListener<R> modifiableExecutionListener(Instant start, SafeConsumer<TraceSignal> cons) {
+		var sgn = createSignal(start, cons);
+		hub().emitTrace(sgn);
+		var upd = update(sgn);
 		return new ModifiableExecutionListener<>(upd, executionListener(upd));
 	}
 	
-	@SuppressWarnings("unchecked")
-	TraceUpdate traceUpdate(Instant start, SafeConsumer<T> cons) {
-		var sgn = (T) signal(start);
+	TraceSignal createSignal(Instant start, SafeConsumer<TraceSignal> cons) {
+		var sgn = signal(start);
 		try {
 			cons.accept(sgn);
 		}
 		catch (Exception e) {
-			hub().reportError(true, this.getClass() + ".executionListener", e);
+			hub().reportError(true, this.getClass() + ".createSignal", e);
 		}
+		return sgn;
+	}
+
+	<R> ExecutionListener<R> executionListener(TraceSignal sgn) {
 		hub().emitTrace(sgn);
-		return update(sgn);
+		return executionListener(update(sgn));
 	}
 	
 	<R> ExecutionListener<R> executionListener(TraceUpdate upd) {
 		if(upd instanceof AbstractSessionUpdate ctx) {
 			setActiveContext(ctx);
 		}
-		return (s,e,o,t)-> {
-			if(nonNull(upd)) {
-				upd.setStart(s); //real method start
-				if(nonNull(t)) {
-					t = exception(t);
-					hub().emitTrace(fromException(t));
-					upd.setStatus(resolveStatus(t));
-				}
-				else {
-					upd.setStatus(SUCCESS);
-				}
-				upd.setEnd(e);
-				hub().emitTrace(upd);
-				if(upd instanceof AbstractSessionUpdate ctx) {
-					clearContext(ctx);
-				}
+		return isNull(upd) ? Monitor2.noUpdateExecutionListenner() : (s,e,o,t)-> {
+			upd.setStart(s); //real method start
+			if(nonNull(t)) {
+				t = exception(t);
+				upd.setStatus(resolveStatus(t));
+				var exp = exceptionTrace(t, upd, e.toEpochMilli());
+				hub().emitTrace(exp);
 			}
 			else {
-				hub().reportMessage(true, this.getClass() + "executionListener", "update is null");
+				upd.setStatus(SUCCESS);
+			}
+			upd.setEnd(e);
+			hub().emitTrace(upd);
+			if(upd instanceof AbstractSessionUpdate ctx) {
+				clearContext(ctx);
 			}
 		};
 	}

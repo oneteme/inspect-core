@@ -1,12 +1,11 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
 
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.SafeCallable.SafeConsumer;
+import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,23 +15,20 @@ public class ModifiableExecutionListener<T> implements ExecutionListener<T> {
 	private final TraceUpdate update;
 	private final ExecutionListener<T> listener;
 	
-	public void updateTrace(SafeConsumer<TraceUpdate> cons) {
-		if(nonNull(update)) {
+	public ExecutionListener<T> map(SafeBiConsumer<TraceUpdate, T> cons) {
+		return (s,e,o,t)->{
 			try {
-				cons.accept(update);
+				cons.accept(update, o); //execute before
 			}
-			catch (Exception e) {
-				hub().reportError(true, "updateTrace", e);
+			catch (Exception ex) {
+				hub().reportError(true, "ModifiableExecutionListener.map", ex);
 			}
-		}
-		else {
-			hub().reportMessage(true, "updateTrace", "update is null");
-		}
+			listener.handle(s, e, o, t);
+		};
 	}
 
 	@Override
 	public void handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception {
 		listener.handle(start, end, obj, thrw);
 	}
-	
 }

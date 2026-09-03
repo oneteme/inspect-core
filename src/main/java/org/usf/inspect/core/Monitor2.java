@@ -1,6 +1,11 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.ExceptionTrace.fromException;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
+
 import java.time.Instant;
+
+import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 public interface Monitor2 {
 	
@@ -20,6 +25,10 @@ public interface Monitor2 {
 
     static final int SERVER_ERROR      		= 500; // Generic server/remote error
     static final int SERVER_TIMEOUT     	= 504; // Server/Gateway response timeout
+    
+    static final ExecutionListener<?> NO_UPDATE_LISTENER = (s,e,o,t)-> 
+    	hub().reportMessage(true, "Monitor2.executionListener", "update is null");
+    
 	
 	TraceSignal signal(Instant start);
 	
@@ -31,5 +40,17 @@ public interface Monitor2 {
 	
 	default Throwable exception(Throwable t) {
 		return t;
+	}
+	
+	default ExceptionTrace exceptionTrace(Throwable t, TraceUpdate update, long offset) {
+		var exp = update instanceof AbstractSessionUpdate ? fromException(t) : fromException(t, 0, 0);
+		exp.setOffset(offset);
+		exp.setTraceId(update.getId());
+		return exp;
+	}
+	
+	@SuppressWarnings("unchecked")
+	static <R> ExecutionListener<R> noUpdateExecutionListenner(){
+		return (ExecutionListener<R>) NO_UPDATE_LISTENER;
 	}
 }

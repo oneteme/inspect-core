@@ -1,12 +1,12 @@
 package org.usf.inspect.ftp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.StatefulExecutionListener.CONN_ERROR;
-import static org.usf.inspect.core.StatefulExecutionListener.CONN_REFUSED;
-import static org.usf.inspect.core.StatefulExecutionListener.CONN_TIMEOUT;
-import static org.usf.inspect.core.StatefulExecutionListener.CONN_UNKNOWN_HOST;
-import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
-import static org.usf.inspect.core.StatefulExecutionListener.SERVER_TIMEOUT;
+import static org.usf.inspect.core.Monitor2.CONN_ERROR;
+import static org.usf.inspect.core.Monitor2.CONN_REFUSED;
+import static org.usf.inspect.core.Monitor2.CONN_TIMEOUT;
+import static org.usf.inspect.core.Monitor2.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.Monitor2.SERVER_ERROR;
+import static org.usf.inspect.core.Monitor2.SERVER_TIMEOUT;
 
 import java.net.SocketException;
 import java.net.SocketTimeoutException;

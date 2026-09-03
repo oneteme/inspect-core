@@ -31,7 +31,6 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 	//v1.2
 	private String[] forwardedAddresses; // IP address 
 
-
 	public HttpSessionSignal(UUID id, Instant start, String threadName) {
 		super(id, start, threadName);
 	}

@@ -5,6 +5,7 @@ import static org.usf.inspect.core.InspectExecutor.exec;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.usf.inspect.core.MainSessionSignal;
 import org.usf.inspect.core.SessionExecutionListener;
 
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,8 @@ public final class Junit4TestMonitor implements TestRule {
 		return new Statement() {
 			@Override
 			public void evaluate() throws Throwable {
-				exec(base::evaluate, listener.executionListener(sgn-> {
+				exec(base::evaluate, listener.executionListener(trc-> {
+					var sgn = (MainSessionSignal) trc;
 					sgn.setName(dscr.getDisplayName());
 					sgn.setLocation(dscr.getClassName(), dscr.getMethodName());
 					//set test user

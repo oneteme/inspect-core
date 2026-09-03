@@ -46,8 +46,9 @@ public class MethodExecutionMonitor implements Ordered {
 	@Deprecated
 	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		var listener = new MethodExecutionListener();
-		return call(fn, listener.executionListener(sgn->{
+		return call(fn, listener.executionListener(trc->{
 			var frm = upperStackFrame();
+			var sgn = (LocalRequestSignal) trc;
 			sgn.setName(name);
 			if(nonNull(type)) {
 				sgn.setType(type.name());
@@ -68,7 +69,8 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundJob(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, sessionListener.executionListener(sgn-> {
+		return call(point::proceed, sessionListener.executionListener(trc-> {
+			var sgn = (MainSessionSignal) trc;
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));
@@ -81,7 +83,8 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 	
 	Object aroundMethod(ProceedingJoinPoint point, String type) throws Throwable {
-		return call(point::proceed, methodListener.executionListener(sgn->{
+		return call(point::proceed, methodListener.executionListener(trc->{
+			var sgn = (LocalRequestSignal) trc;
 			sgn.setType(type);
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));

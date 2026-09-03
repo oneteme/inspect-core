@@ -10,7 +10,7 @@ import java.time.Instant;
  * @author u$f
  *
  */
-public final class MethodExecutionListener extends AtomicExecutionListener<LocalRequestSignal> {
+public final class MethodExecutionListener extends AtomicExecutionListener {
 
 	@Override
 	public LocalRequestSignal signal(Instant start) {
@@ -25,5 +25,5 @@ public final class MethodExecutionListener extends AtomicExecutionListener<Local
 	@Override
 	public Throwable exception(Throwable e) {
 		return rootCauseException(e);
-	}
+	}	
 }

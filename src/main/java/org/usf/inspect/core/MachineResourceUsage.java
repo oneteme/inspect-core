@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.lang.String.format;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +28,10 @@ public final class MachineResourceUsage implements EventTrace {
 	//1.2
 	private final int activeThreadCount;
 	private final int startedThreadCount;
-	private final int cpuUsage;
+	private final int cpuUsage; //byte ? 0-100
 
 	//server usage 
-	private String instanceId; 
+	private UUID instanceId; 
 	//CPU?
 	
 	@Override

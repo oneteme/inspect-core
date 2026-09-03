@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
@@ -29,18 +29,6 @@ public abstract class StatefulExecutionListener implements Monitor2 {
 	
 	private TraceUpdate trace;
 	private Instant start;
-	
-	protected ExceptionTrace exception(Throwable t, int order) {
-		var upd = getTrace();
-		var root = exception(t);
-		if(upd.getStatus() < 0) {
-			upd.setStatus(resolveStatus(root));
-		}
-		var ex = fromException(root, 0, 0);
-		ex.setOffset(order);
-		ex.setTraceId(upd.getId());
-		return ex;
-	}
 	
 	@Override
 	public Throwable exception(Throwable t) {
@@ -99,41 +87,33 @@ public abstract class StatefulExecutionListener implements Monitor2 {
 	}
 	
 	public <R> ExecutionListener<R> stageListener(StageBuilder<R> stgBuilder){
-		return (s,e,o,t)-> {
-			if(nonNull(trace)) {
-				var stg = stgBuilder.newStage(s, e, o, t);
-				if(nonNull(stg)) {
-					hub().emitTrace(stg);
-					if(nonNull(t)) {
-						var ex = exception(t, stg.getOrder());
-						if(nonNull(ex)) {
-							hub().emitTrace(ex);
-						}
+		return isNull(trace) ? Monitor2.noUpdateExecutionListenner() : (s,e,o,t)-> {
+			var stg = stgBuilder.newStage(s, e, o, t);
+			if(nonNull(stg)) {
+				hub().emitTrace(stg);
+				if(nonNull(t)) {
+					t = exception(t);
+					if(trace.getStatus() < 0) {
+						trace.setStatus(resolveStatus(t));
 					}
+					var exp = exceptionTrace(t, trace, stg.getOrder());
+					hub().emitTrace(exp);
 				}
-			}
-			else {
-				reportTraceIsNull("stageListener");
 			}
 		};
 	}
 	
 	public <R> ExecutionListener<R> disconnectionListener(StageBuilder<R> stgBuilder) {
-		return (s,e,o,t)-> {
+		return isNull(trace) ? Monitor2.noUpdateExecutionListenner() : (s,e,o,t)-> {
 			try {
-				if(nonNull(trace)) {
-					if(nonNull(stgBuilder)) {
-						stageListener(stgBuilder).safeHandle(s, e, o, t);
-					}
-					if(trace.getStatus() < 0) {
-						trace.setStatus(SUCCESS);
-					}
-					trace.setEnd(e);
-					hub().emitTrace(trace);
+				if(nonNull(stgBuilder)) {
+					stageListener(stgBuilder).safeHandle(s, e, o, t);
 				}
-				else {
-					reportTraceIsNull("disconnectionListener");
+				if(trace.getStatus() < 0) {
+					trace.setStatus(SUCCESS);
 				}
+				trace.setEnd(e);
+				hub().emitTrace(trace);
 			}
 			finally {
 				reset();

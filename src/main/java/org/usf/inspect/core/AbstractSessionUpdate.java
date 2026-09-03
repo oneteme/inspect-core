@@ -73,4 +73,14 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	public boolean isStartup() {
 		return false;
 	}
+	
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(end)
+//				.withAction(command)
+				.withMessageAsTopic(id.toString())
+				.withStatus(getStatus()+"")
+				.format();
+	}
 }

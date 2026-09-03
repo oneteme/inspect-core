@@ -9,7 +9,7 @@ import java.time.Instant;
  * @author u$f
  *
  */
-public final class SessionExecutionListener extends AtomicExecutionListener<MainSessionSignal> {
+public final class SessionExecutionListener extends AtomicExecutionListener {
 
 	@Override
 	public MainSessionSignal signal(Instant start) {

@@ -32,6 +32,7 @@ public final class HttpSessionUpdate extends AbstractSessionUpdate implements Ha
 		super(id);
 	}
 	
+	@Deprecated
 	public HttpSessionStage createStage() {
 		return new HttpSessionStage(getId(), getStageCounter().incrementAndGet());
 	}

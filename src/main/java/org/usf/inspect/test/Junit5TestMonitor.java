@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.TestWatcher;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
+import org.usf.inspect.core.MainSessionSignal;
 import org.usf.inspect.core.SessionExecutionListener;
 
 /**
@@ -58,7 +59,8 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	}
 	
 	void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
-		updateExecutionListener(context, hndl-> listener.executionListener(sgn-> { 
+		updateExecutionListener(context, hndl-> listener.executionListener(trc-> { 
+			var sgn = (MainSessionSignal) trc;
 			sgn.setName(context.getDisplayName());
 			sgn.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			//set test user

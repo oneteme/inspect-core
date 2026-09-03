@@ -156,15 +156,14 @@ public class InspectConfiguration implements WebMvcConfigurer {
     	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider);
     	var listener = new SessionExecutionListener();
 		hub().dispatch(instance);
-		var handler = listener.modifiableExecutionListener(start, sgn-> sgn.setName("main"));
+		var handler = listener.modifiableExecutionListener(start, sgn-> ((MainSessionSignal)sgn).setName("main"));
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 				var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
-				handler.updateTrace(upd-> {
+				handler.map((t,o)-> {
 					var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
-					((MainSessionUpdate)upd).setLocation(lct);
-				});
-				handler.safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);
+					((MainSessionUpdate)t).setLocation(lct)
+				;}).safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);
 			}
 		};
     }

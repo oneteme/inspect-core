@@ -2,9 +2,9 @@ package org.usf.inspect.mail;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.usf.inspect.core.StatefulExecutionListener.CLIENT_UNAUTHORIZED;
-import static org.usf.inspect.core.StatefulExecutionListener.CONN_ERROR;
-import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
+import static org.usf.inspect.core.Monitor2.CLIENT_UNAUTHORIZED;
+import static org.usf.inspect.core.Monitor2.CONN_ERROR;
+import static org.usf.inspect.core.Monitor2.SERVER_ERROR;
 
 import java.net.SocketException;
 import java.util.Properties;

@@ -3,7 +3,7 @@ package org.usf.inspect.jdbc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.usf.inspect.core.StatefulExecutionListener.CLIENT_CONFLICT;
+import static org.usf.inspect.core.Monitor2.CLIENT_CONFLICT;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

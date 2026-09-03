@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.usf.inspect.core.StatefulExecutionListener.CONN_INTERRUPTED;
-import static org.usf.inspect.core.StatefulExecutionListener.CONN_REFUSED;
-import static org.usf.inspect.core.StatefulExecutionListener.SERVER_ERROR;
+import static org.usf.inspect.core.Monitor2.CONN_INTERRUPTED;
+import static org.usf.inspect.core.Monitor2.CONN_REFUSED;
+import static org.usf.inspect.core.Monitor2.SERVER_ERROR;
 import static org.usf.inspect.dir.DirectoryRequestListener.getEnvironmentVariable;
 
 import java.util.Hashtable;

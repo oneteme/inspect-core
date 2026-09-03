@@ -16,6 +16,7 @@ import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.usf.inspect.core.LocalRequestSignal;
 import org.usf.inspect.core.MethodExecutionListener;
 
 /**
@@ -37,7 +38,8 @@ public class FlywayModuleConfiguration {
 	@Bean
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
 		var listener = new MethodExecutionListener();
-		return fly-> exec(fly::migrate, listener.executionListener(sgn->{
+		return fly-> exec(fly::migrate, listener.executionListener(trc->{
+			var sgn = (LocalRequestSignal) trc;
 			sgn.setType(EXEC.name());
 			sgn.setName("FlywayMigration");
 			sgn.setLocation(scriptLocation(fly));
