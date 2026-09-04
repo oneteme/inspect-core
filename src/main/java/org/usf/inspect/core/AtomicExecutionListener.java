@@ -33,6 +33,10 @@ public abstract class AtomicExecutionListener implements Monitor2 {
 		return executionListener(createSignal(start, cons));
 	}
 	
+	public <R> ModifiableExecutionListener<R> modifiableExecutionListener(SafeConsumer<TraceSignal> cons) {
+		return modifiableExecutionListener(systemUTC().instant(), cons);
+	}
+	
 	public <R> ModifiableExecutionListener<R> modifiableExecutionListener(Instant start, SafeConsumer<TraceSignal> cons) {
 		var sgn = createSignal(start, cons);
 		hub().emitTrace(sgn);
@@ -40,7 +44,7 @@ public abstract class AtomicExecutionListener implements Monitor2 {
 		return new ModifiableExecutionListener<>(upd, executionListener(upd));
 	}
 	
-	TraceSignal createSignal(Instant start, SafeConsumer<TraceSignal> cons) {
+	protected TraceSignal createSignal(Instant start, SafeConsumer<TraceSignal> cons) {
 		var sgn = signal(start);
 		try {
 			cons.accept(sgn);
@@ -51,12 +55,12 @@ public abstract class AtomicExecutionListener implements Monitor2 {
 		return sgn;
 	}
 
-	<R> ExecutionListener<R> executionListener(TraceSignal sgn) {
+	protected <R> ExecutionListener<R> executionListener(TraceSignal sgn) {
 		hub().emitTrace(sgn);
 		return executionListener(update(sgn));
 	}
 	
-	<R> ExecutionListener<R> executionListener(TraceUpdate upd) {
+	protected <R> ExecutionListener<R> executionListener(TraceUpdate upd) {
 		if(upd instanceof AbstractSessionUpdate ctx) {
 			setActiveContext(ctx);
 		}

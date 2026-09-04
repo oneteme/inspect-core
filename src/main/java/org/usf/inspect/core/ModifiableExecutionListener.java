@@ -23,7 +23,7 @@ public class ModifiableExecutionListener<T> implements ExecutionListener<T> {
 			catch (Exception ex) {
 				hub().reportError(true, "ModifiableExecutionListener.map", ex);
 			}
-			listener.handle(s, e, o, t);
+			handle(s, e, o, t);
 		};
 	}
 
