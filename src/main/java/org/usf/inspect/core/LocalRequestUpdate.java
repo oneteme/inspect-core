@@ -15,7 +15,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class LocalRequestUpdate extends AbstractRequestUpdate implements AtomicTrace {
+public final class LocalRequestUpdate extends AbstractRequestUpdate {
 
 	private Instant start; //real start
 	

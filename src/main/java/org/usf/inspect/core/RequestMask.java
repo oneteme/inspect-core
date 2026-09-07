@@ -23,5 +23,4 @@ public enum RequestMask {
 	public boolean is(int value) {
 		return (value & this.value) == this.value;
 	}
-	
 }

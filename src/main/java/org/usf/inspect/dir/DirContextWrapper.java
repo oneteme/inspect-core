@@ -31,7 +31,6 @@ public class DirContextWrapper implements DirContext {
 	private final DirContext ctx;
 	private final DirectoryConnectionLifecycleTracer listener;
 
-	
 	/**
 	 * 
 	 * supports both javax.naming.NamingException & org.springframework.ldap.NamingException

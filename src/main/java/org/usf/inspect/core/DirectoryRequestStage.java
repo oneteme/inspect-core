@@ -20,5 +20,4 @@ public class DirectoryRequestStage extends AbstractStage {
 	public DirectoryRequestStage(UUID requestId, int order) {
 		super(requestId, order);
 	}
-
 }

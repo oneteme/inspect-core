@@ -8,7 +8,7 @@ package org.usf.inspect.core;
 public enum MainSessionType {
 
 	VIEW,
-	BATCH,
+	BATCH, //rename to JOB
 	STARTUP,
 	TEST;
 }

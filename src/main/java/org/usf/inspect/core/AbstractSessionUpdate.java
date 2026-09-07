@@ -20,7 +20,7 @@ import lombok.Setter;
  */
 @Getter
 @RequiredArgsConstructor
-public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace {
+public abstract class AbstractSessionUpdate implements TraceUpdate {
 
 	private final UUID id;
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
@@ -30,11 +30,11 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	@Setter private String name; //title, topic
 	@Setter private String user;
 	@Setter private String location; //class.method, URL, endpoint
+	@Deprecated(forRemoval = true, since = "1.2")
+	@Setter private ExceptionTrace exception; //trace exception separately
 	
 	//v1.2
-	@Setter private short status; //RequestCommonStatus
-	@Deprecated(forRemoval = true, since = "1.2")
-	@Setter private ExceptionTrace exception; //TD trace exception separately
+	@Setter private short status; //DualEventTracer
 	
 	public void setEnd(Instant end){
 		if(threadCount.get() > 0) {

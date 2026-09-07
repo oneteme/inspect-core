@@ -16,5 +16,4 @@ public final class StagePayload {
 	
 	private String[] args;
 	private long[] count;
-
 }

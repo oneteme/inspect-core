@@ -27,8 +27,8 @@ public abstract class AbstractStage implements Metric {
 	private Instant start;
 	private Instant end;
 	private String command;
-	@Deprecated(forRemoval = true, since = "v1.2")
-	private ExceptionTrace exception;
+	@Deprecated(forRemoval = true, since = "1.2")
+	private ExceptionTrace exception; //trace exception separately
 	//v1.2
 	private StagePayload payload;
 //	private String threadName

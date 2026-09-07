@@ -6,11 +6,11 @@ import static java.util.UUID.fromString;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.usf.inspect.core.Helper.extractAuthScheme;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
+import static org.usf.inspect.http.WebUtils.extractAuthScheme;
 
 import java.net.URI;
 import java.time.Instant;

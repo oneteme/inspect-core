@@ -13,7 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public abstract class AbstractRemoteRequestSignal extends AbstractRequestSignal  {
+public abstract class AbstractRemoteRequestSignal extends AbstractRequestSignal {
 
 	private String protocol; //HTTP(S), SMTP(S), (S)FTPS
 	private String host; //IP, domain

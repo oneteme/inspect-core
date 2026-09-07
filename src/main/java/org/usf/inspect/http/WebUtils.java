@@ -1,5 +1,7 @@
 package org.usf.inspect.http;
 
+import static java.util.Objects.nonNull;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -9,7 +11,12 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-final class WebUtils {
+public final class WebUtils {
 
 	static final String TRACE_HEADER = "x-tracert"; //X-Request-Id
+
+	public static String extractAuthScheme(String authHeader) { //nullable
+		return nonNull(authHeader) && authHeader.matches("\\w+ .+") 
+				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
+	}
 }

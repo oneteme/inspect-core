@@ -2,11 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
-import static java.lang.reflect.Array.getLength;
 import static java.util.Objects.nonNull;
-
-import java.util.Collection;
-import java.util.Map;
 
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -27,26 +23,6 @@ public final class Helper {
 		return t.isVirtual() ?  ""+t.threadId() : t.getName();
 	}
 	
-	public static String extractAuthScheme(String authHeader) { //nullable
-		return nonNull(authHeader) && authHeader.matches("\\w+ .+") 
-				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
-	}
-	
-	public static int count(Object o) {
-		if(nonNull(o)) {
-			if(o instanceof Collection<?> c) {
-				return c.size();
-			}
-			if(o instanceof Map<?,?> m) {
-				return m.size();
-			}
-			if(o.getClass().isArray()) {
-				return getLength(o);
-			}
-		}
-		return -1;
-	}
-
 	//e.g. batch name (arg param)
 	@Deprecated(since="0.4.0", forRemoval=true) //use SpelEvaluator.evalMethodExpression instead
 	public static Object evalExpression(String exp, Object root, Class<?> clazz, String[] params, Object[] args) {
