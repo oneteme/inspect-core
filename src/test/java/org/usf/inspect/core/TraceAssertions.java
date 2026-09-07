@@ -66,7 +66,7 @@ public final class TraceAssertions {
 		}
 	}
 	
-	public static ExceptionTrace assertExceptionTrace(UUID id, int offset, EventTrace trace) {
+	public static ExceptionTrace assertExceptionTrace(UUID id, long offset, EventTrace trace) {
 		var exp = assertInstanceOf(ExceptionTrace.class, trace);
 		assertExceptionTrace(id, offset, exp);
 		return exp;

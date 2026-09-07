@@ -130,9 +130,8 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 				return getUpdate().getId().equals(fromString(sid));
 			}
 			catch (Exception e) {
-				//do nothing
+				hub().reportMessage(false, "assertSameID", "session.id=" + sid);
 			}
-			hub().reportMessage(false, "assertSameID", "session.id=" + sid);
 		}
 		return false;
 	}
