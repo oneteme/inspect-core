@@ -29,7 +29,7 @@ public class DirContextWrapper implements DirContext {
 	
 	@Delegate
 	private final DirContext ctx;
-	private final DirectoryRequestListener listener;
+	private final DirectoryConnectionLifecycleTracer listener;
 
 	
 	/**
@@ -37,10 +37,10 @@ public class DirContextWrapper implements DirContext {
 	 * supports both javax.naming.NamingException & org.springframework.ldap.NamingException
 	 */
 	<E extends Throwable> DirContextWrapper(SafeCallable<DirContext, E> callable) throws E { 
-		this(new DirectoryRequestListener(), callable);
+		this(new DirectoryConnectionLifecycleTracer(), callable);
 	}
 	
-	<E extends Throwable> DirContextWrapper(DirectoryRequestListener listener, SafeCallable<DirContext, E> callable) throws E {
+	<E extends Throwable> DirContextWrapper(DirectoryConnectionLifecycleTracer listener, SafeCallable<DirContext, E> callable) throws E {
 		this.listener = listener;
 		this.ctx = call(callable, this.listener.connectionListener());
 	}

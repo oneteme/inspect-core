@@ -11,6 +11,7 @@ import static org.usf.inspect.core.SessionContextManager.createMailSignal;
 import java.time.Instant;
 import java.util.stream.Stream;
 
+import org.usf.inspect.core.ConnectionLifecycleTracer;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.Mail;
 import org.usf.inspect.core.MailAction;
@@ -18,8 +19,6 @@ import org.usf.inspect.core.MailCommand;
 import org.usf.inspect.core.MailRequestSignal;
 import org.usf.inspect.core.MailRequestStage;
 import org.usf.inspect.core.MailRequestUpdate;
-import org.usf.inspect.core.Monitor.StageBuilder;
-import org.usf.inspect.core.StatefulExecutionListener;
 import org.usf.inspect.core.TraceSignal;
 
 import jakarta.mail.Address;
@@ -34,15 +33,15 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-final class MailRequestListener extends StatefulExecutionListener {
+final class MailConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 
 	@Override
-	public MailRequestSignal signal(Instant start) {
+	protected MailRequestSignal signal(Instant start) {
 		return createMailSignal(start);
 	}
 
 	@Override
-	public MailRequestUpdate update(TraceSignal signal) { 
+	protected MailRequestUpdate update(TraceSignal signal) { 
 		return new MailRequestUpdate(signal.getId());
 	}
 	
@@ -80,8 +79,8 @@ final class MailRequestListener extends StatefulExecutionListener {
 	}
 	
 	public <T> ExecutionListener<T> stageListener(MailAction action, MailCommand cmd, Message msg) {
-		if(nonNull(cmd) && nonNull(getTrace())) {
-			var upd = (MailRequestUpdate) getTrace();
+		if(nonNull(cmd) && nonNull(getUpdate())) {
+			var upd = (MailRequestUpdate) getUpdate();
 			upd.setCommand(merge(upd.getCommand(), cmd.getType()));
 		}
 		return stageListener(stageBuilder(action, cmd, msg));
@@ -89,7 +88,7 @@ final class MailRequestListener extends StatefulExecutionListener {
 	
 	<R> StageBuilder<R> stageBuilder(MailAction action, MailCommand cmd, Message msg) {
 		return (s,e,o,t)-> {
-			var stg = new MailRequestStage(getTrace().getId(), getStageCounter().incrementAndGet());
+			var stg = new MailRequestStage(getUpdate().getId(), getStageCounter().incrementAndGet());
 			stg.setName(action.name());
 			stg.setStart(s);
 			stg.setEnd(e);

@@ -14,15 +14,15 @@ import java.util.function.Function;
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 
+import org.usf.inspect.core.ConnectionLifecycleTracer;
 import org.usf.inspect.core.DirAction;
 import org.usf.inspect.core.DirCommand;
 import org.usf.inspect.core.DirectoryRequestSignal;
 import org.usf.inspect.core.DirectoryRequestStage;
 import org.usf.inspect.core.DirectoryRequestUpdate;
+import org.usf.inspect.core.DualEventTracer;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.Monitor.StageBuilder;
 import org.usf.inspect.core.StagePayload;
-import org.usf.inspect.core.StatefulExecutionListener;
 import org.usf.inspect.core.TraceSignal;
 
 import lombok.NoArgsConstructor;
@@ -33,15 +33,15 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-final class DirectoryRequestListener extends StatefulExecutionListener {
+final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 
 	@Override
-	public DirectoryRequestSignal signal(Instant start) {
+	protected DirectoryRequestSignal signal(Instant start) {
 		return createNamingSignal(start);
 	}
 
 	@Override
-	public DirectoryRequestUpdate update(TraceSignal signal) { 
+	protected DirectoryRequestUpdate update(TraceSignal signal) { 
 		return new DirectoryRequestUpdate(signal.getId());
 	}
 
@@ -86,16 +86,16 @@ final class DirectoryRequestListener extends StatefulExecutionListener {
 	}
 	
 	<T> ExecutionListener<T> stageHandler(DirAction action, DirCommand cmd, String... args) {
-		if(nonNull(cmd) && nonNull(getTrace())) {
-			var upd = (DirectoryRequestUpdate) getTrace();
+		if(nonNull(cmd) && nonNull(getUpdate())) {
+			var upd = (DirectoryRequestUpdate) getUpdate();
 			upd.setCommand(merge(upd.getCommand(), cmd.getType()));
 		}
 		return stageListener(stageBuilder(action, cmd, args));
 	}
 	
-	<R> StageBuilder<R> stageBuilder(DirAction action, DirCommand cmd, String... args) {
+	<R> DualEventTracer.StageBuilder<R> stageBuilder(DirAction action, DirCommand cmd, String... args) {
 		return (s,e,o,t)-> {
-			var upd = getTrace();
+			var upd = getUpdate();
 			var stg = new DirectoryRequestStage(upd.getId(), getStageCounter().incrementAndGet());
 			stg.setName(action.name());
 			stg.setStart(s);

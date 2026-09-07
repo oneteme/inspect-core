@@ -1,13 +1,18 @@
 package org.usf.inspect.core;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
+import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
+import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
+import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
+import static org.usf.inspect.core.SessionContextManager.createTestSession;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 
 import java.lang.StackWalker.StackFrame;
@@ -35,8 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 public class MethodExecutionMonitor implements Ordered {
 
 	private final AspectUserProvider userProvider;
-	private final SessionExecutionListener sessionListener = new SessionExecutionListener();
-	private final MethodExecutionListener methodListener = new MethodExecutionListener();
 
 	@Deprecated
 	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
@@ -45,10 +48,9 @@ public class MethodExecutionMonitor implements Ordered {
 
 	@Deprecated
 	public static <T, E extends Throwable> T trackCallble(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
-		var listener = new MethodExecutionListener();
-		return call(fn, listener.executionListener(trc->{
+		return call(fn, forLocalRequest(()->{
+			var sgn = createLocalRequest(systemUTC().instant());
 			var frm = upperStackFrame();
-			var sgn = (LocalRequestSignal) trc;
 			sgn.setName(name);
 			if(nonNull(type)) {
 				sgn.setType(type.name());
@@ -59,6 +61,7 @@ public class MethodExecutionMonitor implements Ordered {
 				}
 				sgn.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
 			}
+			return sgn;
 		}));
 	}
 
@@ -69,11 +72,12 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundJob(ProceedingJoinPoint point) throws Throwable {
-		return call(point::proceed, sessionListener.executionListener(trc-> {
-			var sgn = (MainSessionSignal) trc;
+		return call(point::proceed, forMainSession(()-> { 
+			var sgn = createTestSession(systemUTC().instant());
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));
+			return sgn;
 		}));
 	}
 
@@ -83,11 +87,12 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 	
 	Object aroundMethod(ProceedingJoinPoint point, String type) throws Throwable {
-		return call(point::proceed, methodListener.executionListener(trc->{
-			var sgn = (LocalRequestSignal) trc;
+		return call(point::proceed, forLocalRequest(()->{
+			var sgn = createLocalRequest(systemUTC().instant());
 			sgn.setType(type);
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
+			return sgn;
 		}));
 	}
 

@@ -22,38 +22,38 @@ public class PreparedStatementWrapper extends StatementWrapper implements Prepar
 	@Delegate(excludes = Statement.class)
 	private final PreparedStatement ps;
 
-	public PreparedStatementWrapper(PreparedStatement ps, DatabaseRequestListener tracer) {
+	public PreparedStatementWrapper(PreparedStatement ps, DatabaseConnectionLifecycleTracer tracer) {
 		super(ps, tracer);
 		this.ps = ps;
 	}
 
 	@Override
 	public void addBatch() throws SQLException {
-		exec(ps::addBatch, monitor.addBatchStageListener(null));
+		exec(ps::addBatch, tracer.addBatchStageListener(null));
 	}
 	
 	@Override
 	public boolean execute() throws SQLException {
-		return call(ps::execute, monitor.executeStageListener(null));
+		return call(ps::execute, tracer.executeStageListener(null));
 	}
 	
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		return new ResultSetWrapper(call(ps::executeQuery, monitor.executeQueryStageListener(null)), monitor);
+		return new ResultSetWrapper(call(ps::executeQuery, tracer.executeQueryStageListener(null)), tracer);
 	}
 	
 	@Override
 	public int executeUpdate() throws SQLException {
-		return call(ps::executeUpdate, monitor.executeUpdateStageListener(null));
+		return call(ps::executeUpdate, tracer.executeUpdateStageListener(null));
 	}
 	
 	@Override
 	public long executeLargeUpdate() throws SQLException {
-		return call(ps::executeLargeUpdate, monitor.executeLargeUpdateStageListener(null));
+		return call(ps::executeLargeUpdate, tracer.executeLargeUpdateStageListener(null));
 	}
 	
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
-		return call(ps::getMetaData, monitor.stageListener(METADATA));
+		return call(ps::getMetaData, tracer.stageListener(METADATA));
 	}
 }

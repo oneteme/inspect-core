@@ -21,7 +21,7 @@ import org.usf.inspect.core.InspectExecutor.ExecutionListener;
  * @author u$f
  *
  */
-final class HttpRequestAsyncListener extends AbstractHttpRequestListener {
+final class HttpRequestAsyncListener extends AbstractHttpConnectionLifecycleTracer {
 
 	private volatile Instant lastTimestamp;
 	

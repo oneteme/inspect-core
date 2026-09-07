@@ -3,7 +3,7 @@ package org.usf.inspect.jdbc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.usf.inspect.core.Monitor2.CLIENT_CONFLICT;
+import static org.usf.inspect.core.DualEventTracer.CLIENT_CONFLICT;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -76,8 +76,8 @@ class DatabaseSqlExceptionIT {
                             """)
                     );
 
-            DatabaseRequestListener monitor =
-                    new DatabaseRequestListener(
+            DatabaseConnectionLifecycleTracer monitor =
+                    new DatabaseConnectionLifecycleTracer(
                             new ConnectionMetadataCache()
                     );
 
@@ -108,8 +108,8 @@ class DatabaseSqlExceptionIT {
                             """)
                     );
 
-            DatabaseRequestListener monitor =
-                    new DatabaseRequestListener(
+            DatabaseConnectionLifecycleTracer monitor =
+                    new DatabaseConnectionLifecycleTracer(
                             new ConnectionMetadataCache()
                     );
 

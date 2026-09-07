@@ -6,10 +6,11 @@ import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
+import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
 import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.InspectExecutor.exec;
-import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.http.HttpSessionTracer.httpSessionListener;
 
 import java.io.IOException;
 import java.util.Map;
@@ -65,10 +66,13 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	private ExecutionListener<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
 		var mnt = currentHttpMonitor(req);
 		if(isNull(mnt)) {
-			mnt = new HttpSessionMonitor(req, res);
+			mnt = httpSessionListener(req, res, ()-> isAsyncStarted(req));
 			req.setAttribute(SESSION_MONITOR, mnt);
 		}
-		return mnt.preFilter(()-> this.isAsyncStarted(req));
+		else {
+			mnt.async();
+		}
+		return mnt;
 	}
 
 	@Override
@@ -83,9 +87,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		if(shouldIntercept(handler)) {  //avoid unfiltred request
-			var mnt = currentHttpMonitor(request);
-			if(assertMonitorNonNull(mnt, "HttpSessionFilter.preHandle")) {
+		if(shouldIntercept(handler)) {  //avoid infiltrate request
+			var mnt = requireActiveTracer(request, "HttpSessionFilter.preHandle");
+			if(nonNull(mnt)) {
 				mnt.preProcess();
 			}
 		}
@@ -94,9 +98,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-		if(shouldIntercept(handler)) { //avoid unfiltred request
-			var mnt = currentHttpMonitor(request);
-			if(assertMonitorNonNull(mnt, "HttpSessionFilter.postHandle")) {
+		if(shouldIntercept(handler)) { //avoid infiltrate request
+			var mnt = requireActiveTracer(request, "HttpSessionFilter.postHandle");
+			if(nonNull(mnt)) {
 				mnt.process();
 			}
 		}
@@ -104,9 +108,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-		if(shouldIntercept(handler)) { //avoid unfiltred request 
-			var mnt = currentHttpMonitor(request);
-			if(assertMonitorNonNull(mnt, "HttpSessionFilter.afterCompletion")) {
+		if(shouldIntercept(handler)) { //avoid infiltrate request 
+			var mnt = requireActiveTracer(request, "HttpSessionFilter.afterCompletion");
+			if(nonNull(mnt)) {
 				var name = resolveEndpointName(handler, request);
 				var user = userProvider.getUser(request, name);
 				mnt.postProcess(name, user, ex);
@@ -146,7 +150,12 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 				!(mth.getBean() instanceof ErrorController);
 	}
     
-    static HttpSessionMonitor currentHttpMonitor(HttpServletRequest req) {
-    	return (HttpSessionMonitor) req.getAttribute(SESSION_MONITOR);
+    static HttpSessionTracer currentHttpMonitor(HttpServletRequest req) {
+    	return (HttpSessionTracer) req.getAttribute(SESSION_MONITOR);
+    }
+    
+    static HttpSessionTracer requireActiveTracer(HttpServletRequest req, String action) {
+    	var c = currentHttpMonitor(req);
+		return assertActiveTracer(c, action) ? c : null;
     }
 }

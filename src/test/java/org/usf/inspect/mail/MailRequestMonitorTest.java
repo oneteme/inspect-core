@@ -2,9 +2,9 @@ package org.usf.inspect.mail;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.usf.inspect.core.Monitor2.CLIENT_UNAUTHORIZED;
-import static org.usf.inspect.core.Monitor2.CONN_ERROR;
-import static org.usf.inspect.core.Monitor2.SERVER_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CLIENT_UNAUTHORIZED;
+import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
+import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
 
 import java.net.SocketException;
 import java.util.Properties;
@@ -26,7 +26,7 @@ import jakarta.mail.internet.MimeMessage;
 @Disabled
 class MailRequestMonitorTest {
 
-	private final MailRequestListener listener = new MailRequestListener();
+	private final MailConnectionLifecycleTracer listener = new MailConnectionLifecycleTracer();
 	
 //    @RegisterExtension
     static GreenMail greenMail = new GreenMail(ServerSetupTest.SMTP); //GreenMailExtension !!??

@@ -13,14 +13,14 @@ import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
 import static org.usf.inspect.core.MailAction.EXECUTE;
 import static org.usf.inspect.core.MailCommand.SEND;
-import static org.usf.inspect.core.Monitor2.CLIENT_UNAUTHORIZED;
-import static org.usf.inspect.core.Monitor2.CONN_ERROR;
-import static org.usf.inspect.core.Monitor2.CONN_REFUSED;
-import static org.usf.inspect.core.Monitor2.CONN_SSL_ERROR;
-import static org.usf.inspect.core.Monitor2.CONN_TIMEOUT;
-import static org.usf.inspect.core.Monitor2.CONN_UNKNOWN_HOST;
-import static org.usf.inspect.core.Monitor2.SERVER_ERROR;
-import static org.usf.inspect.core.Monitor2.SUCCESS;
+import static org.usf.inspect.core.DualEventTracer.CLIENT_UNAUTHORIZED;
+import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.CONN_SSL_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CONN_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
+import static org.usf.inspect.core.DualEventTracer.SUCCESS;
 import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
@@ -117,7 +117,7 @@ class TransportWrapperTest {
 	
 	void testConnectError(int status, Class<? extends Exception> type, Properties props) throws NoSuchProviderException{
         var ses = Session.getInstance(props); 
-		var wrp = new TransportWrapper(ses.getTransport(), new MailRequestListener());
+		var wrp = new TransportWrapper(ses.getTransport(), new MailConnectionLifecycleTracer());
 
 		var start = now();
 		assertThrows(type, wrp::connect); 
@@ -141,7 +141,7 @@ class TransportWrapperTest {
         var props = initProperties(HOST, PORT, emptyMap());
 
         var ses = Session.getInstance(props);
-		var wrp = new TransportWrapper(ses.getTransport(), new MailRequestListener());
+		var wrp = new TransportWrapper(ses.getTransport(), new MailConnectionLifecycleTracer());
 
 		var start = now();
 		wrp.connect();
@@ -210,7 +210,7 @@ class TransportWrapperTest {
 	}
 
 	static List<EventTrace> sendMail(Transport trsp, Message... arr) throws MessagingException {
-		var wrp = new TransportWrapper(trsp, new MailRequestListener());
+		var wrp = new TransportWrapper(trsp, new MailConnectionLifecycleTracer());
 		wrp.connect();
 		try {
 			if(nonNull(arr)) {

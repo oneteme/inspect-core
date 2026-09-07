@@ -11,9 +11,9 @@ import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
 import static org.usf.inspect.core.DirCommand.LIST;
-import static org.usf.inspect.core.Monitor2.CONN_REFUSED;
-import static org.usf.inspect.core.Monitor2.CONN_UNKNOWN_HOST;
-import static org.usf.inspect.core.Monitor2.SUCCESS;
+import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.SUCCESS;
 import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
@@ -51,7 +51,7 @@ class DirContextWrapperTest {
 	private static final String HOST = "localhost";
 	
 	private final InMemoryDirectoryServer server = setup();
-	private final DirectoryRequestListener listener = new DirectoryRequestListener();
+	private final DirectoryConnectionLifecycleTracer listener = new DirectoryConnectionLifecycleTracer();
 	
 	
     @BeforeEach

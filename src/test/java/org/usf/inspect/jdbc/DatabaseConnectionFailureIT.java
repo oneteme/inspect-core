@@ -82,8 +82,8 @@ class DatabaseConnectionFailureIT {
             cause = cause.getCause();
         }
 
-        DatabaseRequestListener monitor =
-                new DatabaseRequestListener(
+        DatabaseConnectionLifecycleTracer monitor =
+                new DatabaseConnectionLifecycleTracer(
                         new ConnectionMetadataCache()
                 );
 
@@ -121,8 +121,8 @@ class DatabaseConnectionFailureIT {
                         () -> st.executeQuery("SELECT 1")
                 );
 
-        DatabaseRequestListener monitor =
-                new DatabaseRequestListener(
+        DatabaseConnectionLifecycleTracer monitor =
+                new DatabaseConnectionLifecycleTracer(
                         new ConnectionMetadataCache());
 
         int code = monitor.resolveStatus(exception);
@@ -177,8 +177,8 @@ void shouldDetectConnectionLostWhenServerStopsDuringQuery() throws Exception {
 
     assertNotNull(exception, "La requête aurait dû échouer.");
 
-    DatabaseRequestListener monitor =
-            new DatabaseRequestListener(new ConnectionMetadataCache());
+    DatabaseConnectionLifecycleTracer monitor =
+            new DatabaseConnectionLifecycleTracer(new ConnectionMetadataCache());
 
     int code = monitor.resolveStatus(exception);
     assertNotEquals(0, code);

@@ -27,7 +27,7 @@ import org.apache.sshd.sftp.server.SftpSubsystemProxy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.usf.inspect.core.StatefulExecutionListener;
+import org.usf.inspect.core.ConnectionLifecycleTracer;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
@@ -136,8 +136,8 @@ class FtpRequestMonitorIT {
         sftp.connect();
 
         // Classe testée
-        FtpRequestListener monitor =
-                new FtpRequestListener();
+        FtpConnectionLifecycleTracer monitor =
+                new FtpConnectionLifecycleTracer();
 
 
     // Une tentative d'écriture doit être refusée par le serveur
@@ -161,7 +161,7 @@ class FtpRequestMonitorIT {
 
         // Vérifie le mapping effectué par FtpRequestMonitor
         assertEquals(
-        		StatefulExecutionListener.CLIENT_UNAUTHORIZED,
+        		ConnectionLifecycleTracer.CLIENT_UNAUTHORIZED,
                 monitor.resolveStatus(exception)
         );
 
@@ -257,8 +257,8 @@ class FtpRequestMonitorIT {
 
         // Vérification du traitement de l'exception
 
-        FtpRequestListener monitor =
-                new FtpRequestListener();
+        FtpConnectionLifecycleTracer monitor =
+                new FtpConnectionLifecycleTracer();
 
 
 

@@ -25,11 +25,11 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	
 	@Delegate
 	private final Transport trsp;
-	private final MailRequestListener listener;
+	private final MailConnectionLifecycleTracer listener;
 
 	public TransportWrapper(Transport trsp) {
 		this.trsp = trsp;
-		this.listener = new MailRequestListener();
+		this.listener = new MailConnectionLifecycleTracer();
 	}
 	
 	public void connect() throws MessagingException {

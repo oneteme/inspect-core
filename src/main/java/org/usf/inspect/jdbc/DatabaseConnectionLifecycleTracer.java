@@ -20,15 +20,15 @@ import java.time.Instant;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
+import org.usf.inspect.core.ConnectionLifecycleTracer;
 import org.usf.inspect.core.DatabaseAction;
 import org.usf.inspect.core.DatabaseCommand;
 import org.usf.inspect.core.DatabaseRequestSignal;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.DatabaseRequestUpdate;
+import org.usf.inspect.core.DualEventTracer;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.Monitor.StageBuilder;
 import org.usf.inspect.core.StagePayload;
-import org.usf.inspect.core.StatefulExecutionListener;
 import org.usf.inspect.core.TraceSignal;
 
 import lombok.Getter;
@@ -40,7 +40,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-final class DatabaseRequestListener extends StatefulExecutionListener {
+final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 
 	private final ConnectionMetadataCache cache; //required
 
@@ -52,12 +52,12 @@ final class DatabaseRequestListener extends StatefulExecutionListener {
 
 
 	@Override
-	public DatabaseRequestSignal signal(Instant start) {
+	protected DatabaseRequestSignal signal(Instant start) {
 		return createDatabaseSignal(start);
 	}
 
 	@Override
-	public DatabaseRequestUpdate update(TraceSignal signal) { 
+	protected DatabaseRequestUpdate update(TraceSignal signal) { 
 		return new DatabaseRequestUpdate(signal.getId());
 	}
 	
@@ -203,7 +203,7 @@ final class DatabaseRequestListener extends StatefulExecutionListener {
 				}
 			}
 			catch (Exception e) {
-				hub().reportError(false, "DatabaseRequestMonitor.updateStageRowsCount", e);
+				hub().reportError(false, "DatabaseConnectionLifecycleTracer.updateStageRowsCount", e);
 			}
 		}
 	}
@@ -220,7 +220,7 @@ final class DatabaseRequestListener extends StatefulExecutionListener {
 		return stageListener(stageBuilder(action, null, args));
 	}
 
-	<R> StageBuilder<R> stageBuilder(DatabaseAction action, DatabaseCommand cmd, String... args) {
+	<R> DualEventTracer.StageBuilder<R> stageBuilder(DatabaseAction action, DatabaseCommand cmd, String... args) {
 		return (s,e,o,t)-> createStage(s, e, action, cmd, nonNull(args) ? new StagePayload(args, null) : null);
 	}
 	
@@ -229,7 +229,7 @@ final class DatabaseRequestListener extends StatefulExecutionListener {
 	}
 
 	DatabaseRequestStage createStage(Instant start, Instant end, DatabaseAction action, DatabaseCommand cmd, StagePayload payload) {
-		var upd = getTrace();
+		var upd = getUpdate();
 		var stg = new DatabaseRequestStage(upd.getId(), getStageCounter().incrementAndGet());
 		stg.setName(action.name());
 		stg.setStart(start);
@@ -267,7 +267,7 @@ final class DatabaseRequestListener extends StatefulExecutionListener {
 	}
 	
 	@Getter
-	final class BatchStageBuilder implements StageBuilder<Void> {
+	final class BatchStageBuilder implements DualEventTracer.StageBuilder<Void> {
 
 		private DatabaseRequestStage stage;
 		

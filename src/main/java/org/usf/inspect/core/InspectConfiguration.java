@@ -3,14 +3,17 @@ package org.usf.inspect.core;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
+import static java.time.Clock.systemUTC;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.requireNonNullElse;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
+import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InstanceType.SERVER;
+import static org.usf.inspect.core.SessionContextManager.createTestSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
@@ -154,16 +157,19 @@ public class InspectConfiguration implements WebMvcConfigurer {
     @Bean
     ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
     	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider);
-    	var listener = new SessionExecutionListener();
 		hub().dispatch(instance);
-		var handler = listener.modifiableExecutionListener(start, sgn-> ((MainSessionSignal)sgn).setName("main"));
+		var handler = forMainSession(()-> { 
+			var sgn = createTestSession(systemUTC().instant());
+			sgn.setName("main");
+			return sgn;
+		});
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 				var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
 				handler.map((t,o)-> {
 					var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
-					((MainSessionUpdate)t).setLocation(lct)
-				;}).safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);
+					((MainSessionUpdate)t).setLocation(lct);
+				}).safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);
 			}
 		};
     }

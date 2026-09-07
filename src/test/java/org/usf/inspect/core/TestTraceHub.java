@@ -7,17 +7,27 @@ import java.util.List;
 
 import lombok.NoArgsConstructor;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class TestTraceHub implements TraceHub {
+	
+	private static InspectCollectorConfiguration config;
 	
 	private static final TestTraceHub INSTANCE = (TestTraceHub) initializeTraceHub(new TestTraceHub());
 	
 	private final List<EventTrace> traces = new ArrayList<>();
+	
+	static {
+		config = new InspectCollectorConfiguration();
+		config.setEnabled(true);
+	}
 
 	@Override
 	public InspectCollectorConfiguration getConfiguration() {
-		var config = new InspectCollectorConfiguration();
-		config.setEnabled(true);
 		return config;
 	}
 

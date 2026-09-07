@@ -13,15 +13,15 @@ import static org.usf.inspect.core.SessionContextManager.createFtpSignal;
 
 import java.time.Instant;
 
+import org.usf.inspect.core.ConnectionLifecycleTracer;
+import org.usf.inspect.core.DualEventTracer;
 import org.usf.inspect.core.FtpAction;
 import org.usf.inspect.core.FtpCommand;
 import org.usf.inspect.core.FtpRequestSignal;
 import org.usf.inspect.core.FtpRequestStage;
 import org.usf.inspect.core.FtpRequestUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.Monitor.StageBuilder;
 import org.usf.inspect.core.StagePayload;
-import org.usf.inspect.core.StatefulExecutionListener;
 import org.usf.inspect.core.TraceSignal;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -31,15 +31,15 @@ import com.jcraft.jsch.ChannelSftp;
  * @author u$f
  *
  */
-final class FtpRequestListener extends StatefulExecutionListener {
+final class FtpConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 	
 	@Override
-	public FtpRequestSignal signal(Instant start) {
+	protected FtpRequestSignal signal(Instant start) {
 		return createFtpSignal(start);
 	}
 
 	@Override
-	public FtpRequestUpdate update(TraceSignal signal) { 
+	protected FtpRequestUpdate update(TraceSignal signal) { 
 		return new FtpRequestUpdate(signal.getId());
 	}
 
@@ -81,16 +81,16 @@ final class FtpRequestListener extends StatefulExecutionListener {
 	}
 
 	<T> ExecutionListener<T> stageListener(FtpAction action, FtpCommand cmd, String... args) {
-		if(nonNull(cmd) && nonNull(getTrace())) {
-			var upd = (FtpRequestUpdate) getTrace();
+		if(nonNull(cmd) && nonNull(getUpdate())) {
+			var upd = (FtpRequestUpdate) getUpdate();
 			upd.setCommand(merge(upd.getCommand(), cmd.getType()));
 		}
 		return stageListener(stageBuilder(action, cmd, args));
 	}
 	
-	<R> StageBuilder<R> stageBuilder(FtpAction action, FtpCommand cmd, String... args) {
+	<R> DualEventTracer.StageBuilder<R> stageBuilder(FtpAction action, FtpCommand cmd, String... args) {
 		return (s,e,o,t)-> {
-			var upd = getTrace();
+			var upd = getUpdate();
 			var stg = new FtpRequestStage(upd.getId(), getStageCounter().incrementAndGet());
 			stg.setName(action.name());
 			stg.setStart(s);

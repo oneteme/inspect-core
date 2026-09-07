@@ -1,12 +1,12 @@
 package org.usf.inspect.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.Monitor2.CLIENT_TIMEOUT;
-import static org.usf.inspect.core.Monitor2.CONN_ERROR;
-import static org.usf.inspect.core.Monitor2.CONN_INTERRUPTED;
-import static org.usf.inspect.core.Monitor2.CONN_UNKNOWN_HOST;
-import static org.usf.inspect.core.Monitor2.SERVER_ERROR;
-import static org.usf.inspect.core.Monitor2.SERVER_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.CLIENT_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CONN_INTERRUPTED;
+import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
+import static org.usf.inspect.core.DualEventTracer.SERVER_TIMEOUT;
 
 import java.net.SocketException;
 import java.net.SocketTimeoutException;

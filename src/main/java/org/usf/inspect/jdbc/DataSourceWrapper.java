@@ -31,14 +31,14 @@ public final class DataSourceWrapper implements DataSource {
 
 	@Override
 	public Connection getConnection() throws SQLException {
-		var monitor = new DatabaseRequestListener(cache);
-		return new ConnectionWrapper(call(ds::getConnection, monitor.connectionListener()), monitor);
+		var tracer = new DatabaseConnectionLifecycleTracer(cache);
+		return new ConnectionWrapper(call(ds::getConnection, tracer.connectionListener()), tracer);
 	}
 
 	@Override
 	public Connection getConnection(String username, String password) throws SQLException {
-		var monitor = new DatabaseRequestListener(cache);
-		return new ConnectionWrapper(call(()-> ds.getConnection(username, password), monitor.connectionListener()), monitor);
+		var tracer = new DatabaseConnectionLifecycleTracer(cache);
+		return new ConnectionWrapper(call(()-> ds.getConnection(username, password), tracer.connectionListener()), tracer);
 	}
 	
 	public static DataSource wrap(DataSource ds) {

@@ -100,8 +100,8 @@ class DirectoryRequestMonitorIT {
         );
 
 
-        DirectoryRequestListener monitor =
-                new DirectoryRequestListener();
+        DirectoryConnectionLifecycleTracer monitor =
+                new DirectoryConnectionLifecycleTracer();
 
         int code = monitor.resolveStatus(ex);
         assertNotEquals(0, code);
@@ -131,8 +131,8 @@ class DirectoryRequestMonitorIT {
         );
 
 
-        DirectoryRequestListener monitor =
-                new DirectoryRequestListener();
+        DirectoryConnectionLifecycleTracer monitor =
+                new DirectoryConnectionLifecycleTracer();
 
         // Vérifie que l'exception est correctement identifiée comme une erreur de connexion
         int code = monitor.resolveStatus(ex);

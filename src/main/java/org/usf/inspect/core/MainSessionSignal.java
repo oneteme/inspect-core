@@ -22,7 +22,7 @@ public final class MainSessionSignal extends AbstractSessionSignal {
 		this.type= type;
 	}
 
-	@Deprecated
+	@Deprecated(forRemoval = false, since = "1.2")
 	public MainSessionUpdate createCallback() {
 		return new MainSessionUpdate(getId(), STARTUP.name().equals(type));
 	}

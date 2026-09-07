@@ -1,12 +1,12 @@
 package org.usf.inspect.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.Monitor2.CONN_ERROR;
-import static org.usf.inspect.core.Monitor2.CONN_INTERRUPTED;
-import static org.usf.inspect.core.Monitor2.CONN_REFUSED;
-import static org.usf.inspect.core.Monitor2.CONN_UNKNOWN_HOST;
-import static org.usf.inspect.core.Monitor2.SERVER_ERROR;
-import static org.usf.inspect.core.Monitor2.SERVER_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CONN_INTERRUPTED;
+import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
+import static org.usf.inspect.core.DualEventTracer.SERVER_TIMEOUT;
 
 import java.io.EOFException;
 import java.net.SocketException;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 class DatabaseRequestMonitorTest {
 
-	private final DatabaseRequestListener listener = new DatabaseRequestListener(null);
+	private final DatabaseConnectionLifecycleTracer listener = new DatabaseConnectionLifecycleTracer(null);
 
     @Test
     void shouldMapSqlTimeoutException() {

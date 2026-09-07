@@ -1,11 +1,14 @@
 package org.usf.inspect.jdbc;
 
+import static java.time.Clock.systemUTC;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
+import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
+import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
 import org.flywaydb.core.Flyway;
@@ -16,8 +19,6 @@ import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
-import org.usf.inspect.core.LocalRequestSignal;
-import org.usf.inspect.core.MethodExecutionListener;
 
 /**
  * 
@@ -37,13 +38,13 @@ public class FlywayModuleConfiguration {
 
 	@Bean
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
-		var listener = new MethodExecutionListener();
-		return fly-> exec(fly::migrate, listener.executionListener(trc->{
-			var sgn = (LocalRequestSignal) trc;
+		return fly-> exec(fly::migrate, forLocalRequest(()->{
+			var sgn = createLocalRequest(systemUTC().instant());
 			sgn.setType(EXEC.name());
 			sgn.setName("FlywayMigration");
 			sgn.setLocation(scriptLocation(fly));
 			sgn.setUser(fly.getConfiguration().getUser());
+			return sgn;
 		}));
 	}
 	

@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-final class HttpRequestListener extends AbstractHttpRequestListener {
+final class HttpRequestListener extends AbstractHttpConnectionLifecycleTracer {
 	
 	public ExecutionListener<ClientHttpResponse> exchangeStageListener(HttpRequest request) {
 		return connectionListener(stageBuilder(EXCHANGE), (trc, res)->

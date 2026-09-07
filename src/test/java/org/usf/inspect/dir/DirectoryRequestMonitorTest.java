@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.usf.inspect.core.Monitor2.CONN_INTERRUPTED;
-import static org.usf.inspect.core.Monitor2.CONN_REFUSED;
-import static org.usf.inspect.core.Monitor2.SERVER_ERROR;
-import static org.usf.inspect.dir.DirectoryRequestListener.getEnvironmentVariable;
+import static org.usf.inspect.core.DualEventTracer.CONN_INTERRUPTED;
+import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
+import static org.usf.inspect.dir.DirectoryConnectionLifecycleTracer.getEnvironmentVariable;
 
 import java.util.Hashtable;
 
@@ -23,7 +23,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class DirectoryRequestMonitorTest {
 	
-	private final DirectoryRequestListener listener = new DirectoryRequestListener();
+	private final DirectoryConnectionLifecycleTracer listener = new DirectoryConnectionLifecycleTracer();
 
     @Test
     void should_return_connection_unavailable_when_service_is_unavailable() {

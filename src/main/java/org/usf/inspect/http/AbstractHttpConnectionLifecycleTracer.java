@@ -19,12 +19,12 @@ import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
+import org.usf.inspect.core.ConnectionLifecycleTracer;
+import org.usf.inspect.core.DualEventTracer;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpRequestSignal;
 import org.usf.inspect.core.HttpRequestStage;
 import org.usf.inspect.core.HttpRequestUpdate;
-import org.usf.inspect.core.Monitor.StageBuilder;
-import org.usf.inspect.core.StatefulExecutionListener;
 import org.usf.inspect.core.TraceSignal;
 
 import lombok.Getter;
@@ -36,18 +36,18 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-abstract class AbstractHttpRequestListener extends StatefulExecutionListener {
+abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 
 	@Getter
 	private final UUID id = nextId();
 	
 	@Override
-	public TraceSignal signal(Instant start) {
+	protected TraceSignal signal(Instant start) {
 		return createHttpRequest(start, getId());
 	}
 
 	@Override
-	public HttpRequestUpdate update(TraceSignal signal) { 
+	protected HttpRequestUpdate update(TraceSignal signal) { 
 		return new HttpRequestUpdate(signal.getId());
 	}
 
@@ -83,8 +83,8 @@ abstract class AbstractHttpRequestListener extends StatefulExecutionListener {
 
 	void traceHeaders(HttpStatusCode status, HttpHeaders headers) {
 //		request.setThreadName(threadName()); //deferred thread
-		var upd = (HttpRequestUpdate) getTrace();
-		if(nonNull(upd)) {
+		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.traceHeaders")) {
+			var upd = (HttpRequestUpdate) getUpdate();
 	    	if(nonNull(status)) {
 				upd.setStatus(status.value());
 			}
@@ -95,15 +95,12 @@ abstract class AbstractHttpRequestListener extends StatefulExecutionListener {
 			}
 			upd.setDataSize(-1); //initial size
 		}
-		else {
-			reportTraceIsNull("update");
-		}
 	}
 	
 	void traceResponseContent(ResponseContent cnt){
 //		request.setThreadName(threadName()); //deferred thread
-		var upd = (HttpRequestUpdate) getTrace();
-		if(nonNull(upd)) {
+		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.traceResponseContent")) {
+			var upd = (HttpRequestUpdate) getUpdate();
 			if(nonNull(cnt)) {
 				upd.setDataSize(cnt.contentSize());
 				if(nonNull(cnt.contentBytes())) {
@@ -111,17 +108,14 @@ abstract class AbstractHttpRequestListener extends StatefulExecutionListener {
 				}
 			}
 		}
-		else {
-			reportTraceIsNull("update");
-		}
 	}
 	
-	<R> StageBuilder<R> stageBuilder(HttpAction action){
+	<R> DualEventTracer.StageBuilder<R> stageBuilder(HttpAction action){
 		return (s,e,o,t)-> createStage(action, s, e);
 	}
 	
 	HttpRequestStage createStage(HttpAction action, Instant start, Instant end) {
-		var stg = new HttpRequestStage(getTrace().getId(), getStageCounter().incrementAndGet());
+		var stg = new HttpRequestStage(getUpdate().getId(), getStageCounter().incrementAndGet());
 		stg.setName(action.name());
 		stg.setStart(start);
 		stg.setEnd(end);
@@ -133,7 +127,7 @@ abstract class AbstractHttpRequestListener extends StatefulExecutionListener {
 	boolean assertSameID(String sid) {
 		if(nonNull(sid)) {
 			try {
-				return getTrace().getId().equals(fromString(sid));
+				return getUpdate().getId().equals(fromString(sid));
 			}
 			catch (Exception e) {
 				//do nothing

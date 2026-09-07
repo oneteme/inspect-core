@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -9,10 +8,8 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.Monitor.StageBuilder;
 import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -21,17 +18,20 @@ import lombok.RequiredArgsConstructor;
  * @author u$f
  *
  */
-@Getter(AccessLevel.PROTECTED)
+@Getter
 @RequiredArgsConstructor
-public abstract class StatefulExecutionListener implements Monitor2 {
+public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	
 	private final AtomicInteger stageCounter = new AtomicInteger();
+
+	private TraceUpdate update;
 	
-	private TraceUpdate trace;
-	private Instant start;
+	protected abstract TraceSignal signal(Instant start);
+	
+	protected abstract TraceUpdate update(TraceSignal signal);
 	
 	@Override
-	public Throwable exception(Throwable t) {
+	public Throwable mapException(Throwable t) {
 		return rootCauseException(t);
 	}
 	
@@ -61,22 +61,21 @@ public abstract class StatefulExecutionListener implements Monitor2 {
 	}
 	
 	public <T> ExecutionListener<T> connectionListener(StageBuilder<T> stgBuilder, SafeBiConsumer<TraceSignal,T> cons) {
-		if(nonNull(trace) || nonNull(start) || stageCounter.get() > 0) {
-			report("connectionListener", "listener was not reset");
+		if(nonNull(update) || stageCounter.get() > 0) {
+			hub().reportMessage(true, "ConnectionLifecycleTracer.connectionListener", "tracer was not reset");
 			reset();
 		}
 		return (s,e,o,t)-> {
-			this.start = s;
 			var sgn = signal(s);
 			try {
 				cons.accept(sgn, o);
 			}
 			catch (Exception ex) {
-				hub().reportError(true, this.getClass() + ".connectionListener", ex);
+				hub().reportError(true, "ConnectionLifecycleTracer.connectionListener", ex);
 			}
 			hub().emitTrace(sgn);
-			this.trace = update(sgn);
-			this.trace.setStatus(-1); //initial status
+			this.update = update(sgn);
+			this.update.setStatus(-1); //initial status
 			if(nonNull(stgBuilder)) {
 				stageListener(stgBuilder).safeHandle(s, e, o, t);
 			}
@@ -87,51 +86,42 @@ public abstract class StatefulExecutionListener implements Monitor2 {
 	}
 	
 	public <R> ExecutionListener<R> stageListener(StageBuilder<R> stgBuilder){
-		return isNull(trace) ? Monitor2.noUpdateExecutionListenner() : (s,e,o,t)-> {
-			var stg = stgBuilder.newStage(s, e, o, t);
-			if(nonNull(stg)) {
-				hub().emitTrace(stg);
-				if(nonNull(t)) {
-					t = exception(t);
-					if(trace.getStatus() < 0) {
-						trace.setStatus(resolveStatus(t));
+		return (s,e,o,t)-> {
+			if(assertActiveTraceUpdate("ConnectionLifecycleTracer.stageListener")) {
+				var stg = stgBuilder.newStage(s, e, o, t);
+				if(nonNull(stg)) {
+					hub().emitTrace(stg);
+					if(nonNull(t)) {
+						t = mapException(t);
+						if(update.getStatus() < 0) {
+							update.setStatus(resolveStatus(t));
+						}
+						var exp = exceptionTrace(t, stg.getOrder());
+						hub().emitTrace(exp);
 					}
-					var exp = exceptionTrace(t, trace, stg.getOrder());
-					hub().emitTrace(exp);
 				}
 			}
 		};
 	}
 	
 	public <R> ExecutionListener<R> disconnectionListener(StageBuilder<R> stgBuilder) {
-		return isNull(trace) ? Monitor2.noUpdateExecutionListenner() : (s,e,o,t)-> {
-			try {
+		return (s,e,o,t)-> {
+			if(assertActiveTraceUpdate("ConnectionLifecycleTracer.disconnectionListener")) {
 				if(nonNull(stgBuilder)) {
 					stageListener(stgBuilder).safeHandle(s, e, o, t);
 				}
-				if(trace.getStatus() < 0) {
-					trace.setStatus(SUCCESS);
+				if(update.getStatus() < 0) {
+					update.setStatus(SUCCESS);
 				}
-				trace.setEnd(e);
-				hub().emitTrace(trace);
+				update.setEnd(e);
+				hub().emitTrace(update);
 			}
-			finally {
-				reset();
-			}
+			reset();
 		};
 	}
 	
 	void reset() {
 		this.stageCounter.set(0);
-		this.start = null;
-		this.trace = null;
-	}
-
-	protected void reportTraceIsNull(String action) {
-		report(action, "trace is null");
-	}
-	
-	protected void report(String action, String msg) {
-		hub().reportMessage(true, this.getClass().getSimpleName() + "." + action, msg);
+		this.update = null;
 	}
 }
