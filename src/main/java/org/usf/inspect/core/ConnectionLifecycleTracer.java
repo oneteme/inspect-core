@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public abstract class ConnectionLifecycleTracer implements DualEventTracer {
-	
+
 	private final AtomicInteger stageCounter = new AtomicInteger();
 
 	private TraceUpdate update;
@@ -40,10 +40,10 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	        case java.net.BindException e -> CONN_REFUSED;
 	        
 	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().contains("connect") ? CONN_TIMEOUT : SERVER_TIMEOUT;
-	        case java.util.concurrent.TimeoutException e -> CLIENT_TIMEOUT;
 	        
 	        case java.io.InterruptedIOException e -> CONN_INTERRUPTED;
 	        case java.lang.InterruptedException e -> CONN_INTERRUPTED;
+	        case java.util.concurrent.TimeoutException e -> CONN_INTERRUPTED;
 	        case java.util.concurrent.CancellationException e -> CONN_INTERRUPTED;
 	        
 	        case javax.net.ssl.SSLException e-> CONN_SSL_ERROR; 

@@ -290,7 +290,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
 
 	static String collectorID() {
 		return "spring-collector/" //use getImplementationTitle
-				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
+				+ requireNonNullElse(InspectConfiguration.class.getPackage().getImplementationVersion(), "?");
 	}
 
 }

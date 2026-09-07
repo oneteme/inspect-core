@@ -84,11 +84,6 @@ public interface DualEventTracer {
 		hub().reportMessage(true, action, "tracer is null");
     	return false;
     }
-
-    interface StageBuilder<R> {
-		
-		AbstractStage newStage(Instant start, Instant end, R obj, Throwable thrw) throws Exception;
-	}
     
 	static Throwable rootCauseException(Throwable t) {
 		if(nonNull(t)) {
@@ -96,5 +91,10 @@ public interface DualEventTracer {
 			return t;
 		}
 		return t;
+	}
+
+    interface StageBuilder<R> {
+		
+		AbstractStage newStage(Instant start, Instant end, R obj, Throwable thrw) throws Exception;
 	}
 }
