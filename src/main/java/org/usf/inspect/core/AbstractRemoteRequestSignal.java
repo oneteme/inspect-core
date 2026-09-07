@@ -32,5 +32,4 @@ public abstract class AbstractRemoteRequestSignal extends AbstractRequestSignal 
 				.withUser(getUser())
 				.format();
 	}
-
 }

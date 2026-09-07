@@ -45,6 +45,8 @@ public interface DualEventTracer {
     static final short SERVER_ERROR      		= 500; // Generic server/remote error
     static final short SERVER_TIMEOUT     	= 504; // Server/Gateway response timeout
     
+    //TD dev exception => status
+    
 	TraceUpdate getUpdate();
 
 	default short resolveStatus(Throwable t){

@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 
 	@Delegate
-	private final ClientHttpResponse cr;
+	private final ClientHttpResponse response;
 	private final ExecutionListener<ResponseContent> listener;
 	private CacheableInputStream pipe;
 	private Instant start = systemUTC().instant();
@@ -32,7 +32,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 	@Override
 	public InputStream getBody() throws IOException {
 		if(isNull(pipe)) {
-			pipe = new CacheableInputStream(cr.getBody(), getStatusCode().isError());
+			pipe = new CacheableInputStream(response.getBody(), getStatusCode().isError());
 		}
 		return pipe;
 	}
@@ -41,7 +41,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 	public void close() {
 		Throwable t = null;
 		try {
-			cr.close();
+			response.close();
 		}
 		catch (Exception e) {
 			t = e;
