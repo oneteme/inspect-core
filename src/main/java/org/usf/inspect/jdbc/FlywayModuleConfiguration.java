@@ -4,10 +4,10 @@ import static java.time.Clock.systemUTC;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
+import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
@@ -29,7 +29,7 @@ import org.springframework.context.annotation.DependsOn;
 @ConditionalOnClass(name="org.flywaydb.core.api.configuration.FluentConfiguration")
 @ConditionalOnProperty(prefix = "inspect.collector", name = "enabled", havingValue = "true")
 public class FlywayModuleConfiguration {
-
+	
 	@Bean
 	@DependsOn("inspectHub") //ensure inspectHub is loaded first
 	FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
@@ -38,11 +38,13 @@ public class FlywayModuleConfiguration {
 
 	@Bean
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
-		return fly-> exec(fly::migrate, traceAroundMethod(createLocalRequest(systemUTC().instant()), req->{
-			req.setType(EXEC.name());
-			req.setName("FlywayMigration");
-			req.setLocation(scriptLocation(fly));
-			req.setUser(fly.getConfiguration().getUser());
+		return fly-> exec(fly::migrate, forLocalRequest(()->{
+			var sgn = createLocalRequest(systemUTC().instant());
+			sgn.setType(EXEC.name());
+			sgn.setName("FlywayMigration");
+			sgn.setLocation(scriptLocation(fly));
+			sgn.setUser(fly.getConfiguration().getUser());
+			return sgn;
 		}));
 	}
 	

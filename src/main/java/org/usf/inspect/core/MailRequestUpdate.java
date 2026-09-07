@@ -1,10 +1,11 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
 import lombok.Setter;
-
 
 /**
  * 
@@ -19,11 +20,7 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 	private boolean failed;
 
 	@JsonCreator
-	public MailRequestUpdate(String id) {
+	public MailRequestUpdate(UUID id) {
 		super(id);
-	}
-
-	public MailRequestStage createStage(){
-		return new MailRequestStage(getId(), getStageCounter().getAndIncrement());
 	}
 }

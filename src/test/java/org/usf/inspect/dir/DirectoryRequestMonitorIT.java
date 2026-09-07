@@ -1,6 +1,8 @@
 package org.usf.inspect.dir;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Hashtable;
 
@@ -98,8 +100,8 @@ class DirectoryRequestMonitorIT {
         );
 
 
-        DirectoryRequestMonitor monitor =
-                new DirectoryRequestMonitor();
+        DirectoryConnectionLifecycleTracer monitor =
+                new DirectoryConnectionLifecycleTracer();
 
         int code = monitor.resolveStatus(ex);
         assertNotEquals(0, code);
@@ -129,8 +131,8 @@ class DirectoryRequestMonitorIT {
         );
 
 
-        DirectoryRequestMonitor monitor =
-                new DirectoryRequestMonitor();
+        DirectoryConnectionLifecycleTracer monitor =
+                new DirectoryConnectionLifecycleTracer();
 
         // Vérifie que l'exception est correctement identifiée comme une erreur de connexion
         int code = monitor.resolveStatus(ex);

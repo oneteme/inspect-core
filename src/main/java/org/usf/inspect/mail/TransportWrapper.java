@@ -20,39 +20,40 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @see constructor
 	
 	@Delegate
 	private final Transport trsp;
-	private MailRequestMonitor monitor;
+	private final MailConnectionLifecycleTracer listener;
+
+	public TransportWrapper(Transport trsp) {
+		this.trsp = trsp;
+		this.listener = new MailConnectionLifecycleTracer();
+	}
 	
 	public void connect() throws MessagingException {
-		this.monitor = new MailRequestMonitor();
-		exec(trsp::connect, monitor.handleConnection(trsp));
+		exec(trsp::connect, listener.connectionListener(trsp));
 	}
 
 	public void connect(String user, String password) throws MessagingException {
-		this.monitor = new MailRequestMonitor();
-		exec(()-> trsp.connect(user, password), monitor.handleConnection(trsp));
+		exec(()-> trsp.connect(user, password), listener.connectionListener(trsp));
 	}
 
 	public void connect(String host, String user, String password) throws MessagingException {
-		this.monitor = new MailRequestMonitor();
-		exec(()-> trsp.connect(host, user, password), monitor.handleConnection(trsp));
+		exec(()-> trsp.connect(host, user, password), listener.connectionListener(trsp));
 	}
 	
 	public void connect(String arg0, int arg1, String arg2, String arg3) throws MessagingException {
-		this.monitor = new MailRequestMonitor();
-		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), monitor.handleConnection(trsp));
+		exec(()-> trsp.connect(arg0, arg1, arg2, arg3), listener.connectionListener(trsp));
 	}
 	
 	public void sendMessage(Message arg0, Address[] arg1) throws MessagingException {
-		exec(()-> trsp.sendMessage(arg0, arg1), monitor.executeStageHandler(SEND, arg0));
+		exec(()-> trsp.sendMessage(arg0, arg1), listener.executeStageListener(SEND, arg0));
 	}
 
 	public void close() throws MessagingException {
-		exec(trsp::close, monitor.handleDisconnection());
+		exec(trsp::close, listener.disconnectionListener());
 	}
 
 	public static TransportWrapper wrap(Transport trsp) {

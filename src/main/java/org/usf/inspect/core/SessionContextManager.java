@@ -22,6 +22,7 @@ import static org.usf.inspect.core.RequestMask.SMTP;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
@@ -157,13 +158,13 @@ public final class SessionContextManager {
 		}
 	}
 
-	public static HttpSessionSignal createHttpSession(Instant start, String uuid) {
+	public static HttpSessionSignal createHttpSession(Instant start, UUID uuid) {
 		var ses = new HttpSessionSignal(requireNonNullElseGet(uuid, SessionContextManager::nextId), start, threadName());
 		ses.setLinked(nonNull(uuid));
 		return ses;
 	}
 
-	static MainSessionSignal createStartupSession(Instant start, String uuid) {
+	static MainSessionSignal createStartupSession(Instant start, UUID uuid) {
 		return createMainSession(STARTUP, start, requireNonNullElseGet(uuid, SessionContextManager::nextId));
 	}
 
@@ -175,7 +176,7 @@ public final class SessionContextManager {
 		return createMainSession(TEST, start, nextId());
 	}
 	
-	static MainSessionSignal createMainSession(MainSessionType type, Instant start, String uuid) {
+	static MainSessionSignal createMainSession(MainSessionType type, Instant start, UUID uuid) {
 		return new MainSessionSignal(uuid, start, threadName(), type.name());
 	}
 
@@ -183,27 +184,27 @@ public final class SessionContextManager {
 		return new LocalRequestSignal(nextId(), requireSessionIdFor(LOCAL), start, threadName());
 	}
 	
-	public static DatabaseRequestSignal createDatabaseRequest(Instant start) {
+	public static DatabaseRequestSignal createDatabaseSignal(Instant start) {
 		return new DatabaseRequestSignal(nextId(), requireSessionIdFor(JDBC), start, threadName());
 	}
 	
-	public static HttpRequestSignal createHttpRequest(Instant start, String rid) {
+	public static HttpRequestSignal createHttpRequest(Instant start, UUID rid) {
 		return new HttpRequestSignal(rid, requireSessionIdFor(REST), start, threadName());
 	}
 
-	public static FtpRequestSignal createFtpRequest(Instant start) {
+	public static FtpRequestSignal createFtpSignal(Instant start) {
 		return new FtpRequestSignal(nextId(), requireSessionIdFor(FTP), start, threadName());
 	}
 	
-	public static MailRequestSignal createMailRequest(Instant start) {
+	public static MailRequestSignal createMailSignal(Instant start) {
 		return new MailRequestSignal(nextId(), requireSessionIdFor(SMTP), start, threadName());
 	}
 
-	public static DirectoryRequestSignal createNamingRequest(Instant start) {
+	public static DirectoryRequestSignal createNamingSignal(Instant start) {
 		return new DirectoryRequestSignal(nextId(), requireSessionIdFor(LDAP), start, threadName());
 	}
 	
-	static String requireSessionIdFor(RequestMask mask) {
+	static UUID requireSessionIdFor(RequestMask mask) {
 		var ses = requireActiveContext();
 		if(nonNull(ses)) {
 			if(ses.updateMask(mask)) {
@@ -235,15 +236,15 @@ public final class SessionContextManager {
 		hub().emitTrace(log);
 	}
 
-	public static String nextId() {
-		return randomUUID().toString();
+	public static UUID nextId() {
+		return randomUUID();
 	}
 
 	static void reportNoActiveContext(String action) {
 		hub().reportMessage(true, action, "no active context");
 	}
 	
-	static void reportContextConflict(String action, String prev, String next) {
+	static void reportContextConflict(String action, UUID prev, UUID next) {
 		hub().reportMessage(true, action, format("previous=%s, next=%s", prev, next));
 	}
 

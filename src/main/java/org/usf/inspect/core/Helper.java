@@ -4,11 +4,9 @@ import static java.lang.Math.min;
 import static java.lang.Thread.currentThread;
 import static java.lang.reflect.Array.getLength;
 import static java.util.Objects.nonNull;
-import static java.util.Optional.empty;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -24,23 +22,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Helper {
 	
-	private static final String ROOT_PACKAGE = Helper.class.getPackageName();
-	
 	public static String threadName() {
-		var t = currentThread();
+		var t = currentThread(); //java17 ?
 		return t.isVirtual() ?  ""+t.threadId() : t.getName();
 	}
 	
 	public static String extractAuthScheme(String authHeader) { //nullable
 		return nonNull(authHeader) && authHeader.matches("\\w+ .+") 
 				? authHeader.substring(0, authHeader.indexOf(' ')) : null;
-	}
-	
-	public static Optional<StackTraceElement> outerStackTraceElement() {
-		var arr = currentThread().getStackTrace();
-		var i = 1; //skip this method call
-		while(i<arr.length && arr[i].getClassName().startsWith(ROOT_PACKAGE)) {i++;}
-		return i<arr.length ? Optional.of(arr[i]) : empty();
 	}
 	
 	public static int count(Object o) {
@@ -77,13 +66,5 @@ public final class Helper {
 
 	public static String formatLocation(String className, String methodName) {
 		return className + '.' + methodName + "()";
-	}
-
-	public static Throwable rootCauseException(Throwable t) {
-		if(nonNull(t)) {
-			while(nonNull(t.getCause()) && t != t.getCause()) t = t.getCause();
-			return t;
-		}
-		return t;
 	}
 }

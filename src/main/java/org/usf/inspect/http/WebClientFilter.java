@@ -23,14 +23,14 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {//request.headers is ReadOnlyHttpHeaders
-		var mnt = new HttpRequestAsyncMonitor();
+		var mnt = new HttpRequestAsyncListener();
 		var sync = new AtomicInteger(1);
-		return call(()-> exc.exchange(from(request).header(TRACE_HEADER, mnt.getId()).build()), mnt.preExchange(request))
+		return call(()-> exc.exchange(from(request).header(TRACE_HEADER, mnt.getId().toString()).build()), mnt.assemblyStageListener(request))
 				.map(res->{
 					sync.incrementAndGet();
 					var buff = new DataBufferMonitor((s,e,ctn,t)->{
 						if(sync.get() > 1) {
-							mnt.postResponse(s, e, ctn, t);
+							mnt.streamStage(s, e, ctn, t);
 						}
 						if(sync.decrementAndGet() == 0) {
 							mnt.complete(); //sometimes buffering ends after exchange.doFinally
@@ -48,9 +48,9 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 				});
 	}
 	
-	void postExchange(HttpRequestAsyncMonitor mnt, ClientResponse res, Throwable thrw, AtomicInteger sync) {
+	void postExchange(HttpRequestAsyncListener mnt, ClientResponse res, Throwable thrw, AtomicInteger sync) {
 		if(sync.get() > 0) {
-			mnt.postExchange(res, thrw);
+			mnt.exchangeStage(res, thrw);
 		}
 	}
 }

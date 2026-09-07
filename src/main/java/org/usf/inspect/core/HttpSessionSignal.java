@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -27,11 +28,10 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 	private String contentEncoding; //gzip, compress, identity,..
 	private String userAgent; //Mozilla, Chrome, curl, Postman,..
 	private boolean linked;
-	//v1.6
-	private String[] forwardedAddresses; // IP4|6
+	//v1.2
+	private String[] forwardedAddresses; // IP address 
 
-
-	public HttpSessionSignal(String id, Instant start, String threadName) {
+	public HttpSessionSignal(UUID id, Instant start, String threadName) {
 		super(id, start, threadName);
 	}
 
@@ -43,7 +43,14 @@ public final class HttpSessionSignal extends AbstractSessionSignal {
 		setQuery(uri.getQuery());
 	}
 
-	public HttpSessionUpdate createCallback() {
-		return new HttpSessionUpdate(getId());
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(getStart())
+				.withThread(getThreadName())
+				.withAction(method)
+				.withUrlAsTopic(protocol, host, port, path, query)
+				.withUser(getUser())
+				.format();
 	}
 }

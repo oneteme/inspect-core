@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 import lombok.Getter;
@@ -18,11 +20,7 @@ public final class FtpRequestUpdate extends AbstractRequestUpdate {
 	private boolean failed;
 
 	@JsonCreator
-	public FtpRequestUpdate(String id) {
+	public FtpRequestUpdate(UUID id) {
 		super(id);
-	}
-	
-	public FtpRequestStage createStage(){
-		return new FtpRequestStage(getId(), getStageCounter().getAndIncrement());
 	}
 }

@@ -1,8 +1,8 @@
 package org.usf.inspect.test;
 
 import static java.time.Clock.systemUTC;
+import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.InspectExecutor.exec;
-import static org.usf.inspect.core.Monitor.traceAroundMethod;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 
 import org.junit.rules.TestRule;
@@ -24,10 +24,12 @@ public final class Junit4TestMonitor implements TestRule {
 		return new Statement() {
 			@Override
 			public void evaluate() throws Throwable {
-				exec(base::evaluate, traceAroundMethod(createTestSession(systemUTC().instant()), ses-> {
-					ses.setName(dscr.getDisplayName());
-					ses.setLocation(dscr.getClassName(), dscr.getMethodName());
+				exec(base::evaluate, forMainSession(()-> {
+					var sgn = createTestSession(systemUTC().instant());
+					sgn.setName(dscr.getDisplayName());
+					sgn.setLocation(dscr.getClassName(), dscr.getMethodName());
 					//set test user
+					return sgn;
 				}));
 			}
 		};

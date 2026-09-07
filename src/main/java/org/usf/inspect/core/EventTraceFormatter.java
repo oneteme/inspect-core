@@ -7,6 +7,11 @@ import static java.util.stream.Collectors.joining;
 import java.time.Instant;
 import java.util.stream.Stream;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 public final class EventTraceFormatter {
 
 	private String thread;

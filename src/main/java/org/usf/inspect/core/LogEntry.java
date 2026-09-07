@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.time.Clock.systemUTC;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +23,8 @@ public final class LogEntry implements EventTrace {
 	private final Level level; //type
 	private final String message;
 	private final StackTraceRow[] stackRows;
-	private String sessionId; //nullable
-	private String instanceId; //server usage 
+	private UUID sessionId; //optional
+	private UUID instanceId; //server usage 
 	
 	@Override
 	public String toString() {

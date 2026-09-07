@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public final class ContextSourceWrapper implements ContextSource {
 
 	private final ContextSource contextSource;

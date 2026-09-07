@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,22 +13,25 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class DatabaseRequestSignal extends AbstractRequestSignal {
+public final class DatabaseRequestSignal extends AbstractRemoteRequestSignal {
 
-	private String scheme;
-	private String host; //IP, domaine
-	private int port; //-1 otherwise
 	private String name; //nullable
 	private String schema;
 	private String driverVersion;
 	private String productName;
 	private String productVersion;
 	
-	public DatabaseRequestSignal(String id, String sessionId, Instant start, String threadName) {
+	public DatabaseRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 
-	public DatabaseRequestUpdate createCallback() {
-		return new DatabaseRequestUpdate(getId());
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(getStart())
+				.withThread(getThreadName())
+				.withUrlAsTopic(getProtocol(), getHost(), getPort(), schema, null)
+				.withUser(getUser())
+				.format();
 	}
 }

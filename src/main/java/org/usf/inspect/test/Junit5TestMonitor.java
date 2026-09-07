@@ -2,8 +2,8 @@ package org.usf.inspect.test;
 
 import static java.time.Clock.systemUTC;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
-import static org.usf.inspect.core.Monitor.assertMonitorNonNull;
-import static org.usf.inspect.core.Monitor.traceAroundMethod;
+import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
+import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.TestWatcher;
+import org.usf.inspect.core.ExecutionTracer;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 /**
@@ -55,18 +56,20 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 		postProcess(context);
 	}
 	
-	static void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
-		updateExecutionListener(context, hndl-> traceAroundMethod(createTestSession(systemUTC().instant()), ses-> { 
-			ses.setName(context.getDisplayName());
-			ses.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
+	void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
+		updateExecutionListener(context, hndl-> forMainSession(()-> { 
+			var sgn = createTestSession(systemUTC().instant());
+			sgn.setName(context.getDisplayName());
+			sgn.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
 			//set test user
+			return sgn;
 		}));
 	}
 	
 	static void postProcess(ExtensionContext context){
 		var end = systemUTC().instant();
 		updateExecutionListener(context, hndl-> {
-			if(assertMonitorNonNull(hndl, "Junit5TestMonitor.postProcess")) {
+			if(assertActiveTracer(hndl, SESSION_KEY)) {
 				hndl.safeHandle(null, end, null, context.getExecutionException().orElse(null));
 			}
 			return null;
@@ -74,9 +77,9 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 	}
 	
 	@SuppressWarnings("unchecked")
-	static ExecutionListener<Void> updateExecutionListener(ExtensionContext context, UnaryOperator<ExecutionListener<Void>> op) {
+	static ExecutionListener<Void> updateExecutionListener(ExtensionContext context, UnaryOperator<ExecutionTracer<Void>> op) {
 		var str = context.getStore(NAMESPACE);
-		var ses = op.apply(str.get(SESSION_KEY, ExecutionListener.class));
+		var ses = op.apply(str.get(SESSION_KEY, ExecutionTracer.class));
 		str.put(SESSION_KEY, ses);
 		return ses;
 	}

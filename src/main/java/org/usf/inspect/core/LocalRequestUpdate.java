@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
@@ -17,10 +18,12 @@ import lombok.Setter;
 public final class LocalRequestUpdate extends AbstractRequestUpdate implements AtomicTrace {
 
 	private Instant start; //real start
-	private ExceptionInfo exception; 
+	
+	@Deprecated(forRemoval = true, since = "v1.2")
+	private ExceptionTrace exception; 
 
 	@JsonCreator
-	public LocalRequestUpdate(String id) {
+	public LocalRequestUpdate(UUID id) {
 		super(id);
 	}
 }

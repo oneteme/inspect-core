@@ -11,5 +11,4 @@ public interface AtomicTrace { //!Stateful
 	
 	void setStart(Instant start); //real start 
 	
-	void setException(ExceptionInfo exception);
 }

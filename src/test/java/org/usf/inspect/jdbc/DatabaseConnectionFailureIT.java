@@ -1,19 +1,20 @@
 package org.usf.inspect.jdbc;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.h2.tools.Server;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DatabaseConnectionFailureIT {
 
@@ -81,8 +82,8 @@ class DatabaseConnectionFailureIT {
             cause = cause.getCause();
         }
 
-        DatabaseRequestMonitor monitor =
-                new DatabaseRequestMonitor(
+        DatabaseConnectionLifecycleTracer monitor =
+                new DatabaseConnectionLifecycleTracer(
                         new ConnectionMetadataCache()
                 );
 
@@ -120,8 +121,8 @@ class DatabaseConnectionFailureIT {
                         () -> st.executeQuery("SELECT 1")
                 );
 
-        DatabaseRequestMonitor monitor =
-                new DatabaseRequestMonitor(
+        DatabaseConnectionLifecycleTracer monitor =
+                new DatabaseConnectionLifecycleTracer(
                         new ConnectionMetadataCache());
 
         int code = monitor.resolveStatus(exception);
@@ -176,8 +177,8 @@ void shouldDetectConnectionLostWhenServerStopsDuringQuery() throws Exception {
 
     assertNotNull(exception, "La requête aurait dû échouer.");
 
-    DatabaseRequestMonitor monitor =
-            new DatabaseRequestMonitor(new ConnectionMetadataCache());
+    DatabaseConnectionLifecycleTracer monitor =
+            new DatabaseConnectionLifecycleTracer(new ConnectionMetadataCache());
 
     int code = monitor.resolveStatus(exception);
     assertNotEquals(0, code);

@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.time.Duration.ofDays;
+
 import java.time.Duration;
 
 import lombok.AllArgsConstructor;
@@ -15,7 +17,7 @@ import lombok.ToString;
 @AllArgsConstructor
 public final class Retention {
 	
-    private Duration diagnostic = Duration.ofDays(10);
-    private Duration audit = Duration.ofDays(7);
+    private Duration diagnostic = ofDays(10);
+    private Duration audit = ofDays(7);
 
 }

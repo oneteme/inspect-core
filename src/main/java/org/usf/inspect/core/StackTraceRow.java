@@ -20,7 +20,7 @@ public final class StackTraceRow {
 	private final String methodName;
 	private final int lineNumber;
 	
-	public String getFileName() {
+	public String resolveFileName() {
 		var bg = className.lastIndexOf('.') + 1;
 		var to = className.indexOf('$'); //internal class or anonymous classes
 		return className.substring(bg, to > -1 ? to : className.length()) + ".java";
@@ -28,7 +28,7 @@ public final class StackTraceRow {
 	
 	@Override
 	public String toString() {
-		return format("%s.%s(%s:%d)", className, methodName, getFileName(), lineNumber);
+		return format("%s.%s(%s:%d)", className, methodName, resolveFileName(), lineNumber);
 	}
 
 	public static StackTraceRow[] exceptionStackTraceRows(Throwable thrw, int maxRows) {

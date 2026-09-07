@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,17 +13,10 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public final class MailRequestSignal extends AbstractRequestSignal {
+public final class MailRequestSignal extends AbstractRemoteRequestSignal {
 
-	private String protocol; //smtp(s), imap, pop3
-	private String host;
-	private int port;
-
-	public MailRequestSignal(String id, String sessionId, Instant start, String threadName) {
+	public MailRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
 		super(id, sessionId, start, threadName);
 	}
 
-	public MailRequestUpdate createCallback() {
-		return new MailRequestUpdate(getId());
-	}
 }

@@ -2,6 +2,8 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 
+import java.util.UUID;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,7 +18,7 @@ public final class MailRequestStage extends AbstractStage {
 
 	private Mail mail;
 	
-	public MailRequestStage(String requestId, int order) {
+	public MailRequestStage(UUID requestId, int order) {
 		super(requestId, order);
 	}
 
@@ -24,9 +26,9 @@ public final class MailRequestStage extends AbstractStage {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withAction(getName())
-		.withArgsAsTopic(getCommand(), nonNull(mail) ? new Object[] {mail.getSubject()} : null)
+		.withArgsAsTopic(getCommand(), nonNull(getPayload()) && nonNull(getPayload().getArgs()) ? getPayload().getArgs() : null)
 		.withPeriod(getStart(), getEnd())
-		.withResult(getException())
+		.withResult(nonNull(mail) ? mail.getSubject() : null)
 		.format();
 	}
 }

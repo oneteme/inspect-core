@@ -3,16 +3,17 @@ package org.usf.inspect.core;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
+import static java.time.Clock.systemUTC;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.requireNonNullElse;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
 import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
+import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.Monitor.traceAroundMethod;
-import static org.usf.inspect.core.SessionContextManager.createStartupSession;
+import static org.usf.inspect.core.SessionContextManager.createTestSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
@@ -46,7 +47,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.http.HandlerExceptionResolverMonitor;
 import org.usf.inspect.http.HttpRequestInterceptor;
 import org.usf.inspect.http.HttpRoutePredicate;
@@ -121,6 +121,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
     	return rt-> {
 			logRegistringBean("restRequestInterceptor", HttpRequestInterceptor.class);
 			rt.getInterceptors().add(0, new HttpRequestInterceptor());
+			//add ClientHttpRequestFactory if needed
 		};
     }
 
@@ -157,14 +158,18 @@ public class InspectConfiguration implements WebMvcConfigurer {
     ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
     	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider);
 		hub().dispatch(instance);
-		ExecutionListener<String> handler = traceAroundMethod(createStartupSession(start, instance.getId()),
-				ses-> ses.setName("main"), 
-				MainSessionUpdate::setLocation);
+		var handler = forMainSession(()-> { 
+			var sgn = createTestSession(systemUTC().instant());
+			sgn.setName("main");
+			return sgn;
+		});
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-				var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
 				var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
-				handler.safeHandle(null, ofEpochMilli(e.getTimestamp()), lct, exp);
+				handler.map((t,o)-> {
+					var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
+					((MainSessionUpdate)t).setLocation(lct);
+				}).safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);
 			}
 		};
     }
@@ -232,22 +237,23 @@ public class InspectConfiguration implements WebMvcConfigurer {
 				new NamedType(MachineResourceUsage.class, 		"01"),
 				new NamedType(RestRemoteServerProperties.class, "02"),
 				new NamedType(SessionMaskUpdate.class,			"03"),  
-				new NamedType(MainSessionSignal.class,  				"10"), 
+				new NamedType(ExceptionTrace.class,				"04"), 
+				new NamedType(MainSessionSignal.class,  		"10"), 
 				new NamedType(MainSessionUpdate.class,  		"11"), 
-				new NamedType(HttpSessionSignal.class,  				"20"), 
+				new NamedType(HttpSessionSignal.class,  		"20"), 
 				new NamedType(HttpSessionUpdate.class,  		"21"), 
-				new NamedType(LocalRequestSignal.class, 				"110"),
+				new NamedType(LocalRequestSignal.class, 		"110"),
 				new NamedType(LocalRequestUpdate.class, 		"111"),
-				new NamedType(HttpRequestSignal.class,  				"120"), 
+				new NamedType(HttpRequestSignal.class,  		"120"), 
 				new NamedType(HttpRequestUpdate.class,  		"121"), 
-				new NamedType(DatabaseRequestSignal.class,			"130"),
-				new NamedType(DatabaseRequestUpdate.class,	"131"),
-				new NamedType(FtpRequestSignal.class,		  		"140"), 
-				new NamedType(FtpRequestUpdate.class,  		"141"),
-				new NamedType(MailRequestSignal.class,  				"150"), 
+				new NamedType(DatabaseRequestSignal.class,		"130"),
+				new NamedType(DatabaseRequestUpdate.class,		"131"),
+				new NamedType(FtpRequestSignal.class,		  	"140"), 
+				new NamedType(FtpRequestUpdate.class,  			"141"),
+				new NamedType(MailRequestSignal.class,  		"150"), 
 				new NamedType(MailRequestUpdate.class,  		"151"), 
-				new NamedType(DirectoryRequestSignal.class,			"160"),
-				new NamedType(DirectoryRequestUpdate.class,	"161"), 
+				new NamedType(DirectoryRequestSignal.class,		"160"),
+				new NamedType(DirectoryRequestUpdate.class,		"161"), 
 				new NamedType(HttpSessionStage.class,  			"210"), 
 				new NamedType(HttpRequestStage.class,  			"220"), 
 				new NamedType(DatabaseRequestStage.class,		"230"), 
@@ -284,6 +290,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
 
 	static String collectorID() {
 		return "spring-collector/" //use getImplementationTitle
-				+ requireNonNullElse(InstanceEnvironment.class.getPackage().getImplementationVersion(), "?");
+				+ requireNonNullElse(InspectConfiguration.class.getPackage().getImplementationVersion(), "?");
 	}
+
 }

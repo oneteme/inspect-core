@@ -1,10 +1,10 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.RequestMask.ASYNC;
 
 import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -22,7 +22,7 @@ import lombok.Setter;
 @RequiredArgsConstructor
 public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace {
 
-	private final String id;
+	private final UUID id;
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
 	private final AtomicInteger requestMask = new AtomicInteger(); // thread safe
 	private Instant end;
@@ -30,11 +30,11 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	@Setter private String name; //title, topic
 	@Setter private String user;
 	@Setter private String location; //class.method, URL, endpoint
-	@Setter private ExceptionInfo exception; //TD trace exception separately
 	
-	public void setLocation(String className, String methodName) {
-		this.location = formatLocation(className, methodName);
-	}
+	//v1.2
+	@Setter private int status; //RequestCommonStatus
+	@Deprecated(forRemoval = true, since = "1.2")
+	@Setter private ExceptionTrace exception; //TD trace exception separately
 	
 	public void setEnd(Instant end){
 		if(threadCount.get() > 0) {
@@ -75,7 +75,12 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	}
 	
 	@Override
-	public void setStatus(int status) {
-		throw new UnsupportedOperationException("not implemented");
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(end)
+//				.withAction(command)
+				.withMessageAsTopic(id.toString())
+				.withStatus(getStatus()+"")
+				.format();
 	}
 }

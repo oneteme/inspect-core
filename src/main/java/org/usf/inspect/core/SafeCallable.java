@@ -27,10 +27,18 @@ public interface SafeCallable<T, E extends Throwable> { //Metrics Tracker
 		
 		void accept(T obj) throws Exception;
 	}
+	
 
 	@FunctionalInterface
-	public interface SafeBiConsumer<T, U> {
+	public interface SafeSupplier<T> { //Metrics Tracker 
+		
+		T get() throws Exception;
+	}
+	
 
-	    void accept(T t, U u) throws Exception;
+	@FunctionalInterface
+	public interface SafeBiConsumer<T,O> { //Metrics Tracker 
+		
+		void accept(T trc, O obj) throws Exception;
 	}
 }
