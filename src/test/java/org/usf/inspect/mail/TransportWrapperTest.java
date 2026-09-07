@@ -1,6 +1,5 @@
 package org.usf.inspect.mail;
 
-import static com.icegreen.greenmail.util.ServerSetup.SMTP;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.System.getProperty;
 import static java.time.Instant.now;
@@ -9,10 +8,6 @@ import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.usf.inspect.core.MailAction.CONNECTION;
-import static org.usf.inspect.core.MailAction.DISCONNECTION;
-import static org.usf.inspect.core.MailAction.EXECUTE;
-import static org.usf.inspect.core.MailCommand.SEND;
 import static org.usf.inspect.core.DualEventTracer.CLIENT_UNAUTHORIZED;
 import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
@@ -21,6 +16,10 @@ import static org.usf.inspect.core.DualEventTracer.CONN_TIMEOUT;
 import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
 import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
 import static org.usf.inspect.core.DualEventTracer.SUCCESS;
+import static org.usf.inspect.core.MailAction.CONNECTION;
+import static org.usf.inspect.core.MailAction.DISCONNECTION;
+import static org.usf.inspect.core.MailAction.EXECUTE;
+import static org.usf.inspect.core.MailCommand.SEND;
 import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
@@ -45,6 +44,7 @@ import org.usf.inspect.core.MailRequestStage;
 import org.usf.inspect.core.MailRequestUpdate;
 
 import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.ServerSetup;
 
 import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Message;
@@ -63,9 +63,9 @@ import jakarta.mail.internet.MimeMessage;
 class TransportWrapperTest {
 
 	private static String HOST = "localhost";  // greenMail.getSmtp().getBindTo() return 127.0.0.1
-	private static String PORT = "25";
+	private static String PORT = "250";
 	
-	private static GreenMail greenMail = new GreenMail(SMTP);
+	private static GreenMail greenMail = new GreenMail(new ServerSetup(Integer.valueOf(PORT), null, ServerSetup.PROTOCOL_SMTP));
 	private static String USER = getProperty("user.name");
 
 	@BeforeEach

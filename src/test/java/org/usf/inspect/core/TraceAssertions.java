@@ -72,7 +72,7 @@ public final class TraceAssertions {
 		return exp;
 	}
 
-	public static void assertExceptionTrace(UUID id, int offset, ExceptionTrace ex) {
+	public static void assertExceptionTrace(UUID id, long offset, ExceptionTrace ex) {
 		assertEquals(ex.getTraceId(), id);
 		assertEquals(offset, ex.getOffset());
 		assertNotNull(ex.getType()); //assert exception type ?

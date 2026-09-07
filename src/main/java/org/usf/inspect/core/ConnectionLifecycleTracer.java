@@ -1,7 +1,6 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Helper.rootCauseException;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
@@ -29,11 +28,6 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	protected abstract TraceSignal signal(Instant start);
 	
 	protected abstract TraceUpdate update(TraceSignal signal);
-	
-	@Override
-	public Throwable mapException(Throwable t) {
-		return rootCauseException(t);
-	}
 	
 	@Override
 	public int resolveStatus(Throwable t) {

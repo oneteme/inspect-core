@@ -44,13 +44,15 @@ public interface DualEventTracer {
     static final int SERVER_TIMEOUT     	= 504; // Server/Gateway response timeout
     
 	TraceUpdate getUpdate();
-	
-	default Throwable mapException(Throwable t) {
-		return t;
-	}
 
 	default int resolveStatus(Throwable t){
 		return SERVER_ERROR;
+	}
+	
+	default Throwable mapException(Throwable t) {
+		return getUpdate() instanceof AbstractSessionUpdate 
+				? t 
+				: rootCauseException(t);
 	}
 	
 	default ExceptionTrace exceptionTrace(Throwable t, long offset) {
@@ -88,5 +90,13 @@ public interface DualEventTracer {
     interface StageBuilder<R> {
 		
 		AbstractStage newStage(Instant start, Instant end, R obj, Throwable thrw) throws Exception;
+	}
+    
+	static Throwable rootCauseException(Throwable t) {
+		if(nonNull(t)) {
+			while(nonNull(t.getCause()) && t != t.getCause()) t = t.getCause();
+			return t;
+		}
+		return t;
 	}
 }
