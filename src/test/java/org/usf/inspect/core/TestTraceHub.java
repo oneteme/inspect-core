@@ -15,20 +15,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class TestTraceHub implements TraceHub {
 	
-	private static InspectCollectorConfiguration config;
-	
-	private static final TestTraceHub INSTANCE = (TestTraceHub) initializeTraceHub(new TestTraceHub());
+	private static final TestTraceHub INSTANCE;
 	
 	private final List<EventTrace> traces = new ArrayList<>();
 	
 	static {
-		config = new InspectCollectorConfiguration();
+		var config = new InspectCollectorConfiguration();
 		config.setEnabled(true);
+		INSTANCE = (TestTraceHub) initializeTraceHub(new TestTraceHub());
 	}
 
 	@Override
 	public InspectCollectorConfiguration getConfiguration() {
-		return config;
+		return INSTANCE.getConfiguration();
 	}
 
 	@Override

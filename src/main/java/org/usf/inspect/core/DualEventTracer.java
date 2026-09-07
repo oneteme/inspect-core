@@ -50,9 +50,7 @@ public interface DualEventTracer {
 	}
 	
 	default Throwable mapException(Throwable t) {
-		return getUpdate() instanceof AbstractSessionUpdate 
-				? t 
-				: rootCauseException(t);
+		return getUpdate() instanceof AbstractSessionUpdate ? t : rootCauseException(t);
 	}
 	
 	default ExceptionTrace exceptionTrace(Throwable t, long offset) {
