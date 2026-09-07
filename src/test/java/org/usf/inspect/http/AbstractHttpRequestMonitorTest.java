@@ -1,7 +1,6 @@
 package org.usf.inspect.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.DualEventTracer.CLIENT_TIMEOUT;
 import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CONN_INTERRUPTED;
 import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
@@ -33,7 +32,7 @@ class AbstractHttpRequestMonitorTest {
 
     @Test
     void shouldMapTimeoutException() {
-        assertEquals(CLIENT_TIMEOUT, listener.resolveStatus(new TimeoutException("timeout")));
+        assertEquals(CONN_INTERRUPTED, listener.resolveStatus(new TimeoutException("timeout")));
     }
 
     @Test

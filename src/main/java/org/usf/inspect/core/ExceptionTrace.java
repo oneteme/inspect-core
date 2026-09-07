@@ -1,5 +1,6 @@
 package org.usf.inspect.core;
 
+import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -49,7 +50,7 @@ public final class ExceptionTrace implements EventTrace {
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()
-				.withInstant(offset < 0 ? Instant.ofEpochMilli(offset) : null)
+				.withInstant(offset < 0 ? ofEpochMilli(offset) : null)
 //				.withAction(command)
 				.withAction(type)
 				.withMessageAsTopic(message)

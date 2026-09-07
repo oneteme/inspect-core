@@ -63,7 +63,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 		this.lastTimestamp = start;
 	}
 	
-	public static HttpSessionTracer httpSessionListener(HttpServletRequest request, HttpServletResponse response, BooleanSupplier isAsync) {
+	public static HttpSessionTracer httpSessionTracer(HttpServletRequest request, HttpServletResponse response, BooleanSupplier isAsync) {
 		var sgn = createHttpSession(systemUTC().instant(), parseUUID(request.getHeader(TRACE_HEADER)));
 		var signal = traceSignal(()->{
 			sgn.setMethod(request.getMethod());

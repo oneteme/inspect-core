@@ -7,10 +7,9 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
-import static org.usf.inspect.core.Helper.evalExpression;
 import static org.usf.inspect.core.InspectExecutor.exec;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
-import static org.usf.inspect.http.HttpSessionTracer.httpSessionListener;
+import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
+import static org.usf.inspect.http.HttpSessionTracer.httpSessionTracer;
 
 import java.io.IOException;
 import java.util.Map;
@@ -42,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class HttpSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
 
-	static final String SESSION_MONITOR = "inspect-http-request-monitor";
+	static final String SESSION_TRACER = "inspect-http-session-tracer";
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 
 	private final HttpRoutePredicate routePredicate;
@@ -54,20 +53,19 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		try {
 			exec(()-> filterChain.doFilter(req, res), filterHandler(req, res));	
 		}
-		catch (IOException | ServletException | RuntimeException e) {
+		catch (IOException | ServletException e) {
 			throw e;
 		}
-		catch (Exception e) {//should never happen
-			hub().reportError(false, "HttpSessionFilter.doFilterInternal", e);
-			throw new IllegalStateException(e); 
+		catch (Exception e) {
+			sneakyThrow(e); //should never happen
 		}
 	}
 	
 	private ExecutionListener<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
 		var mnt = currentHttpMonitor(req);
 		if(isNull(mnt)) {
-			mnt = httpSessionListener(req, res, ()-> isAsyncStarted(req));
-			req.setAttribute(SESSION_MONITOR, mnt);
+			mnt = httpSessionTracer(req, res, ()-> isAsyncStarted(req));
+			req.setAttribute(SESSION_TRACER, mnt);
 		}
 		else {
 			mnt.async();
@@ -122,15 +120,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		if(handler instanceof HandlerMethod mth) {
 			var ant = mth.getMethodAnnotation(TraceableStage.class);
 			if(nonNull(ant) && !ant.name().isEmpty()) {
-				try {
-					return evalExpression(ant.name(), 
-							mth.getBean(), mth.getBeanType(), 
-							new String[] {"request"}, new Object[] {req}).toString();
-				}
-				catch (Exception e) {
-					log.warn("cannot eval expression ='{}' on {}.{}", 
-							ant.name(), mth.getBeanType().getSimpleName(), mth.getMethod().getName());
-				}
+				return evalMethodExpression(ant.name(), mth.getBean(), mth.getMethod(), null);
+//				return Helper.evalExpression(ant.name(), mth.getBean(), mth.getBeanType(), 
+//						new String[] {"request"}, new Object[] {req}).toString()
 			}
 		}
 		return defaultEndpointName(req);
@@ -151,11 +143,16 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
     
     static HttpSessionTracer currentHttpMonitor(HttpServletRequest req) {
-    	return (HttpSessionTracer) req.getAttribute(SESSION_MONITOR);
+    	return (HttpSessionTracer) req.getAttribute(SESSION_TRACER);
     }
     
     static HttpSessionTracer requireActiveTracer(HttpServletRequest req, String action) {
     	var c = currentHttpMonitor(req);
 		return assertActiveTracer(c, action) ? c : null;
     }
+	
+	@SuppressWarnings("unchecked")
+	static <X extends Throwable> void sneakyThrow(Throwable t) throws X {
+	    throw (X) t;
+	}
 }

@@ -5,29 +5,28 @@ import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 
  * @author u$f
  *
  */
-@NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
+@Getter
+@RequiredArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class TestTraceHub implements TraceHub {
 	
 	private static final TestTraceHub INSTANCE;
-	
+
+	private final InspectCollectorConfiguration configuration;
 	private final List<EventTrace> traces = new ArrayList<>();
 	
 	static {
 		var config = new InspectCollectorConfiguration();
 		config.setEnabled(true);
-		INSTANCE = (TestTraceHub) initializeTraceHub(new TestTraceHub());
-	}
-
-	@Override
-	public InspectCollectorConfiguration getConfiguration() {
-		return INSTANCE.getConfiguration();
+		INSTANCE = (TestTraceHub) initializeTraceHub(new TestTraceHub(config));
 	}
 
 	@Override
