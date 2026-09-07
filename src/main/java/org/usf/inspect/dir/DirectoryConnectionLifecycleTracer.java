@@ -46,7 +46,7 @@ final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer
 	}
 
 	@Override
-	public int resolveStatus(Throwable t) {
+	public short resolveStatus(Throwable t) {
 	    return switch (t) {
 	    	case javax.naming.AuthenticationException e -> CLIENT_UNAUTHORIZED;
 	    	case javax.naming.NameNotFoundException e -> CLIENT_ERROR;

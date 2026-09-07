@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-final class HttpRequestListener extends AbstractHttpConnectionLifecycleTracer {
+final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycleTracer {
 	
 	public ExecutionListener<ClientHttpResponse> exchangeStageListener(HttpRequest request) {
 		return connectionListener(stageBuilder(EXCHANGE), (trc, res)->
@@ -31,7 +31,7 @@ final class HttpRequestListener extends AbstractHttpConnectionLifecycleTracer {
 				traceHeaders(res.getStatusCode(), res.getHeaders()); 
 			}
 			catch (Exception ex) {
-				hub().reportError(true, "HttpRequestMonitor.responseHandler", ex);
+				hub().reportError(true, "HttpConnectionLifecycleTracer.responseHandler", ex);
 			}
 		}
 		return disconnectionListener((s,e,cnt,t)-> {
@@ -39,7 +39,7 @@ final class HttpRequestListener extends AbstractHttpConnectionLifecycleTracer {
 				traceResponseContent(cnt);
 			}
 			catch (Exception ex) {
-				hub().reportError(true, "HttpRequestMonitor.responseHandler", ex);
+				hub().reportError(true, "HttpConnectionLifecycleTracer.responseHandler", ex);
 			}
 			return createStage(STREAM, s, e);
 		});

@@ -46,7 +46,7 @@ final class MailConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 	}
 	
 	@Override
-	public int resolveStatus(Throwable t) {
+	public short resolveStatus(Throwable t) {
 	    return switch (t) {
 	        case jakarta.mail.AuthenticationFailedException e -> CLIENT_UNAUTHORIZED;
 	        case jakarta.mail.internet.ParseException e -> CLIENT_ERROR;

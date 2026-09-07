@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 class AbstractHttpRequestMonitorTest {
 
-	HttpRequestListener listener = new HttpRequestListener();
+	HttpConnectionLifecycleTracer listener = new HttpConnectionLifecycleTracer();
 	
     @Test
     void shouldMapHttpTimeoutException() {

@@ -28,7 +28,7 @@ public class AbstractRequestUpdate implements TraceUpdate, HasStage {
 	private String command; //READ, EMIT, EDIT, ..
 	private Instant end;
 	//v1.2 : replace failed property
-	private int status = -1; //-1 unknown
+	private short status = -1; //-1 unknown
 	
 	@Override
 	public String toString() {

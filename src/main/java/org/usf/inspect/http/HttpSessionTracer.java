@@ -97,7 +97,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 				clearContext(upd);
 			}
 			else {
-				upd.setStatus(response.getStatus());
+				upd.setStatus((short)response.getStatus());
 				upd.setDataSize(response.getBufferSize()); //!exact size
 				upd.setContentType(response.getContentType());
 				upd.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 

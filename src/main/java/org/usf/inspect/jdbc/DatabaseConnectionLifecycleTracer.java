@@ -62,7 +62,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	}
 	
 	@Override
-	public int resolveStatus(Throwable t) {
+	public short resolveStatus(Throwable t) {
 	    return switch (t) {
 	        case java.sql.SQLTransientConnectionException e -> CONN_ERROR;
 	        case java.sql.SQLNonTransientConnectionException e -> CONN_REFUSED;

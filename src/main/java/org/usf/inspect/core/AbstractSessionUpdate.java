@@ -32,7 +32,7 @@ public abstract class AbstractSessionUpdate implements TraceUpdate, AtomicTrace 
 	@Setter private String location; //class.method, URL, endpoint
 	
 	//v1.2
-	@Setter private int status; //RequestCommonStatus
+	@Setter private short status; //RequestCommonStatus
 	@Deprecated(forRemoval = true, since = "1.2")
 	@Setter private ExceptionTrace exception; //TD trace exception separately
 	

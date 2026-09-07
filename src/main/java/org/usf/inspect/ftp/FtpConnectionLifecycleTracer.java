@@ -44,7 +44,7 @@ final class FtpConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 	}
 
 	@Override
-	public int resolveStatus(Throwable t) {
+	public short resolveStatus(Throwable t) {
 		return switch(t) {
 			case com.jcraft.jsch.JSchException e -> CONN_REFUSED;
 			case com.jcraft.jsch.SftpException e -> switch(e.id) { // funct.

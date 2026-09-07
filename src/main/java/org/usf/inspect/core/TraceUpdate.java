@@ -13,9 +13,9 @@ public interface TraceUpdate extends TracePart {
 	
 	void setEnd(Instant end);
 	
-	int getStatus();
+	short getStatus();
 
-	void setStatus(int status);
+	void setStatus(short status);
 	
 	default void setStart(Instant end) {
 		//do nothing 

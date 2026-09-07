@@ -52,7 +52,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 	}
 
 	@Override
-	public int resolveStatus(Throwable t) {
+	public short resolveStatus(Throwable t) {
 	    return switch (t) {
 	        case java.net.http.HttpConnectTimeoutException e -> CONN_TIMEOUT;
 	        case java.net.http.HttpTimeoutException e -> SERVER_TIMEOUT;
@@ -61,24 +61,24 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 	    };
 	}
 	
-	protected static HttpRequestSignal signal(HttpRequestSignal sng, HttpMethod method, URI uri, HttpHeaders headers) {
+	protected static HttpRequestSignal signal(HttpRequestSignal sgn, HttpMethod method, URI uri, HttpHeaders headers) {
 		if(nonNull(method)) {
-			sng.setMethod(method.name());
+			sgn.setMethod(method.name());
 		}
 		if(nonNull(uri)) {
-			sng.setProtocol(uri.getScheme());
-			sng.setHost(uri.getHost());
-			sng.setPort(uri.getPort());
-			sng.setPath(uri.getPath());
-			sng.setQuery(uri.getQuery());
+			sgn.setProtocol(uri.getScheme());
+			sgn.setHost(uri.getHost());
+			sgn.setPort(uri.getPort());
+			sgn.setPath(uri.getPath());
+			sgn.setQuery(uri.getQuery());
 		}
 		if(nonNull(headers)) {
-			sng.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
-			sng.setDataSize(headers.getContentLength()); //-1 unknown !
-			sng.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+			sgn.setAuthScheme(extractAuthScheme(headers.getFirst(AUTHORIZATION)));
+			sgn.setDataSize(headers.getContentLength()); //-1 unknown !
+			sgn.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
 			//req.setUser(decode AUTHORIZATION)
 		}
-		return sng;
+		return sgn;
 	}
 
 	void traceHeaders(HttpStatusCode status, HttpHeaders headers) {
@@ -86,7 +86,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.traceHeaders")) {
 			var upd = (HttpRequestUpdate) getUpdate();
 	    	if(nonNull(status)) {
-				upd.setStatus(status.value());
+				upd.setStatus((short)status.value());
 			}
 			if(nonNull(headers)) { //response
 				upd.setContentType(headers.getFirst(CONTENT_TYPE));
@@ -130,7 +130,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 				return getUpdate().getId().equals(fromString(sid));
 			}
 			catch (Exception e) {
-				hub().reportMessage(false, "assertSameID", "session.id=" + sid);
+				hub().reportMessage(false, "AbstractHttpConnectionLifecycleTracer.assertSameID", "session.id=" + sid);
 			}
 		}
 		return false;
