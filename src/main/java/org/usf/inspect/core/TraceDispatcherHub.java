@@ -118,18 +118,18 @@ public final class TraceDispatcherHub implements TraceHub {
 	}
 	
 	@Override
-	public void reportError(boolean stack, String action, Throwable thwr) {
-		report(stack, formatLog(action, null, thwr), thwr);
+	public void reportError(String action, Throwable thwr) {
+		report(formatLog(action, null, thwr), thwr);
 	}
 
 	@Override
-	public void reportMessage(boolean stack, String action, String msg) {
-		report(stack, formatLog(action, msg, null), null);
+	public void reportMessage(String action, String msg) {
+		report(formatLog(action, msg, null), null);
 	}
 	
-	void report(boolean stack, String msg, Throwable cause) {
+	void report(String msg, Throwable cause) {
 		if(scheduling() && atomicState.get().canCollect()) {
-			var arr = stack && configuration.isDebugMode() 
+			var arr = configuration.isDebugMode()
 					? exceptionStackTraceRows(requireNonNullElseGet(cause, Exception::new), -1) 
 					: null;
 			queue.add(logEntry(REPORT, msg, arr)); //do not use emitTrace to avoid call hooks 

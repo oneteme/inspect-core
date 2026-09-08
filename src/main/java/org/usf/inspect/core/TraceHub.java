@@ -20,9 +20,9 @@ public interface TraceHub {
 
 	default boolean emitTraces(List<EventTrace> traces) {return false;}
 
-	default void reportError(boolean stack, String action, Throwable thwr) {}
+	default void reportError(String action, Throwable thwr) {}
 
-	default void reportMessage(boolean stack, String action, String msg) {}
+	default void reportMessage(String action, String msg) {}
 	
 	default boolean isCompleted() {return true;}
 }

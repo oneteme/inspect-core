@@ -21,7 +21,7 @@ import lombok.Setter;
 public abstract class AbstractStage implements Metric {
 
 	private UUID requestId;
-	private long order; // stages has same start sometimes (duration=0)
+	private int order; // stages has same start sometimes (duration=0)
 
 	private String name; // rename to type
 	private Instant start;
@@ -33,7 +33,7 @@ public abstract class AbstractStage implements Metric {
 	private StagePayload payload;
 //	private String threadName
 	
-	AbstractStage(UUID requestId, long order) {
+	AbstractStage(UUID requestId, int order) {
 		this.requestId = requestId;
 		this.order = order;
 	}

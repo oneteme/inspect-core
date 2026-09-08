@@ -130,7 +130,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 			}
 		}
 		catch (Exception e) {
-			hub().reportError(true, "HttpSessionMonitor.postProcess", e);
+			hub().reportError("HttpSessionMonitor.postProcess", e);
 		}
 	}
 
@@ -172,7 +172,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 				return fromString(id);
 			}
 			catch (Exception e) {
-				hub().reportMessage(false, "HttpSessionTracer.parseUUID", "bad UUID");
+				hub().reportMessage("HttpSessionTracer.parseUUID", "bad UUID");
 			}
 		}
 		return null;

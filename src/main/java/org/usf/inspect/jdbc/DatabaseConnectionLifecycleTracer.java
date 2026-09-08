@@ -173,7 +173,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 			batchStageBuilder = null;
 		}
 		else {
-			hub().reportMessage(false, "emitBatchStage", "empty batch or already traced");
+			hub().reportMessage("emitBatchStage", "empty batch or already traced");
 		}
 	}
 
@@ -203,7 +203,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 				}
 			}
 			catch (Exception e) {
-				hub().reportError(false, "DatabaseConnectionLifecycleTracer.updateStageRowsCount", e);
+				hub().reportError("DatabaseConnectionLifecycleTracer.updateStageRowsCount", e);
 			}
 		}
 	}
@@ -255,7 +255,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 			mainCommand = mergeCommand(mainCommand, extractCommand(sql));
 		}
 		catch (Exception e) {
-			hub().reportError(false, "parseAndMergeCommand", e);
+			hub().reportError("parseAndMergeCommand", e);
 		}
 	}
 	

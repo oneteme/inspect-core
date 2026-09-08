@@ -79,7 +79,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 							processCpuLoad.getAsInt()));
 		}
 		catch(Exception e) {
-			ctx.reportError(false, "MachineResourceMonitor.onSchedule", e);
+			ctx.reportError("MachineResourceMonitor.onSchedule", e);
 		}
 	}
 

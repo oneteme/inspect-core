@@ -72,7 +72,7 @@ public final class EventTraceDumper implements DispatchHook {
 				}
 			}
 			else { //do not throw exception => end task
-				ctx.reportMessage(false, "EventTraceDumper.emitDispatchFileTask", 
+				ctx.reportMessage("EventTraceDumper.emitDispatchFileTask", 
 						"traces dump file '" + f.getName() + "' is not found");
 			}
 		};
@@ -96,7 +96,7 @@ public final class EventTraceDumper implements DispatchHook {
 			}
 		}
 		if(!done) {
-			ctx.reportMessage(false, "EventTraceDumper.deleteFile", 
+			ctx.reportMessage("EventTraceDumper.deleteFile", 
 					"cannot delete or rename file '" + file.getName() + "'");
 		}
 	}

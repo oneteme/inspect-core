@@ -135,16 +135,16 @@ public final class RestTraceExporter implements TraceExporter {
 						return true; //retry only if server ask for it
 					}
 				} catch (IOException ioe) {
-					hub().reportError(false, "RestTraceExporter.readValue", ioe);
+					hub().reportError("RestTraceExporter.readValue", ioe);
 				}
 			}
-			hub().reportError(false, "RestTraceExporter.shouldRetry", e);
+			hub().reportError("RestTraceExporter.shouldRetry", e);
 			return false; //BadGateway or GatewayTimeout should not be retried
 		}
 		else if(e instanceof ResourceAccessException rae 
 				&& rae.getCause() instanceof SocketTimeoutException 
 				&& !rae.getMessage().contains("Connection timed out")) {
-			hub().reportError(false, "RestTraceExporter.shouldRetry", e);
+			hub().reportError("RestTraceExporter.shouldRetry", e);
 			return false; //only read timeout should not be retried
 		}
 		log.warn("bad request : {}", e.getMessage());
@@ -176,7 +176,7 @@ public final class RestTraceExporter implements TraceExporter {
 					body = baos.toByteArray();
 				}
 				catch (Exception e) {/*do not throw exception */
-					hub().reportError(false, "RestTraceExporter.bodyCompressionInterceptor", e);
+					hub().reportError("RestTraceExporter.bodyCompressionInterceptor", e);
 				}
 			}
 			return exec.execute(req, body);

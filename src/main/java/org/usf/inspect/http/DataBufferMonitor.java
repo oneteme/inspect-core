@@ -43,7 +43,7 @@ final class DataBufferMonitor implements ResponseContent {
 				}
 			}
 			catch (Exception e) {
-				hub().reportError(false, "DataBufferMonitor.handle", e);
+				hub().reportError("DataBufferMonitor.handle", e);
 			}
 			return db; //maybe consumed
 		})

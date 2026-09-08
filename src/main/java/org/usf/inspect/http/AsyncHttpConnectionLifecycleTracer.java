@@ -38,7 +38,7 @@ final class AsyncHttpConnectionLifecycleTracer extends AbstractHttpConnectionLif
 				traceHeaders(res.statusCode(), res.headers().asHttpHeaders());
 			}
 			catch (Exception ex) {
-				hub().reportError(true, "HttpRequestAsyncMonitor.postExchange", ex);
+				hub().reportError("HttpRequestAsyncMonitor.postExchange", ex);
 			}
 		}
 		stageListener((s,e,o,t)-> createStage(EXCHANGE, s, e)).safeHandle(lastTimestamp, now, null, thrw);
@@ -49,7 +49,7 @@ final class AsyncHttpConnectionLifecycleTracer extends AbstractHttpConnectionLif
 			traceResponseContent(ctn);
 		}
 		catch (Exception ex) {
-			hub().reportError(true, "HttpRequestAsyncMonitor.postResponse", ex);
+			hub().reportError("HttpRequestAsyncMonitor.postResponse", ex);
 		}
 		stageListener((s,e,o,t)-> createStage(STREAM, s, e)).safeHandle(start, end, null, thrw);
 	}

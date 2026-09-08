@@ -19,7 +19,7 @@ public final class MainSessionSignal extends AbstractSessionSignal {
 
 	public MainSessionSignal(UUID id, Instant start, String threadName, String type) {
 		super(id, start, threadName);
-		this.type= type;
+		this.type = type;
 	}
 
 	@Deprecated(forRemoval = false, since = "1.2")

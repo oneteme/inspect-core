@@ -56,7 +56,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 					cons.accept(update, o); //execute before
 				}
 				catch (Exception ex) {
-					hub().reportError(true, "ExecutionTracer.map", ex);
+					hub().reportError("ExecutionTracer.map", ex);
 				}
 				handle(s, e, o, t);
 			}
@@ -84,7 +84,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 			sgn = supp.get();
 		}
 		catch (Exception e) {
-			hub().reportError(true, "ExecutionTracer.traceSignal", e);
+			hub().reportError("ExecutionTracer.traceSignal", e);
 		}
 		if(nonNull(sgn)) {
 			hub().emitTrace(sgn);

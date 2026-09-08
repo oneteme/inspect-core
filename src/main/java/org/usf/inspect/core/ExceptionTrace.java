@@ -5,7 +5,6 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
-import java.time.Instant;
 import java.util.UUID;
 
 import lombok.Getter;

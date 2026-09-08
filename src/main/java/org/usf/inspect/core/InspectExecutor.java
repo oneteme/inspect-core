@@ -40,7 +40,7 @@ public final class InspectExecutor {
 				listener.safeHandle(s, e, o, t);
 			}
 			else {
-				hub().reportMessage(true, "InspectExecutor.call", "listener is null");
+				hub().reportMessage("InspectExecutor.call", "listener is null");
 			}
 		}
 	}
@@ -55,7 +55,7 @@ public final class InspectExecutor {
 				handle(start, end, obj, thrw);
 			}
 			catch (Throwable ex) {// do not throw exception
-				hub().reportError(true, "ExecutionListener.safeHandle", ex);
+				hub().reportError("ExecutionListener.safeHandle", ex);
 			}
 		}
 	}

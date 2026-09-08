@@ -241,14 +241,14 @@ public final class SessionContextManager {
 	}
 
 	static void reportNoActiveContext(String action) {
-		hub().reportMessage(true, action, "no active context");
+		hub().reportMessage(action, "no active context");
 	}
 	
 	static void reportContextConflict(String action, UUID prev, UUID next) {
-		hub().reportMessage(true, action, format("previous=%s, next=%s", prev, next));
+		hub().reportMessage(action, format("previous=%s, next=%s", prev, next));
 	}
 
 	static void reportIllegalContextState(String action, String msg) {
-		hub().reportMessage(true, action, msg);
+		hub().reportMessage(action, msg);
 	}
 }

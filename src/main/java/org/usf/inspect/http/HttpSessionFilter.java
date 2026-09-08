@@ -51,7 +51,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
 		try {
-			exec(()-> filterChain.doFilter(req, res), filterHandler(req, res));	
+			exec(()-> filterChain.doFilter(req, res), getTracer(req, res));	
 		}
 		catch (IOException | ServletException e) {
 			throw e;
@@ -61,7 +61,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 		}
 	}
 	
-	private ExecutionListener<Void> filterHandler(HttpServletRequest req, HttpServletResponse res) {
+	private ExecutionListener<Void> getTracer(HttpServletRequest req, HttpServletResponse res) {
 		var mnt = currentHttpMonitor(req);
 		if(isNull(mnt)) {
 			mnt = httpSessionTracer(req, res, ()-> isAsyncStarted(req));

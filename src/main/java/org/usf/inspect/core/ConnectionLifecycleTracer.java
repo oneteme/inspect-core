@@ -55,7 +55,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	
 	public <T> ExecutionListener<T> connectionListener(StageBuilder<T> stgBuilder, SafeBiConsumer<TraceSignal,T> cons) {
 		if(nonNull(update) || stageCounter.get() > 0) {
-			hub().reportMessage(true, "ConnectionLifecycleTracer.connectionListener", "tracer was not reset");
+			hub().reportMessage("ConnectionLifecycleTracer.connectionListener", "tracer was not reset");
 			reset();
 		}
 		return (s,e,o,t)-> {
@@ -64,7 +64,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 				cons.accept(sgn, o);
 			}
 			catch (Exception ex) {
-				hub().reportError(true, "ConnectionLifecycleTracer.connectionListener", ex);
+				hub().reportError("ConnectionLifecycleTracer.connectionListener", ex);
 			}
 			hub().emitTrace(sgn);
 			this.update = update(sgn);

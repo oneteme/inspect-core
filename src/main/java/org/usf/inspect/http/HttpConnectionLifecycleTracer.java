@@ -31,7 +31,7 @@ final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycl
 				traceHeaders(res.getStatusCode(), res.getHeaders()); 
 			}
 			catch (Exception ex) {
-				hub().reportError(true, "HttpConnectionLifecycleTracer.responseHandler", ex);
+				hub().reportError("HttpConnectionLifecycleTracer.responseHandler", ex);
 			}
 		}
 		return disconnectionListener((s,e,cnt,t)-> {
@@ -39,7 +39,7 @@ final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycl
 				traceResponseContent(cnt);
 			}
 			catch (Exception ex) {
-				hub().reportError(true, "HttpConnectionLifecycleTracer.responseHandler", ex);
+				hub().reportError("HttpConnectionLifecycleTracer.responseHandler", ex);
 			}
 			return createStage(STREAM, s, e);
 		});
