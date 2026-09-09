@@ -76,7 +76,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 					totalDiskSpace > 0 ? toMb(totalDiskSpace - file.getUsableSpace()) : -1,
 					threadBean.getThreadCount(),
 					startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount,
-							processCpuLoad.getAsInt()));
+							(byte)processCpuLoad.getAsInt()));
 		}
 		catch(Exception e) {
 			ctx.reportError("MachineResourceMonitor.onSchedule", e);
