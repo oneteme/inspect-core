@@ -13,7 +13,7 @@ import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.SessionContextManager.createTestSession;
+import static org.usf.inspect.core.SessionContextManager.createStartupSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.core.TraceDispatcherHub.initializeTraceHub;
@@ -159,7 +159,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
     	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider);
 		hub().dispatch(instance);
 		var handler = forMainSession(()-> { 
-			var sgn = createTestSession(systemUTC().instant());
+			var sgn = createStartupSession(start, instance.getId());
 			sgn.setName("main");
 			return sgn;
 		});

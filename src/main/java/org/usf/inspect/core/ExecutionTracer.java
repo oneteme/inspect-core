@@ -12,7 +12,6 @@ import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
 import org.usf.inspect.core.SafeCallable.SafeSupplier;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 /**
  * 
@@ -20,17 +19,20 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @Getter
-@RequiredArgsConstructor
 public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer {
 
 	private final TraceUpdate update; //may be null
+
+	public ExecutionTracer(TraceUpdate update) {
+		this.update = update;
+		if(update instanceof AbstractSessionUpdate ctx) {
+			setActiveContext(ctx);
+		}
+	}
 	
 	@Override
 	public void handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception {
 		if(assertActiveTraceUpdate("ExecutionTracer.handle")) {
-			if(update instanceof AbstractSessionUpdate ctx) {
-				setActiveContext(ctx);
-			}
 			update.setStart(start); //real method start
 			if(nonNull(thrw)) {
 				thrw = mapException(thrw);
