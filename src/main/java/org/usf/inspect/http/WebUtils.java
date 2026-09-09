@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class WebUtils {
-
+    
 	static final String TRACE_HEADER = "x-tracert"; //X-Request-Id
 
 	public static String extractAuthScheme(String authHeader) { //nullable

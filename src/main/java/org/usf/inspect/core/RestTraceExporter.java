@@ -1,33 +1,29 @@
 package org.usf.inspect.core;
 
+import static java.lang.Integer.parseInt;
 import static java.time.Clock.systemUTC;
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptyList;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.empty;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static org.springframework.http.HttpHeaders.encodeBasicAuth;
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.net.http.HttpHeaders;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -52,15 +48,16 @@ import lombok.extern.slf4j.Slf4j;
 public final class RestTraceExporter implements TraceExporter {
 
 	private final RestRemoteServerProperties properties;
-	private final ObjectMapper mapper;
 	private final RestTemplate template;
 	private int attempts;
-
+	private int sequence;
+	
+	private List<EventTrace> lastPacket;
 	private InstanceEnvironment instance;
 	private boolean registred;
 
 	public RestTraceExporter(RestRemoteServerProperties properties, ObjectMapper mapper) {
-		this(properties, mapper, defaultRestTemplate(properties, mapper));
+		this(properties, defaultRestTemplate(properties, mapper));
 	}
 
 	@Override
@@ -71,46 +68,61 @@ public final class RestTraceExporter implements TraceExporter {
 	@Override
 	public List<EventTrace> dispatch(boolean complete, List<EventTrace> traces)  {
 		var id = getOrRegisterInstanceId();
+		if(nonNull(lastPacket) && !lastPacket.isEmpty()) {
+			dispatchPrevious(id);
+			if(nonNull(lastPacket)) {
+				return traces;
+			}
+		}
 		try {
 			var uri = fromUriString(properties.getTracesURI())
-					.queryParam("attempts", ++attempts)
+					.queryParam("atm", ++attempts)
+					.queryParam("seq", ++sequence) //same sequence
 					.queryParamIfPresent("end", complete ? Optional.of(systemUTC().instant()) : empty())
 					.buildAndExpand(id).toUri();
 			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
 			attempts = 0;
-			return emptyList(); //no partial dispatch
-		}
-		catch (RestClientException e) { //server / client ?
-			if(shouldRetry(e)) {
-				throw new DispatchException("traces dispatch error", e);
-			} //else may be lost
-			log.warn("dispatching {} traces failed, will not retry", traces.size());
 			return emptyList();
 		}
+		catch (RestClientException e) {
+			try {
+				return shouldRetry(e) ? traces : emptyList();
+			}
+			catch (UnconfirmedExportException ex) {
+				lastPacket = traces; 
+				return emptyList();
+			}
+		}
 	}
 	
-	@Override
-	@Deprecated(forRemoval = true, since = "v1.2")
-	public void dispatch(File dumpFile) { //TD send FileSystemResource ?
-		var id = getOrRegisterInstanceId();
+	void dispatchPrevious(UUID id) {
 		try {
 			var uri = fromUriString(properties.getTracesURI())
-					.queryParam("attempts", attempts)
-					.queryParam("filename", dumpFile.getName())
+					.queryParam("atm", ++attempts)
+					.queryParam("seq", sequence) //same sequence
 					.buildAndExpand(id).toUri();
-			template.put(uri, mapper.readTree(dumpFile)); //use dispatch splitor
+			template.put(uri, lastPacket.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
+			attempts = 0;
+			lastPacket = null;
 		}
 		catch (RestClientException e) { //server / client ?
-			if(shouldRetry(e)) {
-				throw new DispatchException("file dispatch error", e);
-			} //else may be lost
-			log.warn("file dispatch failed, will not retry {}", dumpFile);
-		}
-		catch (IOException e) {
-			throw new DispatchException("file dispatch error", e);
+			try {
+				if(!shouldRetry(e)) {
+					lastPacket = null;
+				}
+			} catch (UnconfirmedExportException e1) {
+				//keep last packet
+			}
+			finally {
+				if(attempts > 10) {
+					log.warn("dispatching {} traces failed, will not retry", lastPacket.size());
+					lastPacket = null;
+					attempts = 0;
+				}
+			}
 		}
 	}
-	
+
 	UUID getOrRegisterInstanceId() {
 		if(registred) {
 			return instance.getId();
@@ -132,30 +144,33 @@ public final class RestTraceExporter implements TraceExporter {
 	}
 
 	//see https://www.baeldung.com/java-socket-connection-read-timeout
-	boolean shouldRetry(RestClientException e) throws UnknownExportState {
-		if(e instanceof HttpServerErrorException rsp) {
-			var body = rsp.getResponseBodyAsByteArray();
-			if(nonNull(body) && body.length > 0) {
+	boolean shouldRetry(RestClientException e) throws UnconfirmedExportException {
+		if(e instanceof HttpServerErrorException rsp) { //50x check header !?
+			var hdr = rsp.getResponseHeaders();
+			if(nonNull(hdr) && hdr.containsKey(RETRY_AFTER)) {
+				var retry = hdr.getFirst(RETRY_AFTER);
 				try {
-					var resp = mapper.readValue(body, TraceFail.class);
-					if(nonNull(resp)) {
-						return resp.retry(); //server response
-					}
-				} catch (IOException ioe) {
-					throw new UnknownExportState("cannot read server response body: " + new String(body));
+					return parseInt(retry) > 0;
+				} catch (Exception ex) {
+					hub().reportError("RestTraceExporter.shouldRetry", ex);
+					throw new UnconfirmedExportException("cannot read 'RETRY_AFTER' header : " + retry);
 				}
 			}
-			throw new UnknownExportState("server response body is empty");
+			hub().reportError("RestTraceExporter.shouldRetry", e);
+			throw new UnconfirmedExportException("header[RETRY_AFTER] is empty");
 		}
 		if(e instanceof HttpClientErrorException rsp) { //40x : BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT
+			hub().reportError("RestTraceExporter.shouldRetry", e);
 			return rsp.getStatusCode() == TOO_MANY_REQUESTS; //retry after delay !
 		}
 		else if(e instanceof ResourceAccessException rae 
 				&& rae.getCause() instanceof SocketTimeoutException 
-				&& !rae.getCause().getMessage().contains("Connection timed out")) {
-			hub().reportError("RestTraceExporter.shouldRetry", e);
-			throw new UnknownExportState("read timeout");
+				&& nonNull(rae.getCause().getMessage())
+				&& !rae.getCause().getMessage().toLowerCase().contains("connect")) { 
+			hub().reportError("RestTraceExporter.shouldRetry", rae.getCause());
+			throw new UnconfirmedExportException("read timeout");
 		}
+		hub().reportError("RestTraceExporter.shouldRetry", e);
 		return true;
 	}
 
@@ -189,5 +204,13 @@ public final class RestTraceExporter implements TraceExporter {
 			}
 			return exec.execute(req, body);
 		};
+	}
+	
+	@SuppressWarnings("serial")
+	static class UnconfirmedExportException extends Exception {
+
+		public UnconfirmedExportException(String msg) {
+			super(msg);
+		}
 	}
 }

@@ -16,7 +16,8 @@ public interface TraceExporter {
     
 	List<EventTrace> dispatch(boolean complete, List<EventTrace> traces);
 
-	void dispatch(File dumpFile);
+	@Deprecated(forRemoval = true, since = "v1.2")
+	default void dispatch(File dumpFile) {}
 	
 	static TraceExporter noExporter() {
 		
@@ -30,11 +31,6 @@ public interface TraceExporter {
 			@Override
 			public List<EventTrace> dispatch(boolean complete, List<EventTrace> traces) {
 				return emptyList();
-			}
-			
-			@Override
-			public void dispatch(File dumpFile) {
-				//do nothing
 			}
 		};
 	}
