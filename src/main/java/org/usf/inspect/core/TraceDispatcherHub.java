@@ -7,6 +7,7 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
@@ -21,10 +22,17 @@ import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
 import static org.usf.inspect.core.TraceExporter.noExporter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -277,8 +285,25 @@ public final class TraceDispatcherHub implements TraceHub {
 		return false;
 	}
 	
+	@Deprecated(forRemoval = true, since = "1.2.0")
 	public List<EventTrace> peek() {
 		return queue.peek();
+	}
+	
+	//require single thread executor to avoid concurrent modification of the queue
+	public <T> Future<T> peekAsync(Function<Collection<EventTrace>, T> fn){
+		if(scheduling()) {
+			var cf = new CompletableFuture<T>();
+		    executor.submit(() -> {
+		        try {
+		            cf.complete(fn.apply(queue.toList()));
+		        } catch (Exception e) {
+		            cf.completeExceptionally(e);
+		        }
+		    });
+		    return cf;
+		}
+		return completedFuture(fn.apply(queue.toList()));
 	}
 	
 	boolean scheduling() {

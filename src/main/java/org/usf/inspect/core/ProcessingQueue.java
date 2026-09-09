@@ -1,10 +1,12 @@
 package org.usf.inspect.core;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.unmodifiableCollection;
 import static java.util.Objects.nonNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.UnaryOperator;
@@ -55,6 +57,11 @@ public final class ProcessingQueue<T> {
 	
 	public List<T> peek() {
 		return new ArrayList<>(queue);
+	}
+	
+
+	public Collection<T> toList() {
+		return unmodifiableCollection(queue);
 	}
 
 	public int size() {

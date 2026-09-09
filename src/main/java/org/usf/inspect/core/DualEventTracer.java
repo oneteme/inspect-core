@@ -39,7 +39,6 @@ public interface DualEventTracer {
 
     static final short CLIENT_ERROR       	= 400; // Generic client-side error
     static final short CLIENT_UNAUTHORIZED	= 401; // Authentication or permission failure
-    static final short CLIENT_TIMEOUT    		= 408; // Client-side operation timeout
     static final short CLIENT_CONFLICT     	= 409; // Duplicate key / Constraint violation
 
     static final short SERVER_ERROR      		= 500; // Generic server/remote error
