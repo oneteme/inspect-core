@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.springframework.core.env.Environment;
 
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
  * @author u$f
  *
  */
+@Getter
 @RequiredArgsConstructor
 public class DefaultApplicationPropertiesProvider implements ApplicationPropertiesProvider {
 

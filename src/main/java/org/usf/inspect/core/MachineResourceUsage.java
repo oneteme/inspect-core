@@ -28,11 +28,10 @@ public final class MachineResourceUsage implements EventTrace {
 	//1.2
 	private final int activeThreadCount;
 	private final int startedThreadCount;
-	private final int cpuUsage; //byte ? 0-100
+	private final byte cpuUsage; //byte ? 0-100
 
 	//server usage 
 	private UUID instanceId; 
-	//CPU?
 	
 	@Override
 	public String toString() {
