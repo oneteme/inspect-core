@@ -28,6 +28,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 		if(update instanceof AbstractSessionUpdate ctx) {
 			setActiveContext(ctx);
 		}
+		this.update.setStatus(UNKNOWN); //initial status
 	}
 	
 	@Override
@@ -36,11 +37,13 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 			update.setStart(start); //real method start
 			if(nonNull(thrw)) {
 				thrw = mapException(thrw);
-				update.setStatus(resolveStatus(thrw));
+				if(update.getStatus() < 0) {
+					update.setStatus(resolveStatus(thrw));
+				}
 				var exp = exceptionTrace(thrw, end.toEpochMilli());
 				hub().emitTrace(exp);
 			}
-			else {
+			else if(update.getStatus() < 0) {
 				update.setStatus(SUCCESS);
 			}
 			update.setEnd(end);
