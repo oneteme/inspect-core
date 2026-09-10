@@ -32,6 +32,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.usf.inspect.http.HttpRequestInterceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -52,7 +53,7 @@ public final class RestTraceExporter implements TraceExporter {
 	private int attempts;
 	private int sequence;
 	
-	private List<EventTrace> lastPacket;
+	private EventTrace[] lastPacket;
 	private InstanceEnvironment instance;
 	private boolean registred;
 
@@ -68,7 +69,7 @@ public final class RestTraceExporter implements TraceExporter {
 	@Override
 	public List<EventTrace> dispatch(boolean complete, List<EventTrace> traces)  {
 		var id = getOrRegisterInstanceId();
-		if(nonNull(lastPacket) && !lastPacket.isEmpty()) {
+		if(nonNull(lastPacket)) {
 			dispatchPrevious(id);
 			if(nonNull(lastPacket)) {
 				return traces;
@@ -76,8 +77,8 @@ public final class RestTraceExporter implements TraceExporter {
 		}
 		try {
 			var uri = fromUriString(properties.getTracesURI())
+					.queryParam("seq", ++sequence) 
 					.queryParam("atm", ++attempts)
-					.queryParam("seq", ++sequence) //same sequence
 					.queryParamIfPresent("end", complete ? Optional.of(systemUTC().instant()) : empty())
 					.buildAndExpand(id).toUri();
 			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
@@ -89,7 +90,7 @@ public final class RestTraceExporter implements TraceExporter {
 				return shouldRetry(e) ? traces : emptyList();
 			}
 			catch (UnconfirmedExportException ex) {
-				lastPacket = traces; 
+				lastPacket = traces.toArray(EventTrace[]::new);
 				return emptyList();
 			}
 		}
@@ -98,10 +99,10 @@ public final class RestTraceExporter implements TraceExporter {
 	void dispatchPrevious(UUID id) {
 		try {
 			var uri = fromUriString(properties.getTracesURI())
-					.queryParam("atm", ++attempts)
 					.queryParam("seq", sequence) //same sequence
+					.queryParam("atm", ++attempts)
 					.buildAndExpand(id).toUri();
-			template.put(uri, lastPacket.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
+			template.put(uri, lastPacket); //issue https://github.com/FasterXML/jackson-core/issues/1459
 			attempts = 0;
 			lastPacket = null;
 		}
@@ -115,7 +116,7 @@ public final class RestTraceExporter implements TraceExporter {
 			}
 			finally {
 				if(attempts > 10) {
-					log.warn("dispatching {} traces failed, will not retry", lastPacket.size());
+					log.warn("dispatching {} traces failed, will not retry", lastPacket.length);
 					lastPacket = null;
 					attempts = 0;
 				}
@@ -178,6 +179,7 @@ public final class RestTraceExporter implements TraceExporter {
 		var json = new MappingJackson2HttpMessageConverter(mapper);
 		var plain = new StringHttpMessageConverter(); //for instanceID
 		var rt = new RestTemplateBuilder()
+				.interceptors(new HttpRequestInterceptor())	//debug mode
 				.messageConverters(json, plain) //minimum converters
 				.setConnectTimeout(ofSeconds(10))
 				.setReadTimeout(ofSeconds(30))
