@@ -1,7 +1,7 @@
 package org.usf.inspect.http;
 
 import static org.usf.inspect.core.InspectExecutor.call;
-import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
+import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 
 import java.io.IOException;
 
@@ -23,7 +23,7 @@ public final class HttpRequestInterceptor implements ClientHttpRequestIntercepto
 	@Override
 	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 		var mnt = new HttpConnectionLifecycleTracer();
-		request.getHeaders().set(TRACE_HEADER, mnt.getId().toString());
+		request.getHeaders().set(TRACE_ID_HEADER, mnt.getId().toString());
 		var rsp = call(()-> execution.execute(request, body), mnt.exchangeStageListener(request));
 		return new ClientHttpResponseWrapper(rsp, mnt.streamStageListener(rsp));
 	}

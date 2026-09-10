@@ -9,7 +9,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
-import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
+import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 import static org.usf.inspect.http.WebUtils.extractAuthScheme;
 
 import java.net.URI;
@@ -91,7 +91,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 			if(nonNull(headers)) { //response
 				upd.setContentType(headers.getFirst(CONTENT_TYPE));
 				upd.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-				upd.setLinked(assertSameID(headers.getFirst(TRACE_HEADER)));
+				upd.setLinked(assertSameID(headers.getFirst(TRACE_ID_HEADER)));
 			}
 			upd.setDataSize(-1); //initial size
 		}

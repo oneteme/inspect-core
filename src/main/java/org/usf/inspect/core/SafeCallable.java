@@ -23,13 +23,6 @@ public interface SafeCallable<T, E extends Throwable> { //Metrics Tracker
 	}
 
 	@FunctionalInterface
-	public interface SafeConsumer<T> { //Metrics Tracker 
-		
-		void accept(T obj) throws Exception;
-	}
-	
-
-	@FunctionalInterface
 	public interface SafeSupplier<T> { //Metrics Tracker 
 		
 		T get() throws Exception;

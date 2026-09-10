@@ -253,6 +253,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	void parseAndMergeCommand(String sql) {
 		try {
 			mainCommand = mergeCommand(mainCommand, extractCommand(sql));
+			((DatabaseRequestUpdate)getUpdate()).setCommand(mainCommand.name());
 		}
 		catch (Exception e) {
 			hub().reportError("parseAndMergeCommand", e);

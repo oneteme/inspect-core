@@ -21,7 +21,7 @@ import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
-import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
+import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 import static org.usf.inspect.http.WebUtils.extractAuthScheme;
 
 import java.net.URI;
@@ -64,7 +64,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	}
 	
 	public static HttpSessionTracer httpSessionTracer(HttpServletRequest request, HttpServletResponse response, BooleanSupplier isAsync) {
-		var sgn = createHttpSession(systemUTC().instant(), parseUUID(request.getHeader(TRACE_HEADER)));
+		var sgn = createHttpSession(systemUTC().instant(), parseUUID(request.getHeader(TRACE_ID_HEADER)));
 		var signal = traceSignal(()->{
 			sgn.setMethod(request.getMethod());
 			sgn.setURI(fromRequest(request));
@@ -74,8 +74,8 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 			sgn.setUserAgent(request.getHeader(USER_AGENT));
 			sgn.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
 			if(nonNull(response)) {
-				response.addHeader(TRACE_HEADER, sgn.getId().toString()); //add headers before doFilter
-				response.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_HEADER);
+				response.addHeader(TRACE_ID_HEADER, sgn.getId().toString()); //add headers before doFilter
+				response.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_ID_HEADER);
 			}
 			return sgn;
 		});

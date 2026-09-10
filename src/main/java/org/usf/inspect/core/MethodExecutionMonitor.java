@@ -12,7 +12,7 @@ import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
-import static org.usf.inspect.core.SessionContextManager.createTestSession;
+import static org.usf.inspect.core.SessionContextManager.createBatchSession;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 
 import java.lang.StackWalker.StackFrame;
@@ -73,7 +73,7 @@ public class MethodExecutionMonitor implements Ordered {
 
 	Object aroundJob(ProceedingJoinPoint point) throws Throwable {
 		return call(point::proceed, forMainSession(()-> { 
-			var sgn = createTestSession(systemUTC().instant());
+			var sgn = createBatchSession(systemUTC().instant());
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));

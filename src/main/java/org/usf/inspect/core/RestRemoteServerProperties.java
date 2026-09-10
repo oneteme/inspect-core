@@ -10,6 +10,8 @@ import static org.usf.inspect.core.Assertions.assertPositive;
 
 import java.net.URI;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -31,6 +33,7 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	//v1.2
 	private Retention retentionMaxAge = new Retention();
 	private String namespace; //optional
+	@JsonIgnore //avoid to be serialized in JSON
 	private String token; //optional
 	
 	@Override

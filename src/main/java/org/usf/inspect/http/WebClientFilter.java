@@ -2,7 +2,7 @@ package org.usf.inspect.http;
 
 import static org.springframework.web.reactive.function.client.ClientRequest.from;
 import static org.usf.inspect.core.InspectExecutor.call;
-import static org.usf.inspect.http.WebUtils.TRACE_HEADER;
+import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +25,7 @@ public final class WebClientFilter implements ExchangeFilterFunction { //see Res
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {//request.headers is ReadOnlyHttpHeaders
 		var mnt = new AsyncHttpConnectionLifecycleTracer();
 		var sync = new AtomicInteger(1);
-		return call(()-> exc.exchange(from(request).header(TRACE_HEADER, mnt.getId().toString()).build()), mnt.assemblyStageListener(request))
+		return call(()-> exc.exchange(from(request).header(TRACE_ID_HEADER, mnt.getId().toString()).build()), mnt.assemblyStageListener(request))
 				.map(res->{
 					sync.incrementAndGet();
 					var buff = new DataBufferMonitor((s,e,ctn,t)->{

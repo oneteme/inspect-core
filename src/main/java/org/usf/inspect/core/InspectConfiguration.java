@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import static java.lang.String.format;
 import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
-import static java.time.Clock.systemUTC;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.requireNonNullElse;
 import static org.springframework.core.Ordered.HIGHEST_PRECEDENCE;
@@ -149,11 +148,11 @@ public class InspectConfiguration implements WebMvcConfigurer {
     				exc.setTaskDecorator(SessionContextManager::aroundRunnable);
     			}
     			//see also SimpleAsyncTaskExecutor & AsyncSupportConfigurer(CallableProcessingInterceptor, DeferredResultProcessingInterceptor)
-	            return bean instanceof DataSource ds ? wrap(ds, beanName) :  bean;
+	            return bean instanceof DataSource ds ? wrap(ds, beanName) : bean;
     		}
 		};
     }
-
+    
     @Bean
     ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
     	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider);
