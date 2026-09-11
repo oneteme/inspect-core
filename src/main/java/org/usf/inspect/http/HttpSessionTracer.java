@@ -54,6 +54,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	private final HttpServletResponse response;
 	private final BooleanSupplier isAsync;
 	
+	private Throwable lastException;
 	private Instant lastTimestamp;
 
 	public HttpSessionTracer(TraceUpdate update, Instant start, HttpServletResponse response, BooleanSupplier isAsync) {
@@ -145,8 +146,11 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	}
 	
 	public void handleError(Throwable thrw) {
-		var exp = exceptionTrace(thrw, systemUTC().instant().toEpochMilli());
-		hub().emitTrace(exp);
+		if(lastException != thrw) {
+			var exp = exceptionTrace(thrw, systemUTC().instant().toEpochMilli());
+			hub().emitTrace(exp);
+			lastException = thrw;
+		}
 	}
 
     static URI fromRequest(HttpServletRequest req) {

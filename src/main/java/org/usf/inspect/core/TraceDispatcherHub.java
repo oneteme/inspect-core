@@ -16,7 +16,6 @@ import static java.util.stream.Collectors.toSet;
 import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LogEntry.logEntry;
-import static org.usf.inspect.core.LogEntry.Level.REPORT;
 import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
@@ -140,7 +139,7 @@ public final class TraceDispatcherHub implements TraceHub {
 			var arr = configuration.isDebugMode()
 					? exceptionStackTraceRows(requireNonNullElseGet(cause, Exception::new), -1) 
 					: null;
-			queue.add(logEntry(REPORT, msg, arr)); //do not use emitTrace to avoid call hooks 
+			queue.add(logEntry(msg, arr)); //do not use emitTrace to avoid call hooks 
 		}
 		if(configuration.isDebugMode()) {
 			log.debug(msg, cause);			

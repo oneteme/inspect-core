@@ -24,6 +24,7 @@ public final class LogEntry implements EventTrace {
 	private final Level level; //type
 	private final String message;
 	private final StackTraceRow[] stackRows;
+	@Deprecated(forRemoval = true, since = "v1.2")
 	private UUID sessionId; //optional
 	
 	//server usage 
@@ -40,15 +41,15 @@ public final class LogEntry implements EventTrace {
 	
 	@Deprecated(forRemoval = true, since = "v1.2")
 	static LogEntry logEntry(Level lvl, String msg) {
-		return logEntry(lvl, msg, null);	
+		return logEntry(msg, null);	
 	}
 
 	@Deprecated(forRemoval = true, since = "v1.2")
-	static LogEntry logEntry(Level lvl, String msg, StackTraceRow[] stack) {
-		return new LogEntry(systemUTC().instant(), lvl, msg, stack);	
+	static LogEntry logEntry(String msg, StackTraceRow[] stack) {
+		return new LogEntry(systemUTC().instant(), null, msg, stack);	
 	}
 
-	public static enum Level {
+	public enum Level {
 		INFO, WARN, ERROR, REPORT;
 	}
 }
