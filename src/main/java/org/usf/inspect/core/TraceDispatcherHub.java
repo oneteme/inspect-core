@@ -17,6 +17,7 @@ import static org.usf.inspect.core.DumpProperties.createDirs;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.REPORT;
+import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
 import static org.usf.inspect.core.TraceExporter.noExporter;
@@ -45,10 +46,10 @@ import lombok.extern.slf4j.Slf4j;
 public final class TraceDispatcherHub implements TraceHub {
 
 	private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
-	private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(TraceDispatcherHub::daemonThread);
 	
 	private static TraceHub singleton;
-	
+
+	private final ScheduledExecutorService executor;
 	@Getter 
 	private final InspectCollectorConfiguration configuration;
 	private final AtomicReference<DispatchState> atomicState;
@@ -61,11 +62,13 @@ public final class TraceDispatcherHub implements TraceHub {
 	
 	TraceDispatcherHub(InspectCollectorConfiguration configuration, TraceExporter agent, EventTraceBus eventBus) {
 		if(configuration.isEnabled()) {
+			var es = newSingleThreadScheduledExecutor(TraceDispatcherHub::daemonThread);
 			this.configuration = configuration;
 			this.atomicState = new AtomicReference<>(configuration.getScheduling().getState());
 			this.agent = agent;
 			this.eventBus = eventBus;
 			var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
+			this.executor = configuration.isDebugMode() ? wrap(es) : es;
 			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
@@ -376,7 +379,7 @@ public final class TraceDispatcherHub implements TraceHub {
 	static synchronized void initializeTraceHub(InspectCollectorConfiguration conf, ObjectMapper mapper) {
 		TraceExporter agent = null;
 		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-			agent = new RestTraceExporter(prop, mapper);
+			agent = new RestTraceExporter(prop, mapper, conf.isDebugMode());
 		}
 		else if(isNull(conf.getTracing().getRemote())) {
 			agent = noExporter(); //no remote agent
