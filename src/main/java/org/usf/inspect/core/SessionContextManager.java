@@ -219,15 +219,17 @@ public final class SessionContextManager {
 	}
 	
 	public static void emitLog(LogEntry.Level lvl, String msg) {
-		hub().emitTrace(new SessionEvent(systemUTC().instant(), 
-				lvl.name(), msg, null, requireSessionIdFor(EVENT)));
+		var evt = new SessionEvent(systemUTC().instant(), 
+				lvl.name(), msg, null, requireSessionIdFor(EVENT));
+		hub().emitTrace(evt);
 	}
 	
 	static UUID requireSessionIdFor(SessionMask mask) {
 		var ses = requireActiveContext();
 		if(nonNull(ses)) {
 			if(ses.updateMask(mask)) {
-				hub().emitTrace(new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ses.getRequestMask().get()));
+				var upd = new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ses.getRequestMask().get());
+				hub().emitTrace(upd);
 			}
 			return ses.getId();
 		}

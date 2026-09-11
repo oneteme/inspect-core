@@ -46,7 +46,7 @@ public final class LogEntry implements EventTrace {
 		return new LogEntry(systemUTC().instant(), lvl, msg, stack);	
 	}
 
-	public enum Level {
+	public static enum Level {
 		INFO, WARN, ERROR, REPORT;
 	}
 }
