@@ -9,12 +9,12 @@ import static java.util.Optional.empty;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static org.springframework.http.HttpHeaders.encodeBasicAuth;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.http.WebUtils.TRACE_RETRY_HEADER;
 
 import java.io.ByteArrayOutputStream;
 import java.net.SocketTimeoutException;
@@ -57,8 +57,8 @@ public final class RestTraceExporter implements TraceExporter {
 	private InstanceEnvironment instance;
 	private boolean registred;
 
-	public RestTraceExporter(RestRemoteServerProperties properties, ObjectMapper mapper) {
-		this(properties, defaultRestTemplate(properties, mapper));
+	public RestTraceExporter(RestRemoteServerProperties properties, ObjectMapper mapper, boolean debug) {
+		this(properties, defaultRestTemplate(properties, mapper, debug));
 	}
 
 	@Override
@@ -148,8 +148,8 @@ public final class RestTraceExporter implements TraceExporter {
 	boolean shouldRetry(RestClientException e) throws UnconfirmedExportException {
 		if(e instanceof HttpServerErrorException rsp) { //50x check header !?
 			var hdr = rsp.getResponseHeaders();
-			if(nonNull(hdr) && hdr.containsKey(RETRY_AFTER)) {
-				var retry = hdr.getFirst(RETRY_AFTER);
+			if(nonNull(hdr) && hdr.containsKey(TRACE_RETRY_HEADER)) {
+				var retry = hdr.getFirst(TRACE_RETRY_HEADER);
 				try {
 					return parseInt(retry) > 0;
 				} catch (Exception ex) {
@@ -175,11 +175,10 @@ public final class RestTraceExporter implements TraceExporter {
 		return true;
 	}
 
-	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper) {
+	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper, boolean debug) {
 		var json = new MappingJackson2HttpMessageConverter(mapper);
 		var plain = new StringHttpMessageConverter(); //for instanceID
 		var rt = new RestTemplateBuilder()
-				.interceptors(new HttpRequestInterceptor())	//debug mode
 				.messageConverters(json, plain) //minimum converters
 				.setConnectTimeout(ofSeconds(10))
 				.setReadTimeout(ofSeconds(30))
@@ -187,6 +186,9 @@ public final class RestTraceExporter implements TraceExporter {
 				.defaultHeader(AUTHORIZATION, "Basic " + encodeBasicAuth(properties.getNamespace(), properties.getToken(), null));
 		if(properties.getCompressMinSize() > 0) {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
+		}
+		if(debug) {
+			rt = rt.interceptors(new HttpRequestInterceptor());
 		}
 		return rt.build();
 	}

@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.lang.String.format;
+import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
@@ -13,13 +14,14 @@ import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.MainSessionType.TEST;
-import static org.usf.inspect.core.RequestMask.FTP;
-import static org.usf.inspect.core.RequestMask.JDBC;
-import static org.usf.inspect.core.RequestMask.LDAP;
-import static org.usf.inspect.core.RequestMask.LOCAL;
-import static org.usf.inspect.core.RequestMask.REST;
-import static org.usf.inspect.core.RequestMask.SMTP;
+import static org.usf.inspect.core.SessionMask.FTP;
+import static org.usf.inspect.core.SessionMask.JDBC;
+import static org.usf.inspect.core.SessionMask.LDAP;
+import static org.usf.inspect.core.SessionMask.LOCAL;
+import static org.usf.inspect.core.SessionMask.REST;
+import static org.usf.inspect.core.SessionMask.SMTP;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.SessionMask.EVENT;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -204,17 +206,6 @@ public final class SessionContextManager {
 		return new DirectoryRequestSignal(nextId(), requireSessionIdFor(LDAP), start, threadName());
 	}
 	
-	static UUID requireSessionIdFor(RequestMask mask) {
-		var ses = requireActiveContext();
-		if(nonNull(ses)) {
-			if(ses.updateMask(mask)) {
-				hub().emitTrace(new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ses.getRequestMask().get()));
-			}
-			return ses.getId();
-		}
-		return null;
-	}
-	
 	public static void emitInfo(String msg) {
 		emitLog(INFO, msg);
 	}
@@ -226,14 +217,21 @@ public final class SessionContextManager {
 	public static void emitError(String msg) {
 		emitLog(ERROR, msg);
 	}
-
-	private static void emitLog(Level lvl, String msg) {
-		var log = logEntry(lvl, msg); // no stack
-		var ctx = requireActiveContext();
-		if(nonNull(ctx)) {
-			log.setSessionId(ctx.getId());
+	
+	public static void emitLog(LogEntry.Level lvl, String msg) {
+		hub().emitTrace(new SessionEvent(systemUTC().instant(), 
+				lvl.name(), msg, null, requireSessionIdFor(EVENT)));
+	}
+	
+	static UUID requireSessionIdFor(SessionMask mask) {
+		var ses = requireActiveContext();
+		if(nonNull(ses)) {
+			if(ses.updateMask(mask)) {
+				hub().emitTrace(new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ses.getRequestMask().get()));
+			}
+			return ses.getId();
 		}
-		hub().emitTrace(log);
+		return null;
 	}
 
 	public static UUID nextId() {

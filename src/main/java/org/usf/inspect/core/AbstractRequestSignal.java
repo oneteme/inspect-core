@@ -22,6 +22,7 @@ public abstract class AbstractRequestSignal implements TraceSignal {
 	private final Instant start;
 	private final String threadName;
 	private String user;
+	
 	//server usage
 	private UUID instanceId;	
 }

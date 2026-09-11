@@ -20,11 +20,14 @@ import lombok.Setter;
 public final class LogEntry implements EventTrace {
 	
 	private final Instant instant;
+	@Deprecated(forRemoval = true, since = "v1.2")
 	private final Level level; //type
 	private final String message;
 	private final StackTraceRow[] stackRows;
 	private UUID sessionId; //optional
-	private UUID instanceId; //server usage 
+	
+	//server usage 
+	private UUID instanceId; 
 	
 	@Override
 	public String toString() {

@@ -25,7 +25,9 @@ public class AbstractSessionSignal implements TraceSignal {
 	private String name;  //title, topic
 	private String location; //class.method, URL
 	private String user;
-	private UUID instanceId;
+
+	//server usage 
+	private UUID instanceId; 
 	
 	public void setLocation(String className, String methodName) {
 		this.location = formatLocation(className, methodName);

@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.RequestMask.ASYNC;
+import static org.usf.inspect.core.SessionMask.ASYNC;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -48,7 +48,7 @@ public abstract class AbstractSessionUpdate implements TraceUpdate {
 		requestMask.set(mask);
 	}
 	
-	public boolean updateMask(RequestMask mask) {
+	public boolean updateMask(SessionMask mask) {
 		return !mask.is(requestMask.getAndUpdate(v-> v|mask.getValue()));
 	}
 
