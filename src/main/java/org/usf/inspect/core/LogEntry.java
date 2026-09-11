@@ -38,10 +38,12 @@ public final class LogEntry implements EventTrace {
 		.format();
 	}
 	
+	@Deprecated(forRemoval = true, since = "v1.2")
 	static LogEntry logEntry(Level lvl, String msg) {
 		return logEntry(lvl, msg, null);	
 	}
-	
+
+	@Deprecated(forRemoval = true, since = "v1.2")
 	static LogEntry logEntry(Level lvl, String msg, StackTraceRow[] stack) {
 		return new LogEntry(systemUTC().instant(), lvl, msg, stack);	
 	}
