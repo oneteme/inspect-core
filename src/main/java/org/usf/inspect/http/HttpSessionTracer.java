@@ -147,7 +147,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	
 	public void handleError(Throwable thrw) {
 		if(lastException != thrw) {
-			var exp = exceptionTrace(thrw, systemUTC().instant().toEpochMilli());
+			var exp = exceptionTrace(thrw, -systemUTC().instant().toEpochMilli());
 			hub().emitTrace(exp);
 			lastException = thrw;
 		}
