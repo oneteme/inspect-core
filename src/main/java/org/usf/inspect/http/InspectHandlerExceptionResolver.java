@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public class HandlerExceptionResolverMonitor implements HandlerExceptionResolver, Ordered {
+public class InspectHandlerExceptionResolver implements HandlerExceptionResolver, Ordered {
 	
 	private final HttpRoutePredicate routePredicate;
 	

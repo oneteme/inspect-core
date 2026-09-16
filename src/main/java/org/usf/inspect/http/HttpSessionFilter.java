@@ -1,15 +1,18 @@
 package org.usf.inspect.http;
 
+import static jakarta.servlet.DispatcherType.ASYNC;
 import static java.lang.String.join;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
+import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
-import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
-import static org.usf.inspect.http.HttpSessionTracer.httpSessionTracer;
+import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.http.InspectServletRequestListener.SESSION_TRACER;
+import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 
 import java.io.IOException;
 import java.util.Map;
@@ -19,10 +22,9 @@ import java.util.stream.Stream;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.AsyncHandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 import org.usf.inspect.core.HttpUserProvider;
-import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.TraceableStage;
 
 import jakarta.servlet.FilterChain;
@@ -39,9 +41,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RequiredArgsConstructor
-public final class HttpSessionFilter extends OncePerRequestFilter implements HandlerInterceptor {
+public final class HttpSessionFilter extends OncePerRequestFilter implements AsyncHandlerInterceptor {
 
-	static final String SESSION_TRACER = "inspect-http-session-tracer";
 	static final Collector<CharSequence, ?, String> joiner = joining("_");
 
 	private final HttpRoutePredicate routePredicate;
@@ -50,29 +51,37 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
 //		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
-		try {
-			exec(()-> filterChain.doFilter(req, res), getTracer(req, res));	
+		var trc = requireActiveTracer(req, "HttpSessionFilter.doFilterInternal");
+		if(isNull(trc)) {
+			filterChain.doFilter(req, res);
 		}
-		catch (IOException | ServletException e) {
-			throw e;
-		}
-		catch (Exception e) {
-			sneakyThrow(e); //should never happen
+		else {
+			try {
+				if(!res.containsHeader(TRACE_ID_HEADER)) {// avoid duplicate header in async dispatch
+					var id = trc.getUpdate().getId();
+					res.addHeader(TRACE_ID_HEADER, id.toString()); //add headers before doFilter
+					res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_ID_HEADER);
+				}
+				if(req.getDispatcherType() == ASYNC) {
+					trc.propagateContext();
+					trc.process();
+				}
+				filterChain.doFilter(req, res);
+			}
+			catch (ServletException e) {
+				trc.handleError(nonNull(e.getCause()) ? e.getCause() : e); 
+				throw e;
+			}
+			catch (Exception e) {
+				trc.handleError(e);
+				throw e;
+			}
+			finally {
+				trc.setResponse(res);
+			}
 		}
 	}
 	
-	private ExecutionListener<Void> getTracer(HttpServletRequest req, HttpServletResponse res) {
-		var mnt = currentHttpMonitor(req);
-		if(isNull(mnt)) {
-			mnt = httpSessionTracer(req, res, ()-> isAsyncStarted(req));
-			req.setAttribute(SESSION_TRACER, mnt);
-		}
-		else {
-			mnt.async();
-		}
-		return mnt;
-	}
-
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
 		return !routePredicate.accept(request);
@@ -84,22 +93,37 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	}
 	
 	@Override
+	public void afterConcurrentHandlingStarted(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+		var trc = requireActiveTracer(request, "HttpSessionFilter.afterConcurrentHandlingStarted");
+        if (nonNull(trc)) {
+            trc.asyncProcess(); //context will be propagated by task executor decorator
+        }
+	}
+	
+	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 		if(shouldIntercept(handler)) {  //avoid infiltrate request
-			var mnt = requireActiveTracer(request, "HttpSessionFilter.preHandle");
-			if(nonNull(mnt)) {
-				mnt.preProcess();
+			var trc = requireActiveTracer(request, "HttpSessionFilter.preHandle");
+			if(nonNull(trc) && request.getDispatcherType() != ASYNC) {
+				try {
+					var name = resolveEndpointName(handler, request);
+					var user = userProvider.getUser(request, name);
+					trc.preProcess(name, user);
+				}
+				catch (Exception e) {
+					hub().reportError("HttpSessionFilter.preHandle", e);
+				}
 			}
 		}
-		return HandlerInterceptor.super.preHandle(request, response, handler);
+		return AsyncHandlerInterceptor.super.preHandle(request, response, handler);
 	}
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
 		if(shouldIntercept(handler)) { //avoid infiltrate request
-			var mnt = requireActiveTracer(request, "HttpSessionFilter.postHandle");
-			if(nonNull(mnt)) {
-				mnt.process();
+			var trc = requireActiveTracer(request, "HttpSessionFilter.postHandle");
+			if(nonNull(trc) && request.getDispatcherType() != ASYNC) {
+				trc.process();
 			}
 		}
 	}
@@ -107,11 +131,12 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Han
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 		if(shouldIntercept(handler)) { //avoid infiltrate request 
-			var mnt = requireActiveTracer(request, "HttpSessionFilter.afterCompletion");
-			if(nonNull(mnt)) {
-				var name = resolveEndpointName(handler, request);
-				var user = userProvider.getUser(request, name);
-				mnt.postProcess(name, user, ex);
+			var trc = requireActiveTracer(request, "HttpSessionFilter.afterCompletion");
+			if(nonNull(trc)) {
+				if(nonNull(ex)) {
+					trc.handleError(ex);
+				}
+				trc.postProcess();
 			}
 		}
 	}

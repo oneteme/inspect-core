@@ -8,16 +8,14 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.fromString;
 import static java.util.function.Predicate.not;
-import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
-import static org.usf.inspect.core.HttpAction.DEFERRED;
-import static org.usf.inspect.core.HttpAction.POST_PROCESS;
-import static org.usf.inspect.core.HttpAction.PRE_PROCESS;
-import static org.usf.inspect.core.HttpAction.PROCESS;
-import static org.usf.inspect.core.SessionContextManager.clearContext;
+import static org.usf.inspect.core.HttpAction.DELEGATION;
+import static org.usf.inspect.core.HttpAction.EXECUTION;
+import static org.usf.inspect.core.HttpAction.FINALIZATION;
+import static org.usf.inspect.core.HttpAction.INITIALIZATION;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -28,7 +26,6 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BooleanSupplier;
 
 import org.usf.inspect.core.ExecutionTracer;
 import org.usf.inspect.core.HttpAction;
@@ -38,6 +35,7 @@ import org.usf.inspect.core.TraceUpdate;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Setter;
 
 /**
  * 
@@ -51,20 +49,18 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	
 	private final AtomicInteger stageCounter = new AtomicInteger();
 	
-	private final HttpServletResponse response;
-	private final BooleanSupplier isAsync;
-	
 	private Throwable lastException;
 	private Instant lastTimestamp;
+	
+	@Setter
+	private HttpServletResponse response;
 
-	public HttpSessionTracer(TraceUpdate update, Instant start, HttpServletResponse response, BooleanSupplier isAsync) {
+	public HttpSessionTracer(TraceUpdate update, Instant start) {
 		super(update);
-		this.response = response;
-		this.isAsync = isAsync;
 		this.lastTimestamp = start;
 	}
 	
-	public static HttpSessionTracer httpSessionTracer(HttpServletRequest request, HttpServletResponse response, BooleanSupplier isAsync) {
+	public static HttpSessionTracer httpSessionTracer(HttpServletRequest request) {
 		var sgn = createHttpSession(systemUTC().instant(), parseUUID(request.getHeader(TRACE_ID_HEADER)));
 		var signal = traceSignal(()->{
 			sgn.setMethod(request.getMethod());
@@ -74,14 +70,10 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 			sgn.setContentEncoding(request.getHeader(CONTENT_ENCODING));
 			sgn.setUserAgent(request.getHeader(USER_AGENT));
 			sgn.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
-			if(nonNull(response)) {
-				response.addHeader(TRACE_ID_HEADER, sgn.getId().toString()); //add headers before doFilter
-				response.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_ID_HEADER);
-			}
 			return sgn;
 		});
 		var upd = new HttpSessionUpdate(signal.getId());
-		return new HttpSessionTracer(upd, signal.getStart(), response, isAsync);
+		return new HttpSessionTracer(upd, signal.getStart());
 	}
 	
 	@Override
@@ -92,47 +84,39 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	@Override
 	public void handle(Instant start, Instant end, Void obj, Throwable thrw) throws Exception {
 		if(assertActiveTraceUpdate("HttpSessionTracer.handle")) {
-			var upd = getUpdate();
-			if(isAsync.getAsBoolean()) {
-				emitStage(DEFERRED);
-				clearContext(upd);
-			}
-			else {
+			if(nonNull(response)){
+				var upd = getUpdate();
 				upd.setStatus((short)response.getStatus());
 				upd.setDataSize(response.getBufferSize()); //!exact size
 				upd.setContentType(response.getContentType());
 				upd.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
 				upd.setCacheControl(response.getHeader(CACHE_CONTROL));
-				super.handle(start, end, obj, thrw);
 			}
+			super.handle(start, end, null, thrw);
 		}
 	}
 	
-	public void async() {
-		setActiveContext(getUpdate()); //new Thread
+	public void propagateContext() {
+		setActiveContext(getUpdate());
 	}
 
-	public void preProcess(){
-		emitStage(PRE_PROCESS);
+	public void preProcess(String name, String user){
+		emitStage(INITIALIZATION); //signal can be traced here
+		var upd = getUpdate();
+		upd.setName(name);
+		upd.setUser(user);
+	}
+	
+	public void asyncProcess() {
+		emitStage(DELEGATION);
 	}
 	
 	public void process(){ //see this.asyncPostFilterHander
-		emitStage(PROCESS);
+		emitStage(EXECUTION);
 	}
 
-	public void postProcess(String name, String user, Throwable thrw){
-		emitStage(POST_PROCESS);
-		try{
-			var upd = getUpdate();
-			upd.setName(name);
-			upd.setUser(user);
-			if(nonNull(thrw)) {// unhandeled exception in @ControllerAdvice
-				handleError(thrw);
-			}
-		}
-		catch (Exception e) {
-			hub().reportError("HttpSessionMonitor.postProcess", e);
-		}
+	public void postProcess(){
+		emitStage(FINALIZATION);
 	}
 
 	void emitStage(HttpAction action) {

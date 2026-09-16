@@ -36,6 +36,7 @@ import org.springframework.boot.context.event.SpringApplicationEvent;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
@@ -46,10 +47,11 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.usf.inspect.http.HandlerExceptionResolverMonitor;
 import org.usf.inspect.http.HttpRequestInterceptor;
 import org.usf.inspect.http.HttpRoutePredicate;
 import org.usf.inspect.http.HttpSessionFilter;
+import org.usf.inspect.http.InspectHandlerExceptionResolver;
+import org.usf.inspect.http.InspectServletRequestListener;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,6 +60,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jakarta.servlet.Filter;
+import jakarta.servlet.ServletRequestListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -101,6 +104,11 @@ public class InspectConfiguration implements WebMvcConfigurer {
     	return rb;
     }
 
+    @Bean
+    ServletListenerRegistrationBean<ServletRequestListener> inspectRequestListener() {
+        return new ServletListenerRegistrationBean<>(new InspectServletRequestListener());
+    }
+    
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
 		if(appContext.containsBean("httpSessionFilter")) {
@@ -125,9 +133,9 @@ public class InspectConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    HandlerExceptionResolverMonitor exceptionResolverMonitor(HttpRoutePredicate routePredicate) {
-    	logRegistringBean("exceptionResolverMonitor", HandlerExceptionResolverMonitor.class);
-    	return new HandlerExceptionResolverMonitor(routePredicate);
+    InspectHandlerExceptionResolver exceptionResolverMonitor(HttpRoutePredicate routePredicate) {
+    	logRegistringBean("exceptionResolverMonitor", InspectHandlerExceptionResolver.class);
+    	return new InspectHandlerExceptionResolver(routePredicate);
     }
     
     @Bean // Cacheable, Traceable
