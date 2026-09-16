@@ -44,7 +44,7 @@ final class AsyncHttpConnectionLifecycleTracer extends AbstractHttpConnectionLif
 		stageListener((s,e,o,t)-> createStage(EXCHANGE, s, e)).safeHandle(lastTimestamp, now, null, thrw);
 	}
 	
-	public void streamStage(Instant start, Instant end, ResponseContent ctn, Throwable thrw){ //read header after response
+	public void streamStage(Instant start, Instant end, TransferPayload ctn, Throwable thrw){ //read header after response
 		try {
 			traceResponseContent(ctn);
 		}

@@ -16,6 +16,7 @@ import static org.usf.inspect.core.HttpAction.DELEGATION;
 import static org.usf.inspect.core.HttpAction.EXECUTION;
 import static org.usf.inspect.core.HttpAction.FINALIZATION;
 import static org.usf.inspect.core.HttpAction.INITIALIZATION;
+import static org.usf.inspect.core.HttpAction.STREAM;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -32,9 +33,11 @@ import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionStage;
 import org.usf.inspect.core.HttpSessionUpdate;
 import org.usf.inspect.core.TraceUpdate;
+import org.usf.inspect.http.TransferPayload.StreamPayload;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Getter;
 import lombok.Setter;
 
 /**
@@ -48,6 +51,8 @@ import lombok.Setter;
 public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	
 	private final AtomicInteger stageCounter = new AtomicInteger();
+	@Getter
+	private final StreamPayload streamPayload = new StreamPayload();
 	
 	private Throwable lastException;
 	private Instant lastTimestamp;
@@ -84,13 +89,23 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	@Override
 	public void handle(Instant start, Instant end, Void obj, Throwable thrw) throws Exception {
 		if(assertActiveTraceUpdate("HttpSessionTracer.handle")) {
+			var upd = getUpdate();
+			if(nonNull(streamPayload.getStart())) {
+				var stg = new HttpSessionStage(upd.getId(), stageCounter.incrementAndGet());
+				stg.setName(STREAM.name());
+				stg.setStart(streamPayload.getStart());
+				stg.setEnd(nonNull(streamPayload.getEnd()) ? streamPayload.getEnd() : end);
+				hub().emitTrace(stg);
+			}
 			if(nonNull(response)){
-				var upd = getUpdate();
 				upd.setStatus((short)response.getStatus());
-				upd.setDataSize(response.getBufferSize()); //!exact size
+				upd.setDataSize(streamPayload.getSize().get()); //response.getBufferSize()
 				upd.setContentType(response.getContentType());
 				upd.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
 				upd.setCacheControl(response.getHeader(CACHE_CONTROL));
+			}
+			else {
+				hub().reportMessage("HttpSessionTracer.handle", "response is null");
 			}
 			super.handle(start, end, null, thrw);
 		}
@@ -100,22 +115,22 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 		setActiveContext(getUpdate());
 	}
 
-	public void preProcess(String name, String user){
+	public void emitInitializationStage(String name, String user){
 		emitStage(INITIALIZATION); //signal can be traced here
 		var upd = getUpdate();
 		upd.setName(name);
 		upd.setUser(user);
 	}
 	
-	public void asyncProcess() {
+	public void emitDelegationStage() {
 		emitStage(DELEGATION);
 	}
 	
-	public void process(){ //see this.asyncPostFilterHander
+	public void emitExecutionStage(){ //see this.asyncPostFilterHander
 		emitStage(EXECUTION);
 	}
 
-	public void postProcess(){
+	public void emitFinalizationStage(){
 		emitStage(FINALIZATION);
 	}
 
@@ -145,7 +160,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 
 	static String[] extractAllHeaderValues(HttpServletRequest request, String header) {
 		var values = request.getHeaders(header);
-		return isNull(values) 
+		return isNull(values) || values.hasMoreElements()
 				? null
 				: list(values).stream()
 				.flatMap(v-> stream(v.split(",")))

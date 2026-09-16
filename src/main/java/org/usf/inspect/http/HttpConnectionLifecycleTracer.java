@@ -25,7 +25,7 @@ final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycl
 			signal((HttpRequestSignal)trc, request.getMethod(), request.getURI(), request.getHeaders()));
 	}
 	
-	public ExecutionListener<ResponseContent> streamStageListener(ClientHttpResponse res){
+	public ExecutionListener<TransferPayload> streamStageListener(ClientHttpResponse res){
 		if(nonNull(res)) {
 			try {//execute postExchange after reading response 
 				traceHeaders(res.getStatusCode(), res.getHeaders()); 

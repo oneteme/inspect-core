@@ -25,7 +25,7 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 
 	@Delegate
 	private final ClientHttpResponse response;
-	private final ExecutionListener<ResponseContent> listener;
+	private final ExecutionListener<TransferPayload> listener;
 	private CacheableInputStream pipe;
 	private Instant start = systemUTC().instant();
 

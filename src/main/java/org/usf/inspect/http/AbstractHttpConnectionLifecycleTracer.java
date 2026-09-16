@@ -97,14 +97,14 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 		}
 	}
 	
-	void traceResponseContent(ResponseContent cnt){
+	void traceResponseContent(TransferPayload cnt){
 //		request.setThreadName(threadName()); //deferred thread
 		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.traceResponseContent")) {
 			var upd = (HttpRequestUpdate) getUpdate();
 			if(nonNull(cnt)) {
-				upd.setDataSize(cnt.contentSize());
-				if(nonNull(cnt.contentBytes())) {
-					upd.setBodyContent(new String(cnt.contentBytes(), UTF_8));
+				upd.setDataSize(cnt.size());
+				if(nonNull(cnt.bytes())) {
+					upd.setBodyContent(new String(cnt.bytes(), UTF_8));
 				}
 			}
 		}

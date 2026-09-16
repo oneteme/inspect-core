@@ -56,17 +56,19 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 			filterChain.doFilter(req, res);
 		}
 		else {
+			var wrp = res;
 			try {
 				if(!res.containsHeader(TRACE_ID_HEADER)) {// avoid duplicate header in async dispatch
 					var id = trc.getUpdate().getId();
 					res.addHeader(TRACE_ID_HEADER, id.toString()); //add headers before doFilter
 					res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_ID_HEADER);
+					wrp = new InspectResponseWrapper(res, trc.getStreamPayload());
 				}
 				if(req.getDispatcherType() == ASYNC) {
 					trc.propagateContext();
-					trc.process();
+					trc.emitExecutionStage();
 				}
-				filterChain.doFilter(req, res);
+				filterChain.doFilter(req, wrp);
 			}
 			catch (ServletException e) {
 				trc.handleError(nonNull(e.getCause()) ? e.getCause() : e); 
@@ -96,7 +98,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	public void afterConcurrentHandlingStarted(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 		var trc = requireActiveTracer(request, "HttpSessionFilter.afterConcurrentHandlingStarted");
         if (nonNull(trc)) {
-            trc.asyncProcess(); //context will be propagated by task executor decorator
+            trc.emitDelegationStage(); //context will be propagated by task executor decorator
         }
 	}
 	
@@ -108,7 +110,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 				try {
 					var name = resolveEndpointName(handler, request);
 					var user = userProvider.getUser(request, name);
-					trc.preProcess(name, user);
+					trc.emitInitializationStage(name, user);
 				}
 				catch (Exception e) {
 					hub().reportError("HttpSessionFilter.preHandle", e);
@@ -123,7 +125,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 		if(shouldIntercept(handler)) { //avoid infiltrate request
 			var trc = requireActiveTracer(request, "HttpSessionFilter.postHandle");
 			if(nonNull(trc) && request.getDispatcherType() != ASYNC) {
-				trc.process();
+				trc.emitExecutionStage();
 			}
 		}
 	}
@@ -136,7 +138,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 				if(nonNull(ex)) {
 					trc.handleError(ex);
 				}
-				trc.postProcess();
+				trc.emitFinalizationStage();
 			}
 		}
 	}

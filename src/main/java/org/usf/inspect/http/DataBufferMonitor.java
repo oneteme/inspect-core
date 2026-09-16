@@ -22,9 +22,9 @@ import reactor.core.publisher.Flux;
  */
 @Slf4j
 @RequiredArgsConstructor
-final class DataBufferMonitor implements ResponseContent {
+final class DataBufferMonitor implements TransferPayload {
 
-	private final ExecutionListener<ResponseContent> listener;
+	private final ExecutionListener<TransferPayload> listener;
 
 	private byte[] bytes;
 	private long size;
@@ -54,12 +54,12 @@ final class DataBufferMonitor implements ResponseContent {
 	}
 	
 	@Override
-	public byte[] contentBytes() {
+	public byte[] bytes() {
 		return bytes;
 	}
 	
 	@Override
-	public long contentSize() {
+	public long size() {
 		return size;
 	}
 }

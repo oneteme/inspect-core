@@ -14,7 +14,7 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-public final class CacheableInputStream extends InputStream implements ResponseContent {
+public final class CacheableInputStream extends InputStream implements TransferPayload {
 	
 	static final OutputStream NO_OUT = new OutputStream() { //nullOutputStream may throws Exception
 		@Override
@@ -111,11 +111,11 @@ public final class CacheableInputStream extends InputStream implements ResponseC
 		}
 	}
 	
-	public long contentSize(){
+	public long size(){
 		return length;
 	}
 	
-	public byte[] contentBytes() {
+	public byte[] bytes() {
 		return out instanceof ByteArrayOutputStream bos ? bos.toByteArray() : null;
 	}
 }
