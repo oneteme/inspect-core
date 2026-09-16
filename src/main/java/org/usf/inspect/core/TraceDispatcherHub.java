@@ -391,10 +391,7 @@ public final class TraceDispatcherHub implements TraceHub {
 	}
 
 	static synchronized TraceHub initializeTraceHub(TraceHub hub) {
-		if(isNull(singleton)) {
-			singleton = hub;
-		}
-		return singleton;
+		return singleton = hub; //TODO change this
 	}
 
 	public static synchronized TraceHub hub() {

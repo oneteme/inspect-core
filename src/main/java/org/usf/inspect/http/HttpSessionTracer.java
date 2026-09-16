@@ -98,7 +98,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 				hub().emitTrace(stg);
 			}
 			if(nonNull(response)){
-				upd.setStatus((short)response.getStatus());
+				upd.setStatus((short)response.getStatus()); //check last exception
 				upd.setDataSize(streamPayload.getSize().get()); //response.getBufferSize()
 				upd.setContentType(response.getContentType());
 				upd.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
