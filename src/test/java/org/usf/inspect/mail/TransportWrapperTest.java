@@ -8,13 +8,13 @@ import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.usf.inspect.core.DualEventTracer.CLIENT_UNAUTHORIZED;
-import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
-import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
-import static org.usf.inspect.core.DualEventTracer.CONN_SSL_ERROR;
-import static org.usf.inspect.core.DualEventTracer.CONN_TIMEOUT;
-import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
-import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
+import static org.usf.inspect.core.DualEventTracer.APPL_UNAUTHORIZED;
+import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.CNX_SSL_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.RMT_ERROR;
 import static org.usf.inspect.core.DualEventTracer.SUCCESS;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
@@ -82,37 +82,37 @@ class TransportWrapperTest {
 	@Test
 	void test_connection_unknown_host() throws NoSuchProviderException {
 		var props = initProperties("myhost", PORT, emptyMap());
-		testConnectError(CONN_UNKNOWN_HOST, MailConnectException.class, props);
+		testConnectError(CNX_UNKNOWN_HOST, MailConnectException.class, props);
 	}
 	
 	@Test
 	void test_connection_bad_port() throws NoSuchProviderException {
 		var props = initProperties(HOST, "125", emptyMap());
-		testConnectError(CONN_REFUSED, MailConnectException.class, props);
+		testConnectError(CNX_REFUSED, MailConnectException.class, props);
 	}
 	
 //	@Test unstable
 	void test_connect_timeout() throws NoSuchProviderException {
 		var props = initProperties(HOST, PORT, Map.of("mail.smtp.connectiontimeout", 1));
-		testConnectError(CONN_TIMEOUT, MessagingException.class, props);
+		testConnectError(CNX_TIMEOUT, MessagingException.class, props);
 	}
 	
 	@Test
 	void test_connection_tls_active() throws NoSuchProviderException {
 		var props = initProperties(HOST, PORT, Map.of("mail.smtp.starttls.required", true));
-		testConnectError(SERVER_ERROR, MessagingException.class, props);
+		testConnectError(RMT_ERROR, MessagingException.class, props);
 	}
 
 	@Test
 	void test_connection_ssl_active() throws NoSuchProviderException {
 		var props = initProperties(HOST, PORT, Map.of("mail.smtp.ssl.enable", true));
-		testConnectError(CONN_SSL_ERROR, MessagingException.class, props);
+		testConnectError(CNX_SSL_ERROR, MessagingException.class, props);
 	}
 	
 	@Test
 	void test_connection_unauthenticate() throws NoSuchProviderException {
 		var props = initProperties(HOST, PORT, Map.of("mail.smtp.auth", true));
-		testConnectError(CLIENT_UNAUTHORIZED, AuthenticationFailedException.class, props);
+		testConnectError(APPL_UNAUTHORIZED, AuthenticationFailedException.class, props);
 	}
 	
 	void testConnectError(int status, Class<? extends Exception> type, Properties props) throws NoSuchProviderException{
@@ -155,7 +155,7 @@ class TransportWrapperTest {
 			wrp.close();
 		}
 		var end = now();
-		assertConnectionLostTraces(CONN_ERROR, start, end, getTraces());
+		assertConnectionLostTraces(CNX_ERROR, start, end, getTraces());
 	}
 	
 	static void assertConnectionLostTraces(int status, Instant beforeStart, Instant afterEnd, List<EventTrace> traces) {

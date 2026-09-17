@@ -5,6 +5,7 @@ import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
+import java.util.EventListener;
 
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
@@ -46,7 +47,7 @@ public final class InspectExecutor {
 	}
 	
 	@FunctionalInterface
-	public static interface ExecutionListener<T> {
+	public static interface ExecutionListener<T> extends EventListener {
 		
 		void handle(Instant start, Instant end, T obj, Throwable thrw) throws Exception;
 

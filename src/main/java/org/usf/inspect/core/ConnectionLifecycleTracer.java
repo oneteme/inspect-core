@@ -33,23 +33,23 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	public short resolveStatus(Throwable t) {
 	    
 		return switch (t) {
-	        case java.net.UnknownHostException e -> CONN_UNKNOWN_HOST;
-	        case java.nio.channels.UnresolvedAddressException e-> CONN_UNKNOWN_HOST;
-	        case java.net.ConnectException e -> CONN_REFUSED;
-	        case java.net.NoRouteToHostException e -> CONN_REFUSED;
-	        case java.net.BindException e -> CONN_REFUSED;
-	        case javax.net.ssl.SSLException e-> CONN_SSL_ERROR; 
+	        case java.net.UnknownHostException e -> CNX_UNKNOWN_HOST;
+	        case java.nio.channels.UnresolvedAddressException e-> CNX_UNKNOWN_HOST;
+	        case java.net.ConnectException e -> CNX_REFUSED;
+	        case java.net.NoRouteToHostException e -> CNX_REFUSED;
+	        case java.net.BindException e -> CNX_REFUSED;
+	        case javax.net.ssl.SSLException e-> CNX_SSL_ERROR; 
 	        
-	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().contains("connect") ? CONN_TIMEOUT : SERVER_TIMEOUT;
+	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().contains("connect") ? CNX_TIMEOUT : RMT_TIMEOUT;
 	        
-	        case java.io.InterruptedIOException e -> CONN_INTERRUPTED;
-	        case java.lang.InterruptedException e -> CONN_INTERRUPTED;
-	        case java.util.concurrent.TimeoutException e -> CONN_INTERRUPTED;
-	        case java.util.concurrent.CancellationException e -> CONN_INTERRUPTED;
+	        case java.io.InterruptedIOException e -> CNX_INTERRUPTED;
+	        case java.lang.InterruptedException e -> CNX_INTERRUPTED;
+	        case java.util.concurrent.TimeoutException e -> CNX_INTERRUPTED;
+	        case java.util.concurrent.CancellationException e -> CNX_INTERRUPTED;
 	        
-	        case java.io.IOException e -> CONN_ERROR;
+	        case java.io.IOException e -> CNX_ERROR;
 
-	        default -> SERVER_ERROR;
+	        default -> RMT_ERROR;
 	    };
 	}
 	

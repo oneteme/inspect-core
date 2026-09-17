@@ -2,9 +2,9 @@ package org.usf.inspect.mail;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.usf.inspect.core.DualEventTracer.CLIENT_UNAUTHORIZED;
-import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
-import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
+import static org.usf.inspect.core.DualEventTracer.APPL_UNAUTHORIZED;
+import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
+import static org.usf.inspect.core.DualEventTracer.RMT_ERROR;
 
 import java.net.SocketException;
 import java.util.Properties;
@@ -33,27 +33,27 @@ class MailRequestMonitorTest {
 
     @Test
     void should_extract_smtp_code_from_messaging_exception() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new MessagingException("SMTP error 550 Mailbox unavailable")));
+        assertEquals(RMT_ERROR, listener.resolveStatus(new MessagingException("SMTP error 550 Mailbox unavailable")));
     }
 
     @Test
     void should_return_unknown_when_messaging_exception_has_no_smtp_code() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new MessagingException("Connection failed")));
+        assertEquals(RMT_ERROR, listener.resolveStatus(new MessagingException("Connection failed")));
     }
 
     @Test
     void should_return_connection_unavailable_when_message_is_null() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new MessagingException()));
+        assertEquals(RMT_ERROR, listener.resolveStatus(new MessagingException()));
     }
 
     @Test
     void should_return_connection_unavailable_for_socket_exception() {
-        assertEquals(CONN_ERROR, listener.resolveStatus(new SocketException("Connection reset")));
+        assertEquals(CNX_ERROR, listener.resolveStatus(new SocketException("Connection reset")));
     }
 
     @Test
     void should_return_authentication_error() {
-        assertEquals(CLIENT_UNAUTHORIZED, listener.resolveStatus(new AuthenticationFailedException("bad credentials")));
+        assertEquals(APPL_UNAUTHORIZED, listener.resolveStatus(new AuthenticationFailedException("bad credentials")));
     }
 
     @Test //TODO : what for ??

@@ -64,17 +64,17 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	@Override
 	public short resolveStatus(Throwable t) {
 	    return switch (t) {
-	        case java.sql.SQLTransientConnectionException e -> CONN_ERROR;
-	        case java.sql.SQLNonTransientConnectionException e -> CONN_REFUSED;
-	        case java.sql.SQLRecoverableException e -> CONN_INTERRUPTED;
+	        case java.sql.SQLTransientConnectionException e -> CNX_ERROR;
+	        case java.sql.SQLNonTransientConnectionException e -> CNX_REFUSED;
+	        case java.sql.SQLRecoverableException e -> CNX_INTERRUPTED;
 
-	        case java.sql.SQLTimeoutException e -> SERVER_TIMEOUT;
+	        case java.sql.SQLTimeoutException e -> RMT_TIMEOUT;
 
-	        case java.sql.SQLSyntaxErrorException e -> CLIENT_ERROR;
-	        case java.sql.SQLInvalidAuthorizationSpecException e -> CLIENT_UNAUTHORIZED;
-	        case java.sql.SQLIntegrityConstraintViolationException e -> CLIENT_CONFLICT;
+	        case java.sql.SQLSyntaxErrorException e -> APPL_ERROR;
+	        case java.sql.SQLInvalidAuthorizationSpecException e -> APPL_UNAUTHORIZED;
+	        case java.sql.SQLIntegrityConstraintViolationException e -> APPL_CONFLICT;
 
-	        case java.sql.SQLException e -> SERVER_ERROR;
+	        case java.sql.SQLException e -> RMT_ERROR;
 
 	        default -> super.resolveStatus(t);
 	    };

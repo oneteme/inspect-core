@@ -28,28 +28,28 @@ public interface DualEventTracer {
 	
 	static final short UNKNOWN             	= -1; // Unknown / Unspecified status
 
-	static final short CONN_ERROR   			= 0; // Generic I/O or Transport failure
-    static final short CONN_UNKNOWN_HOST  	= 1; // Host / DNS resolution failed
-    static final short CONN_REFUSED       	= 2; // Connection refused or unreachable
-    static final short CONN_INTERRUPTED   	= 3; // Connection interrupted or cancelled
-    static final short CONN_TIMEOUT       	= 4; // Connection establishment timeout
-    static final short CONN_SSL_ERROR      	= 5; // SSL/TLS handshake or certificate failure
+	static final short CNX_ERROR   			= 0; // Generic I/O or Transport failure
+    static final short CNX_UNKNOWN_HOST  	= 1; // Host / DNS resolution failed
+    static final short CNX_REFUSED       	= 2; // Connection refused or unreachable
+    static final short CNX_INTERRUPTED   	= 3; // Connection interrupted or cancelled
+    static final short CNX_TIMEOUT       	= 4; // Connection establishment timeout
+    static final short CNX_SSL_ERROR      	= 5; // SSL/TLS handshake or certificate failure
 
     static final short SUCCESS            	= 200; // Success / OK
 
-    static final short CLIENT_ERROR       	= 400; // Generic client-side error
-    static final short CLIENT_UNAUTHORIZED	= 401; // Authentication or permission failure
-    static final short CLIENT_CONFLICT     	= 409; // Duplicate key / Constraint violation
+    static final short APPL_ERROR       	= 400; // Generic client-side error
+    static final short APPL_UNAUTHORIZED	= 401; // Authentication or permission failure
+    static final short APPL_CONFLICT     	= 409; // Duplicate key / Constraint violation
 
-    static final short SERVER_ERROR      		= 500; // Generic server/remote error
-    static final short SERVER_TIMEOUT     	= 504; // Server/Gateway response timeout
+    static final short RMT_ERROR      		= 500; // Generic server/remote error
+    static final short RMT_TIMEOUT     		= 504; // Server/Gateway response timeout
     
-    //TD dev exception => status
+    //TD standard exception => status(dev)
     
 	TraceUpdate getUpdate();
 
 	default short resolveStatus(Throwable t){
-		return SERVER_ERROR; //default status 
+		return RMT_ERROR; //default status 
 	}
 	
 	default Throwable mapException(Throwable t) {

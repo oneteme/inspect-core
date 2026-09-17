@@ -11,8 +11,8 @@ import static org.usf.inspect.core.DirAction.CONNECTION;
 import static org.usf.inspect.core.DirAction.DISCONNECTION;
 import static org.usf.inspect.core.DirAction.EXECUTE;
 import static org.usf.inspect.core.DirCommand.LIST;
-import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
-import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
 import static org.usf.inspect.core.DualEventTracer.SUCCESS;
 import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
@@ -67,12 +67,12 @@ class DirContextWrapperTest {
 
     @Test
 	void test_connection_unknown_host() {
-		testConnectError(CONN_UNKNOWN_HOST, CommunicationException.class, "myhost", server.getListenPort());
+		testConnectError(CNX_UNKNOWN_HOST, CommunicationException.class, "myhost", server.getListenPort());
 	}
     
 	@Test
 	void test_connection_bad_port() {
-		testConnectError(CONN_REFUSED, CommunicationException.class, HOST, 12345);
+		testConnectError(CNX_REFUSED, CommunicationException.class, HOST, 12345);
 	}
     
 	void testConnectError(int status, Class<? extends Exception> type, String host, int port) {
