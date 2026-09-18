@@ -49,7 +49,7 @@ public interface DualEventTracer {
 	TraceUpdate getUpdate();
 
 	default short resolveStatus(Throwable t){
-		return INT_ERROR; //default status 
+		return APP_ERROR; //default status 
 	}
 	
 	default Throwable mapException(Throwable t) {
