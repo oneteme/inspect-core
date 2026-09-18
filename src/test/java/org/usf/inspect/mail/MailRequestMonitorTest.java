@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.usf.inspect.core.DualEventTracer.APPL_UNAUTHORIZED;
 import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
-import static org.usf.inspect.core.DualEventTracer.RMT_ERROR;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
 
 import java.net.SocketException;
 import java.util.Properties;
@@ -33,17 +33,17 @@ class MailRequestMonitorTest {
 
     @Test
     void should_extract_smtp_code_from_messaging_exception() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new MessagingException("SMTP error 550 Mailbox unavailable")));
+        assertEquals(INT_ERROR, listener.resolveStatus(new MessagingException("SMTP error 550 Mailbox unavailable")));
     }
 
     @Test
     void should_return_unknown_when_messaging_exception_has_no_smtp_code() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new MessagingException("Connection failed")));
+        assertEquals(INT_ERROR, listener.resolveStatus(new MessagingException("Connection failed")));
     }
 
     @Test
     void should_return_connection_unavailable_when_message_is_null() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new MessagingException()));
+        assertEquals(INT_ERROR, listener.resolveStatus(new MessagingException()));
     }
 
     @Test

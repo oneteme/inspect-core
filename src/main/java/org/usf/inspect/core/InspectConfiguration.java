@@ -169,7 +169,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
 		hub().dispatch(instance);
 		var handler = forMainSession(()-> { 
 			var sgn = createStartupSession(start, instance.getId());
-			sgn.setName("main"); //TODO location = sun.java.command
+			sgn.setName("main"); //see location = getProperty("sun.java.command") //Spring boot
 			return sgn;
 		});
 		return e-> {

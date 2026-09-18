@@ -14,7 +14,7 @@ import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
 import static org.usf.inspect.core.DualEventTracer.CNX_SSL_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_TIMEOUT;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
-import static org.usf.inspect.core.DualEventTracer.RMT_ERROR;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
 import static org.usf.inspect.core.DualEventTracer.SUCCESS;
 import static org.usf.inspect.core.MailAction.CONNECTION;
 import static org.usf.inspect.core.MailAction.DISCONNECTION;
@@ -100,7 +100,7 @@ class TransportWrapperTest {
 	@Test
 	void test_connection_tls_active() throws NoSuchProviderException {
 		var props = initProperties(HOST, PORT, Map.of("mail.smtp.starttls.required", true));
-		testConnectError(RMT_ERROR, MessagingException.class, props);
+		testConnectError(INT_ERROR, MessagingException.class, props);
 	}
 
 	@Test

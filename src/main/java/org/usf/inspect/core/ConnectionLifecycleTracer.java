@@ -40,7 +40,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	        case java.net.BindException e -> CNX_REFUSED;
 	        case javax.net.ssl.SSLException e-> CNX_SSL_ERROR; 
 	        
-	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().contains("connect") ? CNX_TIMEOUT : RMT_TIMEOUT;
+	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().contains("connect") ? CNX_TIMEOUT : INT_TIMEOUT;
 	        
 	        case java.io.InterruptedIOException e -> CNX_INTERRUPTED;
 	        case java.lang.InterruptedException e -> CNX_INTERRUPTED;
@@ -49,7 +49,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	        
 	        case java.io.IOException e -> CNX_ERROR;
 
-	        default -> RMT_ERROR;
+	        default -> INT_ERROR;
 	    };
 	}
 	

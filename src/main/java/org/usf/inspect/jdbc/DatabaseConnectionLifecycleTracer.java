@@ -68,13 +68,13 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	        case java.sql.SQLNonTransientConnectionException e -> CNX_REFUSED;
 	        case java.sql.SQLRecoverableException e -> CNX_INTERRUPTED;
 
-	        case java.sql.SQLTimeoutException e -> RMT_TIMEOUT;
+	        case java.sql.SQLTimeoutException e -> INT_TIMEOUT;
 
 	        case java.sql.SQLSyntaxErrorException e -> APPL_ERROR;
 	        case java.sql.SQLInvalidAuthorizationSpecException e -> APPL_UNAUTHORIZED;
 	        case java.sql.SQLIntegrityConstraintViolationException e -> APPL_CONFLICT;
 
-	        case java.sql.SQLException e -> RMT_ERROR;
+	        case java.sql.SQLException e -> INT_ERROR;
 
 	        default -> super.resolveStatus(t);
 	    };

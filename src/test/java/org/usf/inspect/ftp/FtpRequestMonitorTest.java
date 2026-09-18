@@ -5,8 +5,8 @@ import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
 import static org.usf.inspect.core.DualEventTracer.CNX_TIMEOUT;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
-import static org.usf.inspect.core.DualEventTracer.RMT_ERROR;
-import static org.usf.inspect.core.DualEventTracer.RMT_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
+import static org.usf.inspect.core.DualEventTracer.INT_TIMEOUT;
 
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -28,7 +28,7 @@ class FtpRequestMonitorTest {
 
     @Test
     void should_return_timeout_for_socket_timeout() {
-        assertEquals(RMT_TIMEOUT, listener.resolveStatus(new SocketTimeoutException("read timeout ...")));
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new SocketTimeoutException("read timeout ...")));
     }
     
     @Test
@@ -48,11 +48,11 @@ class FtpRequestMonitorTest {
 
     @Test
     void should_return_sftp_exception_id()  {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new SftpException(4, "Failure"))); //TODO resolver vendor code
+        assertEquals(INT_ERROR, listener.resolveStatus(new SftpException(4, "Failure"))); //TODO resolver vendor code
     }
 
     @Test
     void should_return_unknown_error_for_unexpected_exception() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new RuntimeException("unexpected")));
+        assertEquals(INT_ERROR, listener.resolveStatus(new RuntimeException("unexpected")));
     }
 }

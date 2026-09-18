@@ -56,7 +56,7 @@ final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer
 	        case javax.naming.CommunicationException e -> CNX_INTERRUPTED;
 	        case javax.naming.InterruptedNamingException e -> CNX_INTERRUPTED;
 	        
-	        case javax.naming.NamingException e -> RMT_ERROR;
+	        case javax.naming.NamingException e -> INT_ERROR;
 
 			default -> super.resolveStatus(t);
 	    };

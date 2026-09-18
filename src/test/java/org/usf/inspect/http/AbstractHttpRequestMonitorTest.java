@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
-import static org.usf.inspect.core.DualEventTracer.RMT_ERROR;
-import static org.usf.inspect.core.DualEventTracer.RMT_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
+import static org.usf.inspect.core.DualEventTracer.INT_TIMEOUT;
 
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -22,12 +22,12 @@ class AbstractHttpRequestMonitorTest {
 	
     @Test
     void shouldMapHttpTimeoutException() {
-        assertEquals(RMT_TIMEOUT, listener.resolveStatus(new HttpTimeoutException("timeout")));
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new HttpTimeoutException("timeout")));
     }
 
     @Test
     void shouldMapSocketTimeoutException() {
-        assertEquals(RMT_TIMEOUT, listener.resolveStatus(new SocketTimeoutException("timeout"))); //TODO : connect | read timeout
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new SocketTimeoutException("timeout"))); //TODO : connect | read timeout
     }
 
     @Test
@@ -57,6 +57,6 @@ class AbstractHttpRequestMonitorTest {
 
     @Test
     void shouldMapUnknownException() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new RuntimeException("boom")));
+        assertEquals(INT_ERROR, listener.resolveStatus(new RuntimeException("boom")));
     }
 }

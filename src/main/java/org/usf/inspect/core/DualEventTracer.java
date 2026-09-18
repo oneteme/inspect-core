@@ -41,15 +41,15 @@ public interface DualEventTracer {
     static final short APPL_UNAUTHORIZED	= 401; // Authentication or permission failure
     static final short APPL_CONFLICT     	= 409; // Duplicate key / Constraint violation
 
-    static final short RMT_ERROR      		= 500; // Generic server/remote error
-    static final short RMT_TIMEOUT     		= 504; // Server/Gateway response timeout
+    static final short INT_ERROR      		= 500; // Generic server/remote error
+    static final short INT_TIMEOUT     		= 504; // Server/Gateway response timeout
     
     //TD standard exception => status(dev)
     
 	TraceUpdate getUpdate();
 
 	default short resolveStatus(Throwable t){
-		return RMT_ERROR; //default status 
+		return INT_ERROR; //default status 
 	}
 	
 	default Throwable mapException(Throwable t) {

@@ -5,8 +5,8 @@ import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
-import static org.usf.inspect.core.DualEventTracer.RMT_ERROR;
-import static org.usf.inspect.core.DualEventTracer.RMT_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
+import static org.usf.inspect.core.DualEventTracer.INT_TIMEOUT;
 
 import java.io.EOFException;
 import java.net.SocketException;
@@ -26,12 +26,12 @@ class DatabaseRequestMonitorTest {
 
     @Test
     void shouldMapSqlTimeoutException() {
-        assertEquals(RMT_TIMEOUT, listener.resolveStatus(new SQLTimeoutException()));
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new SQLTimeoutException()));
     }
 
     @Test
     void shouldMapSocketTimeoutException() {
-        assertEquals(RMT_TIMEOUT, listener.resolveStatus(new SocketTimeoutException()));
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new SocketTimeoutException()));
     }
 
     @Test
@@ -70,26 +70,26 @@ class DatabaseRequestMonitorTest {
     }
     @Test
     void shouldReturnVendorErrorCode() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new SQLException("Duplicate key", "23000", 1062)));
+        assertEquals(INT_ERROR, listener.resolveStatus(new SQLException("Duplicate key", "23000", 1062)));
     }
 
     @Test
     void shouldReturnSqlStatePrefix() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new SQLException("duplicate", "23505", 0)));
+        assertEquals(INT_ERROR, listener.resolveStatus(new SQLException("duplicate", "23505", 0)));
     }
 
     @Test
     void shouldReturnUnknownForInvalidSqlState() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new SQLException("error", "ABCDE", 0)));
+        assertEquals(INT_ERROR, listener.resolveStatus(new SQLException("error", "ABCDE", 0)));
     }
 
     @Test
     void shouldReturnUnknownWhenSqlStateIsNull() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new SQLException("error", null, 0)));
+        assertEquals(INT_ERROR, listener.resolveStatus(new SQLException("error", null, 0)));
     }
 
     @Test
     void shouldReturnUnknownError() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new IllegalArgumentException()));
+        assertEquals(INT_ERROR, listener.resolveStatus(new IllegalArgumentException()));
     }
 }

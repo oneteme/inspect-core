@@ -50,7 +50,7 @@ final class MailConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 	    return switch (t) {
 	        case jakarta.mail.AuthenticationFailedException e -> APPL_UNAUTHORIZED;
 	        case jakarta.mail.internet.ParseException e -> APPL_ERROR;
-	        case jakarta.mail.MessagingException e -> RMT_ERROR;
+	        case jakarta.mail.MessagingException e -> INT_ERROR;
 			default -> super.resolveStatus(t);
 	    };
 	}

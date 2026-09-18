@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
-import static org.usf.inspect.core.DualEventTracer.RMT_ERROR;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
 import static org.usf.inspect.dir.DirectoryConnectionLifecycleTracer.getEnvironmentVariable;
 
 import java.util.Hashtable;
@@ -47,13 +47,13 @@ class DirectoryRequestMonitorTest {
         "Some LDAP failure",
     })
     void should_extract_ldap_error_code() {
-        assertEquals(RMT_ERROR, listener.resolveStatus(new NamingException())); //TODO resolve vendor code
+        assertEquals(INT_ERROR, listener.resolveStatus(new NamingException())); //TODO resolve vendor code
     }
 
     @Test
     void should_return_unknown_error_for_unknown_exception() {
         int ex = listener.resolveStatus(new IllegalArgumentException("test"));
-        assertEquals(RMT_ERROR, ex);
+        assertEquals(INT_ERROR, ex);
     }
 
     @Test

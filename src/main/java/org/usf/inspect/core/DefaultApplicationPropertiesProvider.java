@@ -10,7 +10,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 import java.net.UnknownHostException;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.boot.SpringBootVersion;
@@ -66,16 +65,14 @@ public class DefaultApplicationPropertiesProvider implements ApplicationProperti
 	
 	@Override
 	public Map<String, String> additionalProperties(ServletContext servletContext) {
-		var meta = new HashMap<String, String>();
-		meta.put("user.locale", getDefault().getLanguage() + '~' + systemDefaultZone().getZone());
-		meta.put("host.name", hostName());
-		meta.put("server.info", servletContext.getServerInfo());
-        meta.put("servlet.version", servletContext.getMajorVersion() + "." + servletContext.getMinorVersion());
-        meta.put("java.runtime.name", getProperty("java.runtime.name"));
-        meta.put("spring.core.version", SpringVersion.getVersion());
-        meta.put("spring.boot.version", SpringBootVersion.getVersion());
-        meta.put("process.pid", String.valueOf(ProcessHandle.current().pid()));
-        return meta;
+		return Map.of(
+				"host.name", hostName(),
+				"java.runtime", getProperty("java.runtime.name"),
+				"user.locale", getDefault().getLanguage() + '~' + systemDefaultZone().getZone(),
+				"server.info", servletContext.getServerInfo(),
+				"servlet.version", servletContext.getMajorVersion() + "." + servletContext.getMinorVersion(),
+				"spring.version", "core/"+SpringVersion.getVersion() + ",boot/" + SpringBootVersion.getVersion(),
+				"process.pid", String.valueOf(ProcessHandle.current().pid()));
 	}
 
 	static String hostName() {
