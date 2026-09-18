@@ -72,7 +72,7 @@ public final class RestTraceExporter implements TraceExporter {
 		if(nonNull(lastPacket)) {
 			dispatchPrevious(id);
 			if(nonNull(lastPacket)) {
-				return traces;
+				return traces; //reject
 			}
 		}
 		try {

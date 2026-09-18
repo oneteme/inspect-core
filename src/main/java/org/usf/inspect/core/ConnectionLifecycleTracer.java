@@ -35,10 +35,16 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 		return switch (t) {
 	        case java.net.UnknownHostException e -> CNX_UNKNOWN_HOST;
 	        case java.nio.channels.UnresolvedAddressException e-> CNX_UNKNOWN_HOST;
+	        
+	        case java.net.PortUnreachableException e -> CNX_REFUSED;
 	        case java.net.ConnectException e -> CNX_REFUSED;
 	        case java.net.NoRouteToHostException e -> CNX_REFUSED;
 	        case java.net.BindException e -> CNX_REFUSED;
 	        case javax.net.ssl.SSLException e-> CNX_SSL_ERROR; 
+	        case java.security.cert.CertificateException e -> CNX_SSL_ERROR;
+	        
+	        case java.net.URISyntaxException e -> APP_ERROR;
+	        case java.net.MalformedURLException e -> APP_ERROR;
 	        
 	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().contains("connect") ? CNX_TIMEOUT : INT_TIMEOUT;
 	        

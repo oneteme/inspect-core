@@ -35,11 +35,6 @@ public final class MachineResourceMonitor implements DispatchHook {
 
 	public MachineResourceMonitor(File file) {
 		this.file = file;
-		try {
-			this.totalDiskSpace = file.getTotalSpace();
-		} catch (Exception e) {
-			//do nothing
-		}
 		processCpuLoad = processCpuLoadSupplier(osBean);
 	}
 	
@@ -83,23 +78,22 @@ public final class MachineResourceMonitor implements DispatchHook {
 	}
 
 	static int toMb(long value) {
-		return value > 0 ? (int) (value / MB) : -1;
+		return value >= 0 ? (int) (value / MB) : -1;
 	}
 	
 	static IntSupplier processCpuLoadSupplier(OperatingSystemMXBean osBean) {
 		Method method = null;
 		try {
-			Class<?> mxBeanClass = Class.forName("com.sun.management.OperatingSystemMXBean");
+			var mxBeanClass = Class.forName("com.sun.management.OperatingSystemMXBean");
 			if (mxBeanClass.isInstance(osBean)) {
-	            try {
-	                method = mxBeanClass.getMethod("getProcessCpuLoad");
-	            } catch (NoSuchMethodException e1) {
-	                try {
-	                    method = mxBeanClass.getMethod("getCpuLoad");
-	                } catch (NoSuchMethodException e2) {
-	                    //do nothing
-	                }
-	            }
+				for(var name : new String[] {"getProcessCpuLoad", "getCpuLoad"}) {
+		            try {
+		                method = mxBeanClass.getMethod(name);
+		                break;
+		            } catch (NoSuchMethodException e1) {
+		               //do nothing
+		            }
+				}
 	        }
         } catch (ClassNotFoundException e) {
             //do nothing

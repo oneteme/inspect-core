@@ -49,12 +49,15 @@ final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer
 	public short resolveStatus(Throwable t) {
 	    return switch (t) {
 	    	case javax.naming.AuthenticationException e -> APP_UNAUTHORIZED;
+	    	case javax.naming.AuthenticationNotSupportedException e-> APP_UNAUTHORIZED;
 	    	case javax.naming.NameNotFoundException e -> APP_ERROR;
 	    	case javax.naming.InvalidNameException e-> APP_ERROR;
         
 	        case javax.naming.ServiceUnavailableException e -> CNX_REFUSED;
 	        case javax.naming.CommunicationException e -> CNX_INTERRUPTED;
 	        case javax.naming.InterruptedNamingException e -> CNX_INTERRUPTED;
+	        
+	        case javax.naming.TimeLimitExceededException e-> CNX_TIMEOUT;
 	        
 	        case javax.naming.NamingException e -> INT_ERROR;
 

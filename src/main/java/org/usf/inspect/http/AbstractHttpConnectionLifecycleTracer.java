@@ -54,8 +54,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 	@Override
 	public short resolveStatus(Throwable t) {
 	    return switch (t) {
-	        case java.net.http.HttpConnectTimeoutException e -> CNX_TIMEOUT;
-	        case java.net.http.HttpTimeoutException e -> INT_TIMEOUT;
+	        case java.net.http.HttpTimeoutException e -> CNX_TIMEOUT;
 
 	        default -> super.resolveStatus(t);
 	    };
