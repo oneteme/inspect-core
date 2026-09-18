@@ -221,7 +221,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	}
 
 	<R> DualEventTracer.StageBuilder<R> stageBuilder(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return (s,e,o,t)-> createStage(s, e, action, cmd, nonNull(args) ? new StagePayload(args, null) : null);
+		return (s,e,o,t)-> createStage(s, e, action, cmd, nonNull(args) && args.length > 0  ? new StagePayload(args, null) : null);
 	}
 	
 	DatabaseRequestStage createStage(Instant start, Instant end, DatabaseAction action, DatabaseCommand cmd, long[] count) {

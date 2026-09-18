@@ -15,9 +15,7 @@ public enum CommandType {
 	ROLE, // grant, chmod, ..
 	SETUP, //create, drop, ..
 	SCRIPT, //multiple command
-	CONTEXT, //cd, set, get
-	@Deprecated
-	ACCESS; 
+	CONTEXT; //cd, set, get
 	
 	public static String merge(String main, CommandType type) {
 		if(isNull(type)) {
