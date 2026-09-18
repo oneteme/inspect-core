@@ -48,15 +48,15 @@ final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer
 	@Override
 	public short resolveStatus(Throwable t) {
 	    return switch (t) {
-	    	case javax.naming.AuthenticationException e -> CLIENT_UNAUTHORIZED;
-	    	case javax.naming.NameNotFoundException e -> CLIENT_ERROR;
-	    	case javax.naming.InvalidNameException e-> CLIENT_ERROR;
+	    	case javax.naming.AuthenticationException e -> APP_UNAUTHORIZED;
+	    	case javax.naming.NameNotFoundException e -> APP_ERROR;
+	    	case javax.naming.InvalidNameException e-> APP_ERROR;
         
-	        case javax.naming.ServiceUnavailableException e -> CONN_REFUSED;
-	        case javax.naming.CommunicationException e -> CONN_INTERRUPTED;
-	        case javax.naming.InterruptedNamingException e -> CONN_INTERRUPTED;
+	        case javax.naming.ServiceUnavailableException e -> CNX_REFUSED;
+	        case javax.naming.CommunicationException e -> CNX_INTERRUPTED;
+	        case javax.naming.InterruptedNamingException e -> CNX_INTERRUPTED;
 	        
-	        case javax.naming.NamingException e -> SERVER_ERROR;
+	        case javax.naming.NamingException e -> INT_ERROR;
 
 			default -> super.resolveStatus(t);
 	    };

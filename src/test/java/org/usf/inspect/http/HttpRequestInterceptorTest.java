@@ -5,13 +5,13 @@ import static java.time.Instant.now;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
-import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
-import static org.usf.inspect.core.DualEventTracer.CONN_SSL_ERROR;
-import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.CNX_SSL_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
 import static org.usf.inspect.core.DualEventTracer.SUCCESS;
-import static org.usf.inspect.core.HttpAction.EXCHANGE;
-import static org.usf.inspect.core.HttpAction.STREAM;
+import static org.usf.inspect.core.HttpAction.EXECUTION;
+import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
@@ -65,35 +65,35 @@ class HttpRequestInterceptorTest {
     
     @Test
     void test_connection_invalid_scheme() {
-        testConnectError(CONN_ERROR, "unknown-scheme", HOST, -1, "unknown-scheme://localhost/test", ResourceAccessException.class);
+        testConnectError(CNX_ERROR, "unknown-scheme", HOST, -1, "unknown-scheme://localhost/test", ResourceAccessException.class);
     }
     
     @Test
     void test_connection_unknown_host() {
-    	testConnectError(CONN_UNKNOWN_HOST, "http", "myhost", -1, "http://myhost/", ResourceAccessException.class);
+    	testConnectError(CNX_UNKNOWN_HOST, "http", "myhost", -1, "http://myhost/", ResourceAccessException.class);
     }
     
     @Test
     void test_connection_bad_port() {
-    	testConnectError(CONN_REFUSED, "http", HOST, 1234, "http://localhost:1234/", ResourceAccessException.class);
+    	testConnectError(CNX_REFUSED, "http", HOST, 1234, "http://localhost:1234/", ResourceAccessException.class);
     }
     
     @Test //SocketTimeoutException
  	void test_connection_timeout() {
     	server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
-        testConnectError(CONN_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
+        testConnectError(CNX_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
  	}
     
     @Test
     void test_connection_reset() {
         server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
-        testConnectError(CONN_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
+        testConnectError(CNX_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
     }
     
     @Test
     void test_connection_lost() {
         server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
-        testConnectError(CONN_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
+        testConnectError(CNX_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
     }
     
     @Test
@@ -103,7 +103,7 @@ class HttpRequestInterceptorTest {
 		try(var secureServer = new MockWebServer()) {
 	        secureServer.useHttps(sslContext.getSocketFactory(), false);
 			secureServer.start();
-			testConnectError(CONN_SSL_ERROR, "https", secureServer.getHostName(), secureServer.getPort(), secureServer.url("/").toString(), ResourceAccessException.class);
+			testConnectError(CNX_SSL_ERROR, "https", secureServer.getHostName(), secureServer.getPort(), secureServer.url("/").toString(), ResourceAccessException.class);
 		}
  	}
 
@@ -120,7 +120,7 @@ class HttpRequestInterceptorTest {
   		assertEquals(4, traces.size());
   		var idx = 0;
   		var sgn = assertRequestSignal(scheme, host, port, null, beforeStart, HttpRequestSignal.class, traces.get(idx++));
-  		var stg = assertRequestStage(EXCHANGE.name(), null, sgn.getId(), idx, null, sgn.getStart(), HttpRequestStage.class, traces.get(idx++));
+  		var stg = assertRequestStage(EXECUTION.name(), null, sgn.getId(), idx, null, sgn.getStart(), HttpRequestStage.class, traces.get(idx++));
   		assertExceptionTrace(sgn.getId(), stg.getOrder(), traces.get(idx++));
   		assertRequestUpdate(status, sgn.getId(), null, stg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
   	}
@@ -140,8 +140,8 @@ class HttpRequestInterceptorTest {
 		assertEquals(4, traces.size());
 		var idx = 0;
 		var signal = assertRequestSignal("http", server.getHostName(), server.getPort(), null, beforeStart, HttpRequestSignal.class, traces.get(idx++));
-		var strStg = assertRequestStage(EXCHANGE.name(), null, signal.getId(), idx, null, signal.getStart(), HttpRequestStage.class, traces.get(idx++));
-		var endStg = assertRequestStage(STREAM.name(), null, signal.getId(), idx, null, strStg.getEnd(), HttpRequestStage.class, traces.get(idx++));		
+		var strStg = assertRequestStage(EXECUTION.name(), null, signal.getId(), idx, null, signal.getStart(), HttpRequestStage.class, traces.get(idx++));
+		var endStg = assertRequestStage(TRANSMISSION.name(), null, signal.getId(), idx, null, strStg.getEnd(), HttpRequestStage.class, traces.get(idx++));		
 		assertRequestUpdate(SUCCESS, signal.getId(), null, endStg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
 	}
 }

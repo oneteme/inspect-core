@@ -62,24 +62,24 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 					var id = trc.getUpdate().getId();
 					res.addHeader(TRACE_ID_HEADER, id.toString()); //add headers before doFilter
 					res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_ID_HEADER);
-					wrp = new InspectResponseWrapper(res, trc.getStreamPayload());
+					wrp = new InspectHttpServletResponseWrapper(res, trc);
 				}
 				if(req.getDispatcherType() == ASYNC) {
-					trc.propagateContext();
+					trc.propagateContext(); //different thread
 					trc.emitExecutionStage();
 				}
 				filterChain.doFilter(req, wrp);
 			}
 			catch (ServletException e) {
-				trc.handleError(nonNull(e.getCause()) ? e.getCause() : e); 
+				trc.emitError(nonNull(e.getCause()) ? e.getCause() : e); 
 				throw e;
 			}
 			catch (Exception e) {
-				trc.handleError(e);
+				trc.emitError(e);
 				throw e;
 			}
 			finally {
-				trc.setResponse(res);
+				trc.setResponse(wrp);
 			}
 		}
 	}
@@ -136,7 +136,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 			var trc = requireActiveTracer(request, "HttpSessionFilter.afterCompletion");
 			if(nonNull(trc)) {
 				if(nonNull(ex)) {
-					trc.handleError(ex);
+					trc.emitError(ex);
 				}
 				trc.emitFinalizationStage();
 			}

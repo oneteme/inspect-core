@@ -11,8 +11,8 @@ import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
-import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.core.SessionContextManager.createBatchSession;
+import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 
 import java.lang.StackWalker.StackFrame;

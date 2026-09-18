@@ -31,7 +31,7 @@ public class InspectHandlerExceptionResolver implements HandlerExceptionResolver
 		if(routePredicate.accept(request)) {
 			var mnt = requireActiveTracer(request, "HandlerExceptionResolverMonitor.resolveException");
 			if(nonNull(mnt)) { //non filtered requests
-				mnt.handleError(ex);
+				mnt.emitError(ex);
 			}
 		}
 		return null;

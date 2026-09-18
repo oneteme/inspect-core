@@ -7,13 +7,13 @@ import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.LogEntry.logEntry;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
 import static org.usf.inspect.core.LogEntry.Level.WARN;
 import static org.usf.inspect.core.MainSessionType.BATCH;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.MainSessionType.TEST;
+import static org.usf.inspect.core.SessionMask.EVENT;
 import static org.usf.inspect.core.SessionMask.FTP;
 import static org.usf.inspect.core.SessionMask.JDBC;
 import static org.usf.inspect.core.SessionMask.LDAP;
@@ -21,14 +21,11 @@ import static org.usf.inspect.core.SessionMask.LOCAL;
 import static org.usf.inspect.core.SessionMask.REST;
 import static org.usf.inspect.core.SessionMask.SMTP;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
-import static org.usf.inspect.core.SessionMask.EVENT;
 
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
-
-import org.usf.inspect.core.LogEntry.Level;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

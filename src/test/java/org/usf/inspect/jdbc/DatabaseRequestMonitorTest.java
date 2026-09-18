@@ -1,12 +1,12 @@
 package org.usf.inspect.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.usf.inspect.core.DualEventTracer.CONN_ERROR;
-import static org.usf.inspect.core.DualEventTracer.CONN_INTERRUPTED;
-import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
-import static org.usf.inspect.core.DualEventTracer.CONN_UNKNOWN_HOST;
-import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
-import static org.usf.inspect.core.DualEventTracer.SERVER_TIMEOUT;
+import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
+import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
+import static org.usf.inspect.core.DualEventTracer.INT_TIMEOUT;
 
 import java.io.EOFException;
 import java.net.SocketException;
@@ -26,70 +26,70 @@ class DatabaseRequestMonitorTest {
 
     @Test
     void shouldMapSqlTimeoutException() {
-        assertEquals(SERVER_TIMEOUT, listener.resolveStatus(new SQLTimeoutException()));
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new SQLTimeoutException()));
     }
 
     @Test
     void shouldMapSocketTimeoutException() {
-        assertEquals(SERVER_TIMEOUT, listener.resolveStatus(new SocketTimeoutException()));
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new SocketTimeoutException()));
     }
 
     @Test
     void shouldMapInterruptedException() {
-        assertEquals(CONN_INTERRUPTED, listener.resolveStatus(new InterruptedException()));
+        assertEquals(CNX_INTERRUPTED, listener.resolveStatus(new InterruptedException()));
     }
 
     @Test
     void shouldMapEofException() {
-        assertEquals(CONN_ERROR, listener.resolveStatus(new EOFException()));
+        assertEquals(CNX_ERROR, listener.resolveStatus(new EOFException()));
     }
 
     @Test
     void shouldMapUnknownHostException() {
-        assertEquals(CONN_UNKNOWN_HOST, listener.resolveStatus(new UnknownHostException()));
+        assertEquals(CNX_UNKNOWN_HOST, listener.resolveStatus(new UnknownHostException()));
     }
 
     @Test
     void shouldMapSocketException() {
-        assertEquals(CONN_ERROR, listener.resolveStatus(new SocketException()));
+        assertEquals(CNX_ERROR, listener.resolveStatus(new SocketException()));
     }
 
     @Test
     void shouldMapSqlTransientConnectionException() {
-        assertEquals(CONN_ERROR, listener.resolveStatus(new SQLTransientConnectionException()));
+        assertEquals(CNX_ERROR, listener.resolveStatus(new SQLTransientConnectionException()));
     }
 
     @Test
     void shouldMapSqlNonTransientConnectionException() {
-        assertEquals(CONN_REFUSED, listener.resolveStatus(new SQLNonTransientConnectionException()));
+        assertEquals(CNX_REFUSED, listener.resolveStatus(new SQLNonTransientConnectionException()));
     }
 
     @Test
     void shouldMapSqlRecoverableException() {
-        assertEquals(CONN_INTERRUPTED, listener.resolveStatus(new SQLRecoverableException()));
+        assertEquals(CNX_INTERRUPTED, listener.resolveStatus(new SQLRecoverableException()));
     }
     @Test
     void shouldReturnVendorErrorCode() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new SQLException("Duplicate key", "23000", 1062)));
+        assertEquals(INT_ERROR, listener.resolveStatus(new SQLException("Duplicate key", "23000", 1062)));
     }
 
     @Test
     void shouldReturnSqlStatePrefix() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new SQLException("duplicate", "23505", 0)));
+        assertEquals(INT_ERROR, listener.resolveStatus(new SQLException("duplicate", "23505", 0)));
     }
 
     @Test
     void shouldReturnUnknownForInvalidSqlState() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new SQLException("error", "ABCDE", 0)));
+        assertEquals(INT_ERROR, listener.resolveStatus(new SQLException("error", "ABCDE", 0)));
     }
 
     @Test
     void shouldReturnUnknownWhenSqlStateIsNull() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new SQLException("error", null, 0)));
+        assertEquals(INT_ERROR, listener.resolveStatus(new SQLException("error", null, 0)));
     }
 
     @Test
     void shouldReturnUnknownError() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new IllegalArgumentException()));
+        assertEquals(INT_ERROR, listener.resolveStatus(new IllegalArgumentException()));
     }
 }

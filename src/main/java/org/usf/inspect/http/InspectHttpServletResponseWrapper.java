@@ -1,7 +1,6 @@
 package org.usf.inspect.http;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
@@ -9,63 +8,81 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.concurrent.atomic.AtomicLong;
 
-import org.usf.inspect.http.TransferPayload.StreamPayload;
+import org.usf.inspect.http.TransferPayload.StreamExchangeListener;
 
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-public final class InspectResponseWrapper extends HttpServletResponseWrapper {
+/**
+ * 
+ * @author u$f 
+ *
+ */
+public final class InspectHttpServletResponseWrapper extends HttpServletResponseWrapper {
 
-	private final StreamPayload payload;
+	@Getter
+	private final StreamExchangeListener listener;
 
-	private ServletOutputStream outputStream;
+	private InspectServletOutputStream outputStream;
 	private PrintWriter writer;
 
-    public InspectResponseWrapper(HttpServletResponse response, StreamPayload payload) {
+    public InspectHttpServletResponseWrapper(HttpServletResponse response, StreamExchangeListener listener) {
         super(response);
-        this.payload = payload;
+        this.listener = listener;
     }
 
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
-        if (this.outputStream == null) {
-            this.outputStream = new InspectOutputStream(super.getOutputStream(), payload);
+        if (isNull(outputStream)) {
+            this.outputStream = new InspectServletOutputStream(super.getOutputStream(), listener);
         }
         return this.outputStream;
     }
     
     @Override
     public PrintWriter getWriter() throws IOException {
-        if (writer == null) {
+        if (isNull(writer)) {
         	var enc = getCharacterEncoding();
             var chr = nonNull(enc) ? Charset.forName(enc) : UTF_8;
             this.writer = new PrintWriter(new OutputStreamWriter(getOutputStream(), chr));
         }
         return writer;
     }
+    
+    public long getWrittenBytes(){
+    	return nonNull(outputStream) ? outputStream.size.get() : -1;
+    }
 
     @RequiredArgsConstructor
-    private static final class InspectOutputStream extends ServletOutputStream {
+    private static final class InspectServletOutputStream extends ServletOutputStream {
         
     	private final ServletOutputStream delegate;
-    	private final StreamPayload payload;
+    	private final StreamExchangeListener listener;
+    	private final AtomicLong size = new AtomicLong(-1);
     	
         @Override
         public void write(int b) throws IOException {
-        	ensureStart();
+        	notifyStreamStarted();
             delegate.write(b);
-            payload.getSize().incrementAndGet();
+            size.incrementAndGet();
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            write(b, 0, b.length); //see OutputStream.write(byte[] b)
         }
         
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
-            ensureStart();
+            notifyStreamStarted();
             delegate.write(b, off, len);
-            payload.getSize().addAndGet(len);
+            size.addAndGet(len);
         }
         
         @Override
@@ -80,26 +97,25 @@ public final class InspectResponseWrapper extends HttpServletResponseWrapper {
 
         @Override
         public void flush() throws IOException {
-            ensureStart();
+            notifyStreamStarted();
             delegate.flush();
         }
 
         @Override
         public void close() throws IOException {
-            ensureStart();
         	try {
         		delegate.close();
         	}
         	finally {
-        		if(isNull(payload.getEnd())) {
-                    payload.setEnd(systemUTC().instant());
+        		if(size.get() > -1) { //not started
+                	listener.onTransmissionEnd();
         		}
 			}
         }
         
-        private void ensureStart() {
-            if (isNull(payload.getStart())) {
-            	payload.setStart(systemUTC().instant());
+        private void notifyStreamStarted() {
+            if(size.compareAndSet(-1, 0)) {
+            	listener.onTransmissionStart();
             }
         }
     }

@@ -161,7 +161,7 @@ class FtpRequestMonitorIT {
 
         // Vérifie le mapping effectué par FtpRequestMonitor
         assertEquals(
-        		ConnectionLifecycleTracer.CLIENT_UNAUTHORIZED,
+        		ConnectionLifecycleTracer.APP_UNAUTHORIZED,
                 monitor.resolveStatus(exception)
         );
 

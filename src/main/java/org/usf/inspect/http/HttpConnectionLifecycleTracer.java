@@ -1,8 +1,8 @@
 package org.usf.inspect.http;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.HttpAction.EXCHANGE;
-import static org.usf.inspect.core.HttpAction.STREAM;
+import static org.usf.inspect.core.HttpAction.EXECUTION;
+import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import org.springframework.http.HttpRequest;
@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycleTracer {
 	
 	public ExecutionListener<ClientHttpResponse> exchangeStageListener(HttpRequest request) {
-		return connectionListener(stageBuilder(EXCHANGE), (trc, res)->
+		return connectionListener(stageBuilder(EXECUTION), (trc, res)->
 			signal((HttpRequestSignal)trc, request.getMethod(), request.getURI(), request.getHeaders()));
 	}
 	
@@ -41,7 +41,7 @@ final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycl
 			catch (Exception ex) {
 				hub().reportError("HttpConnectionLifecycleTracer.responseHandler", ex);
 			}
-			return createStage(STREAM, s, e);
+			return createStage(TRANSMISSION, s, e);
 		});
 	}
 }

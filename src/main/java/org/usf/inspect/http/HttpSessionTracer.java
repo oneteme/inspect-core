@@ -16,7 +16,7 @@ import static org.usf.inspect.core.HttpAction.DELEGATION;
 import static org.usf.inspect.core.HttpAction.EXECUTION;
 import static org.usf.inspect.core.HttpAction.FINALIZATION;
 import static org.usf.inspect.core.HttpAction.INITIALIZATION;
-import static org.usf.inspect.core.HttpAction.STREAM;
+import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
@@ -33,11 +33,10 @@ import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionStage;
 import org.usf.inspect.core.HttpSessionUpdate;
 import org.usf.inspect.core.TraceUpdate;
-import org.usf.inspect.http.TransferPayload.StreamPayload;
+import org.usf.inspect.http.TransferPayload.StreamExchangeListener;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.Getter;
 import lombok.Setter;
 
 /**
@@ -48,12 +47,11 @@ import lombok.Setter;
  * @author u$f 
  *
  */
-public final class HttpSessionTracer extends ExecutionTracer<Void> {
+public final class HttpSessionTracer extends ExecutionTracer<Void> implements StreamExchangeListener {
 	
 	private final AtomicInteger stageCounter = new AtomicInteger();
-	@Getter
-	private final StreamPayload streamPayload = new StreamPayload();
 	
+	private HttpSessionStage streamStage;
 	private Throwable lastException;
 	private Instant lastTimestamp;
 	
@@ -90,19 +88,25 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 	public void handle(Instant start, Instant end, Void obj, Throwable thrw) throws Exception {
 		if(assertActiveTraceUpdate("HttpSessionTracer.handle")) {
 			var upd = getUpdate();
-			if(nonNull(streamPayload.getStart())) {
-				var stg = new HttpSessionStage(upd.getId(), stageCounter.incrementAndGet());
-				stg.setName(STREAM.name());
-				stg.setStart(streamPayload.getStart());
-				stg.setEnd(nonNull(streamPayload.getEnd()) ? streamPayload.getEnd() : end);
-				hub().emitTrace(stg);
+			if(nonNull(streamStage)) {
+				if(isNull(streamStage.getEnd())) {
+					streamStage.setEnd(end);
+				}
+				hub().emitTrace(streamStage);
+				streamStage = null;
 			}
 			if(nonNull(response)){
 				upd.setStatus((short)response.getStatus()); //check last exception
-				upd.setDataSize(streamPayload.getSize().get()); //response.getBufferSize()
 				upd.setContentType(response.getContentType());
 				upd.setContentEncoding(response.getHeader(CONTENT_ENCODING)); 
 				upd.setCacheControl(response.getHeader(CACHE_CONTROL));
+				if(response instanceof InspectHttpServletResponseWrapper wrp) {
+					upd.setDataSize(wrp.getWrittenBytes()); //real content size transfered 
+				}
+				else {
+					var len = response.getHeader("Content-Length");
+				    upd.setDataSize(nonNull(len) ? Long.parseLong(len) : -1);
+				}
 			}
 			else {
 				hub().reportMessage("HttpSessionTracer.handle", "response is null");
@@ -144,11 +148,34 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 		lastTimestamp = end;
 	}
 	
-	public void handleError(Throwable thrw) {
+	public void emitError(Throwable thrw) {
 		if(lastException != thrw) {
 			var exp = exceptionTrace(thrw, -systemUTC().instant().toEpochMilli());
 			hub().emitTrace(exp);
 			lastException = thrw;
+		}
+	}
+	
+	@Override
+	public void onTransmissionStart() {
+		if(isNull(streamStage)) {
+			var s = systemUTC().instant();
+			streamStage = new HttpSessionStage(getUpdate().getId(), stageCounter.incrementAndGet());
+			streamStage.setStart(s);
+			streamStage.setName(TRANSMISSION.name());
+		}
+		else {
+			hub().reportMessage("HttpSessionTracer.onStreamStart", "streamStage already started");
+		}
+	}
+	
+	@Override
+	public void onTransmissionEnd() {
+		if(nonNull(streamStage) && isNull(streamStage.getEnd())) {
+			streamStage.setEnd(systemUTC().instant());
+		}
+		else {
+			hub().reportMessage("HttpSessionTracer.onStreamComplete", "streamStage already ended");
 		}
 	}
 
@@ -160,7 +187,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> {
 
 	static String[] extractAllHeaderValues(HttpServletRequest request, String header) {
 		var values = request.getHeaders(header);
-		return isNull(values) || values.hasMoreElements()
+		return isNull(values) || !values.hasMoreElements()
 				? null
 				: list(values).stream()
 				.flatMap(v-> stream(v.split(",")))

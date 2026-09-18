@@ -60,6 +60,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jakarta.servlet.Filter;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletRequestListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,10 +80,10 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	
 	@Primary
 	@Bean("inspectHub")
-	TraceHub inspectHub(InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+	TraceHub inspectHub(InspectCollectorConfiguration conf) {
 		logLoadingBean("inspectHub", TraceDispatcherHub.class);
 		initializeTraceHub(conf.validate(), createObjectMapper()); 
-		appEventListener(ofEpochMilli(appContext.getStartupDate()), provider); //early bean load
+//		appEventListener(ofEpochMilli(appContext.getStartupDate()), provider); //early bean load
 		return hub();
 	}
 	
@@ -162,12 +163,13 @@ public class InspectConfiguration implements WebMvcConfigurer {
     }
     
     @Bean
-    ApplicationListener<SpringApplicationEvent> appEventListener(Instant start, ApplicationPropertiesProvider provider){
-    	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider);
+    ApplicationListener<SpringApplicationEvent> appEventListener(ApplicationPropertiesProvider provider, ServletContext servletContext){
+    	var start = ofEpochMilli(appContext.getStartupDate());
+    	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider, servletContext);
 		hub().dispatch(instance);
 		var handler = forMainSession(()-> { 
 			var sgn = createStartupSession(start, instance.getId());
-			sgn.setName("main");
+			sgn.setName("main"); //see location = getProperty("sun.java.command") //Spring boot
 			return sgn;
 		});
 		return e-> {
@@ -269,21 +271,22 @@ public class InspectConfiguration implements WebMvcConfigurer {
 				new NamedType(MailRequestStage.class,  			"250"), 
 				new NamedType(DirectoryRequestStage.class,		"260"));
 	}
+	
 
-	static InstanceEnvironment newInstanceEnvironment(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider) {
+	static InstanceEnvironment newInstanceEnvironment(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider, ServletContext servletContext) {
 		return new InstanceEnvironment(nextId(),
 				start, SERVER,
 				provider.getName(), 
 				provider.getVersion(),
 				provider.getEnvironment(),
 				hostAddress(),
-				getProperty("os.name"), //version ? window 10 / Linux
+				getProperty("os.name") + "/" + getProperty("os.version") + " (" + getProperty("os.arch") + ")",
 				"java/" + getProperty("java.version"),
 				getProperty("user.name"),
 				provider.getBranch(),
 				provider.getCommitHash(),
 				collectorID(),
-				provider.additionalProperties(),
+				provider.additionalProperties(servletContext),
 				conf);
 	}
 
@@ -300,5 +303,4 @@ public class InspectConfiguration implements WebMvcConfigurer {
 		return "spring-collector/" //use getImplementationTitle
 				+ requireNonNullElse(InspectConfiguration.class.getPackage().getImplementationVersion(), "?");
 	}
-
 }

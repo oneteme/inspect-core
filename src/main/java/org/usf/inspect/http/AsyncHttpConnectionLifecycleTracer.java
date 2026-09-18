@@ -2,9 +2,9 @@ package org.usf.inspect.http;
 
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.HttpAction.ASSEMBLY;
-import static org.usf.inspect.core.HttpAction.EXCHANGE;
-import static org.usf.inspect.core.HttpAction.STREAM;
+import static org.usf.inspect.core.HttpAction.EXECUTION;
+import static org.usf.inspect.core.HttpAction.INITIALIZATION;
+import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 
 import java.time.Instant;
@@ -27,7 +27,7 @@ final class AsyncHttpConnectionLifecycleTracer extends AbstractHttpConnectionLif
 	
 	public ExecutionListener<Object> assemblyStageListener(ClientRequest client) {
 		return connectionListener(
-				(s,e,o,t)-> createStage(ASSEMBLY, s, e), 
+				(s,e,o,t)-> createStage(INITIALIZATION, s, e), 
 				(trc, req)-> signal((HttpRequestSignal)trc, client.method(), client.url(), client.headers()));
 	}
 
@@ -41,7 +41,7 @@ final class AsyncHttpConnectionLifecycleTracer extends AbstractHttpConnectionLif
 				hub().reportError("HttpRequestAsyncMonitor.postExchange", ex);
 			}
 		}
-		stageListener((s,e,o,t)-> createStage(EXCHANGE, s, e)).safeHandle(lastTimestamp, now, null, thrw);
+		stageListener((s,e,o,t)-> createStage(EXECUTION, s, e)).safeHandle(lastTimestamp, now, null, thrw);
 	}
 	
 	public void streamStage(Instant start, Instant end, TransferPayload ctn, Throwable thrw){ //read header after response
@@ -51,7 +51,7 @@ final class AsyncHttpConnectionLifecycleTracer extends AbstractHttpConnectionLif
 		catch (Exception ex) {
 			hub().reportError("HttpRequestAsyncMonitor.postResponse", ex);
 		}
-		stageListener((s,e,o,t)-> createStage(STREAM, s, e)).safeHandle(start, end, null, thrw);
+		stageListener((s,e,o,t)-> createStage(TRANSMISSION, s, e)).safeHandle(start, end, null, thrw);
 	}
 		
 	public void complete() {

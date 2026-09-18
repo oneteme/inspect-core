@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.usf.inspect.core.DualEventTracer.CONN_INTERRUPTED;
-import static org.usf.inspect.core.DualEventTracer.CONN_REFUSED;
-import static org.usf.inspect.core.DualEventTracer.SERVER_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
+import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
 import static org.usf.inspect.dir.DirectoryConnectionLifecycleTracer.getEnvironmentVariable;
 
 import java.util.Hashtable;
@@ -27,17 +27,17 @@ class DirectoryRequestMonitorTest {
 
     @Test
     void should_return_connection_unavailable_when_service_is_unavailable() {
-        assertEquals(CONN_REFUSED, listener.resolveStatus(new ServiceUnavailableException("Server unavailable")));
+        assertEquals(CNX_REFUSED, listener.resolveStatus(new ServiceUnavailableException("Server unavailable")));
     }
 
     @Test
     void should_return_timeout_when_communication_exception_occurs() {
-        assertEquals(CONN_INTERRUPTED, listener.resolveStatus(new CommunicationException("Read timed out")));
+        assertEquals(CNX_INTERRUPTED, listener.resolveStatus(new CommunicationException("Read timed out")));
     }
 
     @Test
     void should_return_connection_unavailable_when_interrupted() {
-        assertEquals(CONN_INTERRUPTED, listener.resolveStatus(new InterruptedNamingException("Interrupted")));
+        assertEquals(CNX_INTERRUPTED, listener.resolveStatus(new InterruptedNamingException("Interrupted")));
     }
 
     @ParameterizedTest
@@ -47,13 +47,13 @@ class DirectoryRequestMonitorTest {
         "Some LDAP failure",
     })
     void should_extract_ldap_error_code() {
-        assertEquals(SERVER_ERROR, listener.resolveStatus(new NamingException())); //TODO resolve vendor code
+        assertEquals(INT_ERROR, listener.resolveStatus(new NamingException())); //TODO resolve vendor code
     }
 
     @Test
     void should_return_unknown_error_for_unknown_exception() {
         int ex = listener.resolveStatus(new IllegalArgumentException("test"));
-        assertEquals(SERVER_ERROR, ex);
+        assertEquals(INT_ERROR, ex);
     }
 
     @Test
