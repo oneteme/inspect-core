@@ -75,8 +75,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 //					toMb(meta.getCommitted()),
 					totalDiskSpace > 0 ? toMb(totalDiskSpace - file.getUsableSpace()) : -1,
 					threadBean.getThreadCount(),
-					startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount,
-							(byte)processCpuLoad.getAsInt()));
+					startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount, (short)processCpuLoad.getAsInt()));
 		}
 		catch(Exception e) {
 			ctx.reportError("MachineResourceMonitor.onSchedule", e);
@@ -111,7 +110,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 				try {
 					var v = (double) m.invoke(osBean);
 					if(v >= 0) {
-						return (int) Math.round(v * 100.);
+						return (int) Math.round(v * 10000);
 					}
 				} catch (Exception e) { 
 					//do nothing
