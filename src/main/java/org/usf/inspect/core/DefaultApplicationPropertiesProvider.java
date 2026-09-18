@@ -76,7 +76,7 @@ public class DefaultApplicationPropertiesProvider implements ApplicationProperti
 	}
 
 	static String hostName() {
-		var name = getenv("HOSTNAME");
+		var name = getenv("HOSTNAME"); //docker variable
 		if(isNull(name)) {
 			try {
 				name = getLocalHost().getHostName(); //hostName 

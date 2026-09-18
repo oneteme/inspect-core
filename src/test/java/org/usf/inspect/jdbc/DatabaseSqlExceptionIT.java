@@ -3,7 +3,7 @@ package org.usf.inspect.jdbc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.usf.inspect.core.DualEventTracer.APPL_CONFLICT;
+import static org.usf.inspect.core.DualEventTracer.APP_CONFLICT;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -84,7 +84,7 @@ class DatabaseSqlExceptionIT {
             int code = monitor.resolveStatus(exception);
 
 
-            assertEquals(APPL_CONFLICT, code);
+            assertEquals(APP_CONFLICT, code);
         }
     }
 

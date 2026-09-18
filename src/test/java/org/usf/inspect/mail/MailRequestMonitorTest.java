@@ -2,7 +2,7 @@ package org.usf.inspect.mail;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.usf.inspect.core.DualEventTracer.APPL_UNAUTHORIZED;
+import static org.usf.inspect.core.DualEventTracer.APP_UNAUTHORIZED;
 import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
 
@@ -53,7 +53,7 @@ class MailRequestMonitorTest {
 
     @Test
     void should_return_authentication_error() {
-        assertEquals(APPL_UNAUTHORIZED, listener.resolveStatus(new AuthenticationFailedException("bad credentials")));
+        assertEquals(APP_UNAUTHORIZED, listener.resolveStatus(new AuthenticationFailedException("bad credentials")));
     }
 
     @Test //TODO : what for ??

@@ -26,23 +26,23 @@ import java.time.Instant;
  */
 public interface DualEventTracer {
 	
-	static final short UNKNOWN             	= -1; // Unknown / Unspecified status
+	static final short UNKNOWN          =-1; // Unknown / Unspecified status
 
-	static final short CNX_ERROR   			= 0; // Generic I/O or Transport failure
-    static final short CNX_UNKNOWN_HOST  	= 1; // Host / DNS resolution failed
-    static final short CNX_REFUSED       	= 2; // Connection refused or unreachable
-    static final short CNX_INTERRUPTED   	= 3; // Connection interrupted or cancelled
-    static final short CNX_TIMEOUT       	= 4; // Connection establishment timeout
-    static final short CNX_SSL_ERROR      	= 5; // SSL/TLS handshake or certificate failure
+	static final short CNX_ERROR   		= 0; // Generic I/O or Transport failure
+    static final short CNX_UNKNOWN_HOST = 1; // Host / DNS resolution failed
+    static final short CNX_REFUSED      = 2; // Connection refused or unreachable
+    static final short CNX_INTERRUPTED  = 3; // Connection interrupted or cancelled
+    static final short CNX_TIMEOUT      = 4; // Connection establishment timeout
+    static final short CNX_SSL_ERROR 	= 5; // SSL/TLS handshake or certificate failure
 
-    static final short SUCCESS            	= 200; // Success / OK
+    static final short SUCCESS         	= 200; // Success / OK
 
-    static final short APPL_ERROR       	= 400; // Generic client-side error
-    static final short APPL_UNAUTHORIZED	= 401; // Authentication or permission failure
-    static final short APPL_CONFLICT     	= 409; // Duplicate key / Constraint violation
+    static final short APP_ERROR       	= 400; // Generic client-side error
+    static final short APP_UNAUTHORIZED	= 401; // Authentication or permission failure
+    static final short APP_CONFLICT     = 409; // Duplicate key / Constraint violation
 
-    static final short INT_ERROR      		= 500; // Generic server/remote error
-    static final short INT_TIMEOUT     		= 504; // Server/Gateway response timeout
+    static final short INT_ERROR      	= 500; // Generic server/remote error
+    static final short INT_TIMEOUT     	= 504; // Server/Gateway response timeout
     
     //TD standard exception => status(dev)
     

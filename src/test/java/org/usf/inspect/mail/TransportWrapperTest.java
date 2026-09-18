@@ -8,7 +8,7 @@ import static java.util.Objects.nonNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.usf.inspect.core.DualEventTracer.APPL_UNAUTHORIZED;
+import static org.usf.inspect.core.DualEventTracer.APP_UNAUTHORIZED;
 import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
 import static org.usf.inspect.core.DualEventTracer.CNX_SSL_ERROR;
@@ -112,7 +112,7 @@ class TransportWrapperTest {
 	@Test
 	void test_connection_unauthenticate() throws NoSuchProviderException {
 		var props = initProperties(HOST, PORT, Map.of("mail.smtp.auth", true));
-		testConnectError(APPL_UNAUTHORIZED, AuthenticationFailedException.class, props);
+		testConnectError(APP_UNAUTHORIZED, AuthenticationFailedException.class, props);
 	}
 	
 	void testConnectError(int status, Class<? extends Exception> type, Properties props) throws NoSuchProviderException{

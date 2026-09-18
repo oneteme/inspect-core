@@ -176,7 +176,6 @@ public class InspectConfiguration implements WebMvcConfigurer {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 				var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
 				handler.map((t,o)-> {
-					
 					var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
 					((MainSessionUpdate)t).setLocation(lct);
 				}).safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);

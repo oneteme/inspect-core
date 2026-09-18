@@ -49,8 +49,8 @@ final class FtpConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 			case com.jcraft.jsch.JSchException e -> CNX_REFUSED;
 			case com.jcraft.jsch.SftpException e -> switch(e.id) { // funct.
 				case SSH_FX_CONNECTION_LOST, SSH_FX_NO_CONNECTION -> CNX_ERROR;
-				case SSH_FX_PERMISSION_DENIED -> APPL_UNAUTHORIZED;
-				case SSH_FX_NO_SUCH_FILE -> APPL_ERROR;
+				case SSH_FX_PERMISSION_DENIED -> APP_UNAUTHORIZED;
+				case SSH_FX_NO_SUCH_FILE -> APP_ERROR;
 			    default -> INT_ERROR;
 			};
 			default -> super.resolveStatus(t);

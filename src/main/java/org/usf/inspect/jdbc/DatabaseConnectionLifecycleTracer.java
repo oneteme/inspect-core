@@ -70,9 +70,9 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 
 	        case java.sql.SQLTimeoutException e -> INT_TIMEOUT;
 
-	        case java.sql.SQLSyntaxErrorException e -> APPL_ERROR;
-	        case java.sql.SQLInvalidAuthorizationSpecException e -> APPL_UNAUTHORIZED;
-	        case java.sql.SQLIntegrityConstraintViolationException e -> APPL_CONFLICT;
+	        case java.sql.SQLSyntaxErrorException e -> APP_ERROR;
+	        case java.sql.SQLInvalidAuthorizationSpecException e -> APP_UNAUTHORIZED;
+	        case java.sql.SQLIntegrityConstraintViolationException e -> APP_CONFLICT;
 
 	        case java.sql.SQLException e -> INT_ERROR;
 
