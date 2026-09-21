@@ -211,7 +211,7 @@ public final class TraceDispatcherHub implements TraceHub {
 			queue.pollAll(snp->{
 				try {
 					var i=0;
-					var arr = new Class[] {AbstractStage.class, MachineResourceUsage.class, SessionMaskUpdate.class, LogEntry.class};
+					var arr = new Class[] {AbstractStage.class, ExceptionTrace.class, MachineResourceUsage.class, LogEntry.class, SessionMaskUpdate.class};
 					do {
 						removeInstanceOf(snp, arr[i]);
 					} while(++i<arr.length && snp.size() > max);

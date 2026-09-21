@@ -55,7 +55,7 @@ public final class InspectExecutor {
 			try {
 				handle(start, end, obj, thrw);
 			}
-			catch (Throwable ex) {// do not throw exception
+			catch (Throwable ex) { // do not throw exception
 				hub().reportError("ExecutionListener.safeHandle", ex);
 			}
 		}

@@ -86,6 +86,11 @@ public class MethodExecutionMonitor implements Ordered {
 		return aroundMethod(point, CACHE.name());
 	}
 	
+//	@Around("@annotation(org.springframework.transaction.annotation.Transactional)")
+//	Object aroundTransactionnal(ProceedingJoinPoint point) throws Throwable {
+//		return aroundMethod(point, TRANSACTION.name()); //use label
+//	}
+	
 	Object aroundMethod(ProceedingJoinPoint point, String type) throws Throwable {
 		return call(point::proceed, forLocalRequest(()->{
 			var sgn = createLocalRequest(systemUTC().instant());

@@ -202,7 +202,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				return fromString(id);
 			}
 			catch (Exception e) {
-				hub().reportMessage("HttpSessionTracer.parseUUID", "bad UUID");
+				hub().reportError("HttpSessionTracer.parseUUID", e);
 			}
 		}
 		return null;

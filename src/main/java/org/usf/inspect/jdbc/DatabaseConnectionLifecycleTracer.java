@@ -181,11 +181,12 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 		if(nonNull(sql)) { //statement
 			parseAndMergeCommand(sql); //command set on exec stg
 		}
+		var cmd = mainCommand;
 		if(!prepared) { //else multiple preparedStmt execution
 			mainCommand = null;
 		}
 		return stageListener((s,e,o,t)-> 
-			lastExec = createStage(s, e, EXECUTE, mainCommand, nonNull(o) ? countFn.apply(o) : null)); // o may be null, if execution failed
+			lastExec = createStage(s, e, EXECUTE, cmd, nonNull(o) ? countFn.apply(o) : null)); // o may be null, if execution failed
 	}
 
 	public void updateStageRowsCount(long rows) {
