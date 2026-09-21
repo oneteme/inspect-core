@@ -41,7 +41,7 @@ import lombok.Setter;
 
 /**
  * 
- * Filter → Interceptor.preHandle → Deferred → Controller(task-?) →   Filter → Interceptor.preHandle → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
+ * Filter → Interceptor.preHandle → Deferred(task-?) → Controller(dispatch) → Filter → Interceptor.preHandle → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
  * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
  * 
  * @author u$f 
@@ -51,9 +51,9 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 	
 	private final AtomicInteger stageCounter = new AtomicInteger();
 	
-	private HttpSessionStage streamStage;
-	private Throwable lastException;
 	private Instant lastTimestamp;
+	private Throwable lastException;
+	private HttpSessionStage streamStage;
 	
 	@Setter
 	private HttpServletResponse response;
@@ -105,7 +105,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				}
 				else {
 					var len = response.getHeader("Content-Length");
-				    upd.setDataSize(nonNull(len) ? Long.parseLong(len) : -1);
+				    upd.setDataSize(nonNull(len) && !len.isEmpty() ? Long.parseLong(len) : -1);
 				}
 			}
 			else {
@@ -182,7 +182,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
     static URI fromRequest(HttpServletRequest req) {
     	var url = req.getRequestURL().toString();
     	var qry = req.getQueryString();
-        return create(isNull(qry) ? url : url + '?' + qry);
+        return create(isNull(qry) ? url : url + '?' + qry); //change it
     }
 
 	static String[] extractAllHeaderValues(HttpServletRequest request, String header) {

@@ -70,7 +70,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 				}
 				filterChain.doFilter(req, wrp);
 			}
-			catch (ServletException e) {
+			catch (ServletException e) { //wrapped functional exception 
 				trc.emitError(nonNull(e.getCause()) ? e.getCause() : e); 
 				throw e;
 			}
