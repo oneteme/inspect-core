@@ -3,8 +3,8 @@ package org.usf.inspect.http;
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.http.HttpSessionFilter.currentHttpMonitor;
-import static org.usf.inspect.http.HttpSessionFilter.requireActiveTracer;
+import static org.usf.inspect.http.HttpSessionFilter.currentSessionTracer;
+import static org.usf.inspect.http.HttpSessionFilter.requireSessionTracer;
 import static org.usf.inspect.http.HttpSessionTracer.httpSessionTracer;
 
 import jakarta.servlet.ServletRequestEvent;
@@ -23,7 +23,7 @@ public final class InspectServletRequestListener implements ServletRequestListen
 	@Override
 	public void requestInitialized(ServletRequestEvent sre) {
 		var sr = sre.getServletRequest();
-		if(sr instanceof HttpServletRequest req && isNull(currentHttpMonitor(req))) {
+		if(sr instanceof HttpServletRequest req && isNull(currentSessionTracer(req))) {
 			req.setAttribute(SESSION_TRACER, httpSessionTracer(req));
 		}
 	}
@@ -31,7 +31,7 @@ public final class InspectServletRequestListener implements ServletRequestListen
 	@Override
 	public void requestDestroyed(ServletRequestEvent sre) {
 		if(sre.getServletRequest() instanceof HttpServletRequest req) {
-			var trc = requireActiveTracer(req, "HttpAsyncExecutionTracer.onComplete");
+			var trc = requireSessionTracer(req, "HttpAsyncExecutionTracer.onComplete");
 			if(nonNull(trc)) {
 				trc.safeHandle(null, systemUTC().instant(), null, null);
 				sre.getServletRequest().removeAttribute(SESSION_TRACER);

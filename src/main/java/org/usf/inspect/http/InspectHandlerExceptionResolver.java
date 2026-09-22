@@ -1,7 +1,7 @@
 package org.usf.inspect.http;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.http.HttpSessionFilter.requireActiveTracer;
+import static org.usf.inspect.http.HttpSessionFilter.requireSessionTracer;
 
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -29,7 +29,7 @@ public class InspectHandlerExceptionResolver implements HandlerExceptionResolver
 	@Override
 	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
 		if(routePredicate.accept(request)) {
-			var mnt = requireActiveTracer(request, "HandlerExceptionResolverMonitor.resolveException");
+			var mnt = requireSessionTracer(request, "HandlerExceptionResolverMonitor.resolveException");
 			if(nonNull(mnt)) { //non filtered requests
 				mnt.emitError(ex);
 			}

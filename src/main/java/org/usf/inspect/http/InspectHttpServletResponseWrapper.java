@@ -29,7 +29,7 @@ public final class InspectHttpServletResponseWrapper extends HttpServletResponse
 	@Getter
 	private final StreamExchangeListener listener;
 
-	private InspectServletOutputStream outputStream;
+	private ServletOutputStream outputStream;
 	private PrintWriter writer;
 
     public InspectHttpServletResponseWrapper(HttpServletResponse response, StreamExchangeListener listener) {
@@ -40,7 +40,9 @@ public final class InspectHttpServletResponseWrapper extends HttpServletResponse
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
         if (isNull(outputStream)) {
-            this.outputStream = new InspectServletOutputStream(super.getOutputStream(), listener);
+            this.outputStream = nonNull(listener) 
+            		? new InspectServletOutputStream(super.getOutputStream(), listener) 
+            		: outputStream;
         }
         return this.outputStream;
     }
@@ -56,7 +58,7 @@ public final class InspectHttpServletResponseWrapper extends HttpServletResponse
     }
     
     public long getWrittenBytes(){
-    	return nonNull(outputStream) ? outputStream.size.get() : -1;
+    	return outputStream instanceof InspectServletOutputStream sos  ? sos.size.get() : -1;
     }
 
     @RequiredArgsConstructor

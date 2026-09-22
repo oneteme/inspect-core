@@ -1,14 +1,11 @@
 package org.usf.inspect.http;
 
 import static jakarta.servlet.DispatcherType.ASYNC;
-import static java.lang.String.join;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
+import static org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
-import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 import static org.usf.inspect.core.TraceDispatcherHub.hub;
 import static org.usf.inspect.http.InspectServletRequestListener.SESSION_TRACER;
@@ -16,8 +13,6 @@ import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.stream.Collector;
-import java.util.stream.Stream;
 
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -43,31 +38,28 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class HttpSessionFilter extends OncePerRequestFilter implements AsyncHandlerInterceptor {
 
-	static final Collector<CharSequence, ?, String> joiner = joining("_");
-
 	private final HttpRoutePredicate routePredicate;
 	private final HttpUserProvider userProvider;
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-//		var cRes = new ContentCachingResponseWrapper(res) doesn't works with async
-		var trc = requireActiveTracer(req, "HttpSessionFilter.doFilterInternal");
+		var trc = requireSessionTracer(req, "HttpSessionFilter.doFilterInternal"); //created in InspectServletRequestListener
 		if(isNull(trc)) {
 			filterChain.doFilter(req, res);
 		}
 		else {
-			var wrp = res;
 			try {
 				if(!res.containsHeader(TRACE_ID_HEADER)) {// avoid duplicate header in async dispatch
 					var id = trc.getUpdate().getId();
 					res.addHeader(TRACE_ID_HEADER, id.toString()); //add headers before doFilter
 					res.addHeader(ACCESS_CONTROL_EXPOSE_HEADERS, TRACE_ID_HEADER);
-					wrp = new InspectHttpServletResponseWrapper(res, trc);
 				}
 				if(req.getDispatcherType() == ASYNC) {
 					trc.propagateContext(); //different thread
 					trc.emitExecutionStage();
 				}
+				var wrp = new InspectHttpServletResponseWrapper(res, trc);
+				trc.setResponse(wrp); //different async response
 				filterChain.doFilter(req, wrp);
 			}
 			catch (ServletException e) { //wrapped functional exception 
@@ -78,9 +70,6 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 				trc.emitError(e);
 				throw e;
 			}
-			finally {
-				trc.setResponse(wrp);
-			}
 		}
 	}
 	
@@ -90,30 +79,36 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	}
 
 	@Override
-	protected boolean shouldNotFilterAsyncDispatch() { //Callable | Differed | @Async
-		return false;
+	protected boolean shouldNotFilterAsyncDispatch() {
+		return false; //Callable | Differed | @Async
 	}
 	
 	@Override
 	public void afterConcurrentHandlingStarted(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		var trc = requireActiveTracer(request, "HttpSessionFilter.afterConcurrentHandlingStarted");
-        if (nonNull(trc)) {
-            trc.emitDelegationStage(); //context will be propagated by task executor decorator
-        }
+		if(shouldIntercept(handler)) {  //avoid infiltrate request
+			var trc = requireSessionTracer(request, "HttpSessionFilter.afterConcurrentHandlingStarted");
+			if (nonNull(trc)) {
+				trc.emitDelegationStage(); //context will be propagated by task executor decorator
+			}
+		}
 	}
 	
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		if(shouldIntercept(handler)) {  //avoid infiltrate request
-			var trc = requireActiveTracer(request, "HttpSessionFilter.preHandle");
-			if(nonNull(trc) && request.getDispatcherType() != ASYNC) {
+		if(shouldIntercept(handler) && request.getDispatcherType() != ASYNC) {  //avoid infiltrate request
+			var trc = requireSessionTracer(request, "HttpSessionFilter.preHandle");
+			if(nonNull(trc)) {
+				String name = null;
+				String user = null;
 				try {
-					var name = resolveEndpointName(handler, request);
-					var user = userProvider.getUser(request, name);
-					trc.emitInitializationStage(name, user);
+					name = resolveEndpointName(handler, request);
+					user = userProvider.getUser(request, name);
 				}
 				catch (Exception e) {
 					hub().reportError("HttpSessionFilter.preHandle", e);
+				}
+				finally {
+					trc.emitInitializationStage(name, user);
 				}
 			}
 		}
@@ -122,9 +117,9 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-		if(shouldIntercept(handler)) { //avoid infiltrate request
-			var trc = requireActiveTracer(request, "HttpSessionFilter.postHandle");
-			if(nonNull(trc) && request.getDispatcherType() != ASYNC) {
+		if(shouldIntercept(handler) && request.getDispatcherType() != ASYNC) { //avoid infiltrate request
+			var trc = requireSessionTracer(request, "HttpSessionFilter.postHandle");
+			if(nonNull(trc)) {
 				trc.emitExecutionStage();
 			}
 		}
@@ -133,12 +128,12 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 		if(shouldIntercept(handler)) { //avoid infiltrate request 
-			var trc = requireActiveTracer(request, "HttpSessionFilter.afterCompletion");
+			var trc = requireSessionTracer(request, "HttpSessionFilter.afterCompletion");
 			if(nonNull(trc)) {
+				trc.emitFinalizationStage();
 				if(nonNull(ex)) {
 					trc.emitError(ex);
 				}
-				trc.emitFinalizationStage();
 			}
 		}
 	}
@@ -155,31 +150,31 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 		return defaultEndpointName(req);
 	}
 	
-	@SuppressWarnings("unchecked")
 	private static String defaultEndpointName(HttpServletRequest req) {
-		var arr = req.getRequestURI().substring(1).split("/");
-		var map = (Map<String, String>) req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-		return isNull(map) ? join("_", arr) : Stream.of(arr)
-				.filter(not(map.values()::contains))
-				.collect(joiner);
+		var attr = req.getAttribute(BEST_MATCHING_PATTERN_ATTRIBUTE);
+		if(attr instanceof String str && str.length() > 0) {
+			if(req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE) instanceof Map vars && !vars.isEmpty()) {
+				str = str.replaceAll("\\{(\\w+)\\}", "\\$$1");
+			}
+			return str.substring(1).replace("/", "_");
+		}
+		return null;
 	}
-
+	
 	static boolean shouldIntercept(Object handler) {  //BasicErrorController 
 		return handler instanceof HandlerMethod mth && 
 				!(mth.getBean() instanceof ErrorController);
 	}
     
-    static HttpSessionTracer currentHttpMonitor(HttpServletRequest req) {
-    	return (HttpSessionTracer) req.getAttribute(SESSION_TRACER);
+    static HttpSessionTracer requireSessionTracer(HttpServletRequest req, String action) {
+    	var trc = currentSessionTracer(req);
+    	if(isNull(trc)) {
+    		hub().reportMessage(action, "tracer is null");
+    	}
+		return trc;
     }
     
-    static HttpSessionTracer requireActiveTracer(HttpServletRequest req, String action) {
-    	var c = currentHttpMonitor(req);
-		return assertActiveTracer(c, action) ? c : null;
+    static HttpSessionTracer currentSessionTracer(HttpServletRequest req) {
+    	return (HttpSessionTracer) req.getAttribute(SESSION_TRACER);
     }
-	
-	@SuppressWarnings("unchecked")
-	static <X extends Throwable> void sneakyThrow(Throwable t) throws X {
-	    throw (X) t;
-	}
 }

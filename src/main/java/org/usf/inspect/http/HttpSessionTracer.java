@@ -89,8 +89,8 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 		if(assertActiveTraceUpdate("HttpSessionTracer.handle")) {
 			var upd = getUpdate();
 			if(nonNull(streamStage)) {
-				if(isNull(streamStage.getEnd())) {
-					streamStage.setEnd(end);
+				if(isNull(streamStage.getEnd())) { 
+					streamStage.setEnd(end); //stream was not called
 				}
 				hub().emitTrace(streamStage);
 				streamStage = null;
@@ -116,14 +116,17 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 	}
 	
 	public void propagateContext() {
-		setActiveContext(getUpdate());
+		if(assertActiveTraceUpdate("HttpSessionTracer.propagateContext")) {
+			setActiveContext(getUpdate());
+		}
 	}
 
 	public void emitInitializationStage(String name, String user){
-		emitStage(INITIALIZATION); //signal can be traced here
-		var upd = getUpdate();
-		upd.setName(name);
-		upd.setUser(user);
+		if(emitStage(INITIALIZATION)) {
+			var upd = getUpdate();
+			upd.setName(name);
+			upd.setUser(user);
+		}
 	}
 	
 	public void emitDelegationStage() {
@@ -138,44 +141,54 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 		emitStage(FINALIZATION);
 	}
 
-	void emitStage(HttpAction action) {
-		var end = systemUTC().instant();
-		var stg = new HttpSessionStage(getUpdate().getId(), stageCounter.incrementAndGet());
-		stg.setName(action.name());
-		stg.setStart(lastTimestamp);
-		stg.setEnd(end);
-		hub().emitTrace(stg);
-		lastTimestamp = end;
+	boolean emitStage(HttpAction action) {
+		if(assertActiveTraceUpdate("HttpSessionTracer.emitStage")) {
+			var end = systemUTC().instant();
+			var stg = new HttpSessionStage(getUpdate().getId(), stageCounter.incrementAndGet());
+			stg.setName(action.name());
+			stg.setStart(lastTimestamp);
+			stg.setEnd(end);
+			hub().emitTrace(stg);
+			lastTimestamp = end;
+			return true;
+		}
+		return false;
 	}
 	
 	public void emitError(Throwable thrw) {
-		if(lastException != thrw) {
-			var exp = exceptionTrace(thrw, -systemUTC().instant().toEpochMilli());
-			hub().emitTrace(exp);
-			lastException = thrw;
+		if(assertActiveTraceUpdate("HttpSessionTracer.emitError")) {
+			if(lastException != thrw) {
+				var exp = exceptionTrace(thrw, -systemUTC().instant().toEpochMilli());
+				hub().emitTrace(exp);
+				lastException = thrw;
+			}
 		}
 	}
 	
 	@Override
 	public void onTransmissionStart() {
-		if(isNull(streamStage)) {
-			var s = systemUTC().instant();
-			streamStage = new HttpSessionStage(getUpdate().getId(), stageCounter.incrementAndGet());
-			streamStage.setStart(s);
-			streamStage.setName(TRANSMISSION.name());
-		}
-		else {
-			hub().reportMessage("HttpSessionTracer.onStreamStart", "streamStage already started");
+		if(assertActiveTraceUpdate("HttpSessionTracer.onTransmissionStart")) {
+			if(isNull(streamStage)) {
+				var s = systemUTC().instant();
+				streamStage = new HttpSessionStage(getUpdate().getId(), stageCounter.incrementAndGet());
+				streamStage.setStart(s);
+				streamStage.setName(TRANSMISSION.name());
+			}
+			else {
+				hub().reportMessage("HttpSessionTracer.onTransmissionStart", "streamStage already started");
+			}
 		}
 	}
 	
 	@Override
 	public void onTransmissionEnd() {
-		if(nonNull(streamStage) && isNull(streamStage.getEnd())) {
-			streamStage.setEnd(systemUTC().instant());
-		}
-		else {
-			hub().reportMessage("HttpSessionTracer.onStreamComplete", "streamStage already ended");
+		if(assertActiveTraceUpdate("HttpSessionTracer.onTransmissionEnd")) {
+			if(nonNull(streamStage) && isNull(streamStage.getEnd())) {
+				streamStage.setEnd(systemUTC().instant());
+			}
+			else {
+				hub().reportMessage("HttpSessionTracer.onTransmissionEnd", "streamStage already ended");
+			}
 		}
 	}
 
