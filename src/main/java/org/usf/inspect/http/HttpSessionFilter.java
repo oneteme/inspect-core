@@ -59,7 +59,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 					trc.emitExecutionStage();
 				}
 				var wrp = new InspectHttpServletResponseWrapper(res, trc);
-				trc.setResponse(wrp); //different async response
+				trc.setResponse(wrp); //different async. response
 				filterChain.doFilter(req, wrp);
 			}
 			catch (ServletException e) { //wrapped functional exception 
