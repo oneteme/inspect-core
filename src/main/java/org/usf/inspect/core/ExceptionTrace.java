@@ -50,7 +50,7 @@ public final class ExceptionTrace implements EventTrace {
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()
-				.withInstant(offset < 0 ? ofEpochMilli(offset) : null)
+				.withInstant(traceType < 10 ? ofEpochMilli(offset) : null)
 //				.withAction(command)
 				.withAction(type)
 				.withMessageAsTopic(message)

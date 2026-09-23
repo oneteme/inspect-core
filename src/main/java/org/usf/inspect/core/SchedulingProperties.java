@@ -22,7 +22,6 @@ import lombok.ToString;
 public class SchedulingProperties {
 	
 	private Duration interval = ofSeconds(60);
-	//v1.1
 	private DispatchState state = DISPATCH;
 
 	void validate() {
