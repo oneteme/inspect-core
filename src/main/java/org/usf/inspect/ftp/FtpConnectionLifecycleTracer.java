@@ -14,7 +14,6 @@ import static org.usf.inspect.core.SessionContextManager.createFtpSignal;
 import java.time.Instant;
 
 import org.usf.inspect.core.ConnectionLifecycleTracer;
-import org.usf.inspect.core.DualEventTracer;
 import org.usf.inspect.core.FtpAction;
 import org.usf.inspect.core.FtpCommand;
 import org.usf.inspect.core.FtpRequestSignal;

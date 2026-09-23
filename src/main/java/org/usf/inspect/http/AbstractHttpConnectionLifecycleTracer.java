@@ -20,7 +20,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.usf.inspect.core.ConnectionLifecycleTracer;
-import org.usf.inspect.core.DualEventTracer;
 import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpRequestSignal;
 import org.usf.inspect.core.HttpRequestStage;
