@@ -21,6 +21,5 @@ public interface TraceUpdate extends TracePart {
 		//do nothing 
 	}
 	
-	@Deprecated
 	byte traceType();
 }

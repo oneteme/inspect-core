@@ -40,7 +40,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 				if(update.getStatus() < 0) {
 					update.setStatus(resolveStatus(thrw));
 				}
-				var exp = exceptionTrace(thrw, -end.toEpochMilli());
+				var exp = exceptionTrace(thrw, end.toEpochMilli());
 				hub().emitTrace(exp);
 			}
 			else if(update.getStatus() < 0) {
