@@ -88,7 +88,7 @@ final class FtpConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 		return stageListener(stageBuilder(action, cmd, args));
 	}
 	
-	<R> DualEventTracer.StageBuilder<R> stageBuilder(FtpAction action, FtpCommand cmd, String... args) {
+	<R> StageBuilder<R> stageBuilder(FtpAction action, FtpCommand cmd, String... args) {
 		return (s,e,o,t)-> {
 			var upd = getUpdate();
 			var stg = new FtpRequestStage(upd.getId(), getStageCounter().incrementAndGet());

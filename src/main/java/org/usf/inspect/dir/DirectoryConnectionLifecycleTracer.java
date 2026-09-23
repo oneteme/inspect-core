@@ -20,7 +20,6 @@ import org.usf.inspect.core.DirCommand;
 import org.usf.inspect.core.DirectoryRequestSignal;
 import org.usf.inspect.core.DirectoryRequestStage;
 import org.usf.inspect.core.DirectoryRequestUpdate;
-import org.usf.inspect.core.DualEventTracer;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.StagePayload;
 import org.usf.inspect.core.TraceSignal;
@@ -96,7 +95,7 @@ final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer
 		return stageListener(stageBuilder(action, cmd, args));
 	}
 	
-	<R> DualEventTracer.StageBuilder<R> stageBuilder(DirAction action, DirCommand cmd, String... args) {
+	<R> StageBuilder<R> stageBuilder(DirAction action, DirCommand cmd, String... args) {
 		return (s,e,o,t)-> {
 			var upd = getUpdate();
 			var stg = new DirectoryRequestStage(upd.getId(), getStageCounter().incrementAndGet());

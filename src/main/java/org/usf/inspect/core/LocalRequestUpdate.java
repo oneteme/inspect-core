@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.TraceType.LCL_REQ;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -25,5 +27,10 @@ public final class LocalRequestUpdate extends AbstractRequestUpdate {
 	@JsonCreator
 	public LocalRequestUpdate(UUID id) {
 		super(id);
+	}
+	
+	@Override
+	public byte traceType() {
+		return LCL_REQ.getValue();
 	}
 }

@@ -109,7 +109,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 		}
 	}
 	
-	<R> DualEventTracer.StageBuilder<R> stageBuilder(HttpAction action){
+	<R> StageBuilder<R> stageBuilder(HttpAction action){
 		return (s,e,o,t)-> createStage(action, s, e);
 	}
 	

@@ -26,6 +26,7 @@ public final class ExceptionTrace implements EventTrace {
 	private final StackTraceRow[] stackTraceRows; //optional, can be null
 	private final ExceptionTrace cause; //optional, can be null
 	//v1.2
+	private byte traceType; //TraceType
 	private UUID traceId; //request | session
 	private long offset; //order | duration
 	

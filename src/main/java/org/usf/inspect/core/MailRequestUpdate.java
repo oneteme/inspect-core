@@ -23,4 +23,9 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 	public MailRequestUpdate(UUID id) {
 		super(id);
 	}
+	
+	@Override
+	public byte traceType() {
+		return TraceType.SMTP_REQ.getValue();
+	}
 }

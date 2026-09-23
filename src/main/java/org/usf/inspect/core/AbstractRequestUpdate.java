@@ -15,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class AbstractRequestUpdate implements TraceUpdate {
+public abstract class AbstractRequestUpdate implements TraceUpdate {
 
 	private final UUID id;
 	private String command; //READ, EMIT, EDIT, ..

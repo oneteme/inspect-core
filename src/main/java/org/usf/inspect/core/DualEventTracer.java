@@ -61,6 +61,7 @@ public interface DualEventTracer {
 		var exp = upd instanceof AbstractSessionUpdate ? fromException(t) : fromException(t, 0, 0);
 		exp.setOffset(offset);
 		exp.setTraceId(upd.getId());
+		exp.setTraceType(upd.traceType());
 		return exp;
 	}
 	

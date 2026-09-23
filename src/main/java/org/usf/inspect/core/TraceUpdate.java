@@ -20,4 +20,7 @@ public interface TraceUpdate extends TracePart {
 	default void setStart(Instant end) {
 		//do nothing 
 	}
+	
+	@Deprecated
+	byte traceType();
 }

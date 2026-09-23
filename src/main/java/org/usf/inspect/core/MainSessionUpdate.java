@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.TraceType.MAIN_SES;
+
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -32,5 +34,10 @@ public final class MainSessionUpdate extends AbstractSessionUpdate {
 	@Override
 	public boolean isStartup() {
 		return startup;
+	}
+	
+	@Override
+	public byte traceType() {
+		return MAIN_SES.getValue();
 	}
 }

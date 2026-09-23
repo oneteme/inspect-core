@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.TraceType.FTP_REQ;
+
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -22,5 +24,10 @@ public final class FtpRequestUpdate extends AbstractRequestUpdate {
 	@JsonCreator
 	public FtpRequestUpdate(UUID id) {
 		super(id);
+	}
+
+	@Override
+	public byte traceType() {
+		return FTP_REQ.getValue();
 	}
 }

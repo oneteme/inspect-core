@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static org.usf.inspect.core.TraceType.JDBC_REQ;
+
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -22,5 +24,10 @@ public final class DatabaseRequestUpdate extends AbstractRequestUpdate {
 	@JsonCreator
 	public DatabaseRequestUpdate(UUID id) {
 		super(id);
+	}
+	
+	@Override
+	public byte traceType() {
+		return JDBC_REQ.getValue();
 	}
 }
