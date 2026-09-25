@@ -2,7 +2,7 @@ package org.usf.inspect.dir;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import javax.naming.directory.DirContext;
 
@@ -45,7 +45,7 @@ public final class ContextSourceWrapper implements ContextSource {
 	}
 	
 	public static ContextSource wrap(@NonNull ContextSource ctx, String beanName) {
-		if(hub().getConfiguration().isEnabled()){
+		if(hub().isEnabled()){
 			if(ctx.getClass() != ContextSourceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "contextSource"), ctx.getClass());
 				return new ContextSourceWrapper(ctx);

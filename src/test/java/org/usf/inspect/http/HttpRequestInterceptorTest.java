@@ -54,8 +54,8 @@ class HttpRequestInterceptorTest {
 
     @BeforeEach
     void setUp() throws IOException {
+    	clearTraces();
         server.start();
-        clearTraces();
     }
 
     @AfterEach

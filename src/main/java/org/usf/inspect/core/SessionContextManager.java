@@ -10,7 +10,7 @@ import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.LogEntry.Level.ERROR;
 import static org.usf.inspect.core.LogEntry.Level.INFO;
 import static org.usf.inspect.core.LogEntry.Level.WARN;
-import static org.usf.inspect.core.MainSessionType.BATCH;
+import static org.usf.inspect.core.MainSessionType.SCHEDULE;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.MainSessionType.TEST;
 import static org.usf.inspect.core.SessionMask.EVENT;
@@ -20,7 +20,7 @@ import static org.usf.inspect.core.SessionMask.LDAP;
 import static org.usf.inspect.core.SessionMask.LOCAL;
 import static org.usf.inspect.core.SessionMask.REST;
 import static org.usf.inspect.core.SessionMask.SMTP;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -162,13 +162,17 @@ public final class SessionContextManager {
 		ses.setLinked(nonNull(uuid));
 		return ses;
 	}
+	
+	static MainSessionSignal createStartupSession(Instant start) {
+		return createStartupSession(start, nextId());
+	}
 
 	static MainSessionSignal createStartupSession(Instant start, UUID uuid) {
 		return createMainSession(STARTUP, start, requireNonNullElseGet(uuid, SessionContextManager::nextId));
 	}
 
-	public static MainSessionSignal createBatchSession(Instant start) {
-		return createMainSession(BATCH, start, nextId());
+	public static MainSessionSignal createScheduleSession(Instant start) {
+		return createMainSession(SCHEDULE, start, nextId());
 	}
 	
 	public static MainSessionSignal createTestSession(Instant start) {
@@ -180,7 +184,11 @@ public final class SessionContextManager {
 	}
 
 	public static LocalRequestSignal createLocalRequest(Instant start) {
-		return new LocalRequestSignal(nextId(), requireSessionIdFor(LOCAL), start, threadName());
+		return createLocalRequest(start, nextId());
+	}
+
+	public static LocalRequestSignal createLocalRequest(Instant start, UUID rid) {
+		return new LocalRequestSignal(rid, requireSessionIdFor(LOCAL), start, threadName());
 	}
 	
 	public static DatabaseRequestSignal createDatabaseSignal(Instant start) {

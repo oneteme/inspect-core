@@ -2,7 +2,7 @@ package org.usf.inspect.http;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
-import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
+import static org.usf.inspect.core.ScheduledExecutorServiceWrapper2.wrap;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static reactor.core.publisher.Hooks.onLastOperator;
 import static reactor.core.publisher.Operators.lift;
@@ -14,7 +14,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 import org.usf.inspect.core.SessionContextManager;
 
 /**
@@ -37,7 +36,6 @@ public class ReactorModuleConfiguration {
 	}
 
     @Bean
-    @DependsOn("inspectHub") //ensure inspectHub is loaded first
 	WebClientCustomizer webClientCustomizer() {
 		return wcb->{
 			logRegistringBean("webClientFilter", WebClientFilter.class);

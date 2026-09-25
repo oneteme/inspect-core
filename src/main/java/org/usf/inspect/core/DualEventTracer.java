@@ -3,7 +3,7 @@ package org.usf.inspect.core;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.ExceptionTrace.fromException;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 

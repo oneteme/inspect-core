@@ -25,16 +25,17 @@ public final class EventTraceBus {
 	public void removeHook(DispatchHook hook) {
 		dispatchHooks.remove(hook);
 	}
+	
 	public void triggerInstanceEmit(InstanceEnvironment env){
 		triggerHooks(h-> h.onInstanceEmit(env));
 	}
 	
-	public void triggerSchedule(TraceHub ctx){
-		triggerHooks(h-> h.onSchedule(ctx));
+	public void triggerSchedule(){
+		triggerHooks(h-> h.onSchedule());
 	}
 	
-	public void triggerTraceDispatch(TraceHub ctx, List<EventTrace> traces){
-		triggerHooks(h-> h.onDispatch(ctx, traces));
+	public void triggerTraceDispatch(List<EventTrace> traces){
+		triggerHooks(h-> h.onDispatch(traces));
 	}
 	
 	void triggerHooks(Consumer<? super DispatchHook> post){

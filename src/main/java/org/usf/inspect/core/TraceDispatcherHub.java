@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.Runtime.getRuntime;
 import static java.lang.Thread.currentThread;
-import static java.util.Collections.synchronizedList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -13,25 +13,23 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
-import static org.usf.inspect.core.DumpProperties.createDirs;
+import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.InspectConfiguration.createObjectMapper;
 import static org.usf.inspect.core.LogEntry.logEntry;
+import static org.usf.inspect.core.MachineResourceMonitor.machineResourceMonitor;
 import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
-import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
-import static org.usf.inspect.core.TraceExporter.noExporter;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -45,81 +43,96 @@ import lombok.extern.slf4j.Slf4j;
 public final class TraceDispatcherHub implements TraceHub {
 
 	private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
-	
-	private static TraceHub singleton;
 
-	private final ScheduledExecutorService executor;
-	@Getter 
-	private final InspectCollectorConfiguration configuration;
-	private final AtomicReference<DispatchState> atomicState;
-	private final TraceExporter agent;
-	private final EventTraceBus eventBus;
+	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISABLE);
 	private final ProcessingQueue<EventTrace> queue = new ProcessingQueue<>();
-	private final List<DispatchTask> tasks = synchronizedList(new ArrayList<>());
 	
-	private volatile boolean dispatchNow;
+	@Getter
+	private InspectCollectorConfiguration configuration;
+	private EventTraceBus eventBus;
+	private TraceExporter exporter;
+	private ScheduledExecutorService executor;
+	private AtomicBoolean dispatchNow = new AtomicBoolean();
+	private int threshold;
 	
-	TraceDispatcherHub(InspectCollectorConfiguration configuration, TraceExporter agent, EventTraceBus eventBus) {
-		if(configuration.isEnabled()) {
-			var es = newSingleThreadScheduledExecutor(TraceDispatcherHub::daemonThread);
-			this.configuration = configuration;
-			this.atomicState = new AtomicReference<>(configuration.getScheduling().getState());
-			this.agent = agent;
-			this.eventBus = eventBus;
-			var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
-			this.executor = configuration.isDebugMode() ? wrap(es) : es;
-			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
-			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
-		}
-		else {
-			throw new IllegalStateException("cannot create InspectHub with disabled configuration");
-		}
+	public TraceDispatcherHub configure(InspectCollectorConfiguration configuration) {
+		return configure(configuration, resolveExporter(configuration.getTracing().getRemote(), configuration.isDebugMode()));
 	}
 	
-	@Override
-	public boolean emitTask(DispatchTask task) { //no hooks
-		return scheduling() && atomicState.get().canCollect() && tasks.add(task);
+	public TraceDispatcherHub configure(InspectCollectorConfiguration configuration, TraceExporter exporter) {
+		if(!scheduling()) {
+			this.configuration = configuration;
+			if(configuration.isEnabled()) {
+				atomicState.set(configuration.getScheduling().getState());
+				this.threshold= (int) (configuration.getTracing().getQueueCapacity() *.85); //85% of the capacity
+				this.exporter = exporter;
+				this.eventBus = new EventTraceBus();
+				if(configuration.getMonitoring().getResources().isEnabled()) {
+					var rsc = configuration.getMonitoring().getResources();
+					eventBus.registerHook(machineResourceMonitor(rsc));
+				}
+			}
+		}
+		else {
+			reportMessage("TraceDispatcherHub.configure", "cannot reconfigure while scheduling");
+		}
+		return this;
+	}
+	
+	public void start() {
+		if(isEnabled()) {
+			if(!scheduling()) {
+				var es = newSingleThreadScheduledExecutor(TraceDispatcherHub::daemonThread);
+				var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
+				this.executor = configuration.isDebugMode() ? wrap(es) : es;
+				this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
+				getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
+			}
+			else {
+				reportMessage("TraceDispatcherHub.start", "already scheduling");
+			}
+		}
+		else {
+			log.warn("tracing is disabled, traces will be lost");
+		}
 	}
 	
 	@Override
 	public boolean emitTrace(EventTrace trace) {
 		if(scheduling() && atomicState.get().canCollect() && queue.add(trace)) {
-			tryDispatchIfQueueFull();
+			flushIfThresholdReached();
 			return true;
 		}
 		return false;
 	}
 	
-	@Override
-	public boolean emitTraces(List<EventTrace> traces) { //server usage
+	@Override //server usage
+	public boolean emitTraces(List<EventTrace> traces) { 
 		if(scheduling() && atomicState.get().canCollect() && queue.addAll(traces)) {
-			tryDispatchIfQueueFull();
+			flushIfThresholdReached();
 			return true;
 		}
 		return false;
 	}
 
-	void tryDispatchIfQueueFull(){
-		var max = configuration.getTracing().getQueueCapacity() *.9;
-		if(queue.size() > max) {
-			synchronized(this) {
-				if(!dispatchNow) { //make sure only one dispatching task is submitted
-					dispatchNow = true;
-					executor.submit(()-> { //added task
-						try {
-							if(queue.size() > max) { //double check, may be dispatched by scheduled task
-								log.warn("queue capacity exceeded threshold, triggering immediate dispatch ..");
-								dispatchTraces(false);
-							}
+
+	void flushIfThresholdReached(){
+		if(queue.size() > threshold) {
+			if(dispatchNow.compareAndSet(false, true)) { //make sure only one dispatching task is submitted
+				executor.submit(()-> { //added task
+					try {
+						if(queue.size() > threshold) { //double check, may be dispatched by scheduled task
+							log.warn("queue capacity exceeded threshold, triggering immediate dispatch...");
+							dispatchTraces(false);
 						}
-						finally {
-							dispatchNow = false;
-						}
-					});
-				}
-				else {
-					log.debug("dispatching task is already submitted");
-				}
+					}
+					finally {
+						dispatchNow.set(false);
+					}
+				});
+			}
+			else {
+				log.debug("dispatching task is already submitted");
 			}
 		}
 	}
@@ -142,7 +155,7 @@ public final class TraceDispatcherHub implements TraceHub {
 			queue.add(logEntry(msg, arr)); //do not use emitTrace to avoid call hooks 
 		}
 		if(configuration.isDebugMode()) {
-			log.debug(msg, cause);			
+			log.warn(msg, cause);			
 		}
 	}
 
@@ -150,20 +163,15 @@ public final class TraceDispatcherHub implements TraceHub {
 	public boolean dispatch(InstanceEnvironment instance) { //dispatch immediately
 		if(scheduling() && atomicState.get().canCollect()) {
 			eventBus.triggerInstanceEmit(instance);
-			try {
-				agent.dispatch(instance);
-				return true;
-			} catch (Exception e) {
-				log.warn("failed to dispatch instance {}", instance.getId());
-			}
+			exporter.dispatch(instance);
+			return true;
 		}
 		return false;
 	}
 	
 	void schedule() { //dispatch immediately
 		try {
-			eventBus.triggerSchedule(this);
-			dispatchTasks();
+			eventBus.triggerSchedule();
 			dispatchTraces(false);
 		} catch (Throwable e) { //avoid scheduler suppression
 			warnException(e, "failed to schedule dispatch");
@@ -176,9 +184,9 @@ public final class TraceDispatcherHub implements TraceHub {
 				queue.pollAll(snp->{
 					mergeSessionMaskUpdates(snp);
 					var trc = snp;
-					eventBus.triggerTraceDispatch(this, unmodifiableList(trc));
+					eventBus.triggerTraceDispatch(unmodifiableList(trc));
 					log.trace("dispatching {} traces ..", trc.size());
-					trc = agent.dispatch(shutdown, trc);
+					trc = exporter.dispatch(shutdown, trc);
 					if(trc.isEmpty()) {
 						log.trace("successfully dispatched {} items", snp.size());
 					}
@@ -257,27 +265,13 @@ public final class TraceDispatcherHub implements TraceHub {
 		}
 	}
 
-	void dispatchTasks() {
-		if(atomicState.get().canDispatch() && !tasks.isEmpty()) {
-			var arr = tasks.toArray(DispatchTask[]::new); // iterator is not synchronized @see SynchronizedCollection#iterator
-			for(var t : arr) {
-				try {
-					t.dispatch(agent);
-					tasks.remove(t);
-				}
-				catch (Exception e) { //catch exception => next task
-					warnException(e, "failed to execute task '{}'", t.getClass().getSimpleName());
-				}
-			}
-		}
-	}
-
 	public DispatchState getState() {
 		return atomicState.get();
 	}
 
+	
 	public boolean setState(DispatchState state) {
-		if(configuration.isEnabled() && scheduling()) { //cannot change state if disabled or shut down
+		if(isEnabled()) { //do not allow to change state if disabled => configuration is not set
 			atomicState.set(state);
 			return true;
 		}
@@ -289,7 +283,7 @@ public final class TraceDispatcherHub implements TraceHub {
 		return queue.peek();
 	}
 	
-	//require single thread executor to avoid concurrent modification of the queue
+	//require single thread executor to avoid concurrent queue access
 	public <T> Future<T> peekAsync(Function<Collection<EventTrace>, T> fn){
 		if(scheduling()) {
 			var cf = new CompletableFuture<T>();
@@ -306,23 +300,25 @@ public final class TraceDispatcherHub implements TraceHub {
 	}
 	
 	boolean scheduling() {
-		return !executor.isShutdown();
+		return nonNull(executor) && !executor.isShutdown();
 	}
 	
 	void shutdown() {
-		log.info("shutting down the scheduler service...");
-		executor.shutdown();
-		InterruptedException ie = null;
-		try {
-			executor.awaitTermination(5, SECONDS);
-		} catch (InterruptedException e) { // shutting down host
-			log.warn("interrupted while waiting for executor termination", e);
-			ie = e;
-		}
-		finally { //final dispatch, will be executed on shutdown hook thread
-			dispatchTraces(true);
-			if(nonNull(ie)) {
-				currentThread().interrupt();
+		if(scheduling()) {
+			log.info("shutting down the scheduler service...");
+			executor.shutdown();
+			InterruptedException ie = null;
+			try {
+				executor.awaitTermination(30, SECONDS);
+			} catch (InterruptedException e) { // shutting down host
+				log.warn("interrupted while waiting for executor termination", e);
+				ie = e;
+			}
+			finally { //final dispatch, will be executed on shutdown hook thread
+				dispatchTraces(true);
+				if(nonNull(ie)) {
+					currentThread().interrupt();
+				}
 			}
 		}
 	}
@@ -375,50 +371,30 @@ public final class TraceDispatcherHub implements TraceHub {
 		return thread;
 	}
 	
-	static synchronized void initializeTraceHub(InspectCollectorConfiguration conf, ObjectMapper mapper) {
-		TraceExporter agent = null;
-		if(conf.getTracing().getRemote() instanceof RestRemoteServerProperties prop) {
-			agent = new RestTraceExporter(prop, mapper, conf.isDebugMode());
+	static TraceExporter resolveExporter(RemoteServerProperties rsp, boolean debug) {
+		if(rsp instanceof RestRemoteServerProperties prop) {
+			return new RestTraceExporter(prop, createObjectMapper(), debug);
 		}
-		else if(isNull(conf.getTracing().getRemote())) {
-			agent = noExporter(); //no remote agent
+		if(isNull(rsp)) {
 			log.warn("remote tracing is disabled, traces will be lost");
+			return noExporter(); //no remote agent
 		}
-		else {
-			throw new UnsupportedOperationException("unsupported remote " + conf.getTracing().getRemote());
-		}
-		singleton = createHub(conf, agent, mapper);
-	}
-
-	static synchronized TraceHub initializeTraceHub(TraceHub hub) {
-		return singleton = hub; //TODO change this
-	}
-
-	public static synchronized TraceHub hub() {
-		if(isNull(singleton)) {
-			var config = new InspectCollectorConfiguration();
-			config.setEnabled(false);
-			singleton = createHub(config, null, null);
-		}
-		return singleton;
-	}
+		throw new UnsupportedOperationException("unsupported remote " + rsp);
+	}	
 	
-	public static TraceHub createHub(InspectCollectorConfiguration conf, TraceExporter agent, ObjectMapper mapper) {
-		if(conf.isEnabled()) {
-			var eventBus = new EventTraceBus();
-			if(conf.getMonitoring().getResources().isEnabled()) {
-				log.info("machine resource monitoring is enabled");
-				eventBus.registerHook(new MachineResourceMonitor(conf.getMonitoring().getResources().getDisk()));
+	static TraceExporter noExporter() {
+		
+		return new TraceExporter() {
+			
+			@Override
+			public void dispatch(InstanceEnvironment env) {
+				//do nothing
 			}
-//			if(conf.isDebugMode()) {
-//				bus.registerHook(new EventTraceDebugger())
-//			}
-			if(conf.getTracing().getDump().isEnabled()) {
-				log.info("event trace dumping is enabled, location={}", conf.getTracing().getDump().getLocation());
-				eventBus.registerHook(new EventTraceDumper(createDirs(conf.getTracing().getDump().getLocation(), nextId().toString()), mapper));
+			
+			@Override
+			public List<EventTrace> dispatch(boolean complete, List<EventTrace> traces) {
+				return emptyList();
 			}
-			return new TraceDispatcherHub(conf, agent, eventBus);
-		}
-		return ()-> conf;
+		};
 	}
 }

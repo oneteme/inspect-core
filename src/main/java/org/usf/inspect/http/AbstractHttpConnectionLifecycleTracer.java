@@ -8,7 +8,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 import static org.usf.inspect.http.WebUtils.extractAuthScheme;
 

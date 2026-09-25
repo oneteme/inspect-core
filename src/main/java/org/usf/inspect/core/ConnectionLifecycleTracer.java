@@ -1,7 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;

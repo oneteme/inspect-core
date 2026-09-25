@@ -19,7 +19,7 @@ import static org.usf.inspect.core.HttpAction.INITIALIZATION;
 import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 import static org.usf.inspect.http.WebUtils.extractAuthScheme;
 

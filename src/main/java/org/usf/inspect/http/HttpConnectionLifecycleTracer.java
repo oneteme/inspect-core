@@ -3,7 +3,7 @@ package org.usf.inspect.http;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.HttpAction.EXECUTION;
 import static org.usf.inspect.core.HttpAction.TRANSMISSION;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpResponse;

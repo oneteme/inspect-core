@@ -2,7 +2,7 @@ package org.usf.inspect.http;
 
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 import java.util.concurrent.CancellationException;

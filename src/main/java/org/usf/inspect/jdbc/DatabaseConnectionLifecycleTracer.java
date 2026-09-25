@@ -12,7 +12,7 @@ import static org.usf.inspect.core.DatabaseAction.STATEMENT;
 import static org.usf.inspect.core.DatabaseCommand.SQL;
 import static org.usf.inspect.core.DatabaseCommand.extractCommand;
 import static org.usf.inspect.core.SessionContextManager.createDatabaseSignal;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

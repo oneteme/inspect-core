@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import static java.util.Objects.nonNull;
+
 import java.util.List;
 
 /**
@@ -7,13 +9,11 @@ import java.util.List;
  * @author u$f
  *
  */
-@FunctionalInterface
 public interface TraceHub {
 
-	InspectCollectorConfiguration getConfiguration();
-	
 	default boolean dispatch(InstanceEnvironment instance) {return false;}
 
+	@Deprecated
 	default boolean emitTask(DispatchTask task) {return false;}
 
 	default boolean emitTrace(EventTrace trace) {return false;}
@@ -23,6 +23,19 @@ public interface TraceHub {
 	default void reportError(String action, Throwable thwr) {}
 
 	default void reportMessage(String action, String msg) {}
+
+	InspectCollectorConfiguration getConfiguration();
+
+	default boolean isEnabled() {
+		return nonNull(getConfiguration()) && getConfiguration().isEnabled();
+	}
 	
-	default boolean isCompleted() {return true;}
+	static TraceHub hub() {
+		return Holder.INSTANCE;
+	}
+
+	final class Holder {
+		static TraceHub INSTANCE = new TraceDispatcherHub();
+		private Holder() {}
+	}
 }

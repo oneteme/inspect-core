@@ -57,7 +57,6 @@ public final class ProcessingQueue<T> {
 	public List<T> peek() {
 		return new ArrayList<>(queue);
 	}
-	
 
 	public Collection<T> toList() {
 		return unmodifiableCollection(queue);

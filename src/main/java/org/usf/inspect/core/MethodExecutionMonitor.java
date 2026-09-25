@@ -15,11 +15,11 @@ import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.LocalRequestType.TRANSACTION;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
-import static org.usf.inspect.core.SessionContextManager.createBatchSession;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
+import static org.usf.inspect.core.SessionContextManager.createScheduleSession;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodTemplate;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.lang.StackWalker.StackFrame;
 import java.lang.annotation.Annotation;
@@ -79,18 +79,18 @@ public class MethodExecutionMonitor implements Ordered {
 			+ " && !@annotation(org.springframework.scheduling.annotation.Schedules)") //batch <> TraceableStage
 	Object aroundMethod(ProceedingJoinPoint point) throws Throwable {
 		var ses = activeContext();
-		return isNull(ses) || ses.wasCompleted() ? aroundJob(point) : aroundMethod(point, EXEC.name());
+		return isNull(ses) || ses.wasCompleted() ? aroundSchedule(point) : aroundMethod(point, EXEC.name());
 	}
 	
 	@Around("@annotation(org.springframework.scheduling.annotation.Scheduled)"
 			+ " || @annotation(org.springframework.scheduling.annotation.Schedules)")
-	Object aroundJob(ProceedingJoinPoint point) throws Throwable {
+	Object aroundSchedule(ProceedingJoinPoint point) throws Throwable {
 		var ses = activeContext();
 		if(nonNull(ses) && !ses.wasCompleted() && !ses.isStartup()) { //startup context may still be active on early scheduled jobs
 			hub().reportMessage("MethodExecutionMonitor.aroundJob", "active session context found, but not completed");
 		}
 		return call(point::proceed, forMainSession(()-> { 
-			var sgn = createBatchSession(systemUTC().instant());
+			var sgn = createScheduleSession(systemUTC().instant());
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));

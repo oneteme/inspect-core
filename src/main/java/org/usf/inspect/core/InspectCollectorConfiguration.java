@@ -15,18 +15,22 @@ import lombok.ToString;
 public class InspectCollectorConfiguration {
 	
 	private boolean enabled = false;
+	private boolean debugMode = false; // enable debug mode, e.g. for testing
 	private SchedulingProperties scheduling = new SchedulingProperties(); //replace dispatch
 	private MonitoringConfiguration monitoring = new MonitoringConfiguration();
 	private TracingProperties tracing = new TracingProperties();
-	//v1.1
-	private boolean debugMode = false; // enable debug mode, e.g. for testing
 	
-	public InspectCollectorConfiguration validate() {
+	public void validate() {
 		if(enabled) {
 			scheduling.validate();
 			monitoring.validate();
 			tracing.validate();
 		}
-		return this;
+	}
+	
+	static InspectCollectorConfiguration initializeConfiguration(boolean enable) {
+		var config = new InspectCollectorConfiguration();
+		config.setEnabled(enable);
+		return config;
 	}
 }

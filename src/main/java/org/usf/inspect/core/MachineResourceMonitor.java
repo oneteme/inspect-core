@@ -7,6 +7,8 @@ import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
 import static java.lang.management.ManagementFactory.getThreadMXBean;
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.BeanUtils.logLoadingBean;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.io.File;
 import java.lang.management.MemoryMXBean;
@@ -15,18 +17,21 @@ import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Method;
 import java.util.function.IntSupplier;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * 
  * @author u$f
  *
  */
+@RequiredArgsConstructor
 public final class MachineResourceMonitor implements DispatchHook {
 
 	private static final int MB = 1024 * 1024;
 
-	private final MemoryMXBean memoryBean = getMemoryMXBean();
-	private final ThreadMXBean threadBean = getThreadMXBean();
-	private final OperatingSystemMXBean osBean = getOperatingSystemMXBean();
+	private static final MemoryMXBean memoryBean = getMemoryMXBean();
+	private static final ThreadMXBean threadBean = getThreadMXBean();
+	private static final OperatingSystemMXBean osBean = getOperatingSystemMXBean();
 	private final File file;
 	
 	private final IntSupplier processCpuLoad;
@@ -58,12 +63,12 @@ public final class MachineResourceMonitor implements DispatchHook {
 	}
 
 	@Override
-	public void onSchedule(TraceHub ctx) {
+	public void onSchedule() {
 		try{
 			var heap = memoryBean.getHeapMemoryUsage();
 			var startedThreadCount = threadBean.getTotalStartedThreadCount();
 //			var meta = bean.getNonHeapMemoryUsage()
-			ctx.emitTrace(new MachineResourceUsage(systemUTC().instant(),
+			hub().emitTrace(new MachineResourceUsage(systemUTC().instant(),
 					toMb(heap.getUsed()), 
 					toMb(heap.getCommitted()), 
 //					toMb(meta.getUsed()), 
@@ -73,7 +78,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 					startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount, (short)processCpuLoad.getAsInt()));
 		}
 		catch(Exception e) {
-			ctx.reportError("MachineResourceMonitor.onSchedule", e);
+			hub().reportError("MachineResourceMonitor.onSchedule", e);
 		}
 	}
 
@@ -113,5 +118,10 @@ public final class MachineResourceMonitor implements DispatchHook {
 			};
 		}
 		return ()-> -1;
+	}
+	
+	public static MachineResourceMonitor machineResourceMonitor(ResourceMonitoringProperties prop) {
+		logLoadingBean("machineResourceMonitor", MachineResourceMonitor.class);
+		return new MachineResourceMonitor(prop.getDisk(), processCpuLoadSupplier(osBean));
 	}
 }

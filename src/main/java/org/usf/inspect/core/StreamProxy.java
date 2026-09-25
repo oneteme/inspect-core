@@ -6,7 +6,7 @@ import static java.util.stream.StreamSupport.stream;
 import static org.usf.inspect.core.SessionContextManager.callWithContext;
 import static org.usf.inspect.core.SessionContextManager.requireActiveContext;
 import static org.usf.inspect.core.SessionContextManager.runWithContext;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.Collection;
 import java.util.Spliterator;
@@ -40,7 +40,7 @@ public final class StreamProxy {
 	}
 	
 	public static <T> Stream<T> trackStream(Stream<T> stream) {
-		if(hub().getConfiguration().isEnabled()){
+		if(hub().isEnabled()){
 			var ctx = requireActiveContext();
 			if(nonNull(ctx)) {
 				return stream(new ContextSpliterator<>(stream.spliterator(), ctx), stream.isParallel())

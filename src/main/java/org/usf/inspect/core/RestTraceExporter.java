@@ -13,7 +13,7 @@ import static org.springframework.http.HttpHeaders.encodeBasicAuth;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
-import static org.usf.inspect.core.TraceDispatcherHub.hub;
+import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_RETRY_HEADER;
 
 import java.io.ByteArrayOutputStream;

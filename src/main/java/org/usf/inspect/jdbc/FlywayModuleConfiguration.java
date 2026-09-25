@@ -18,7 +18,6 @@ import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomiz
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 
 /**
  * 
@@ -31,7 +30,6 @@ import org.springframework.context.annotation.DependsOn;
 public class FlywayModuleConfiguration {
 	
 	@Bean
-	@DependsOn("inspectHub") //ensure inspectHub is loaded first
 	FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
 		return conf-> conf.dataSource(wrap(conf.getDataSource(), "flywayDataSource"));
 	}

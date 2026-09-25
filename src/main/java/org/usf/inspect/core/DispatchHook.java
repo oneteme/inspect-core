@@ -11,7 +11,7 @@ public interface DispatchHook {
 	
 	default void onInstanceEmit(InstanceEnvironment env) {}
 
-	default void onSchedule(TraceHub ctx) {}
+	default void onSchedule() {}
 	
-	default void onDispatch(TraceHub ctx, Collection<EventTrace> traces) {}
+	default void onDispatch(Collection<EventTrace> traces) {}
 }
