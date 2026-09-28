@@ -1,6 +1,7 @@
 package org.usf.inspect.http;
 
 import static java.lang.Math.min;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.TraceHub.hub;
 
@@ -22,7 +23,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 final class DataBufferCaptor implements StreamCaptor {
 
-	private static int MAX_BYTES_TO_CAPTURE = 4096; //4ko
+	private static final int MAX_BYTES_TO_CAPTURE = 4096; //4ko
 
 	private final StreamExchangeListener listener;
 
@@ -40,8 +41,8 @@ final class DataBufferCaptor implements StreamCaptor {
 		.doOnError(e-> throwable = e)
 		.doOnCancel(()-> throwable = new CancellationException("cancelled"))
 		.doFinally(v-> {
-			if(nonNull(bufferStream)) {
-				this.bytes = bufferStream.toByteArray();
+			if(nonNull(bufferStream) && isNull(bytes)) {
+				bytes = bufferStream.toByteArray();
 			}
 			listener.onTransmissionEnd();
 		});
@@ -55,16 +56,18 @@ final class DataBufferCaptor implements StreamCaptor {
 			if(remaining > 0) {
 				try {
 					int remainingToRead = min(readable, remaining);
-					for(var it=db.readableByteBuffers(); it.hasNext() && remainingToRead > 0;) {
+					for(var it=db.readableByteBuffers(); it.hasNext() && remainingToRead>0;) {
 						var slice = it.next().duplicate(); //duplicate to avoid changing the position of the original buffer
 						int count = min(slice.remaining(), remainingToRead);
-						if (count <= 0) {
+						if (count > 0) {
+							var chunk = new byte[count];
+							slice.get(chunk);
+							bufferStream.write(chunk, 0, count);
+							remainingToRead -= count;
+						}
+						else {
 							break;
 						}
-						var chunk = new byte[count];
-						slice.get(chunk);
-						bufferStream.write(chunk, 0, count);
-						remainingToRead -= count;
 					}
 				} catch (Exception e) {
 					hub().reportError("DataBufferCaptor.onBuffer", e);
