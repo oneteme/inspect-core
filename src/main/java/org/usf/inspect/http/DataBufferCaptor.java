@@ -78,12 +78,12 @@ final class DataBufferCaptor implements StreamCaptor {
 	}
 
 	@Override
-	public byte[] bytes() {
+	public byte[] transferedBytes() {
 		return bytes;
 	}
 
 	@Override
-	public long size() {
+	public long transferedSize() {
 		return size;
 	}
 	

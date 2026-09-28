@@ -9,9 +9,9 @@ import java.util.EventListener;
  */
 public interface StreamCaptor {
 	
-	byte[] bytes();
+	byte[] transferedBytes();
 	
-	long size();
+	long transferedSize();
 	
 	Throwable throwable();
 	

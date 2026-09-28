@@ -96,9 +96,9 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 //		request.setThreadName(threadName()); //deferred thread
 		if(nonNull(cnt)) {
 			var upd = (HttpRequestUpdate) getUpdate();
-			upd.setDataSize(cnt.size());
-			if(nonNull(cnt.bytes())) {
-				upd.setBodyContent(new String(cnt.bytes(), UTF_8));
+			upd.setDataSize(cnt.transferedSize());
+			if(nonNull(cnt.transferedBytes())) {
+				upd.setBodyContent(new String(cnt.transferedBytes(), UTF_8));
 			}
 		}
 	}

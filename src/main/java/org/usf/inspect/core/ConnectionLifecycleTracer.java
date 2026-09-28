@@ -50,8 +50,8 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	        
 	        case java.io.InterruptedIOException e -> CNX_INTERRUPTED;
 	        case java.lang.InterruptedException e -> CNX_INTERRUPTED;
-	        case java.util.concurrent.TimeoutException e -> CNX_INTERRUPTED;
-	        case java.util.concurrent.CancellationException e -> CNX_INTERRUPTED;
+	        case java.util.concurrent.TimeoutException e -> CNX_ABORTED;
+	        case java.util.concurrent.CancellationException e -> CNX_ABORTED; //WebClientFilter
 	        
 	        case java.io.IOException e -> CNX_ERROR;
 

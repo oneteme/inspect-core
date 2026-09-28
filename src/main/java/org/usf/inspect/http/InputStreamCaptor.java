@@ -109,11 +109,11 @@ public final class InputStreamCaptor extends InputStream implements StreamCaptor
 		}
 	}
 	
-	public long size(){
+	public long transferedSize(){
 		return length;
 	}
 	
-	public byte[] bytes() {
+	public byte[] transferedBytes() {
 		return out instanceof ByteArrayOutputStream bos ? bos.toByteArray() : null;
 	}
 	

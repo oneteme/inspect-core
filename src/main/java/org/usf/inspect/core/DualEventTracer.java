@@ -33,8 +33,8 @@ public interface DualEventTracer {
     static final short CNX_REFUSED      = 2; // Connection refused or unreachable
     static final short CNX_INTERRUPTED  = 3; // Connection interrupted or cancelled
     static final short CNX_TIMEOUT      = 4; // Connection establishment timeout
-    //TODO cancel
     static final short CNX_SSL_ERROR 	= 5; // SSL/TLS handshake or certificate failure
+    static final short CNX_ABORTED		= 10;
 
     static final short SUCCESS         	= 200; // Success / OK
 

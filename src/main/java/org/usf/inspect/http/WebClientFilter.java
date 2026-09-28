@@ -35,8 +35,8 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 				.map(res-> response(trc, res, stt))
 				.doOnNext(r-> exchange(trc, r, null, stt))
 				.doOnError(e-> exchange(trc, null, e, stt)) //DnsNameResolverTimeoutException 
-				.doOnCancel(()-> exchange(trc, null, new CancellationException("cancelled"), stt))
-				.doFinally(s-> complete(trc, null, stt));
+				.doOnCancel(()-> exchange(trc, null, new CancellationException("cancelled"), stt));
+//				.doFinally(s-> complete(trc, null, stt));
 	}
 	
 	static ClientRequest request(AsyncHttpConnectionLifecycleTracer trc, ClientRequest request) {
@@ -64,14 +64,16 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 	}
 	
 	static void exchange(AsyncHttpConnectionLifecycleTracer trc, ClientResponse reponse, Throwable thrw, AtomicInteger stt) {
-		if(stt.get() != COMPLETED) {
+		if(stt.getAndUpdate(v-> nonNull(thrw) ? COMPLETED : v) != COMPLETED) {
 			trc.exchangeStage(reponse, thrw);
+			if(nonNull(thrw)) {
+				trc.complete(null);
+			}
 		}
 	}
 	
 	static void complete(AsyncHttpConnectionLifecycleTracer trc, StreamCaptor captor, AtomicInteger stt) {
-		var act = nonNull(captor) ? STREAMING : WAITING;
-		if(stt.compareAndSet(act, COMPLETED)) {
+		if(stt.getAndSet(COMPLETED) != COMPLETED) {
 			trc.complete(captor); 
 		}
 	}
