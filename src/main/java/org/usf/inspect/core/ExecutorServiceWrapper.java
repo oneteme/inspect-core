@@ -2,8 +2,8 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.SessionContextManager.aroundCallable;
-import static org.usf.inspect.core.SessionContextManager.aroundRunnable;
+import static org.usf.inspect.core.SessionPropagator.wrapCallable;
+import static org.usf.inspect.core.SessionPropagator.wrapRunnable;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.concurrent.Callable;
@@ -30,22 +30,22 @@ public class ExecutorServiceWrapper implements ExecutorService {
 	
 	@Override
 	public <T> Future<T> submit(Callable<T> task) {
-		return es.submit(aroundCallable(task));
+		return es.submit(wrapCallable(task));
 	}
 	
 	@Override
 	public Future<?> submit(Runnable task) {
-		return es.submit(aroundRunnable(task));
+		return es.submit(wrapRunnable(task));
 	}
 	
 	@Override
 	public <T> Future<T> submit(Runnable task, T result) {
-		return es.submit(aroundRunnable(task), result);
+		return es.submit(wrapRunnable(task), result);
 	}
 	
 	@Override
 	public void execute(Runnable task) {
-		es.execute(aroundRunnable(task));
+		es.execute(wrapRunnable(task));
 	}
 
 	public static ExecutorService wrap(ExecutorService es) {

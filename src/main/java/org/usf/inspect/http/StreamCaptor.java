@@ -7,11 +7,13 @@ import java.util.EventListener;
  * @author u$f
  *
  */
-public interface TransferPayload {
+public interface StreamCaptor {
 	
 	byte[] bytes();
 	
 	long size();
+	
+	Throwable throwable();
 	
 	public interface StreamExchangeListener extends EventListener { //input/output stream payload
 		
@@ -19,5 +21,4 @@ public interface TransferPayload {
 		
 		void onTransmissionEnd();
 	}
-
 }

@@ -54,7 +54,6 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 	public short resolveStatus(Throwable t) {
 	    return switch (t) {
 	        case java.net.http.HttpTimeoutException e -> CNX_TIMEOUT;
-
 	        default -> super.resolveStatus(t);
 	    };
 	}
@@ -81,29 +80,25 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 
 	void traceHeaders(HttpStatusCode status, HttpHeaders headers) {
 //		request.setThreadName(threadName()); //deferred thread
-		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.traceHeaders")) {
-			var upd = (HttpRequestUpdate) getUpdate();
-	    	if(nonNull(status)) {
-				upd.setStatus((short)status.value());
-			}
-			if(nonNull(headers)) { //response
-				upd.setContentType(headers.getFirst(CONTENT_TYPE));
-				upd.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
-				upd.setLinked(assertSameID(headers.getFirst(TRACE_ID_HEADER)));
-			}
-			upd.setDataSize(-1); //initial size
+		var upd = (HttpRequestUpdate) getUpdate();
+    	if(nonNull(status)) {
+			upd.setStatus((short)status.value());
 		}
+		if(nonNull(headers)) { //response
+			upd.setContentType(headers.getFirst(CONTENT_TYPE));
+			upd.setContentEncoding(headers.getFirst(CONTENT_ENCODING)); 
+			upd.setLinked(assertSameID(headers.getFirst(TRACE_ID_HEADER)));
+		}
+		upd.setDataSize(-1); //initial size
 	}
 	
-	void traceResponseContent(TransferPayload cnt){
+	void traceResponseContent(StreamCaptor cnt){
 //		request.setThreadName(threadName()); //deferred thread
-		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.traceResponseContent")) {
+		if(nonNull(cnt)) {
 			var upd = (HttpRequestUpdate) getUpdate();
-			if(nonNull(cnt)) {
-				upd.setDataSize(cnt.size());
-				if(nonNull(cnt.bytes())) {
-					upd.setBodyContent(new String(cnt.bytes(), UTF_8));
-				}
+			upd.setDataSize(cnt.size());
+			if(nonNull(cnt.bytes())) {
+				upd.setBodyContent(new String(cnt.bytes(), UTF_8));
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.lang.StackWalker.getInstance;
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
 import static java.time.Clock.systemUTC;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
@@ -15,6 +16,8 @@ import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.core.SessionContextManager.createScheduleSession;
 import static org.usf.inspect.core.SessionContextManager.nextId;
+import static org.usf.inspect.core.SessionPropagator.wrapCallable;
+import static org.usf.inspect.core.SessionPropagator.wrapRunnable;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.UUID;
@@ -34,97 +37,93 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper implements ScheduledExecutorService {
-	
+
 	private static final String SCHEDULE = "schedule";
 	private static final String SCHEDULE_AT_FIXED_RATE = "scheduleAtFixedRate";
 	private static final String SCHEDULE_WITH_FIXED_DELAY = "scheduleWithFixedDelay";
 
-	ScheduledExecutorServiceWrapper(ScheduledExecutorService es) {
+	private final boolean contextPropagationOnly;
+	
+	ScheduledExecutorServiceWrapper(ScheduledExecutorService es, boolean contextPropagationOnly) {
 		super(es);
+		this.contextPropagationOnly = contextPropagationOnly;
 	}
 
 	@Override
 	public <V> ScheduledFuture<V> schedule(Callable<V> task, long delay, TimeUnit unit) {
-		return schedule(task, delay, unit, null);
-	}
-	
-	public <V> ScheduledFuture<V> schedule(Callable<V> task, long delay, TimeUnit unit, String scheduleName) {
+		if(contextPropagationOnly) {
+			return se().schedule(wrapCallable(task), delay, unit);
+		}
 		var id = nextId();
-		var scn = nonNull(scheduleName) ? scheduleName : SCHEDULE;
-		var tsk = aroundScheduleTask(task, scn, SCHEDULE, id);
-		return call(()-> se().schedule(tsk, delay, unit), localRequestTracer(scn, id));
+		var tsk = aroundScheduleTask(task, SCHEDULE, id);
+		return call(()-> se().schedule(tsk, delay, unit), localRequestTracer(SCHEDULE, id));
 	}
 
 	@Override
 	public ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit) {
-		return schedule(task, delay, unit, null);
-	}
-	
-	public ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit, String scheduleName) {
+		if(contextPropagationOnly) {
+			return se().schedule(wrapRunnable(task), delay, unit);
+		}
 		var id = nextId();
-		var scn = nonNull(scheduleName) ? scheduleName : SCHEDULE;
-		var tsk = aroundScheduleTask(task, scn, SCHEDULE, id);
-		return call(()-> se().schedule(tsk, delay, unit), localRequestTracer(scn, id));
+		var tsk = aroundScheduleTask(task, SCHEDULE, id);
+		return call(()-> se().schedule(tsk, delay, unit), localRequestTracer(SCHEDULE, id));
 	}
 
 	@Override
 	public ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long initialDelay, long period, TimeUnit unit) {
-		return scheduleAtFixedRate(task, initialDelay, period, unit, null);
-	}
-
-	public ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long initialDelay, long period, TimeUnit unit, String scheduleName) {
+		if(contextPropagationOnly) {
+			return se().scheduleAtFixedRate(wrapRunnable(task), initialDelay, period, unit);
+		}
 		var id = nextId();
-		var scn = nonNull(scheduleName) ? scheduleName : SCHEDULE_AT_FIXED_RATE;
-		var tsk = aroundScheduleTask(task, scheduleName, SCHEDULE_AT_FIXED_RATE, id);
-		return call(()-> se().scheduleAtFixedRate(tsk, initialDelay, period, unit), localRequestTracer(scn, id));
+		var tsk = aroundScheduleTask(task, SCHEDULE_AT_FIXED_RATE, id);
+		return call(()-> se().scheduleAtFixedRate(tsk, initialDelay, period, unit), localRequestTracer(SCHEDULE_AT_FIXED_RATE, id));
 	}
 
 	@Override
 	public ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, long initialDelay, long delay, TimeUnit unit) {
-		return scheduleWithFixedDelay(task, initialDelay, delay, unit, null);
-	}
-
-	public ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, long initialDelay, long delay, TimeUnit unit, String scheduleName) {
+		if(contextPropagationOnly) {
+			return se().scheduleWithFixedDelay(wrapRunnable(task), initialDelay, delay, unit);
+		}
 		var id = nextId();
-		var scn = nonNull(scheduleName) ? scheduleName : SCHEDULE_WITH_FIXED_DELAY;
-		var tsk = aroundScheduleTask(task, scn, SCHEDULE_WITH_FIXED_DELAY, id);
-		return call(()-> se().scheduleWithFixedDelay(tsk, initialDelay, delay, unit), localRequestTracer(scn, id));
+		var tsk = aroundScheduleTask(task, SCHEDULE_WITH_FIXED_DELAY, id);
+		return call(()-> se().scheduleWithFixedDelay(tsk, initialDelay, delay, unit), localRequestTracer(SCHEDULE_WITH_FIXED_DELAY, id));
 	}
 	
-	Runnable aroundScheduleTask(Runnable task, String name, String methodName, UUID parentId) {
+	Runnable aroundScheduleTask(Runnable task, String methodName, UUID requestId) {
 		var cnt = new AtomicLong();
-		var lct = formatLocation(se().getClass().getName(), methodName);
-		return ()-> exec(task::run, scheduleSessionTracer(name, lct, cnt, parentId));
+		return ()-> exec(task::run, scheduleSessionTracer(methodName, cnt, requestId));
 	}
 	
-	<T> Callable<T> aroundScheduleTask(Callable<T> task, String name, String methodName, UUID parentId){
+	<T> Callable<T> aroundScheduleTask(Callable<T> task, String methodName, UUID requestId){
 		var cnt = new AtomicLong();
-		var lct = formatLocation(se().getClass().getName(), methodName);
-		return ()-> call(task::call, scheduleSessionTracer(name, lct, cnt, parentId));
+		return ()-> call(task::call, scheduleSessionTracer(methodName, cnt, requestId));
 	}
 	
-	<T> ExecutionTracer<T> scheduleSessionTracer(String name, String location, AtomicLong cnt, UUID parentId){
+	<T> ExecutionTracer<T> scheduleSessionTracer(String methodName, AtomicLong cnt, UUID requestId){
 		return forMainSession(()-> { 
 			var sgn = createScheduleSession(systemUTC().instant());
-			sgn.setName(name + '-' + cnt.incrementAndGet());
-			sgn.setLocation(location);
-			sgn.setParentId(parentId);
+			sgn.setName(methodName + '#' + cnt.incrementAndGet());
+			sgn.setLocation(formatLocation(se().getClass().getName(), methodName));
+			sgn.setParentId(requestId);
 			return sgn;
 		});
 	}
 	
-	<T> ExecutionTracer<T> localRequestTracer(String name, UUID pID){
+	<T> ExecutionTracer<T> localRequestTracer(String name, UUID id){
 		var frm = getInstance(RETAIN_CLASS_REFERENCE).walk(fr-> fr
 				.dropWhile(f-> f.getDeclaringClass() == this.getClass()) //skip ScheduledExecutorServiceWrapper
 				.findFirst().orElse(null));
 		return forLocalRequest(()-> {
-			var req = createLocalRequest(systemUTC().instant(), pID);
-			req.setType(EXEC.name());
-			req.setName(name);
+			var sgn = createLocalRequest(systemUTC().instant(), id);
+			sgn.setType(EXEC.name());
+			sgn.setName(name);
 			if(nonNull(frm)) {
-				req.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
+				if(isNull(name)) {
+					sgn.setName(frm.getMethodName());
+				}
+				sgn.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
 			}
-			return req;
+			return sgn;
 		});
 	}
 	
@@ -132,15 +131,15 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 		return (ScheduledExecutorService) es;
 	}
 
-	public static ScheduledExecutorService wrap(ScheduledExecutorService es) {
-		return wrap(es, null);
+	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean contextPropagationOnly) {
+		return wrap(es, contextPropagationOnly, null);
 	}
 	
-	public static ScheduledExecutorService wrap(@NonNull ScheduledExecutorService es, String beanName) {
+	public static ScheduledExecutorService wrap(@NonNull ScheduledExecutorService es, boolean contextPropagationOnly, String beanName) {
 		if(hub().isEnabled()){
 			if(es.getClass() != ScheduledExecutorServiceWrapper.class) {
-				logWrappingBean(requireNonNullElse(beanName, "executorService"), es.getClass());
-				return new ScheduledExecutorServiceWrapper(es);
+				logWrappingBean(requireNonNullElse(beanName, "scheduledExecutorService"), es.getClass());
+				return new ScheduledExecutorServiceWrapper(es, contextPropagationOnly);
 			}
 			else {
 				log.warn("{}: {} is already wrapped", beanName, es);

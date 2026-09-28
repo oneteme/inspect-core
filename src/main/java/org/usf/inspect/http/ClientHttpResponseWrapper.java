@@ -25,14 +25,14 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 
 	@Delegate
 	private final ClientHttpResponse response;
-	private final ExecutionListener<TransferPayload> listener;
-	private CacheableInputStream pipe;
+	private final ExecutionListener<StreamCaptor> listener;
+	private InputStreamCaptor pipe;
 	private Instant start = systemUTC().instant();
 
 	@Override
 	public InputStream getBody() throws IOException {
 		if(isNull(pipe)) {
-			pipe = new CacheableInputStream(response.getBody(), getStatusCode().isError());
+			pipe = new InputStreamCaptor(response.getBody(), getStatusCode().isError());
 		}
 		return pipe;
 	}

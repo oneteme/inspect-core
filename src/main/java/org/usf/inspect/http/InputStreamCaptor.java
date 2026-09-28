@@ -1,5 +1,6 @@
 package org.usf.inspect.http;
 
+import static java.io.OutputStream.nullOutputStream;
 import static java.lang.Math.min;
 
 import java.io.ByteArrayOutputStream;
@@ -14,23 +15,20 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-public final class CacheableInputStream extends InputStream implements TransferPayload {
+public final class InputStreamCaptor extends InputStream implements StreamCaptor {
+
+	private static final int MAX_BYTES_TO_CAPTURE = 4096; //4ko
 	
-	static final OutputStream NO_OUT = new OutputStream() { //nullOutputStream may throws Exception
-		@Override
-		public void write(int b) throws IOException {/* do nothing */}
-	};
-	
-	private static final int MAX_SIZE = 10_000; //10k
+	static final OutputStream NULL_OUT = nullOutputStream();
 
 	@Delegate
 	private final InputStream in;
 	private final OutputStream out;
 	private int length;
  
-	public CacheableInputStream(InputStream in, boolean cache) {
+	public InputStreamCaptor(InputStream in, boolean cache) {
 		this.in = in;
-		this.out = cache ? new ByteArrayOutputStream() : NO_OUT;
+		this.out = cache ? new ByteArrayOutputStream() : NULL_OUT;
 	}
 	
 	@Override
@@ -96,7 +94,7 @@ public final class CacheableInputStream extends InputStream implements TransferP
 	}
 	
 	int remainingCacheCapacity(int n) {
-		return length < MAX_SIZE ? min(n, MAX_SIZE-length) : 0; // return remaining size
+		return length < MAX_BYTES_TO_CAPTURE ? min(n, MAX_BYTES_TO_CAPTURE-length) : 0; // return remaining size
 	}
 	
 	@Override
@@ -117,5 +115,10 @@ public final class CacheableInputStream extends InputStream implements TransferP
 	
 	public byte[] bytes() {
 		return out instanceof ByteArrayOutputStream bos ? bos.toByteArray() : null;
+	}
+	
+	@Override
+	public Throwable throwable() {
+		return null;
 	}
 }

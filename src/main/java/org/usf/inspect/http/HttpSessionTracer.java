@@ -33,7 +33,7 @@ import org.usf.inspect.core.HttpAction;
 import org.usf.inspect.core.HttpSessionStage;
 import org.usf.inspect.core.HttpSessionUpdate;
 import org.usf.inspect.core.TraceUpdate;
-import org.usf.inspect.http.TransferPayload.StreamExchangeListener;
+import org.usf.inspect.http.StreamCaptor.StreamExchangeListener;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

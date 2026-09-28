@@ -10,7 +10,7 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.usf.inspect.http.TransferPayload.StreamExchangeListener;
+import org.usf.inspect.http.StreamCaptor.StreamExchangeListener;
 
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;

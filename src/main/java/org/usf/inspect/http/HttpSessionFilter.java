@@ -152,7 +152,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	
 	private static String defaultEndpointName(HttpServletRequest req) {
 		var attr = req.getAttribute(BEST_MATCHING_PATTERN_ATTRIBUTE);
-		if(attr instanceof String str && str.length() > 0) {
+		if(attr instanceof String str && !str.isEmpty()) {
 			if(req.getAttribute(URI_TEMPLATE_VARIABLES_ATTRIBUTE) instanceof Map vars && !vars.isEmpty()) {
 				str = str.replaceAll("\\{(\\w+)\\}", "\\$$1");
 			}

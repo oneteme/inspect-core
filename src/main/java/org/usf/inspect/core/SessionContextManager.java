@@ -24,8 +24,6 @@ import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.function.Supplier;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -40,58 +38,6 @@ public final class SessionContextManager {
 
 	private static final ThreadLocal<AbstractSessionUpdate> localTrace = new ThreadLocal<>(); //replaceable ScopedValue in Java 21+
 	private static AbstractSessionUpdate startupContext; //avoid ThreadLocal for startup context
-
-    public static Runnable aroundRunnable(Runnable cmd) {
-    	var ses = activeContext(); //do not use requireActiveContext
-    	if(nonNull(ses)) {
-    		ses.threadCountUp();
-    		return ()-> runWithContext(ses, cmd, ses::threadCountDown);
-    	}
-		return cmd;
-    }
-    
-    public static <T> Callable<T> aroundCallable(Callable<T> cmd) {
-    	var ses = activeContext(); //do not use requireActiveContext
-    	if(nonNull(ses)) {
-    		ses.threadCountUp();
-    		return ()-> callWithContext(ses, cmd::call, ses::threadCountDown);
-    	}
-		return cmd;
-    }
-    
-    public static <T> Supplier<T> aroundSupplier(Supplier<T> cmd) {
-    	var ses = activeContext(); //do not use requireActiveContext
-    	if(nonNull(ses)) {
-    		ses.threadCountUp();
-    		return ()-> callWithContext(ses, cmd::get, ses::threadCountDown);
-    	}
-		return cmd;
-    }
-
-    public static void runWithContext(AbstractSessionUpdate ctx, Runnable cmd, Runnable finalize) {
-    	callWithContext(ctx, ()-> { cmd.run(); return null;}, finalize);
-    }
-    
-    public static <T, E extends Exception> T callWithContext(AbstractSessionUpdate ctx, SafeCallable<T, E> call, Runnable finalize) throws E {
-    	var prv = activeContext();
-		if(prv != ctx) {
-			setActiveContext(ctx);
-		}
-		try {
-			return call.call();
-		}
-		finally {
-			if(prv != ctx) {
-				clearContext(ctx);
-				if(nonNull(prv)) {
-					setActiveContext(prv);
-				}
-			}
-			if(nonNull(finalize)) {
-				finalize.run();
-			}
-		}	
-	}
     
 	public static AbstractSessionUpdate requireActiveContext() {
 		var ses = activeContext();

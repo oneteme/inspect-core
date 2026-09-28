@@ -3,9 +3,9 @@ package org.usf.inspect.core;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.StreamSupport.stream;
-import static org.usf.inspect.core.SessionContextManager.callWithContext;
 import static org.usf.inspect.core.SessionContextManager.requireActiveContext;
-import static org.usf.inspect.core.SessionContextManager.runWithContext;
+import static org.usf.inspect.core.SessionPropagator.runInContext;
+import static org.usf.inspect.core.SessionPropagator.supplyInContext;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.Collection;
@@ -59,18 +59,20 @@ public final class StreamProxy {
 
 	    @Override 
 	    public boolean tryAdvance(Consumer<? super T> action) {
-	        return callWithContext(ctx, ()-> delegate.tryAdvance(action), null);
+		    //TODO check this forEachRemaining-> tryAdvance
+	        return supplyInContext(()-> delegate.tryAdvance(action), ctx);
 	    }
 	    
 	    @Override 
 	    public void forEachRemaining(Consumer<? super T> action) {
-	        runWithContext(ctx, ()-> delegate.forEachRemaining(action), null);
+	    	Consumer<? super T> wrap = o-> runInContext(()-> action.accept(o), ctx);
+	    	delegate.forEachRemaining(wrap);
 	    }
 	    
 	    @Override 
 	    public Spliterator<T> trySplit() {
 	        var s = delegate.trySplit();
-	        return s == null ? null : new ContextSpliterator<>(s, ctx);
+	        return nonNull(s) ? new ContextSpliterator<>(s, ctx) : null;
 	    }
 	}
 }

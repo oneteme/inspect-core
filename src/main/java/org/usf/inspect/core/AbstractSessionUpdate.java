@@ -32,7 +32,6 @@ public abstract class AbstractSessionUpdate implements TraceUpdate {
 	@Setter private String location; //class.method, URL, endpoint
 	@Deprecated(forRemoval = true, since = "1.2")
 	@Setter private ExceptionTrace exception; //trace exception separately
-	
 	//v1.2
 	@Setter private short status; //DualEventTracer
 	

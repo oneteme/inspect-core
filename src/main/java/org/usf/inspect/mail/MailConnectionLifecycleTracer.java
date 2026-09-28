@@ -96,23 +96,22 @@ final class MailConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 				stg.setCommand(cmd.name());
 			}
 			stg.setPayload(null);
-			stg.setMail(mailTrace(msg));
+			if(nonNull(msg)) {
+				stg.setMail(mailTrace(msg));
+			}
 			return stg;
 		};
 	}
 	
 	static Mail mailTrace(Message msg) throws MessagingException {
-		if(nonNull(msg)) {
-			var mail = new Mail();
-			mail.setSubject(msg.getSubject());
-			mail.setFrom(toStringArray(msg.getFrom()));
-			mail.setRecipients(toStringArray(msg.getAllRecipients()));
-			mail.setReplyTo(toStringArray(msg.getReplyTo()));
-			mail.setContentType(msg.getContentType());
-			mail.setSize(msg.getSize());
-			return mail;
-		}
-		return null;
+		var mail = new Mail();
+		mail.setSubject(msg.getSubject());
+		mail.setFrom(toStringArray(msg.getFrom()));
+		mail.setRecipients(toStringArray(msg.getAllRecipients()));
+		mail.setReplyTo(toStringArray(msg.getReplyTo()));
+		mail.setContentType(msg.getContentType());
+		mail.setSize(msg.getSize());
+		return mail;
 	}
 	
 	static String[] toStringArray(Address... address) {

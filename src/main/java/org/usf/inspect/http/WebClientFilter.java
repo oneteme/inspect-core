@@ -1,5 +1,6 @@
 package org.usf.inspect.http;
 
+import static java.util.Objects.nonNull;
 import static org.springframework.web.reactive.function.client.ClientRequest.from;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
@@ -20,37 +21,39 @@ import reactor.core.publisher.Mono;
  *
  */
 public final class WebClientFilter implements ExchangeFilterFunction { //see RestRequestInterceptor
+	
+	private static final int WAITING = 0;
+    private static final int STREAMING = 1;
+    private static final int COMPLETED = -1;
 
 	@Override
 	public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction exc) {//request.headers is ReadOnlyHttpHeaders
-		var mnt = new AsyncHttpConnectionLifecycleTracer();
-		var sync = new AtomicInteger(1);
-		return call(()-> exc.exchange(from(request).header(TRACE_ID_HEADER, mnt.getId().toString()).build()), mnt.assemblyStageListener(request))
+		var trc = new AsyncHttpConnectionLifecycleTracer();
+		var stt = new AtomicInteger(WAITING);
+		return call(()-> exc.exchange(from(request).header(TRACE_ID_HEADER, trc.getId().toString()).build()), trc.assemblyStageListener(request))
 				.map(res->{
-					sync.incrementAndGet();
-					var buff = new DataBufferMonitor((s,e,ctn,t)->{
-						if(sync.get() > 1) {
-							mnt.streamStage(s, e, ctn, t);
-						}
-						if(sync.decrementAndGet() == 0) {
-							mnt.complete(); //sometimes buffering ends after exchange.doFinally
-						}
-					});
-					return res.mutate().body(f-> buff.handle(f, res.statusCode().isError())).build();
+					var buff = new DataBufferCaptor(trc);
+					return res.mutate().body(f-> buff.handle(f, res.statusCode().isError())
+							.doOnSubscribe(s-> stt.compareAndSet(WAITING, STREAMING))
+							.doFinally(s-> complete(trc, buff, stt)))
+							.build();
 				})
-				.doOnNext(r-> postExchange(mnt, r, null, sync))
-				.doOnError(e-> postExchange(mnt, null, e, sync)) //DnsNameResolverTimeoutException 
-				.doOnCancel(()-> postExchange(mnt, null, new CancellationException("cancelled"), sync))
-				.doFinally(s-> { //called twice on cancel ?
-					if(sync.decrementAndGet() == 0) {
-						mnt.complete(); 
-					}
-				});
+				.doOnNext(r-> exchange(trc, r, null, stt))
+				.doOnError(e-> exchange(trc, null, e, stt)) //DnsNameResolverTimeoutException 
+				.doOnCancel(()-> exchange(trc, null, new CancellationException("cancelled"), stt))
+				.doFinally(s-> complete(trc, null, stt));
 	}
 	
-	void postExchange(AsyncHttpConnectionLifecycleTracer mnt, ClientResponse res, Throwable thrw, AtomicInteger sync) {
-		if(sync.get() > 0) {
-			mnt.exchangeStage(res, thrw);
+	static void exchange(AsyncHttpConnectionLifecycleTracer trc, ClientResponse res, Throwable thrw, AtomicInteger stt) {
+		if(stt.get() != COMPLETED) {
+			trc.exchangeStage(res, thrw);
+		}
+	}
+	
+	static void complete(AsyncHttpConnectionLifecycleTracer trc, StreamCaptor payload, AtomicInteger stt) {
+		var act = nonNull(payload) ? STREAMING : WAITING;
+		if(stt.compareAndSet(act, COMPLETED)) {
+			trc.complete(payload); 
 		}
 	}
 }

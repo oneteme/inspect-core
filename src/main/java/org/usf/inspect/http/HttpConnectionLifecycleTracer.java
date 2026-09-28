@@ -1,6 +1,5 @@
 package org.usf.inspect.http;
 
-import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.HttpAction.EXECUTION;
 import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.TraceHub.hub;
@@ -21,25 +20,18 @@ import lombok.NoArgsConstructor;
 final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycleTracer {
 	
 	public ExecutionListener<ClientHttpResponse> exchangeStageListener(HttpRequest request) {
-		return connectionListener(stageBuilder(EXECUTION), (trc, res)->
-			signal((HttpRequestSignal)trc, request.getMethod(), request.getURI(), request.getHeaders()));
+		return connectionListener(stageBuilder(EXECUTION), 
+				(trc, res)-> signal((HttpRequestSignal)trc, request.getMethod(), request.getURI(), request.getHeaders()));
 	}
 	
-	public ExecutionListener<TransferPayload> streamStageListener(ClientHttpResponse res){
-		if(nonNull(res)) {
-			try {//execute postExchange after reading response 
-				traceHeaders(res.getStatusCode(), res.getHeaders()); 
-			}
-			catch (Exception ex) {
-				hub().reportError("HttpConnectionLifecycleTracer.responseHandler", ex);
-			}
-		}
+	public ExecutionListener<StreamCaptor> streamStageListener(ClientHttpResponse res){
 		return disconnectionListener((s,e,cnt,t)-> {
 			try {
+				traceHeaders(res.getStatusCode(), res.getHeaders()); 
 				traceResponseContent(cnt);
 			}
 			catch (Exception ex) {
-				hub().reportError("HttpConnectionLifecycleTracer.responseHandler", ex);
+				hub().reportError("HttpConnectionLifecycleTracer.streamStageListener", ex);
 			}
 			return createStage(TRANSMISSION, s, e);
 		});

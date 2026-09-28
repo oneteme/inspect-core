@@ -31,7 +31,7 @@ public final class InspectServletRequestListener implements ServletRequestListen
 	@Override
 	public void requestDestroyed(ServletRequestEvent sre) {
 		if(sre.getServletRequest() instanceof HttpServletRequest req) {
-			var trc = requireSessionTracer(req, "HttpAsyncExecutionTracer.onComplete");
+			var trc = requireSessionTracer(req, "InspectServletRequestListener.requestDestroyed");
 			if(nonNull(trc)) {
 				trc.safeHandle(null, systemUTC().instant(), null, null);
 				sre.getServletRequest().removeAttribute(SESSION_TRACER);
