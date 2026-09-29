@@ -92,7 +92,7 @@ public final class TraceDispatcherHub implements TraceHub {
 				reportMessage("TraceDispatcherHub.start", "already scheduling");
 			}
 		}
-		else {
+		else { //do not throw exception, allow to start server with disabled inspect
 			log.warn("tracing is disabled, traces will be lost");
 		}
 	}

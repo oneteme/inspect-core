@@ -55,7 +55,7 @@ public final class RestTraceExporter implements TraceExporter {
 	
 	private EventTrace[] lastPacket;
 	private InstanceEnvironment instance;
-	private boolean registred;
+	private boolean registered;
 
 	public RestTraceExporter(RestRemoteServerProperties properties, ObjectMapper mapper, boolean debug) {
 		this(properties, defaultRestTemplate(properties, mapper, debug));
@@ -76,12 +76,13 @@ public final class RestTraceExporter implements TraceExporter {
 			}
 		}
 		try {
+			var arr = traces.toArray(EventTrace[]::new);
 			var uri = fromUriString(properties.getTracesURI())
 					.queryParam("seq", ++sequence) 
 					.queryParam("atm", ++attempts)
 					.queryParamIfPresent("end", complete ? Optional.of(systemUTC().instant()) : empty())
 					.buildAndExpand(id).toUri();
-			template.put(uri, traces.toArray(EventTrace[]::new)); //issue https://github.com/FasterXML/jackson-core/issues/1459
+			template.put(uri, arr); //issue https://github.com/FasterXML/jackson-core/issues/1459
 			attempts = 0;
 			return emptyList();
 		}
@@ -115,7 +116,7 @@ public final class RestTraceExporter implements TraceExporter {
 				//keep last packet
 			}
 			finally {
-				if(attempts > 10) {
+				if(nonNull(lastPacket) && attempts > 10) {
 					log.warn("dispatching {} traces failed, will not retry", lastPacket.length);
 					lastPacket = null;
 					attempts = 0;
@@ -125,16 +126,16 @@ public final class RestTraceExporter implements TraceExporter {
 	}
 
 	UUID getOrRegisterInstanceId() {
-		if(registred) {
+		if(registered) {
 			return instance.getId();
 		}
 		if(nonNull(instance)) {
 			try {
 				++attempts;
 				template.postForObject(properties.getInstanceURI(), instance, String.class);
-				registred = true;
+				registered = true;
 				attempts = 0;
-				log.info("instance was registred with id={}", instance.getId());
+				log.info("instance was registered with id={}", instance.getId());
 				return instance.getId();
 			}
 			catch(RestClientException e) {//server / client ?
@@ -188,7 +189,7 @@ public final class RestTraceExporter implements TraceExporter {
 			rt = rt.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
 		}
 		if(debug) {
-			rt = rt.interceptors(new HttpRequestInterceptor());
+			rt = rt.additionalInterceptors(new HttpRequestInterceptor());
 		}
 		return rt.build();
 	}
@@ -200,10 +201,14 @@ public final class RestTraceExporter implements TraceExporter {
 				try (var gos = new GZIPOutputStream(baos)) {
 					gos.write(body);
 					req.getHeaders().add(CONTENT_ENCODING, "gzip");
-					body = baos.toByteArray();
 				}
 				catch (Exception e) {/*do not throw exception */
 					hub().reportError("RestTraceExporter.bodyCompressionInterceptor", e);
+					req.getHeaders().remove(CONTENT_ENCODING);
+					baos.reset();
+				}
+				if(baos.size() > 0) {
+					body = baos.toByteArray();
 				}
 			}
 			return exec.execute(req, body);
