@@ -29,7 +29,7 @@ public class InspectHandlerExceptionResolver implements HandlerExceptionResolver
 	@Override
 	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
 		if(routePredicate.accept(request)) {
-			var mnt = requireSessionTracer(request, "HandlerExceptionResolverMonitor.resolveException");
+			var mnt = requireSessionTracer(request, "InspectHandlerExceptionResolver.resolveException");
 			if(nonNull(mnt)) { //non filtered requests
 				mnt.emitError(ex);
 			}
