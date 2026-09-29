@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.experimental.Delegate;
 
@@ -19,16 +20,20 @@ public final class InputStreamCaptor extends InputStream implements StreamCaptor
 
 	private static final int MAX_BYTES_TO_CAPTURE = 4096; //4ko
 	
-	static final OutputStream NULL_OUT = nullOutputStream();
+	static final OutputStream NULL_OUT = nullOutputStream(); //never close it
 
 	@Delegate
 	private final InputStream in;
 	private final OutputStream out;
-	private int length;
+
+	private final StreamExchangeListener listener;
+	private final AtomicInteger size = new AtomicInteger(-1);
+	private Throwable throwable;
  
-	public InputStreamCaptor(InputStream in, boolean cache) {
+	public InputStreamCaptor(InputStream in, StreamExchangeListener listener, boolean readContent) {
 		this.in = in;
-		this.out = cache ? new ByteArrayOutputStream() : NULL_OUT;
+		this.listener = listener;
+		this.out = readContent ? new ByteArrayOutputStream() : NULL_OUT;
 	}
 	
 	@Override
@@ -75,42 +80,53 @@ public final class InputStreamCaptor extends InputStream implements StreamCaptor
 	
 	void cacheBytes(byte[] b, int off, int len) throws IOException {
 		if(len > 0) {
-			var v = remainingCacheCapacity(len);
+			var v = remainingToRead(len);
 			if(v > 0) {
 				out.write(b, off, v);
 			}
-			length += len;
+			size.getAndAdd(len);
 		}
 	}
 	
 	void cacheByte(int b) throws IOException {
 		if(b > -1) {
-			var v = remainingCacheCapacity(1);
+			var v = remainingToRead(1);
 			if(v > 0) {
 				out.write(b);
 			}
-			++length;
+			size.getAndAdd(1);
 		}
 	}
 	
-	int remainingCacheCapacity(int n) {
-		return length < MAX_BYTES_TO_CAPTURE ? min(n, MAX_BYTES_TO_CAPTURE-length) : 0; // return remaining size
+	int remainingToRead(int n) {
+        if(size.compareAndSet(-1, 0)) { //first read
+        	listener.onTransmissionStart();
+		}
+        var len = size.get();
+		return len < MAX_BYTES_TO_CAPTURE ? min(n, MAX_BYTES_TO_CAPTURE-len) : 0; // return remaining size
 	}
 	
 	@Override
 	public void close() throws IOException {
+		if(out instanceof ByteArrayOutputStream) {
+			out.close(); // safe close
+		}
 		try {
-			if(out instanceof ByteArrayOutputStream) {
-				out.close();
-			}
+			in.close();
+		}
+		catch (Exception e) {
+			throwable = e;
+			throw e;
 		}
 		finally {
-			in.close();
+    		if(size.get() > -1) { //
+            	listener.onTransmissionEnd();
+    		}	
 		}
 	}
 	
 	public long transferedSize(){
-		return length;
+		return size.get();
 	}
 	
 	public byte[] transferedBytes() {
@@ -119,6 +135,6 @@ public final class InputStreamCaptor extends InputStream implements StreamCaptor
 	
 	@Override
 	public Throwable throwable() {
-		return null;
+		return throwable;
 	}
 }

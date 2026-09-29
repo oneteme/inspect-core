@@ -1,14 +1,11 @@
 package org.usf.inspect.http;
 
-import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Instant;
 
 import org.springframework.http.client.ClientHttpResponse;
-import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
@@ -25,30 +22,24 @@ public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 
 	@Delegate
 	private final ClientHttpResponse response;
-	private final ExecutionListener<StreamCaptor> listener;
+	private final HttpConnectionLifecycleTracer tracer;
 	private InputStreamCaptor pipe;
-	private Instant start = systemUTC().instant();
 
 	@Override
 	public InputStream getBody() throws IOException {
 		if(isNull(pipe)) {
-			pipe = new InputStreamCaptor(response.getBody(), getStatusCode().isError());
+			pipe = new InputStreamCaptor(response.getBody(), tracer, getStatusCode().isError());
 		}
 		return pipe;
 	}
 	
 	@Override
 	public void close() {
-		Throwable t = null;
 		try {
 			response.close();
 		}
-		catch (Exception e) {
-			t = e;
-			throw e;
-		}
 		finally {
-			listener.safeHandle(start, systemUTC().instant(), pipe, t);
+			tracer.complete(pipe);
 		}
 	}
 }

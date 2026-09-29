@@ -8,17 +8,17 @@ import java.util.EventListener;
  *
  */
 public interface StreamCaptor {
-	
+
 	byte[] transferedBytes();
-	
+
 	long transferedSize();
-	
+
 	Throwable throwable();
-	
-	public interface StreamExchangeListener extends EventListener { //input/output stream payload
-		
+
+	public interface StreamExchangeListener extends EventListener {
+
 		void onTransmissionStart();
-		
+
 		void onTransmissionEnd();
 	}
 }

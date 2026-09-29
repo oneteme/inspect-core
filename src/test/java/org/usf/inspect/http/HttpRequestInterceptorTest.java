@@ -2,6 +2,8 @@ package org.usf.inspect.http;
 
 import static java.time.Duration.ofMillis;
 import static java.time.Instant.now;
+import static java.util.Objects.nonNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,6 +20,7 @@ import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
 import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
 import static org.usf.inspect.core.TraceAssertions.assertRequestStage;
 import static org.usf.inspect.core.TraceAssertions.assertRequestUpdate;
+import static org.usf.inspect.core.TraceAssertions.assertPerformance;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -63,7 +66,8 @@ class HttpRequestInterceptorTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        server.close();
+    	assertPerformance(5, getTraces());
+    	server.close();
     }
     
     @Test
@@ -137,27 +141,38 @@ class HttpRequestInterceptorTest {
         assertDoesNotThrow(()-> template.getForEntity(server.url("/api").toString(), String.class));
         var end = now();
         
-        assertRequestTraces(status, start, end, getTraces());
+        assertRequestTraces(status, start, end, "OK", getTraces());
     }
     
     @ParameterizedTest
     @ValueSource(ints = {400, 401, 403, 404, 409, 502, 503, 504}) //TODO 407 : ResourceAccessException vs ProtocolException
     void test_http_call2(int status) {
         server.enqueue(new MockResponse().setResponseCode(status).setBody("not OK"));
+        var url = server.url("/api").toString();
         
         var start = now();
-        assertThrows(RestClientException.class, ()-> template.getForEntity(server.url("/api").toString(), String.class));
+        assertThrows(RestClientException.class, ()-> template.getForEntity(url, String.class));
         var end = now();
         
-        assertRequestTraces(status, start, end, getTraces());
+        assertRequestTraces(status, start, end, "not OK", getTraces());
     }
     
-	void assertRequestTraces(int status, Instant beforeStart, Instant afterEnd, List<EventTrace> traces){
+	void assertRequestTraces(int status, Instant beforeStart, Instant afterEnd, String body, List<EventTrace> traces){
 		assertEquals(4, traces.size());
 		var idx = 0;
 		var signal = assertRequestSignal("http", server.getHostName(), server.getPort(), null, beforeStart, HttpRequestSignal.class, traces.get(idx++));
 		var strStg = assertRequestStage(EXECUTION.name(), null, signal.getId(), idx, null, signal.getStart(), HttpRequestStage.class, traces.get(idx++));
 		var endStg = assertRequestStage(TRANSMISSION.name(), null, signal.getId(), idx, null, strStg.getEnd(), HttpRequestStage.class, traces.get(idx++));		
-		assertRequestUpdate(status, signal.getId(), null, endStg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
+		var upd = assertRequestUpdate(status, signal.getId(), null, endStg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
+		if(nonNull(body)) {
+			if(status >= 400) { //retains body content for error response only
+				assertEquals(body, upd.getBodyContent());
+			}
+			assertEquals(body.length(), upd.getDataSize());
+		}
+		else {
+			assertNull(upd.getBodyContent());
+			assertEquals(-1, upd.getDataSize());
+		}
 	}
 }

@@ -45,6 +45,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	        
 	        case java.net.URISyntaxException e -> APP_ERROR;
 	        case java.net.MalformedURLException e -> APP_ERROR;
+	        case java.lang.IllegalArgumentException e -> APP_ERROR;
 	        
 	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().toLowerCase().contains("connect") ? CNX_TIMEOUT : INT_TIMEOUT;
 	        

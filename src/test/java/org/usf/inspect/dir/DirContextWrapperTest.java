@@ -108,7 +108,6 @@ class DirContextWrapperTest {
         
         assertRequestTraces(server.getListenPort(), start, end, new StagePayload(new String[] {"dc=jarvis,dc=usf"}, null), getTraces());
         
-//       System.err.println(TraceAssertions.performance(hub.getTraces()));
     }
     
 	static void assertRequestTraces(int port, Instant beforeStart, Instant afterEnd, StagePayload sp, List<EventTrace> traces){

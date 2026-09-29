@@ -1,11 +1,14 @@
 package org.usf.inspect.http;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.time.Clock.systemUTC;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.UUID.fromString;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
 import static org.usf.inspect.core.TraceHub.hub;
@@ -25,6 +28,7 @@ import org.usf.inspect.core.HttpRequestSignal;
 import org.usf.inspect.core.HttpRequestStage;
 import org.usf.inspect.core.HttpRequestUpdate;
 import org.usf.inspect.core.TraceSignal;
+import org.usf.inspect.http.StreamCaptor.StreamExchangeListener;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,10 +39,11 @@ import lombok.NoArgsConstructor;
  *
  */
 @NoArgsConstructor
-abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycleTracer {
+abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycleTracer implements StreamExchangeListener {
 
 	@Getter
 	private final UUID id = nextId();
+	HttpRequestStage streamStage;
 	
 	@Override
 	protected TraceSignal signal(Instant start) {
@@ -115,6 +120,57 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 //		stg.setCommand(null)
 //		stg.setPayload(null)
 		return stg;
+	}
+	
+	@Override
+	public void onTransmissionStart() {
+		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.onTransmissionStart")) {
+			if(isNull(streamStage)) {
+				var s = systemUTC().instant();
+				streamStage = new HttpRequestStage(getUpdate().getId(), getStageCounter().incrementAndGet());
+				streamStage.setStart(s);
+				streamStage.setName(TRANSMISSION.name());
+			}
+			else {
+				hub().reportMessage("AbstractHttpConnectionLifecycleTracer.onTransmissionStart", "streamStage already started");
+			}
+		}
+	}
+	
+	@Override
+	public void onTransmissionEnd() {
+		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.onTransmissionEnd")) {
+			if(nonNull(streamStage) && isNull(streamStage.getEnd())) {
+				streamStage.setEnd(systemUTC().instant());
+			}
+			else {
+				hub().reportMessage("AbstractHttpConnectionLifecycleTracer.onTransmissionEnd", "streamStage already ended");
+			}
+		}
+	}
+	
+	public void complete(StreamCaptor captor) {
+		if(assertActiveTraceUpdate("AbstractHttpConnectionLifecycleTracer.complete")) {
+			var now = systemUTC().instant();
+			Throwable thrw = null;
+			if(nonNull(captor)) {
+				thrw = captor.throwable();
+				try {
+					traceResponseContent(captor);
+				}
+				catch (Exception ex) {
+					hub().reportError("AbstractHttpConnectionLifecycleTracer.complete", ex);
+				}
+			}
+			StageBuilder<Void> stgBuilder = null;
+			if(nonNull(streamStage)){
+				if(isNull(streamStage.getEnd())) {
+					streamStage.setEnd(now); //onTransmissionEnd may not called for some reason (e.g. connection closed by server)
+				}
+				stgBuilder = (s,e,o,t)-> streamStage;
+			}
+			disconnectionListener(stgBuilder).safeHandle(null, now, null, thrw);
+		}
 	}
 	
 	boolean assertSameID(String sid) {

@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.Thread.currentThread;
 import static java.time.Duration.between;
+import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
@@ -95,17 +96,43 @@ public final class TraceAssertions {
 		assertTrue(update.getEnd().compareTo(afterEnd) <= 0);
 	}
 	
-	public static long performance(List<EventTrace> trace) {
+	public static void assertPerformance(int milli, List<EventTrace> trace) {
 		assertTrue(trace.size() >= 2);
-		var sgn = assertInstanceOf(AbstractRequestSignal.class, trace.get(0));
+		var sgn = assertInstanceOf(TraceSignal.class, trace.get(0));
 		var elp = 0;
 		for(var i=1; i<trace.size()-1; i++) {
 			var trc = trace.get(i);
-			if(trc instanceof AbstractStage stg) {
+			if(trc instanceof Metric stg) {
 				elp += between(stg.getStart(), stg.getEnd()).toNanos();
 			}
 		}
+		var upd = assertInstanceOf(TraceUpdate.class, trace.get(trace.size()-1));
+		try {
+			assertTrue(between(sgn.getStart(), upd.getEnd()).minusNanos(elp).toMillis() < milli);
+		}
+		catch (AssertionError e) {
+			debugTraces(trace);
+			throw e;
+		}
+	}
+
+	public static void debugTraces(List<EventTrace> trace) {
+		var sgn = assertInstanceOf(AbstractRequestSignal.class, trace.get(0));
+		System.out.println(sgn);
+		var prv = sgn.getStart();
+		for(var i=1; i<trace.size()-1; i++) {
+			var trc = trace.get(i);
+			if(trc instanceof Metric stg) {
+				System.out.println(" | +%2s".formatted(between(prv, stg.getStart()).toMillis()) + "ns => " + stg);
+				prv = stg.getEnd();
+			}
+			if(trc instanceof ExceptionTrace exp && exp.getTraceType() < 10) {
+				var at = ofEpochMilli(exp.getOffset());
+				System.out.println(" | +%2s".formatted(between(prv, at).toMillis()) + "ns => " + exp);
+				prv = at;
+			}
+		}
 		var upd = assertInstanceOf(AbstractRequestUpdate.class, trace.get(trace.size()-1));
-		return between(sgn.getStart(), upd.getEnd()).toNanos() - elp;
+		System.out.println(" | +%2s".formatted(between(prv, upd.getEnd()).toMillis()) + "ns => " + upd);
 	}
 }
