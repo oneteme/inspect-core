@@ -5,11 +5,11 @@ import static java.time.Instant.now;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.usf.inspect.core.DualEventTracer.APP_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
 import static org.usf.inspect.core.DualEventTracer.CNX_SSL_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
-import static org.usf.inspect.core.DualEventTracer.SUCCESS;
 import static org.usf.inspect.core.HttpAction.EXECUTION;
 import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.TestTraceHub.clearTraces;
@@ -28,8 +28,11 @@ import javax.net.ssl.SSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.usf.inspect.core.EventTrace;
 import org.usf.inspect.core.HttpRequestSignal;
@@ -65,7 +68,7 @@ class HttpRequestInterceptorTest {
     
     @Test
     void test_connection_invalid_scheme() {
-        testConnectError(CNX_ERROR, "unknown-scheme", HOST, -1, "unknown-scheme://localhost/test", ResourceAccessException.class);
+        testConnectError(APP_ERROR, "unknown-scheme", HOST, -1, "unknown-scheme://localhost/test", ResourceAccessException.class);
     }
     
     @Test
@@ -125,23 +128,36 @@ class HttpRequestInterceptorTest {
   		assertRequestUpdate(status, sgn.getId(), null, stg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
   	}
     
-    @Test
-    void test_http_call() {
-        server.enqueue(new MockResponse().setResponseCode(200).setBody("OK"));
+    @ParameterizedTest
+    @ValueSource(ints = {200, 201, 202}) //TODO 204 no content 
+    void test_http_call(int status) {
+        server.enqueue(new MockResponse().setResponseCode(status).setBody("OK"));
         
         var start = now();
         assertDoesNotThrow(()-> template.getForEntity(server.url("/api").toString(), String.class));
         var end = now();
         
-        assertRequestTraces(start, end, getTraces());
+        assertRequestTraces(status, start, end, getTraces());
     }
     
-	void assertRequestTraces(Instant beforeStart, Instant afterEnd, List<EventTrace> traces){
+    @ParameterizedTest
+    @ValueSource(ints = {400, 401, 403, 404, 409, 502, 503, 504}) //TODO 407 : ResourceAccessException vs ProtocolException
+    void test_http_call2(int status) {
+        server.enqueue(new MockResponse().setResponseCode(status).setBody("not OK"));
+        
+        var start = now();
+        assertThrows(RestClientException.class, ()-> template.getForEntity(server.url("/api").toString(), String.class));
+        var end = now();
+        
+        assertRequestTraces(status, start, end, getTraces());
+    }
+    
+	void assertRequestTraces(int status, Instant beforeStart, Instant afterEnd, List<EventTrace> traces){
 		assertEquals(4, traces.size());
 		var idx = 0;
 		var signal = assertRequestSignal("http", server.getHostName(), server.getPort(), null, beforeStart, HttpRequestSignal.class, traces.get(idx++));
 		var strStg = assertRequestStage(EXECUTION.name(), null, signal.getId(), idx, null, signal.getStart(), HttpRequestStage.class, traces.get(idx++));
 		var endStg = assertRequestStage(TRANSMISSION.name(), null, signal.getId(), idx, null, strStg.getEnd(), HttpRequestStage.class, traces.get(idx++));		
-		assertRequestUpdate(SUCCESS, signal.getId(), null, endStg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
+		assertRequestUpdate(status, signal.getId(), null, endStg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
 	}
 }

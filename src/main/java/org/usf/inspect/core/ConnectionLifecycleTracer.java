@@ -46,14 +46,14 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	        case java.net.URISyntaxException e -> APP_ERROR;
 	        case java.net.MalformedURLException e -> APP_ERROR;
 	        
-	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().contains("connect") ? CNX_TIMEOUT : INT_TIMEOUT;
+	        case java.net.SocketTimeoutException e -> nonNull(e.getMessage()) && e.getMessage().toLowerCase().contains("connect") ? CNX_TIMEOUT : INT_TIMEOUT;
 	        
 	        case java.io.InterruptedIOException e -> CNX_INTERRUPTED;
 	        case java.lang.InterruptedException e -> CNX_INTERRUPTED;
 	        case java.util.concurrent.TimeoutException e -> CNX_ABORTED;
 	        case java.util.concurrent.CancellationException e -> CNX_ABORTED; //WebClientFilter
 	        
-	        case java.io.IOException e -> CNX_ERROR;
+	        case java.io.IOException e -> CNX_ERROR; //ProtocolException !!
 
 	        default -> INT_ERROR;
 	    };
