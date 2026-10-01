@@ -26,7 +26,6 @@ import org.usf.inspect.core.DatabaseCommand;
 import org.usf.inspect.core.DatabaseRequestSignal;
 import org.usf.inspect.core.DatabaseRequestStage;
 import org.usf.inspect.core.DatabaseRequestUpdate;
-import org.usf.inspect.core.DualEventTracer;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.StagePayload;
 import org.usf.inspect.core.TraceSignal;
@@ -105,7 +104,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	}
 
 	public ExecutionListener<Object> statementStageListener(String sql) {
-		mainCommand = null; //rest
+		mainCommand = null;
 		if(nonNull(sql)) {
 			prepared = true;
 			parseAndMergeCommand(sql);
@@ -119,7 +118,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 		}
 		if(isNull(batchStageBuilder)) {
 			batchStageBuilder = new BatchStageBuilder(); 
-		}
+		}		
 		return stageListener(batchStageBuilder);
 	}
 	
@@ -252,12 +251,14 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	}
 	
 	void parseAndMergeCommand(String sql) {
-		try {
-			mainCommand = mergeCommand(mainCommand, extractCommand(sql));
-			((DatabaseRequestUpdate)getUpdate()).setCommand(mainCommand.name());
-		}
-		catch (Exception e) {
-			hub().reportError("parseAndMergeCommand", e);
+		if(assertActiveTraceUpdate("DatabaseConnectionLifecycleTracer.parseAndMergeCommand")) {
+			try {
+				mainCommand = mergeCommand(mainCommand, extractCommand(sql));
+				((DatabaseRequestUpdate)getUpdate()).setCommand(mainCommand.name());
+			}
+			catch (Exception e) {
+				hub().reportError("parseAndMergeCommand", e);
+			}
 		}
 	}
 	
@@ -269,7 +270,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	}
 	
 	@Getter
-	final class BatchStageBuilder implements DualEventTracer.StageBuilder<Void> {
+	final class BatchStageBuilder implements StageBuilder<Void> {
 
 		private DatabaseRequestStage stage;
 		

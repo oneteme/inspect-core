@@ -9,9 +9,7 @@ import static org.usf.inspect.core.DirAction.EXECUTE;
 import static org.usf.inspect.core.SessionContextManager.createNamingSignal;
 
 import java.time.Instant;
-import java.util.function.Function;
 
-import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 
 import org.usf.inspect.core.ConnectionLifecycleTracer;
@@ -67,14 +65,18 @@ final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer
 	public ExecutionListener<DirContext> connectionListener() {
 		return connectionListener(stageBuilder(CONNECTION, null), (trc, cnx)->{
 			var sgn = (DirectoryRequestSignal) trc;
-			if(nonNull(cnx)) {
-				var url = getEnvironmentVariable(cnx, "java.naming.provider.url", v-> create(v.toString()));  //broke context dependency
-				if(nonNull(url)) {
+			if(nonNull(cnx) && nonNull(cnx.getEnvironment())) {
+				var val = cnx.getEnvironment().get("java.naming.provider.url");
+				if(nonNull(val)) {
+					var url = create(val.toString());
 					sgn.setProtocol(url.getScheme());
 					sgn.setHost(url.getHost());
 					sgn.setPort(url.getPort());
 				}
-				sgn.setUser(getEnvironmentVariable(cnx, "java.naming.security.principal", Object::toString));  //broke context dependency
+				val = cnx.getEnvironment().get("java.naming.security.principal");
+				if(nonNull(val)) {
+					sgn.setUser(val.toString());
+				}
 			}
 		}); //before end if thrw
 	}
@@ -105,13 +107,5 @@ final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer
 			stg.setPayload(nonNull(args) && args.length > 0 ? new StagePayload(args, null) : null);
 			return stg;
 		};
-	}
-
-	static <T> T getEnvironmentVariable(DirContext o, String key, Function<Object, T> fn) throws NamingException {
-		var env = o.getEnvironment();
-		if(nonNull(env) && env.containsKey(key)) {
-			return fn.apply(env.get(key));
-		}
-		return null;
 	}
 }
