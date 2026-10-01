@@ -88,22 +88,19 @@ final class DirectoryConnectionLifecycleTracer extends ConnectionLifecycleTracer
 	}
 	
 	<T> ExecutionListener<T> stageHandler(DirAction action, DirCommand cmd, String... args) {
-		if(nonNull(cmd) && nonNull(getUpdate())) {
-			var upd = (DirectoryRequestUpdate) getUpdate();
-			upd.setCommand(merge(upd.getCommand(), cmd.getType()));
-		}
 		return stageListener(stageBuilder(action, cmd, args));
 	}
 	
 	<R> StageBuilder<R> stageBuilder(DirAction action, DirCommand cmd, String... args) {
 		return (s,e,o,t)-> {
-			var upd = getUpdate();
+			var upd = (DirectoryRequestUpdate) getUpdate();
 			var stg = new DirectoryRequestStage(upd.getId(), getStageCounter().incrementAndGet());
 			stg.setName(action.name());
 			stg.setStart(s);
 			stg.setEnd(e);
 			if(nonNull(cmd)) {
 				stg.setCommand(cmd.name());
+				upd.setCommand(merge(upd.getCommand(), cmd.getType())); //update request
 			}
 			stg.setPayload(nonNull(args) && args.length > 0 ? new StagePayload(args, null) : null);
 			return stg;

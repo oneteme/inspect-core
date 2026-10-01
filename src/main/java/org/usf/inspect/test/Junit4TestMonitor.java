@@ -2,6 +2,7 @@ package org.usf.inspect.test;
 
 import static java.time.Clock.systemUTC;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
+import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 
@@ -27,7 +28,7 @@ public final class Junit4TestMonitor implements TestRule {
 				exec(base::evaluate, forMainSession(()-> {
 					var sgn = createTestSession(systemUTC().instant());
 					sgn.setName(dscr.getDisplayName());
-					sgn.setLocation(dscr.getClassName(), dscr.getMethodName());
+					sgn.setLocation(formatLocation(dscr.getClassName(), dscr.getMethodName()));
 					//set test user
 					return sgn;
 				}));

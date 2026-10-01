@@ -1,7 +1,5 @@
 package org.usf.inspect.core;
 
-import static org.usf.inspect.core.Helper.formatLocation;
-
 import java.time.Instant;
 import java.util.UUID;
 
@@ -29,10 +27,6 @@ public class AbstractSessionSignal implements TraceSignal {
 	//server usage 
 	private UUID instanceId; 
 	
-	public void setLocation(String className, String methodName) {
-		this.location = formatLocation(className, methodName);
-	}
-
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()

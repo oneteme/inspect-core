@@ -79,21 +79,19 @@ final class MailConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 	}
 	
 	public <T> ExecutionListener<T> stageListener(MailAction action, MailCommand cmd, Message msg) {
-		if(nonNull(cmd) && nonNull(getUpdate())) {
-			var upd = (MailRequestUpdate) getUpdate();
-			upd.setCommand(merge(upd.getCommand(), cmd.getType()));
-		}
 		return stageListener(stageBuilder(action, cmd, msg));
 	}
 	
 	<R> StageBuilder<R> stageBuilder(MailAction action, MailCommand cmd, Message msg) {
 		return (s,e,o,t)-> {
-			var stg = new MailRequestStage(getUpdate().getId(), getStageCounter().incrementAndGet());
+			var upd = (MailRequestUpdate) getUpdate();
+			var stg = new MailRequestStage(upd.getId(), getStageCounter().incrementAndGet());
 			stg.setName(action.name());
 			stg.setStart(s);
 			stg.setEnd(e);
 			if(nonNull(cmd)) {
 				stg.setCommand(cmd.name());
+				upd.setCommand(merge(upd.getCommand(), cmd.getType())); //update request
 			}
 			stg.setPayload(null);
 			if(nonNull(msg)) {

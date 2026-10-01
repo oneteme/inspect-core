@@ -80,22 +80,19 @@ final class FtpConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 	}
 
 	<T> ExecutionListener<T> stageListener(FtpAction action, FtpCommand cmd, String... args) {
-		if(nonNull(cmd) && nonNull(getUpdate())) {
-			var upd = (FtpRequestUpdate) getUpdate();
-			upd.setCommand(merge(upd.getCommand(), cmd.getType()));
-		}
 		return stageListener(stageBuilder(action, cmd, args));
 	}
 	
 	<R> StageBuilder<R> stageBuilder(FtpAction action, FtpCommand cmd, String... args) {
 		return (s,e,o,t)-> {
-			var upd = getUpdate();
+			var upd = (FtpRequestUpdate) getUpdate();
 			var stg = new FtpRequestStage(upd.getId(), getStageCounter().incrementAndGet());
 			stg.setName(action.name());
 			stg.setStart(s);
 			stg.setEnd(e);
 			if(nonNull(cmd)) {
 				stg.setCommand(cmd.name());
+				upd.setCommand(merge(upd.getCommand(), cmd.getType())); //update request
 			}
 			stg.setPayload(nonNull(args) && args.length > 0 ? new StagePayload(args, null) : null);
 			return stg;

@@ -71,13 +71,13 @@ public final class RestTraceExporter implements TraceExporter {
 		var id = getOrRegisterInstanceId();
 		if(nonNull(lastPacket)) {
 			dispatchPrevious(id);
-			if(nonNull(lastPacket)) {
-				return traces; //reject
+			if(nonNull(lastPacket) && !complete) {
+				return traces; //retry later only if not complete
 			}
 		}
 		try {
 			var arr = traces.toArray(EventTrace[]::new);
-			var uri = fromUriString(properties.getTracesURI())
+			var uri = fromUriString(properties.getTracesURI()) 
 					.queryParam("seq", ++sequence) 
 					.queryParam("atm", ++attempts)
 					.queryParamIfPresent("end", complete ? Optional.of(systemUTC().instant()) : empty())

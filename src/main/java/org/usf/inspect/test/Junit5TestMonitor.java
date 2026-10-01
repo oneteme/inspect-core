@@ -4,6 +4,7 @@ import static java.time.Clock.systemUTC;
 import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
 import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
+import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
@@ -60,7 +61,7 @@ public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCal
 		updateExecutionListener(context, hndl-> forMainSession(()-> { 
 			var sgn = createTestSession(systemUTC().instant());
 			sgn.setName(context.getDisplayName());
-			sgn.setLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName());
+			sgn.setLocation(formatLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName()));
 			//set test user
 			return sgn;
 		}));

@@ -3,9 +3,8 @@ package org.usf.inspect.core;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.StreamSupport.stream;
-import static org.usf.inspect.core.SessionContextManager.requireActiveContext;
-import static org.usf.inspect.core.SessionPropagator.runInContext;
-import static org.usf.inspect.core.SessionPropagator.supplyInContext;
+import static org.usf.inspect.core.SessionContextManager.activeContext;
+import static org.usf.inspect.core.SessionPropagator.withContext;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.Collection;
@@ -41,7 +40,7 @@ public final class StreamProxy {
 	
 	public static <T> Stream<T> trackStream(Stream<T> stream) {
 		if(hub().isEnabled()){
-			var ctx = requireActiveContext();
+			var ctx = activeContext();
 			if(nonNull(ctx)) {
 				return stream(new ContextSpliterator<>(stream.spliterator(), ctx), stream.isParallel())
 						.onClose(stream::close);
@@ -59,14 +58,16 @@ public final class StreamProxy {
 
 	    @Override 
 	    public boolean tryAdvance(Consumer<? super T> action) {
-		    //TODO check this forEachRemaining-> tryAdvance
-	        return supplyInContext(()-> delegate.tryAdvance(action), ctx);
+	    	try(var sp = withContext(ctx, true)){
+	    		return delegate.tryAdvance(action);
+	    	}
 	    }
 	    
 	    @Override 
 	    public void forEachRemaining(Consumer<? super T> action) {
-	    	Consumer<? super T> wrap = o-> runInContext(()-> action.accept(o), ctx);
-	    	delegate.forEachRemaining(wrap);
+	    	try(var sp = withContext(ctx, true)){
+	    		delegate.forEachRemaining(action);
+	    	}
 	    }
 	    
 	    @Override 
