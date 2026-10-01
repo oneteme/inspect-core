@@ -113,7 +113,7 @@ final class MailConnectionLifecycleTracer extends ConnectionLifecycleTracer {
 	}
 	
 	static String[] toStringArray(Address... address) {
-		return isNull(address)
+		return isNull(address) || address.length == 0
 			? null 
 			: Stream.of(address).map(Address::toString).toArray(String[]::new);
 	}
