@@ -1,87 +1,76 @@
 package org.usf.inspect.test;
 
 import static java.time.Clock.systemUTC;
-import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.create;
-import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
-import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 
-import java.util.Optional;
-import java.util.function.UnaryOperator;
+import java.lang.reflect.Method;
 
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
-import org.junit.jupiter.api.extension.TestWatcher;
-import org.usf.inspect.core.ExecutionTracer;
-import org.usf.inspect.core.InspectExecutor.ExecutionListener;
+import org.junit.jupiter.api.extension.InvocationInterceptor;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 
 /**
  * 
  * @author u$f
  *
  */
-public final class Junit5TestMonitor implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, TestWatcher, AfterAllCallback {
+@InspectTest
+public final class Junit5TestMonitor implements InvocationInterceptor {
 
-	private static final Namespace NAMESPACE = create(Junit5TestMonitor.class.getName());
-	private static final String SESSION_KEY = "inspect-junit-monitor";
-	
 	@Override
-	public void beforeAll(ExtensionContext context) throws Exception {
-		setActiveContext(createTestSession(systemUTC().instant()).createCallback()); //fake session, avoid no active session
+	public void interceptBeforeAllMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+		
+		processInvocation(invocation, extensionContext);
 	}
 
 	@Override
-	public void beforeEach(ExtensionContext context) throws Exception {
-		preProcess(context);
-	}
-
-	@Override
-	public void afterEach(ExtensionContext context) throws Exception {
-		postProcess(context);
+	public void interceptBeforeEachMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext,
+			ExtensionContext extensionContext) throws Throwable {
+		
+		processInvocation(invocation, extensionContext);
 	}
 	
 	@Override
-	public void afterAll(ExtensionContext context) throws Exception {
-		setActiveContext(createTestSession(systemUTC().instant()).createCallback()); //fake session, avoid no active session
-	}
+	public void interceptAfterAllMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 
-	@Override
-	public void testDisabled(ExtensionContext context, Optional<String> reason) {
-		preProcess(context);
-		postProcess(context);
+		processInvocation(invocation, extensionContext);
 	}
 	
-	void preProcess(ExtensionContext context)  { //cannot check existing handler, see beforeAll
-		updateExecutionListener(context, hndl-> forMainSession(()-> { 
+	@Override
+	public void interceptAfterEachMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+
+		processInvocation(invocation, extensionContext);
+	}
+	
+	
+	@Override
+	public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext,
+			ExtensionContext extensionContext) throws Throwable {
+		
+		processInvocation(invocation, extensionContext);
+	}
+	
+	@Override
+	public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext,
+			ExtensionContext extensionContext) throws Throwable {
+		
+		processInvocation(invocation, extensionContext);
+	}
+	
+	static void processInvocation(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
+		call(invocation::proceed, forMainSession(()-> {
 			var sgn = createTestSession(systemUTC().instant());
-			sgn.setName(context.getDisplayName());
-			sgn.setLocation(formatLocation(context.getRequiredTestClass().getName(), context.getRequiredTestMethod().getName()));
+			sgn.setName(extensionContext.getDisplayName());
+			sgn.setLocation(formatLocation(extensionContext.getRequiredTestClass().getName(), extensionContext.getRequiredTestMethod().getName()));
 			//set test user
 			return sgn;
 		}));
-	}
-	
-	static void postProcess(ExtensionContext context){
-		var end = systemUTC().instant();
-		updateExecutionListener(context, hndl-> {
-			if(assertActiveTracer(hndl, SESSION_KEY)) {
-				hndl.safeHandle(null, end, null, context.getExecutionException().orElse(null));
-			}
-			return null;
-		});
-	}
-	
-	@SuppressWarnings("unchecked")
-	static ExecutionListener<Void> updateExecutionListener(ExtensionContext context, UnaryOperator<ExecutionTracer<Void>> op) {
-		var str = context.getStore(NAMESPACE);
-		var ses = op.apply(str.get(SESSION_KEY, ExecutionTracer.class));
-		str.put(SESSION_KEY, ses);
-		return ses;
 	}
 }

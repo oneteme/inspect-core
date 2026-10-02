@@ -30,4 +30,16 @@ public final class MainSessionSignal extends AbstractSessionSignal {
 	public MainSessionUpdate createCallback() {
 		return new MainSessionUpdate(getId(), STARTUP.name().equals(type));
 	}
+	
+	
+	@Override
+	public String toString() {
+		return new EventTraceFormatter()
+				.withInstant(getStart())
+				.withThread(getThreadName())
+				.withAction(getType())
+				.withUser(getUser())
+				.withArgsAsTopic(getLocation(), null)
+				.format();
+	}
 }

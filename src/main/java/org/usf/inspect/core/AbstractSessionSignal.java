@@ -25,16 +25,5 @@ public class AbstractSessionSignal implements TraceSignal {
 	private String user;
 
 	//server usage 
-	private UUID instanceId; 
-	
-	@Override
-	public String toString() {
-		return new EventTraceFormatter()
-				.withInstant(start)
-				.withThread(threadName)
-				.withAction(name)
-				.withUser(user)
-				.withArgsAsTopic(location, null)
-				.format();
-	}
+	private UUID instanceId;
 }

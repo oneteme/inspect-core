@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,8 +42,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public final class TraceDispatcherHub implements TraceHub {
-
-	private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
 
 	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISABLE);
 	private final ProcessingQueue<EventTrace> queue = new ProcessingQueue<>();
@@ -82,7 +81,7 @@ public final class TraceDispatcherHub implements TraceHub {
 	public void start() {
 		if(isEnabled()) {
 			if(!scheduling()) {
-				var es = newSingleThreadScheduledExecutor(TraceDispatcherHub::daemonThread);
+				var es = newSingleThreadScheduledExecutor(daemonThread());
 				var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
 				this.executor = configuration.isDebugMode() ? wrap(es, false) : es;
 				this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
@@ -154,7 +153,7 @@ public final class TraceDispatcherHub implements TraceHub {
 					: null;
 			queue.add(logEntry(msg, arr)); //do not use emitTrace to avoid call hooks 
 		}
-		if(configuration.isDebugMode()) {
+		if(configuration.isDebugMode()) { //TODO NPE
 			log.warn(msg, cause);			
 		}
 	}
@@ -364,11 +363,14 @@ public final class TraceDispatcherHub implements TraceHub {
 		}
 	}
 	
-	static Thread daemonThread(Runnable r) { //counter !?
-		var thread = new Thread(r, "inspect-scheduler-" + THREAD_COUNTER.incrementAndGet());
-		thread.setDaemon(true);
-		thread.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));
-		return thread;
+	static ThreadFactory daemonThread() { //counter !?
+		var counter = new AtomicInteger(0);
+		return r-> {
+			var thr = new Thread(r, "inspect-scheduler-" + counter.incrementAndGet());
+			thr.setDaemon(true);
+			thr.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));
+			return thr;
+		};
 	}
 	
 	static TraceExporter resolveExporter(RemoteServerProperties rsp, boolean debug) {
