@@ -16,7 +16,7 @@ import static java.util.stream.Collectors.toSet;
 import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.InspectConfiguration.createObjectMapper;
-import static org.usf.inspect.core.LogEntry.logEntry;
+import static org.usf.inspect.core.ReportEvent.report;
 import static org.usf.inspect.core.MachineResourceMonitor.machineResourceMonitor;
 import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
@@ -97,12 +97,10 @@ public final class TraceDispatcherHub implements TraceHub {
 	}
 	
 	@Override
-	public boolean emitTrace(EventTrace trace) {
+	public void emitTrace(EventTrace trace) {
 		if(scheduling() && atomicState.get().canCollect() && queue.add(trace)) {
 			flushIfThresholdReached();
-			return true;
 		}
-		return false;
 	}
 	
 	@Override //server usage
@@ -135,37 +133,16 @@ public final class TraceDispatcherHub implements TraceHub {
 			}
 		}
 	}
-	
-	@Override
-	public void reportError(String action, Throwable thwr) {
-		report(formatLog(action, null, thwr), thwr);
-	}
 
 	@Override
-	public void reportMessage(String action, String msg) {
-		report(formatLog(action, msg, null), null);
-	}
-	
-	void report(String msg, Throwable cause) {
-		if(scheduling() && atomicState.get().canCollect()) {
-			var arr = configuration.isDebugMode()
-					? exceptionStackTraceRows(requireNonNullElseGet(cause, Exception::new), -1) 
-					: null;
-			queue.add(logEntry(msg, arr)); //do not use emitTrace to avoid call hooks 
-		}
-		if(configuration.isDebugMode()) { //TODO NPE
-			log.warn(msg, cause);			
-		}
-	}
-
-	@Override
-	public boolean dispatch(InstanceEnvironment instance) { //dispatch immediately
+	public void dispatch(InstanceEnvironment instance) { //dispatch immediately
 		if(scheduling() && atomicState.get().canCollect()) {
 			eventBus.triggerInstanceEmit(instance);
 			exporter.dispatch(instance);
-			return true;
 		}
-		return false;
+		else {
+			log.warn("cannot dispatch instance environment, scheduling={}, state={}", scheduling(), atomicState.get());
+		}
 	}
 	
 	void schedule() { //dispatch immediately
@@ -218,7 +195,7 @@ public final class TraceDispatcherHub implements TraceHub {
 			queue.pollAll(snp->{
 				try {
 					var i=0;
-					var arr = new Class[] {AbstractStage.class, ExceptionTrace.class, MachineResourceUsage.class, LogEntry.class, SessionMaskUpdate.class};
+					var arr = new Class[] {AbstractStage.class, ExceptionTrace.class, MachineResourceUsage.class, ReportEvent.class, SessionMaskUpdate.class};
 					do {
 						removeInstanceOf(snp, arr[i]);
 					} while(++i<arr.length && snp.size() > max);

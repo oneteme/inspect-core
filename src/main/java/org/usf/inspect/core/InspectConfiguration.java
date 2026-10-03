@@ -72,9 +72,11 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	
 	private final ApplicationContext appContext;
 	private final ExecutionTracer<?> tracer;
+	private final InspectCollectorConfiguration config;
 	
 	InspectConfiguration(ApplicationContext appContext, Environment env) {
-        ((TraceDispatcherHub)hub()).configure(loadConfiguration(env)).start();
+		this.config = loadConfiguration(env);
+        ((TraceDispatcherHub)hub()).configure(config).start();
         this.appContext = appContext;
         this.tracer = forMainSession(()-> { //create startup session immediately after configuring hub, before any other bean is created
 			var sgn = createStartupSession(ofEpochMilli(appContext.getStartupDate()));
@@ -156,7 +158,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
     @Bean
     ApplicationListener<SpringApplicationEvent> appEventListener(ApplicationPropertiesProvider provider, ServletContext servletContext){
     	var start = ofEpochMilli(appContext.getStartupDate());
-    	var instance = newInstanceEnvironment(start, hub().getConfiguration(), provider, servletContext);
+    	var instance = newInstanceEnvironment(start, config, provider, servletContext);
 		hub().dispatch(instance);
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
@@ -207,7 +209,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	
 	public static SimpleModule coreModule() {
 		return new SimpleModule("inspect-core-module").registerSubtypes(
-				new NamedType(LogEntry.class, 					"00"),  
+				new NamedType(ReportEvent.class, 					"00"),  
 				new NamedType(MachineResourceUsage.class, 		"01"),
 				new NamedType(RestRemoteServerProperties.class, "02"),
 				new NamedType(SessionMaskUpdate.class,			"03"),  

@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
@@ -55,15 +54,6 @@ public interface DualEventTracer {
 	
 	default Throwable mapException(Throwable t) {
 		return getUpdate() instanceof AbstractSessionUpdate ? t : rootCauseException(t);
-	}
-	
-	default ExceptionTrace exceptionTrace(Throwable t, long offset) {
-		var upd = getUpdate();
-		var exp = upd instanceof AbstractSessionUpdate ? fromException(t) : fromException(t, 0, 0);
-		exp.setOffset(offset);
-		exp.setTraceId(upd.getId());
-		exp.setTraceType(upd.traceType());
-		return exp;
 	}
 	
     default boolean assertActiveTraceUpdate(String action) {

@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
+import static org.usf.inspect.core.Helper.threadName;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,13 +18,15 @@ import lombok.Setter;
 @Setter
 @Getter
 @RequiredArgsConstructor
-public final class LogEntry implements EventTrace {
+public final class ReportEvent implements EventTrace {
 	
 	private final Instant instant;
-	@Deprecated(forRemoval = true, since = "v1.2")
-	private final Level level; //type
+	private final String thread;
+	private final String action;
 	private final String message;
 	private final StackTraceRow[] stackRows;
+	@Deprecated(forRemoval = true, since = "v1.2")
+	private String level; //type
 	@Deprecated(forRemoval = true, since = "v1.2")
 	private UUID sessionId; //optional
 	
@@ -33,23 +36,18 @@ public final class LogEntry implements EventTrace {
 	@Override
 	public String toString() {
 		return new EventTraceFormatter()
-		.withAction(level.name())
-		.withMessageAsTopic(message)
 		.withInstant(instant)
+		.withThread(thread)
+		.withAction("REPORT")
+		.withMessageAsTopic(action + " : " + message)
 		.format();
 	}
 	
-	@Deprecated(forRemoval = true, since = "v1.2")
-	static LogEntry logEntry(Level lvl, String msg) {
-		return logEntry(msg, null);	
+	static ReportEvent report(String action, String msg) {
+		return report(action, msg, null);	
 	}
 
-	@Deprecated(forRemoval = true, since = "v1.2")
-	static LogEntry logEntry(String msg, StackTraceRow[] stack) {
-		return new LogEntry(systemUTC().instant(), null, msg, stack);	
-	}
-
-	public enum Level {
-		INFO, WARN, ERROR, REPORT;
+	static ReportEvent report(String action, String msg, StackTraceRow[] stack) {
+		return new ReportEvent(systemUTC().instant(), threadName(), action, msg, stack);	
 	}
 }

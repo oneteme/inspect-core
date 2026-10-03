@@ -29,4 +29,8 @@ public final class SessionEvent implements EventTrace {
 		.withInstant(instant)
 		.format();
 	}
+
+	public enum Level {
+		INFO, WARN, ERROR;
+	}
 }

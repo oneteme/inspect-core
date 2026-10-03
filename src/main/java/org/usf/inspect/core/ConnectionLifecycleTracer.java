@@ -97,8 +97,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 					if(update.getStatus() < 0) {
 						update.setStatus(resolveStatus(t));
 					}
-					var exp = exceptionTrace(t, nonNull(stg) ? stg.getOrder() : -1);
-					hub().emitTrace(exp);
+					hub().emitExceptionTrace(t, update, nonNull(stg) ? stg.getOrder() : -1);
 				}
 			}
 		};

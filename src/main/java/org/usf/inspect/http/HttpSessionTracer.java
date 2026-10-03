@@ -158,8 +158,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 	public void emitError(Throwable thrw) {
 		if(assertActiveTraceUpdate("HttpSessionTracer.emitError")) {
 			if(lastException != thrw) {
-				var exp = exceptionTrace(thrw, systemUTC().instant().toEpochMilli());
-				hub().emitTrace(exp);
+				hub().emitExceptionTrace(thrw, getUpdate(), systemUTC().instant().toEpochMilli());
 				lastException = thrw;
 			}
 		}

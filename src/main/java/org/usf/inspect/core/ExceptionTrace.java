@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.UUID;
 
@@ -31,10 +30,6 @@ public final class ExceptionTrace implements EventTrace {
 	private UUID traceId; //request | session
 	
 	public static ExceptionTrace fromException(Throwable thrw) {
-		if(hub().isEnabled()) {
-			var config = hub().getConfiguration().getMonitoring().getException();
-			return fromException(thrw, config.getMaxCauseDepth(), config.getMaxStackTraceRows());
-		}
 		return fromException(thrw, 0, 0);
 	}
 	
