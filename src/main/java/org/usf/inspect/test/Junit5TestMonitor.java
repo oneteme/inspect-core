@@ -5,6 +5,7 @@ import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.lang.reflect.Method;
 
@@ -65,12 +66,17 @@ public final class Junit5TestMonitor implements InvocationInterceptor {
 	}
 	
 	static void processInvocation(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
-		call(invocation::proceed, forMainSession(()-> {
-			var sgn = createTestSession(systemUTC().instant());
-			sgn.setName(extensionContext.getDisplayName());
-			sgn.setLocation(formatLocation(extensionContext.getRequiredTestClass().getName(), extensionContext.getRequiredTestMethod().getName()));
-			//set test user
-			return sgn;
-		}));
+		if(hub().isEnabled()) {
+			call(invocation::proceed, forMainSession(()-> {
+				var sgn = createTestSession(systemUTC().instant());
+				sgn.setName(extensionContext.getDisplayName());
+				sgn.setLocation(formatLocation(extensionContext.getRequiredTestClass().getName(), extensionContext.getRequiredTestMethod().getName()));
+				//set test user
+				return sgn;
+			}));
+		}
+		else {
+			invocation.proceed();
+		}
 	}
 }
