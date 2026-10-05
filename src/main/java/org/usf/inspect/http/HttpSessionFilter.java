@@ -6,6 +6,7 @@ import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS;
 import static org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE;
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
+import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodTemplate;
 import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.http.InspectServletRequestListener.SESSION_TRACER;
@@ -100,15 +101,18 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 			if(nonNull(trc)) {
 				String name = null;
 				String user = null;
+				String lct = null;
 				try {
 					name = resolveEndpointName(handler, request);
 					user = userProvider.getUser(request, name);
+					var hm = (HandlerMethod) handler;
+					lct = formatLocation(hm.getBeanType().getName(), hm.getMethod().getName());
 				}
 				catch (Exception e) {
-					hub().reportError("HttpSessionFilter.preHandle", e);
+					hub().emitReport("HttpSessionFilter.preHandle", e);
 				}
 				finally {
-					trc.emitInitializationStage(name, user);
+					trc.emitInitializationStage(name, user, lct);
 				}
 			}
 		}
@@ -169,7 +173,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
     static HttpSessionTracer requireSessionTracer(HttpServletRequest req, String action) {
     	var trc = currentSessionTracer(req);
     	if(isNull(trc)) {
-    		hub().reportMessage(action, "tracer is null");
+    		hub().emitReport(action, "tracer is null");
     	}
 		return trc;
     }

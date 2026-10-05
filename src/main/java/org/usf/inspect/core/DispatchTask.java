@@ -8,5 +8,5 @@ package org.usf.inspect.core;
 @FunctionalInterface
 public interface DispatchTask { //max retry !
 	
-	void dispatch(TraceExporter agent);
+	void dispatch(TracePublisher agent);
 }

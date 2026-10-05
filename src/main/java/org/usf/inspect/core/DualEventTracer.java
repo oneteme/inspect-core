@@ -63,11 +63,11 @@ public interface DualEventTracer {
 				return true;
 			}
 			else {
-				hub().reportMessage(action, "trace update is already completed");
+				hub().emitReport(action, "trace update is already completed");
 			}
 		}
 		else {
-			hub().reportMessage(action, "trace update is null");
+			hub().emitReport(action, "trace update is null");
 		}
     	return false;
     }
@@ -76,7 +76,7 @@ public interface DualEventTracer {
     	if(nonNull(tracer)) {
     		return tracer.assertActiveTraceUpdate(action);
     	}
-		hub().reportMessage(action, "tracer is null");
+		hub().emitReport(action, "tracer is null");
     	return false;
     }
     

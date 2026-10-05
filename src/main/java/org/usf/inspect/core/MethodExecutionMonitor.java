@@ -87,7 +87,7 @@ public class MethodExecutionMonitor implements Ordered {
 	Object aroundSchedule(ProceedingJoinPoint point) throws Throwable {
 		var ses = activeContext();
 		if(nonNull(ses) && !ses.wasCompleted() && !ses.isStartup()) { //startup context may still be active on early scheduled jobs
-			hub().reportMessage("MethodExecutionMonitor.aroundJob", "active session context found, but not completed");
+			hub().emitReport("MethodExecutionMonitor.aroundJob", "active session context found, but not completed");
 		}
 		return call(point::proceed, forMainSession(()-> { 
 			var sgn = createScheduleSession(systemUTC().instant());

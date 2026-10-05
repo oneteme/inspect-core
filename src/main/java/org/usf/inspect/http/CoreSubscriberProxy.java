@@ -116,7 +116,7 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 			s.request(n);
 		}
 		else {
-			hub().reportMessage("CoreSubscriberProxy.request", "s is null");
+			hub().emitReport("CoreSubscriberProxy.request", "s is null");
 		}
 	}
 
@@ -131,7 +131,7 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 			}
 		}
 		else {
-			hub().reportMessage("CoreSubscriberProxy.cancel", "s is null");
+			hub().emitReport("CoreSubscriberProxy.cancel", "s is null");
 		}
 	}
 

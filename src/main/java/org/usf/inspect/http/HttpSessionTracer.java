@@ -109,7 +109,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				}
 			}
 			else {
-				hub().reportMessage("HttpSessionTracer.handle", "response is null");
+				hub().emitReport("HttpSessionTracer.handle", "response is null");
 			}
 			super.handle(start, end, null, thrw);
 		}
@@ -121,11 +121,12 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 		}
 	}
 
-	public void emitInitializationStage(String name, String user){
+	public void emitInitializationStage(String name, String user, String location){
 		if(emitStage(INITIALIZATION)) {
 			var upd = getUpdate();
 			upd.setName(name);
 			upd.setUser(user);
+			upd.setLocation(location);
 		}
 	}
 	
@@ -174,7 +175,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				streamStage.setName(TRANSMISSION.name());
 			}
 			else {
-				hub().reportMessage("HttpSessionTracer.onTransmissionStart", "streamStage already started");
+				hub().emitReport("HttpSessionTracer.onTransmissionStart", "streamStage already started");
 			}
 		}
 	}
@@ -186,7 +187,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				streamStage.setEnd(systemUTC().instant());
 			}
 			else {
-				hub().reportMessage("HttpSessionTracer.onTransmissionEnd", "streamStage already ended");
+				hub().emitReport("HttpSessionTracer.onTransmissionEnd", "streamStage already ended");
 			}
 		}
 	}
@@ -214,7 +215,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				return fromString(id);
 			}
 			catch (Exception e) {
-				hub().reportError("HttpSessionTracer.parseUUID", e);
+				hub().emitReport("HttpSessionTracer.parseUUID", e);
 			}
 		}
 		return null;

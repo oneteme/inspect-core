@@ -76,7 +76,10 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	
 	InspectConfiguration(ApplicationContext appContext, Environment env) {
 		this.config = loadConfiguration(env);
-        ((TraceDispatcherHub)hub()).configure(config).start();
+		if(this.config.isDebugMode()) {
+			TraceHub.Holder.INSTANCE = new TraceHubDebugger(hub());
+		}
+		hub().configure(config);
         this.appContext = appContext;
         this.tracer = forMainSession(()-> { //create startup session immediately after configuring hub, before any other bean is created
 			var sgn = createStartupSession(ofEpochMilli(appContext.getStartupDate()));
@@ -159,7 +162,11 @@ public class InspectConfiguration implements WebMvcConfigurer {
     ApplicationListener<SpringApplicationEvent> appEventListener(ApplicationPropertiesProvider provider, ServletContext servletContext){
     	var start = ofEpochMilli(appContext.getStartupDate());
     	var instance = newInstanceEnvironment(start, config, provider, servletContext);
-		hub().dispatch(instance);
+		try {
+			hub().dispatch(instance);
+		} catch (DispatchException e) {
+			throw new IllegalStateException("cannot dispatch instance environment", e);
+		}
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
 				if(nonNull(tracer)) {
@@ -170,7 +177,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
 					}).safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);
 				}
 				else {
-					hub().reportMessage("InspectConfiguration.appEventListener", "tracer is null, cannot trace event " + e.getClass().getSimpleName());
+					hub().emitReport("InspectConfiguration.appEventListener", "tracer is null, cannot trace event " + e.getClass().getSimpleName());
 				}
 			}
 		};

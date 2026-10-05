@@ -29,8 +29,8 @@ public class TestTraceHub implements TraceHub, InvocationInterceptor {
 	private final InspectCollectorConfiguration configuration = initializeConfiguration(true);
 
 	@Override
-	public boolean emitTrace(EventTrace trace) {
-		return traces.add(trace);
+	public void emitTrace(EventTrace trace) {
+		traces.add(trace);
 	}
 	
 	@Override

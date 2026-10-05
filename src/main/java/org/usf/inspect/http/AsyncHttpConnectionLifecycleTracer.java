@@ -38,7 +38,7 @@ final class AsyncHttpConnectionLifecycleTracer extends AbstractHttpConnectionLif
 					traceHeaders(res.statusCode(), res.headers().asHttpHeaders());
 				}
 				catch (Exception ex) {
-					hub().reportError("AsyncHttpConnectionLifecycleTracer.exchangeStage", ex);
+					hub().emitReport("AsyncHttpConnectionLifecycleTracer.exchangeStage", ex);
 				}
 			}
 			stageListener((s,e,o,t)-> createStage(EXECUTION, s, e)).safeHandle(lastTimestamp, now, null, thrw);

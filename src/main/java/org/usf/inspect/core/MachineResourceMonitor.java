@@ -78,7 +78,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 					startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount, (short)processCpuLoad.getAsInt()));
 		}
 		catch(Exception e) {
-			hub().reportError("MachineResourceMonitor.onSchedule", e);
+			hub().emitReport("MachineResourceMonitor.onSchedule", e);
 		}
 	}
 

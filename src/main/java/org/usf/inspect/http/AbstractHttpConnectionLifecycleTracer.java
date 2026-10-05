@@ -132,7 +132,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 				streamStage.setName(TRANSMISSION.name());
 			}
 			else {
-				hub().reportMessage("AbstractHttpConnectionLifecycleTracer.onTransmissionStart", "streamStage already started");
+				hub().emitReport("AbstractHttpConnectionLifecycleTracer.onTransmissionStart", "streamStage already started");
 			}
 		}
 	}
@@ -144,7 +144,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 				streamStage.setEnd(systemUTC().instant());
 			}
 			else {
-				hub().reportMessage("AbstractHttpConnectionLifecycleTracer.onTransmissionEnd", "streamStage already ended");
+				hub().emitReport("AbstractHttpConnectionLifecycleTracer.onTransmissionEnd", "streamStage already ended");
 			}
 		}
 	}
@@ -159,7 +159,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 					traceResponseContent(captor);
 				}
 				catch (Exception ex) {
-					hub().reportError("AbstractHttpConnectionLifecycleTracer.complete", ex);
+					hub().emitReport("AbstractHttpConnectionLifecycleTracer.complete", ex);
 				}
 			}
 			StageBuilder<Void> stgBuilder = null;
@@ -179,7 +179,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 				return getUpdate().getId().equals(fromString(sid));
 			}
 			catch (Exception e) {
-				hub().reportMessage("AbstractHttpConnectionLifecycleTracer.assertSameID", "session.id=" + sid);
+				hub().emitReport("AbstractHttpConnectionLifecycleTracer.assertSameID", "session.id=" + sid);
 			}
 		}
 		return false;

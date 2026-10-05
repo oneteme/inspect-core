@@ -44,7 +44,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			return from(request).header(TRACE_ID_HEADER, trc.getId().toString()).build();
 		}
 		catch (Exception e) {
-			hub().reportError("WebClientFilter.request", e);
+			hub().emitReport("WebClientFilter.request", e);
 		}
 		return request;
 	}
@@ -58,7 +58,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 					.build();
 		}
 		catch (Exception e) {
-			hub().reportError("WebClientFilter.response", e);
+			hub().emitReport("WebClientFilter.response", e);
 		}
 		return reponse;
 	}

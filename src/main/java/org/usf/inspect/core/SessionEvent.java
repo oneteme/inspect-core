@@ -25,12 +25,12 @@ public final class SessionEvent implements EventTrace {
 	public String toString() {
 		return new EventTraceFormatter()
 		.withAction(type)
-		.withMessageAsTopic(value + " on " + location)
+		.withMessageAsTopic(value + " : " + location)
 		.withInstant(instant)
 		.format();
 	}
 
-	public enum Level {
-		INFO, WARN, ERROR;
+	public enum LogLevel {
+		INFO, WARN, ERROR, @Deprecated(forRemoval = true, since = "v1.2") REPORT;
 	}
 }

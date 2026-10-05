@@ -21,7 +21,7 @@ final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycl
 				traceHeaders(o.getStatusCode(), o.getHeaders()); 
 			}
 			catch (Exception ex) {
-				hub().reportError("HttpConnectionLifecycleTracer.exchangeStageListener", ex);
+				hub().emitReport("HttpConnectionLifecycleTracer.exchangeStageListener", ex);
 			}
 			return createStage(EXECUTION, s, e); 
 		},(trc, res)-> signal((HttpRequestSignal)trc, request.getMethod(), request.getURI(), request.getHeaders()));

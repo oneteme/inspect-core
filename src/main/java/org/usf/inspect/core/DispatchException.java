@@ -6,7 +6,7 @@ package org.usf.inspect.core;
  *
  */
 @SuppressWarnings("serial")
-public final class DispatchException extends RuntimeException {
+public class DispatchException extends Exception {
 
 	public DispatchException(String message, Throwable cause) {
 		super(message, cause);
@@ -15,4 +15,6 @@ public final class DispatchException extends RuntimeException {
 	public DispatchException(String message) {
 		super(message);
 	}
+	
+	
 }

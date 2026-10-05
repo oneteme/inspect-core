@@ -70,7 +70,7 @@ final class DataBufferCaptor implements StreamCaptor {
 						}
 					}
 				} catch (Exception e) {
-					hub().reportError("DataBufferCaptor.onBuffer", e);
+					hub().emitReport("DataBufferCaptor.onBuffer", e);
 					this.bufferStream = null; // stop capturing, keep counting
 				}
 			}

@@ -7,6 +7,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @Getter
 @Setter
 @ToString

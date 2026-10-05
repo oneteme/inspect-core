@@ -49,7 +49,7 @@ public final class EventTraceDumper implements DispatchHook {
 			log.debug("{} traces was dumped in '{}' file", traces.size(), fn);
 		}
 		catch (IOException e) {
-			throw new DispatchException("creating traces dump file '" + fn + "' error", e);
+			throw new RuntimeException("creating traces dump file '" + fn + "' error", e);
 		}
 		return f;
 	}
@@ -72,7 +72,7 @@ public final class EventTraceDumper implements DispatchHook {
 				}
 			}
 			else { //do not throw exception => end task
-				ctx.reportMessage("EventTraceDumper.emitDispatchFileTask", 
+				ctx.emitReport("EventTraceDumper.emitDispatchFileTask", 
 						"traces dump file '" + f.getName() + "' is not found");
 			}
 		};
@@ -96,7 +96,7 @@ public final class EventTraceDumper implements DispatchHook {
 			}
 		}
 		if(!done) {
-			ctx.reportMessage("EventTraceDumper.deleteFile", 
+			ctx.emitReport("EventTraceDumper.deleteFile", 
 					"cannot delete or rename file '" + file.getName() + "'");
 		}
 	}
