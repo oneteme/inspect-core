@@ -99,23 +99,18 @@ public class TraceDispatcherHub implements TraceHub {
 	}
 	
 	protected void flushIfThresholdReached(){
-		if(queue.size() > threshold) {
-			if(dispatchNow.compareAndSet(false, true)) { //submit task to avoid concurrent flush
-				executor.submit(()-> {
-					try {
-						if(queue.size() > threshold) { //double check, as queue size may have changed since task submission
-							log.warn("⚠ QUEUE THRESHOLD REACHED: current size = {}, threshold = {}", queue.size(), threshold);
-							dispatchTraces(false);
-						}
+		if(queue.size() > threshold && dispatchNow.compareAndSet(false, true)) {  //submit task to avoid concurrent flush
+			executor.submit(()-> {
+				try {
+					if(queue.size() > threshold) { //double check, as queue size may have changed since task submission
+						log.warn("⚠ QUEUE THRESHOLD REACHED: current size = {}, threshold = {}", queue.size(), threshold);
+						dispatchTraces(false);
 					}
-					finally {
-						dispatchNow.set(false);
-					}
-				});
-			}
-			else {
-				log.debug("dispatching task is already submitted");
-			}
+				}
+				finally {
+					dispatchNow.set(false);
+				}
+			});
 		}
 	}
 

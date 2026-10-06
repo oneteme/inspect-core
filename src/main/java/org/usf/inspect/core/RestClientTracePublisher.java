@@ -89,7 +89,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 			attempts = 0;
 		}
 		queue.pollAll(snp->{ 
-			mergeSessionMaskUpdates(snp);
+			mergeTraces(snp);
 			return flushTraces(id, complete, snp);
 		});
 	}

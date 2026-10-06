@@ -1,17 +1,22 @@
 package org.usf.inspect.core;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
+import static java.util.Comparator.comparing;
+import static java.util.stream.Collectors.groupingBy;
+import static org.slf4j.LoggerFactory.getLogger;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.io.File;
 import java.util.List;
+
+import org.slf4j.Logger;
 /**
  * 
  * @author u$f
  *
  */
 public interface TracePublisher {
+	
+	static Logger log = getLogger(TracePublisher.class);
 
     static final byte RETRY = 1;
     static final byte ABORT = 0;
@@ -24,17 +29,30 @@ public interface TracePublisher {
 	@Deprecated(forRemoval = true, since = "v1.2")
 	default void dispatch(File dumpFile) {}
 
-	default void mergeSessionMaskUpdates(List<EventTrace> traces){
-		var call = traces.stream().mapMulti((t, c)-> {
-			if(t instanceof AbstractSessionUpdate sc && sc.getRequestMask().get() > 0) {
-				c.accept(sc.getId());
+	default void mergeTraces(List<EventTrace> traces){
+		var map = traces.stream().<SessionMaskUpdate>mapMulti((t, c)-> {
+			if(t instanceof SessionMaskUpdate sc) {
+				c.accept(sc);
 			}
-		}).collect(toSet());
-		var updt = traces.stream()
-			.filter(SessionMaskUpdate.class::isInstance)
-			.map(SessionMaskUpdate.class::cast)
-			.filter(u-> !call.contains(u.getId()))
-			.collect(toMap(SessionMaskUpdate::getId, identity(), (a,b)-> a.getMask() > b.getMask() ? a : b));
-		traces.removeIf(t -> t instanceof SessionMaskUpdate u && !updt.containsKey(u.getId()));
+		}).collect(groupingBy(SessionMaskUpdate::getId));
+		for(var e : map.entrySet()) {
+			var upd = traces.stream()
+			.filter(t-> t instanceof AbstractSessionUpdate u && u.getId().equals(e.getKey()))
+			.findAny();
+			if(upd.isEmpty()) {
+				var max = e.getValue().stream().max(comparing(SessionMaskUpdate::getMask));
+				if(max.isPresent()) {
+					e.getValue().remove(max.get()); 
+					log.debug("merging {} into {}", e.getValue(), max.get());
+				}
+				else {
+					hub().emitReport("TracePublisher.mergeTraces", "illegal state, max is null for session " + e.getKey());
+				}
+			}
+			else {
+				log.debug("merging {} into {}", e.getValue(), upd.get());
+			}
+			traces.removeAll(e.getValue());
+		}
 	}
 }

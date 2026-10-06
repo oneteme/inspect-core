@@ -17,4 +17,9 @@ public class SessionMaskUpdate implements TracePart {
 	private final UUID id;
 	private final boolean main;
 	private final int mask;
+	
+	@Override
+	public String toString() {
+		return id + "{" + mask + "}";
+	}
 }
