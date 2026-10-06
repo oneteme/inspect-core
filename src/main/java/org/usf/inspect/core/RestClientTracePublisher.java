@@ -107,7 +107,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 			if(retry > ABORT) {
 				return traces; //turn back to queue, will retry later
 			}
-			else if(retry < ABORT) {
+			if(retry < ABORT) {
 				pendingBatch = arr; //will retry later, do not turn back to queue
 			}
 			return emptyList();
@@ -203,9 +203,11 @@ public final class RestClientTracePublisher implements TracePublisher {
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
 				.defaultHeader(AUTHORIZATION, "Basic " + encodeBasicAuth(properties.getNamespace(), properties.getToken(), null));
 		if(properties.getCompressMinSize() > 0) {
+			log.info("body compression enabled, min size={} bytes", properties.getCompressMinSize());
 			bldr = bldr.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));
 		}
 		if(debug) {
+			log.info("debug mode enabled, adding request interceptor");
 			bldr = bldr.additionalInterceptors(new HttpRequestInterceptor());
 		}
 		return bldr.build();

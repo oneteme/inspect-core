@@ -28,9 +28,10 @@ public interface TraceHub {
 	default void emitReport(String action, Throwable thrw) {
 		if(canCollect()) {
 			var msg = nonNull(thrw) ? thrw.getClass().getName() + ":" + thrw.getMessage() : null;
-			var stc = getConfiguration().isDebugMode()
-					? exceptionStackTraceRows(nonNull(thrw) ? thrw : new Exception(), -1) 
-					: null;
+			StackTraceRow[] stc = null;
+			if(getConfiguration().isDebugMode()) {
+				stc = exceptionStackTraceRows(nonNull(thrw) ? thrw : new Exception(), -1);
+			}
 			emitTrace(report(action, msg, stc));
 		}
 	}

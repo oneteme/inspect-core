@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -33,9 +34,15 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Getter(value = AccessLevel.PROTECTED)
+@RequiredArgsConstructor
 public class TraceDispatcherHub implements TraceHub {
 	
 	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISABLE);
+	private final String name;
+	
+	public TraceDispatcherHub() {
+		this("inspect-agt-publisher");
+	}
 	
 	@Getter
 	private InspectCollectorConfiguration configuration;
@@ -76,18 +83,30 @@ public class TraceDispatcherHub implements TraceHub {
 	private void start() {
 		if(isEnabled()) {
 			if(!scheduling()) {//single thread to avoid concurrent queue access
-				var es = newSingleThreadScheduledExecutor(daemonThread()); 
+				var es = newSingleThreadScheduledExecutor(daemonThread(name)); 
 				var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
 				this.executor = configuration.isDebugMode() ? wrap(es, false) : es;
+				log.info("◴ scheduling traces dispatch every {} seconds", delay);
 				this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 				getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 			}
 			else {
-				log.warn("scheduling is alread started");
+				log.warn("cannot start scheduling, already started");
 			}
 		}
 		else { //do not throw exception, allow to start server with disabled inspect
 			log.warn("tracing is disabled, traces will be lost");
+		}
+	}
+
+	@Override
+	public void dispatch(InstanceEnvironment instance) throws DispatchException { //dispatch immediately
+		if(canCollect()) {
+			eventBus.triggerInstanceEmit(instance);
+			publisher.register(instance);
+		}
+		else {
+			throw new DispatchException("cannot dispatch, hub is not enabled or scheduling is not started");
 		}
 	}
 	
@@ -111,17 +130,6 @@ public class TraceDispatcherHub implements TraceHub {
 					dispatchNow.set(false);
 				}
 			});
-		}
-	}
-
-	@Override
-	public void dispatch(InstanceEnvironment instance) throws DispatchException { //dispatch immediately
-		if(canCollect()) {
-			eventBus.triggerInstanceEmit(instance);
-			publisher.register(instance);
-		}
-		else {
-			throw new DispatchException("cannot dispatch, hub is not enabled or scheduling is not started");
 		}
 	}
 	
@@ -227,7 +235,7 @@ public class TraceDispatcherHub implements TraceHub {
 	
 	void shutdown() {
 		if(scheduling()) {
-			log.info("shutting down the scheduler service...");
+			log.info("⏻ shutting down the scheduler service...");
 			executor.shutdown();
 			InterruptedException ie = null;
 			try {
@@ -245,10 +253,10 @@ public class TraceDispatcherHub implements TraceHub {
 		}
 	}
 	
-	static ThreadFactory daemonThread() { //counter !?
+	static ThreadFactory daemonThread(String threadname) { //counter !?
 		var counter = new AtomicInteger(0);
 		return r-> {
-			var thr = new Thread(r, "inspect-scheduler-" + counter.incrementAndGet());
+			var thr = new Thread(r, threadname + "-" + counter.incrementAndGet());
 			thr.setDaemon(true);
 			thr.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));
 			return thr;
