@@ -69,7 +69,7 @@ public class TraceDispatcherHub implements TraceHub {
 			}
 		}
 		else {
-			emitReport("TraceDispatcherHub.configure", "cannot reconfigure while scheduling");
+			log.warn("cannot reconfigure while scheduling");
 		}
 	}
 	
@@ -83,7 +83,7 @@ public class TraceDispatcherHub implements TraceHub {
 				getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 			}
 			else {
-				emitReport("TraceDispatcherHub.start", "already scheduling");
+				log.warn("scheduling is alread started");
 			}
 		}
 		else { //do not throw exception, allow to start server with disabled inspect

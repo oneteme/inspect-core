@@ -3,7 +3,6 @@ package org.usf.inspect.core;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.groupingBy;
 import static org.slf4j.LoggerFactory.getLogger;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.io.File;
 import java.util.List;
@@ -43,14 +42,14 @@ public interface TracePublisher {
 				var max = e.getValue().stream().max(comparing(SessionMaskUpdate::getMask));
 				if(max.isPresent()) {
 					e.getValue().remove(max.get()); 
-					log.debug("merging {} into {}", e.getValue(), max.get());
+					log.debug("merged {} traces for session {}, max mask is {}", e.getValue().size(), e.getKey(), max.get().getMask());
 				}
 				else {
-					hub().emitReport("TracePublisher.mergeTraces", "illegal state, max is null for session " + e.getKey());
+					log.warn("unexpected empty traces for session {}, cannot merge", e.getKey());
 				}
 			}
 			else {
-				log.debug("merging {} into {}", e.getValue(), upd.get());
+				log.debug("merged {} traces for session {}, update mask is {}", e.getValue().size(), e.getKey(), ((AbstractSessionUpdate)upd.get()).getRequestMask());
 			}
 			traces.removeAll(e.getValue());
 		}
