@@ -13,14 +13,14 @@ import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InstanceType.SERVER;
-import static org.usf.inspect.core.SessionContextManager.createStartupSession;
-import static org.usf.inspect.core.SessionContextManager.nextId;
+import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.http.HttpRoutePredicate.compile;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
+import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -81,11 +81,8 @@ public class InspectConfiguration implements WebMvcConfigurer {
 		}
 		hub().configure(config);
         this.appContext = appContext;
-        this.tracer = forMainSession(()-> { //create startup session immediately after configuring hub, before any other bean is created
-			var sgn = createStartupSession(ofEpochMilli(appContext.getStartupDate()));
-			sgn.setName("main"); //try location = getProperty("sun.java.command") //Spring boot
-			return sgn;
-		});
+        var start = ofEpochMilli(appContext.getStartupDate()); //create startup session immediately after configuring hub, before any other bean is created
+        this.tracer = forMainSession(start, STARTUP, sgn-> sgn.setName("main"));
 	}
 	
     @Bean
@@ -160,8 +157,9 @@ public class InspectConfiguration implements WebMvcConfigurer {
     
     @Bean
     ApplicationListener<SpringApplicationEvent> appEventListener(ApplicationPropertiesProvider provider, ServletContext servletContext){
-    	var start = ofEpochMilli(appContext.getStartupDate());
-    	var instance = newInstanceEnvironment(start, config, provider, servletContext);
+    	var str = ofEpochMilli(appContext.getStartupDate());
+    	var upd = tracer.getUpdate();
+    	var instance = newInstanceEnvironment(upd.getId(), str, config, provider, servletContext);
 		try {
 			hub().dispatch(instance);
 		} catch (DispatchException e) {
@@ -247,8 +245,8 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	}
 	
 
-	static InstanceEnvironment newInstanceEnvironment(Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider, ServletContext servletContext) {
-		return new InstanceEnvironment(nextId(),
+	static InstanceEnvironment newInstanceEnvironment(UUID sid, Instant start, InspectCollectorConfiguration conf, ApplicationPropertiesProvider provider, ServletContext servletContext) {
+		return new InstanceEnvironment(sid,
 				start, SERVER,
 				provider.getName(), 
 				provider.getVersion(),

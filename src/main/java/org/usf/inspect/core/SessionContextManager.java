@@ -7,9 +7,6 @@ import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.MainSessionType.SCHEDULE;
-import static org.usf.inspect.core.MainSessionType.STARTUP;
-import static org.usf.inspect.core.MainSessionType.TEST;
 import static org.usf.inspect.core.SessionEvent.LogLevel.ERROR;
 import static org.usf.inspect.core.SessionEvent.LogLevel.INFO;
 import static org.usf.inspect.core.SessionEvent.LogLevel.WARN;
@@ -139,30 +136,10 @@ public final class SessionContextManager {
 		return sgn;
 	}
 	
-	static MainSessionSignal createStartupSession(Instant start) {
-		return createMainSession(STARTUP, start, nextId());
-	}
-
-	static MainSessionSignal createStartupSession(Instant start, UUID rid) { // InstanceEnvironment.id
-		return createMainSession(STARTUP, start, requireNonNullElseGet(rid, SessionContextManager::nextId));
+	static MainSessionSignal createMainSession(MainSessionType type, Instant start) {
+		return new MainSessionSignal(nextId(), start, threadName(), type.name());
 	}
 	
-	public static MainSessionSignal createScheduleSession(Instant start) {
-		return createMainSession(SCHEDULE, start, nextId());
-	}
-
-	public static MainSessionSignal createScheduleSession(Instant start, UUID rid) { // LocalRequest.id
-		return createMainSession(SCHEDULE, start, requireNonNullElseGet(rid, SessionContextManager::nextId));
-	}
-	
-	public static MainSessionSignal createTestSession(Instant start) {
-		return createMainSession(TEST, start, nextId());
-	}
-	
-	static MainSessionSignal createMainSession(MainSessionType type, Instant start, UUID uuid) {
-		return new MainSessionSignal(uuid, start, threadName(), type.name());
-	}
-
 	public static LocalRequestSignal createLocalRequest(Instant start) {
 		var sid = requireSessionIdFor(LOCAL, "SessionContextManager.createLocalRequest");
 		return new LocalRequestSignal(nextId(), sid, start, threadName());

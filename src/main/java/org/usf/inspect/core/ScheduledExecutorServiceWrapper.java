@@ -15,8 +15,6 @@ import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
-import static org.usf.inspect.core.SessionContextManager.createScheduleSession;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.UUID;
@@ -99,11 +97,9 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 	}
 	
 	<T> ExecutionTracer<T> scheduleSessionTracer(String methodName, AtomicLong cnt){
-		return forMainSession(()-> { 
-			var sgn = createScheduleSession(systemUTC().instant());
+		return forMainSession(systemUTC().instant(), MainSessionType.SCHEDULE, sgn-> { 
 			sgn.setName(methodName + '#' + cnt.incrementAndGet());
 			sgn.setLocation(formatLocation(se().getClass().getName(), methodName));
-			return sgn;
 		});
 	}
 	
@@ -111,8 +107,7 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 		var frm = getInstance(RETAIN_CLASS_REFERENCE).walk(fr-> fr
 				.dropWhile(f-> f.getDeclaringClass() == this.getClass()) //skip ScheduledExecutorServiceWrapper
 				.findFirst().orElse(null));
-		return forLocalRequest(()-> {
-			var sgn = createLocalRequest(systemUTC().instant());
+		return forLocalRequest(systemUTC().instant(), sgn-> {
 			sgn.setType(EXEC.name());
 			sgn.setName(name);
 			if(nonNull(frm)) {
@@ -121,7 +116,6 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 				}
 				sgn.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
 			}
-			return sgn;
 		});
 	}
 	

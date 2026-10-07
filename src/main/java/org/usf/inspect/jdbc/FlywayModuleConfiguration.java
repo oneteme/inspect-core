@@ -8,7 +8,6 @@ import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
 
 import org.flywaydb.core.Flyway;
@@ -36,13 +35,11 @@ public class FlywayModuleConfiguration {
 
 	@Bean
 	public FlywayMigrationStrategy flywayMigrationStrategy() {
-		return fly-> exec(fly::migrate, forLocalRequest(()->{
-			var sgn = createLocalRequest(systemUTC().instant());
+		return fly-> exec(fly::migrate, forLocalRequest(systemUTC().instant(), sgn->{
 			sgn.setType(EXEC.name());
 			sgn.setName("FlywayMigration");
 			sgn.setLocation(scriptLocation(fly));
 			sgn.setUser(fly.getConfiguration().getUser());
-			return sgn;
 		}));
 	}
 	

@@ -4,7 +4,7 @@ import static java.time.Clock.systemUTC;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.call;
-import static org.usf.inspect.core.SessionContextManager.createTestSession;
+import static org.usf.inspect.core.MainSessionType.TEST;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.lang.reflect.Method;
@@ -67,13 +67,11 @@ public final class Junit5TestMonitor implements InvocationInterceptor {
 	
 	static void processInvocation(Invocation<Void> invocation, ExtensionContext extensionContext, String action) throws Throwable {
 		if(hub().isEnabled()) {
-			call(invocation::proceed, forMainSession(()-> {
-				var sgn = createTestSession(systemUTC().instant());
+			call(invocation::proceed, forMainSession(systemUTC().instant(), TEST, sgn-> {
 				sgn.setName(extensionContext.getDisplayName());
 				//TODO before/after method name
 				sgn.setLocation(formatLocation(extensionContext.getRequiredTestClass().getName(), extensionContext.getRequiredTestMethod().getName()));
 				//set test user
-				return sgn;
 			}));
 		}
 		else {

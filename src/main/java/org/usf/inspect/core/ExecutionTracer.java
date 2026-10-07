@@ -2,6 +2,8 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
+import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
+import static org.usf.inspect.core.SessionContextManager.createMainSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.core.TraceHub.hub;
 
@@ -9,7 +11,7 @@ import java.time.Instant;
 
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
-import org.usf.inspect.core.SafeCallable.SafeSupplier;
+import org.usf.inspect.core.SafeCallable.SafeConsumer;
 
 import lombok.Getter;
 
@@ -67,32 +69,30 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 		};
 	}
 	
-	public static <R> ExecutionTracer<R> forLocalRequest(SafeSupplier<LocalRequestSignal> cons) {
-		var sgn = traceSignal(cons, "ExecutionTracer.forLocalRequest");
+	public static <R> ExecutionTracer<R> forLocalRequest(Instant start, SafeConsumer<LocalRequestSignal> cons) {
+		var sgn = createLocalRequest(start);
+		traceSignal(sgn, cons, "ExecutionTracer.forLocalRequest");
 		return new ExecutionTracer<>(new LocalRequestUpdate(nonNull(sgn) ? sgn.getId() : null));		
 	}
 	
-	public static <R> ExecutionTracer<R> forMainSession(SafeSupplier<MainSessionSignal> cons) {
-		var sgn = traceSignal(cons, "ExecutionTracer.forMainSession");
+	public static <R> ExecutionTracer<R> forMainSession(Instant start, MainSessionType type, SafeConsumer<MainSessionSignal> cons) {
+		var sgn = createMainSession(type, start);
+		traceSignal(sgn, cons, "ExecutionTracer.forMainSession");
 		return new ExecutionTracer<>(new MainSessionUpdate(nonNull(sgn) ? sgn.getId() : null));		
 	}
 	
-	public static <R> ExecutionTracer<R> forHttpSession(SafeSupplier<HttpSessionSignal> cons) {
-		var sgn = traceSignal(cons, "ExecutionTracer.forHttpSession");
+	public static <R> ExecutionTracer<R> forHttpSession(HttpSessionSignal sgn, SafeConsumer<HttpSessionSignal> cons) {
+		traceSignal(sgn, cons, "ExecutionTracer.forHttpSession");
 		return new ExecutionTracer<>(new HttpSessionUpdate(nonNull(sgn) ? sgn.getId() : null));		
 	}
 	
-	protected static TraceSignal traceSignal(SafeSupplier<? extends TraceSignal> supp, String action) {
-		TraceSignal sgn = null;
+	protected static <T extends TraceSignal> void traceSignal(T sgn, SafeConsumer<? super T> supp, String action) {
 		try {
-			sgn = supp.get();
+			supp.accept(sgn);
 		}
 		catch (Exception e) {
 			hub().emitReport(action, e);
 		}
-		if(nonNull(sgn)) {
-			hub().emitTrace(sgn);
-		}
-		return sgn;
+		hub().emitTrace(sgn);
 	}
 }

@@ -14,9 +14,8 @@ import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
 import static org.usf.inspect.core.LocalRequestType.TRANSACTION;
+import static org.usf.inspect.core.MainSessionType.SCHEDULE;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
-import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
-import static org.usf.inspect.core.SessionContextManager.createScheduleSession;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodTemplate;
 import static org.usf.inspect.core.TraceHub.hub;
@@ -57,8 +56,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	public static <T, E extends Throwable> T trackCallable(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
-		return call(fn, forLocalRequest(()->{
-			var sgn = createLocalRequest(systemUTC().instant());
+		return call(fn, forLocalRequest(systemUTC().instant(), sgn->{
 			var frm = upperStackFrame(MethodExecutionMonitor.class); //skip MethodExecutionMonitor
 			sgn.setName(name);
 			if(nonNull(type)) {
@@ -70,7 +68,6 @@ public class MethodExecutionMonitor implements Ordered {
 				}
 				sgn.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
 			}
-			return sgn;
 		}));
 	}
 
@@ -88,17 +85,13 @@ public class MethodExecutionMonitor implements Ordered {
 		var ctx = activeContext();
 		if(nonNull(ctx) && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
 			hub().emitReport("MethodExecutionMonitor.aroundSchedule", "active session context found, but not completed");
-		} //TODO : localRequest !? 
-		return call(point::proceed, forMainSession(()-> { 
-			var sgn = createScheduleSession(systemUTC().instant());
+		}
+		return call(point::proceed, forMainSession(systemUTC().instant(), SCHEDULE, sgn-> { 
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));
-			return sgn;
 		}));
 	}
-	
-	
 
 	@Around("(@annotation(org.springframework.cache.annotation.Cacheable) "
 	        + "|| @within(org.springframework.cache.annotation.Cacheable) "
@@ -117,12 +110,10 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundMethod(ProceedingJoinPoint point, String type) throws Throwable {
-		return call(point::proceed, forLocalRequest(()->{
-			var sgn = createLocalRequest(systemUTC().instant());
+		return call(point::proceed, forLocalRequest(systemUTC().instant(), sgn->{
 			sgn.setType(type);
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
-			return sgn;
 		}));
 	}
 

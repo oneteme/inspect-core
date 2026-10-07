@@ -64,8 +64,8 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 	}
 	
 	public static HttpSessionTracer httpSessionTracer(HttpServletRequest request) {
-		var sgn = createHttpSession(systemUTC().instant(), parseUUID(request.getHeader(TRACE_ID_HEADER)));
-		var signal = traceSignal(()->{
+		var signal = createHttpSession(systemUTC().instant(), parseUUID(request.getHeader(TRACE_ID_HEADER)));
+		traceSignal(signal, sgn->{
 			sgn.setMethod(request.getMethod());
 			sgn.setURI(fromRequest(request));
 			sgn.setAuthScheme(extractAuthScheme(request.getHeader(AUTHORIZATION))); //extract user !?
@@ -73,7 +73,6 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 			sgn.setContentEncoding(request.getHeader(CONTENT_ENCODING));
 			sgn.setUserAgent(request.getHeader(USER_AGENT));
 			sgn.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
-			return sgn;
 		}, "HttpSessionTracer.httpSessionTracer");
 		var upd = new HttpSessionUpdate(signal.getId());
 		return new HttpSessionTracer(upd, signal.getStart());
