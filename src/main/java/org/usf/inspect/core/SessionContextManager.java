@@ -170,22 +170,21 @@ public final class SessionContextManager {
 		return new DirectoryRequestSignal(nextId(), sid, start, threadName());
 	}
 	
+	public static SessionEvent createLog(LogLevel lvl, String msg) {
+		var sid = requireSessionIdFor(EVENT, "SessionContextManager.emitLog");
+		return new SessionEvent(systemUTC().instant(), lvl.name(), msg, null, sid);
+	}
+	
 	public static void emitInfo(String msg) {
-		emitLog(INFO, msg);
+		hub().emitTrace(createLog(INFO, msg));
 	}
 
 	public static void emitWarn(String msg) {
-		emitLog(WARN, msg);
+		hub().emitTrace(createLog(WARN, msg));
 	}
 
 	public static void emitError(String msg) {
-		emitLog(ERROR, msg);
-	}
-	
-	public static void emitLog(LogLevel lvl, String msg) {
-		var sid = requireSessionIdFor(EVENT, "SessionContextManager.emitLog");
-		var evt = new SessionEvent(systemUTC().instant(), lvl.name(), msg, null, sid);
-		hub().emitTrace(evt);
+		hub().emitTrace(createLog(ERROR, msg));
 	}
 	
 	static UUID requireSessionIdFor(SessionEventMask mask, String action) {
