@@ -5,6 +5,7 @@ import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.SessionContextManager.createTestSession;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -22,17 +23,20 @@ public final class Junit4TestMonitor implements TestRule {
 	
 	@Override
 	public Statement apply(Statement base, Description dscr) {
-		return new Statement() {
-			@Override
-			public void evaluate() throws Throwable {
-				exec(base::evaluate, forMainSession(()-> {
-					var sgn = createTestSession(systemUTC().instant());
-					sgn.setName(dscr.getDisplayName());
-					sgn.setLocation(formatLocation(dscr.getClassName(), dscr.getMethodName()));
-					//set test user
-					return sgn;
-				}));
-			}
-		};
+		if(hub().isEnabled()) {
+			return new Statement() {
+				@Override
+				public void evaluate() throws Throwable {
+					exec(base::evaluate, forMainSession(()-> {
+						var sgn = createTestSession(systemUTC().instant());
+						sgn.setName(dscr.getDisplayName());
+						sgn.setLocation(formatLocation(dscr.getClassName(), dscr.getMethodName()));
+						//set test user
+						return sgn;
+					}));
+				}
+			};
+		}
+		return base;
 	}
 }

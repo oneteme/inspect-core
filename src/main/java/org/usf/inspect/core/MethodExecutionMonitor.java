@@ -78,17 +78,17 @@ public class MethodExecutionMonitor implements Ordered {
 			+ " && !@annotation(org.springframework.scheduling.annotation.Scheduled)"
 			+ " && !@annotation(org.springframework.scheduling.annotation.Schedules)") //batch <> TraceableStage
 	Object aroundMethod(ProceedingJoinPoint point) throws Throwable {
-		var ses = activeContext();
-		return isNull(ses) || ses.wasCompleted() ? aroundSchedule(point) : aroundMethod(point, EXEC.name());
+		var ctx = activeContext();
+		return isNull(ctx) ? aroundSchedule(point) : aroundMethod(point, EXEC.name());
 	}
 	
 	@Around("@annotation(org.springframework.scheduling.annotation.Scheduled)"
 			+ " || @annotation(org.springframework.scheduling.annotation.Schedules)")
 	Object aroundSchedule(ProceedingJoinPoint point) throws Throwable {
-		var ses = activeContext();
-		if(nonNull(ses) && !ses.wasCompleted() && !ses.isStartup()) { //startup context may still be active on early scheduled jobs
-			hub().emitReport("MethodExecutionMonitor.aroundJob", "active session context found, but not completed");
-		}
+		var ctx = activeContext();
+		if(nonNull(ctx) && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
+			hub().emitReport("MethodExecutionMonitor.aroundSchedule", "active session context found, but not completed");
+		} //TODO : localRequest !? 
 		return call(point::proceed, forMainSession(()-> { 
 			var sgn = createScheduleSession(systemUTC().instant());
 			sgn.setName(resolveStageName(point));
@@ -97,6 +97,8 @@ public class MethodExecutionMonitor implements Ordered {
 			return sgn;
 		}));
 	}
+	
+	
 
 	@Around("(@annotation(org.springframework.cache.annotation.Cacheable) "
 	        + "|| @within(org.springframework.cache.annotation.Cacheable) "

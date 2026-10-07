@@ -25,8 +25,8 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 
 	public ExecutionTracer(TraceUpdate update) {
 		this.update = update;
-		if(update instanceof AbstractSessionUpdate ctx) {
-			setActiveContext(ctx);
+		if(update instanceof AbstractSessionUpdate session) {
+			setActiveContext(session);
 		}
 		this.update.setStatus(UNKNOWN); //initial status
 	}
@@ -68,27 +68,27 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 	}
 	
 	public static <R> ExecutionTracer<R> forLocalRequest(SafeSupplier<LocalRequestSignal> cons) {
-		var sgn = traceSignal(cons);
+		var sgn = traceSignal(cons, "ExecutionTracer.forLocalRequest");
 		return new ExecutionTracer<>(new LocalRequestUpdate(nonNull(sgn) ? sgn.getId() : null));		
 	}
 	
 	public static <R> ExecutionTracer<R> forMainSession(SafeSupplier<MainSessionSignal> cons) {
-		var sgn = traceSignal(cons);
+		var sgn = traceSignal(cons, "ExecutionTracer.forMainSession");
 		return new ExecutionTracer<>(new MainSessionUpdate(nonNull(sgn) ? sgn.getId() : null));		
 	}
 	
 	public static <R> ExecutionTracer<R> forHttpSession(SafeSupplier<HttpSessionSignal> cons) {
-		var sgn = traceSignal(cons);
+		var sgn = traceSignal(cons, "ExecutionTracer.forHttpSession");
 		return new ExecutionTracer<>(new HttpSessionUpdate(nonNull(sgn) ? sgn.getId() : null));		
 	}
 	
-	protected static TraceSignal traceSignal(SafeSupplier<? extends TraceSignal> supp) {
+	protected static TraceSignal traceSignal(SafeSupplier<? extends TraceSignal> supp, String action) {
 		TraceSignal sgn = null;
 		try {
 			sgn = supp.get();
 		}
 		catch (Exception e) {
-			hub().emitReport("ExecutionTracer.traceSignal", e);
+			hub().emitReport(action, e);
 		}
 		if(nonNull(sgn)) {
 			hub().emitTrace(sgn);

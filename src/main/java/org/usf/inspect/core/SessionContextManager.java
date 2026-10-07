@@ -7,23 +7,25 @@ import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionEvent.LogLevel.ERROR;
-import static org.usf.inspect.core.SessionEvent.LogLevel.INFO;
-import static org.usf.inspect.core.SessionEvent.LogLevel.WARN;
 import static org.usf.inspect.core.MainSessionType.SCHEDULE;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.MainSessionType.TEST;
-import static org.usf.inspect.core.SessionMask.EVENT;
-import static org.usf.inspect.core.SessionMask.FTP;
-import static org.usf.inspect.core.SessionMask.JDBC;
-import static org.usf.inspect.core.SessionMask.LDAP;
-import static org.usf.inspect.core.SessionMask.LOCAL;
-import static org.usf.inspect.core.SessionMask.REST;
-import static org.usf.inspect.core.SessionMask.SMTP;
+import static org.usf.inspect.core.SessionEvent.LogLevel.ERROR;
+import static org.usf.inspect.core.SessionEvent.LogLevel.INFO;
+import static org.usf.inspect.core.SessionEvent.LogLevel.WARN;
+import static org.usf.inspect.core.SessionEventMask.EVENT;
+import static org.usf.inspect.core.SessionEventMask.FTP;
+import static org.usf.inspect.core.SessionEventMask.JDBC;
+import static org.usf.inspect.core.SessionEventMask.LDAP;
+import static org.usf.inspect.core.SessionEventMask.LOCAL;
+import static org.usf.inspect.core.SessionEventMask.REST;
+import static org.usf.inspect.core.SessionEventMask.SMTP;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import org.usf.inspect.core.SessionEvent.LogLevel;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -36,89 +38,121 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SessionContextManager {
 
-	private static final ThreadLocal<AbstractSessionUpdate> localTrace = new ThreadLocal<>(); //replaceable ScopedValue in Java 21+
-	private static AbstractSessionUpdate startupContext; //avoid ThreadLocal for startup context
+	private static final ThreadLocal<SessionContext> localContext = new ThreadLocal<>(); //replaceable ScopedValue in Java 21+
+	private static SessionContext startupContext; //avoid ThreadLocal for startup context
     
-	public static AbstractSessionUpdate requireActiveContext() {
-		var ses = activeContext();
-		if(isNull(ses)) {
-			reportNoActiveContext("requireActiveContext");
+	public static ContextPropagator contextPropagator(SessionContext ctx, boolean updateThreadCount, String action) {
+		if(isNull(ctx) || ctx.wasCompleted()) {
+			reportNullOrCompletedContext(action);
+			return ()-> {};
 		}
-		else if(ses.wasCompleted()){
-			reportIllegalContextState("requireActiveContext", "current context was already completed");
-			ses = null;
+    	var prv = activeContext();
+    	if(ctx != prv) {
+    		localContext.set(ctx);
 		}
-		return ses;
-	}
+    	if(updateThreadCount) {
+    		ctx.threadCountUp();
+    	}
+    	return ()-> {
+        	if(updateThreadCount) {
+        		ctx.threadCountDown();
+        	}
+    		if(prv != ctx) {
+    			if(nonNull(prv)) {
+    	    		localContext.set(prv);
+    			}
+    			else {
+    				localContext.remove();
+    			}
+    		}
+    	};
+    }
 
-	public static AbstractSessionUpdate activeContext() {
-		var trc = localTrace.get();
-		return nonNull(trc) ? trc : startupContext; // priority
+	public static SessionContext activeContext() {
+		var ctx = localContext.get();
+		if(isNull(ctx)) {
+			ctx = startupContext;
+		}
+		if(nonNull(ctx) && ctx.wasCompleted()) {
+			ctx = null;
+		}
+		return ctx;
 	}
 
 	public static void setActiveContext(AbstractSessionUpdate session) {
-		if(session.isStartup()) {
-			if(startupContext != session) {
-				if(isNull(startupContext)) {
-					startupContext = session;
-				}
-				else {
-					reportContextConflict("setActiveContext", startupContext.getId(), session.getId());
-				}
+		if(isNull(session) || nonNull(session.getEnd())) {
+			reportNullOrCompletedContext("setActiveContext");
+		}
+		else if(session.isStartup()) {
+			if(isNull(startupContext)) {
+				startupContext = new SessionContext(session);
+			}
+			else if(startupContext.getSession() == session) {
+				hub().emitReport("setActiveContext", "startup context already set");
+			}
+			else {
+				reportContextConflict("setActiveContext", startupContext.getSession().getId(), session.getId());
 			}
 		}
 		else {
-			var prv = localTrace.get();
-			if(prv != session) {
-				localTrace.set(session);
+			var ctx = localContext.get();
+			if(nonNull(ctx) && !ctx.wasCompleted()) {
+				hub().emitReport("setActiveContext", "current context is not completed " + ctx.getSession().getId());
 			}
+			localContext.set(new SessionContext(session));
 		}
 	}
 	
-	public static void clearContext(AbstractSessionUpdate ctx) {
-		if(ctx.isStartup()) {
-			if(startupContext == ctx) {
-				if(ctx.wasCompleted()) { //reactor
-					startupContext = null;
-				}
+	public static void clearContext(AbstractSessionUpdate session) {
+		if(isNull(session)) {
+			hub().emitReport("clearContext", "session cannot be null");
+			return;
+		}
+		if(session.isStartup()) {
+			if(isNull(startupContext)) {
+				hub().emitReport("clearContext", "");
 			}
-			else if(nonNull(startupContext)) {
-				reportContextConflict("clearContext", startupContext.getId(), ctx.getId());
+			if(startupContext.getSession() == session) {
+				startupContext = null;
 			}
 			else {
-				reportNoActiveContext("clearContext");
+				reportContextConflict("clearContext", startupContext.getSession().getId(), session.getId());
 			}
 		}
 		else {
-			var prv = localTrace.get();
-			if(prv == ctx) {
-				localTrace.remove();
+			var ctx = localContext.get();
+			if(isNull(ctx)) {
+				hub().emitReport("clearContext", "");
 			}
-			else if(nonNull(prv)) {
-				reportContextConflict("clearContext", prv.getId(), ctx.getId());
+			else if(ctx.getSession() == session) {
+				localContext.remove();  //even if !complete
 			}
 			else {
-				reportNoActiveContext("clearContext");
+				reportContextConflict("clearContext", ctx.getSession().getId(), session.getId());
 			}
 		}
 	}
 
-	public static HttpSessionSignal createHttpSession(Instant start, UUID uuid) {
-		var ses = new HttpSessionSignal(requireNonNullElseGet(uuid, SessionContextManager::nextId), start, threadName());
-		ses.setLinked(nonNull(uuid));
-		return ses;
+	public static HttpSessionSignal createHttpSession(Instant start, UUID uuid) { // HttpRequest.id
+		var sgn = new HttpSessionSignal(requireNonNullElseGet(uuid, SessionContextManager::nextId), start, threadName());
+		sgn.setLinked(nonNull(uuid));
+		return sgn;
 	}
 	
 	static MainSessionSignal createStartupSession(Instant start) {
-		return createStartupSession(start, nextId());
+		return createMainSession(STARTUP, start, nextId());
 	}
 
-	static MainSessionSignal createStartupSession(Instant start, UUID uuid) {
-		return createMainSession(STARTUP, start, requireNonNullElseGet(uuid, SessionContextManager::nextId));
+	static MainSessionSignal createStartupSession(Instant start, UUID rid) { // InstanceEnvironment.id
+		return createMainSession(STARTUP, start, requireNonNullElseGet(rid, SessionContextManager::nextId));
 	}
-
+	
 	public static MainSessionSignal createScheduleSession(Instant start) {
 		return createMainSession(SCHEDULE, start, nextId());
+	}
+
+	public static MainSessionSignal createScheduleSession(Instant start, UUID rid) { // LocalRequest.id
+		return createMainSession(SCHEDULE, start, requireNonNullElseGet(rid, SessionContextManager::nextId));
 	}
 	
 	public static MainSessionSignal createTestSession(Instant start) {
@@ -130,31 +164,33 @@ public final class SessionContextManager {
 	}
 
 	public static LocalRequestSignal createLocalRequest(Instant start) {
-		return createLocalRequest(start, nextId());
-	}
-
-	public static LocalRequestSignal createLocalRequest(Instant start, UUID rid) {
-		return new LocalRequestSignal(rid, requireSessionIdFor(LOCAL), start, threadName());
+		var sid = requireSessionIdFor(LOCAL, "SessionContextManager.createLocalRequest");
+		return new LocalRequestSignal(nextId(), sid, start, threadName());
 	}
 	
 	public static DatabaseRequestSignal createDatabaseSignal(Instant start) {
-		return new DatabaseRequestSignal(nextId(), requireSessionIdFor(JDBC), start, threadName());
+		var sid = requireSessionIdFor(JDBC, "SessionContextManager.createDatabaseSignal");
+		return new DatabaseRequestSignal(nextId(), sid, start, threadName());
 	}
 	
 	public static HttpRequestSignal createHttpRequest(Instant start, UUID rid) {
-		return new HttpRequestSignal(rid, requireSessionIdFor(REST), start, threadName());
+		var sid = requireSessionIdFor(REST, "SessionContextManager.createHttpRequest");
+		return new HttpRequestSignal(rid, sid, start, threadName());
 	}
 
 	public static FtpRequestSignal createFtpSignal(Instant start) {
-		return new FtpRequestSignal(nextId(), requireSessionIdFor(FTP), start, threadName());
+		var sid = requireSessionIdFor(FTP, "SessionContextManager.createFtpSignal");
+		return new FtpRequestSignal(nextId(), sid, start, threadName());
 	}
 	
 	public static MailRequestSignal createMailSignal(Instant start) {
-		return new MailRequestSignal(nextId(), requireSessionIdFor(SMTP), start, threadName());
+		var sid = requireSessionIdFor(SMTP, "SessionContextManager.createMailSignal");
+		return new MailRequestSignal(nextId(), sid, start, threadName());
 	}
 
 	public static DirectoryRequestSignal createNamingSignal(Instant start) {
-		return new DirectoryRequestSignal(nextId(), requireSessionIdFor(LDAP), start, threadName());
+		var sid = requireSessionIdFor(LDAP, "SessionContextManager.createNamingSignal");
+		return new DirectoryRequestSignal(nextId(), sid, start, threadName());
 	}
 	
 	public static void emitInfo(String msg) {
@@ -169,37 +205,42 @@ public final class SessionContextManager {
 		emitLog(ERROR, msg);
 	}
 	
-	public static void emitLog(SessionEvent.LogLevel lvl, String msg) {
-		var evt = new SessionEvent(systemUTC().instant(), 
-				lvl.name(), msg, null, requireSessionIdFor(EVENT));
+	public static void emitLog(LogLevel lvl, String msg) {
+		var sid = requireSessionIdFor(EVENT, "SessionContextManager.emitLog");
+		var evt = new SessionEvent(systemUTC().instant(), lvl.name(), msg, null, sid);
 		hub().emitTrace(evt);
 	}
 	
-	static UUID requireSessionIdFor(SessionMask mask) {
-		var ses = requireActiveContext();
-		if(nonNull(ses)) {
-			if(ses.updateMask(mask)) {
-				var upd = new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ses.getRequestMask().get());
+	static UUID requireSessionIdFor(SessionEventMask mask, String action) {
+		var ctx = activeContext();
+		if(nonNull(ctx)) {
+			var ses = ctx.getSession();
+			if(ctx.updateEventMask(mask)) {
+				var upd = new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ctx.getSession().getEventMask());
 				hub().emitTrace(upd);
 			}
 			return ses.getId();
 		}
+		reportNullOrCompletedContext(action);
 		return null;
 	}
 
 	public static UUID nextId() {
 		return randomUUID();
 	}
-
-	static void reportNoActiveContext(String action) {
-		hub().emitReport(action, "no active context");
-	}
 	
-	static void reportContextConflict(String action, UUID prev, UUID next) {
-		hub().emitReport(action, format("previous=%s, next=%s", prev, next));
+	static void reportNullOrCompletedContext(String action) {
+		hub().emitReport(action, "session context is null or already completed");
 	}
 
-	static void reportIllegalContextState(String action, String msg) {
-		hub().emitReport(action, msg);
+	static void reportContextConflict(String action, UUID prev, UUID next) {
+		hub().emitReport(action, format("session context conflict : previous=%s, next=%s", prev, next));
+	}
+
+	@FunctionalInterface
+	public interface ContextPropagator extends AutoCloseable {
+		
+		@Override
+		void close();
 	}
 }

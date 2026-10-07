@@ -150,7 +150,7 @@ public class InspectConfiguration implements WebMvcConfigurer {
     		@Override
     		public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
     			if(bean instanceof ThreadPoolTaskExecutor exc) { //context injection for : @Async, Callable, DeferredResult, CompletableFuture 
-    				exc.setTaskDecorator(SessionPropagator::wrapRunnable);
+    				exc.setTaskDecorator(ContextPropagators::wrapRunnable);
     			}
     			//see also SimpleAsyncTaskExecutor & AsyncSupportConfigurer(CallableProcessingInterceptor, DeferredResultProcessingInterceptor)
 	            return bean instanceof DataSource ds ? wrap(ds, beanName) : bean;

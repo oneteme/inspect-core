@@ -23,7 +23,4 @@ public final class LocalRequestSignal extends AbstractRequestSignal {
 		super(id, sessionId, start, threadName);
 	}
 
-	public LocalRequestUpdate createCallback() {
-		return new LocalRequestUpdate(getId());
-	}
 }

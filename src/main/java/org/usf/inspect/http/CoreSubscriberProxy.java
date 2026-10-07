@@ -3,13 +3,13 @@ package org.usf.inspect.http;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
-import static org.usf.inspect.core.SessionPropagator.withContext;
+import static org.usf.inspect.core.SessionContextManager.contextPropagator;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.reactivestreams.Subscription;
-import org.usf.inspect.core.AbstractSessionUpdate;
+import org.usf.inspect.core.SessionContext;
 
 import reactor.core.CoreSubscriber;
 import reactor.core.Scannable;
@@ -30,12 +30,12 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 	static final String CONTEXT_KEY = "inspect.session";
 	
 	private final CoreSubscriber<? super T> sub;
-	private final AbstractSessionUpdate ctx;
+	private final SessionContext ctx;
 	private final AtomicBoolean done; //root only
-	private volatile Subscription s; //root only
-	private volatile Context context; //root only, lazy
+	private Subscription subscription; //root only
+	private Context context; //root only, lazy
 
-	private CoreSubscriberProxy(CoreSubscriber<? super T> sub, AbstractSessionUpdate ctx, boolean root) {
+	private CoreSubscriberProxy(CoreSubscriber<? super T> sub, SessionContext ctx, boolean root) {
 		this.sub = sub;
 		this.ctx = ctx;
 		this.done = root ? new AtomicBoolean() : null;
@@ -45,24 +45,24 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 		if (sub instanceof CoreSubscriberProxy<?>) {
 	        return sub;
 	    }
-		AbstractSessionUpdate ctx = sub.currentContext().getOrDefault(CONTEXT_KEY, null);
+		SessionContext ctx = sub.currentContext().getOrDefault(CONTEXT_KEY, null);
 		if(nonNull(ctx)) {
 			return new CoreSubscriberProxy<>(sub, ctx, false); //upstream of a root
 		}
 		ctx = activeContext();
-		return nonNull(ctx) && !ctx.wasCompleted() ? new CoreSubscriberProxy<>(sub, ctx, true) : sub;
+		return nonNull(ctx) ? new CoreSubscriberProxy<>(sub, ctx, true) : sub;
 	}
 
 	@Override
 	public void onSubscribe(Subscription s) {
 		if(isNull(done)) {
-			try(var sp = withContext(ctx, false)) {
+			try(var sp = contextPropagator(ctx, false, "CoreSubscriberProxy.onSubscribe")) {
 				sub.onSubscribe(s); //pass-through, keeps fusion
 			}
 		}
 		else {
-			this.s = s;
-			try(var sp = withContext(ctx, false)) {
+			this.subscription = s;
+			try(var sp = contextPropagator(ctx, false, "CoreSubscriberProxy.onSubscribe")) {
 				ctx.threadCountUp(); //before any synchronous signal
 				sub.onSubscribe(this);
 			}
@@ -71,14 +71,14 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 
 	@Override
 	public void onNext(T t) {
-		try(var sp = withContext(ctx, false)) {
+		try(var sp = contextPropagator(ctx, false, "CoreSubscriberProxy.onNext")) {
 			sub.onNext(t);
 		}
 	}
 
 	@Override
 	public void onError(Throwable t) {
-		try(var sp = withContext(ctx, false)) {
+		try(var sp = contextPropagator(ctx, false, "CoreSubscriberProxy.onError")) {
 			sub.onError(t);
 		}
 		finally {
@@ -88,7 +88,7 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 
 	@Override
 	public void onComplete() {
-		try(var c = withContext(ctx, false)) {
+		try(var sp = contextPropagator(ctx, false, "CoreSubscriberProxy.onComplete")) {
 			sub.onComplete();
 		}
 		finally {
@@ -112,26 +112,26 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 
 	@Override
 	public void request(long n) {
-		if(nonNull(s)) {
-			s.request(n);
+		if(nonNull(subscription)) {
+			subscription.request(n);
 		}
 		else {
-			hub().emitReport("CoreSubscriberProxy.request", "s is null");
+			hub().emitReport("CoreSubscriberProxy.request", "subscription cannot be null");
 		}
 	}
 
 	@Override
 	public void cancel() {
-		if(nonNull(s)) {
+		if(nonNull(subscription)) {
 			try {
-				s.cancel();
+				subscription.cancel();
 			}
 			finally {
 				terminate();
 			}
 		}
 		else {
-			hub().emitReport("CoreSubscriberProxy.cancel", "s is null");
+			hub().emitReport("CoreSubscriberProxy.cancel", "subscription cannot be null");
 		}
 	}
 

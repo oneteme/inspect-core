@@ -2,8 +2,8 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
-import static org.usf.inspect.core.SessionPropagator.wrapCallable;
-import static org.usf.inspect.core.SessionPropagator.wrapRunnable;
+import static org.usf.inspect.core.ContextPropagators.wrapCallable;
+import static org.usf.inspect.core.ContextPropagators.wrapRunnable;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.concurrent.Callable;

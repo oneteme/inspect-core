@@ -17,7 +17,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.usf.inspect.core.SessionPropagator;
+import org.usf.inspect.core.ContextPropagators;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,7 +33,7 @@ public class ReactorModuleConfiguration implements InitializingBean, DisposableB
 	public void afterPropertiesSet() {
 		setExecutorServiceDecorator(HOOK_KEY, (sc, es)-> wrap(es, true, "ReactorExecutorService"));
 		log.debug("registering reactor hooks '{}'", HOOK_KEY);
-		onScheduleHook(HOOK_KEY, SessionPropagator::wrapRunnable);
+		onScheduleHook(HOOK_KEY, ContextPropagators::wrapRunnable);
 		onEachOperator(HOOK_KEY, lift(CoreSubscriberProxy::lift));
 	}
 

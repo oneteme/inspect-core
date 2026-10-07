@@ -4,7 +4,7 @@ import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.StreamSupport.stream;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
-import static org.usf.inspect.core.SessionPropagator.withContext;
+import static org.usf.inspect.core.SessionContextManager.contextPropagator;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.Collection;
@@ -42,8 +42,8 @@ public final class StreamProxy {
 		if(hub().isEnabled()){
 			var ctx = activeContext();
 			if(nonNull(ctx)) {
-				return stream(new ContextSpliterator<>(stream.spliterator(), ctx), stream.isParallel())
-						.onClose(stream::close);
+				var cs = new ContextSpliterator<>(stream.spliterator(), ctx);
+				return stream(cs, stream.isParallel()).onClose(stream::close);
 			}
 		}
 		return stream;
@@ -54,18 +54,18 @@ public final class StreamProxy {
 		
 		@Delegate
 	    private final Spliterator<T> delegate;
-	    private final AbstractSessionUpdate ctx;
+	    private final SessionContext ctx;
 
 	    @Override 
 	    public boolean tryAdvance(Consumer<? super T> action) {
-	    	try(var sp = withContext(ctx, true)){
+	    	try(var sp = contextPropagator(ctx, true, "ContextSpliterator.tryAdvance")){
 	    		return delegate.tryAdvance(action);
 	    	}
 	    }
 	    
 	    @Override 
 	    public void forEachRemaining(Consumer<? super T> action) {
-	    	try(var sp = withContext(ctx, true)){
+	    	try(var sp = contextPropagator(ctx, true, "ContextSpliterator.forEachRemaining")){
 	    		delegate.forEachRemaining(action);
 	    	}
 	    }

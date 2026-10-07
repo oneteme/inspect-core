@@ -74,7 +74,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 			sgn.setUserAgent(request.getHeader(USER_AGENT));
 			sgn.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
 			return sgn;
-		});
+		}, "HttpSessionTracer.httpSessionTracer");
 		var upd = new HttpSessionUpdate(signal.getId());
 		return new HttpSessionTracer(upd, signal.getStart());
 	}

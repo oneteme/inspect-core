@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public enum SessionMask {
+public enum SessionEventMask {
 	
 	LOCAL(0x1), JDBC(0x2), REST(0x4), FTP(0x8), SMTP(0x10), LDAP(0x20), EVENT(0x400), ASYNC(1<<31);
 	

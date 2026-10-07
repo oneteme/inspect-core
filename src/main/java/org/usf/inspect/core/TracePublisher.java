@@ -49,7 +49,7 @@ public interface TracePublisher {
 				}
 			}
 			else {
-				log.debug("merged {} traces for session {}, update mask is {}", e.getValue().size(), e.getKey(), ((AbstractSessionUpdate)upd.get()).getRequestMask());
+				log.debug("merged {} traces for session {}, update mask is {}", e.getValue().size(), e.getKey(), ((AbstractSessionUpdate)upd.get()).getEventMask());
 			}
 			traces.removeAll(e.getValue());
 		}
