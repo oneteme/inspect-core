@@ -15,13 +15,15 @@ import lombok.ToString;
 public final class MonitoringConfiguration {
 
 	private HttpRouteMonitoringProperties httpRoute = new HttpRouteMonitoringProperties(); //replace restSession
-	//v1.1
 	private ResourceMonitoringProperties resources = new ResourceMonitoringProperties();
 	private ExceptionMonitoringConfiguration exception = new ExceptionMonitoringConfiguration();
+	//v1.2
+	private LogbackMonitoringProperties logback = new LogbackMonitoringProperties();
 	
 	void validate() {
 		httpRoute.validate();
 		resources.validate();
 		exception.validate();
+		logback.validate();
 	}
 }

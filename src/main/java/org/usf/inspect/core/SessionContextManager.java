@@ -170,10 +170,10 @@ public final class SessionContextManager {
 		var sid = requireSessionIdFor(LDAP, "SessionContextManager.createNamingSignal");
 		return new DirectoryRequestSignal(nextId(), sid, start, threadName());
 	}
-	
-	public static SessionEvent createLog(LogLevel lvl, String msg) {
+
+	public static SessionEvent createLog(Instant instant, String lvl, String msg, String location) {
 		var sid = requireSessionIdFor(EVENT, "SessionContextManager.emitLog");
-		return new SessionEvent(systemUTC().instant(), lvl.name(), msg, null, sid);
+		return new SessionEvent(instant, lvl, msg, location, sid);
 	}
 	
 	static UUID requireSessionIdFor(SessionEventMask mask, String action) {

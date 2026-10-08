@@ -24,6 +24,7 @@ public final class ReportEvent implements EventTrace {
 	private final String thread;
 	private final String action;
 	private final String message;
+	private final String exception; //v1.2
 	private final StackTraceRow[] stackRows;
 	@Deprecated(forRemoval = true, since = "v1.2")
 	private String level; //type
@@ -43,11 +44,11 @@ public final class ReportEvent implements EventTrace {
 		.format();
 	}
 	
-	static ReportEvent report(String action, String msg) {
-		return report(action, msg, null);	
+	public static ReportEvent report(String action, String msg) {
+		return report(action, msg, null, null);	
 	}
 
-	static ReportEvent report(String action, String msg, StackTraceRow[] stack) {
-		return new ReportEvent(systemUTC().instant(), threadName(), action, msg, stack);	
+	public static ReportEvent report(String action, String msg, String exception, StackTraceRow[] stack) {
+		return new ReportEvent(systemUTC().instant(), threadName(), action, msg, exception, stack);	
 	}
 }

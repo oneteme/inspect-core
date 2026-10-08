@@ -14,7 +14,7 @@ import org.slf4j.Logger;
  *
  */
 public interface TraceHub {
-	
+
 	static Logger log = getLogger(TraceHub.class);
 	
 	InspectCollectorConfiguration getConfiguration();
@@ -30,29 +30,28 @@ public interface TraceHub {
 	@Deprecated
 	default boolean emitTask(DispatchTask task) {return false;}
 
-	default void emitReport(String action, Throwable thrw) {
-		if(canCollect()) {
-			var msg = nonNull(thrw) ? thrw.getClass().getName() + ":" + thrw.getMessage() : null;
-			StackTraceRow[] stc = null;
-			if(getConfiguration().isDebugMode()) {
-				stc = exceptionStackTraceRows(nonNull(thrw) ? thrw : new Exception(), -1);
-			}
-			emitTrace(report(action, msg, stc));
-		}
-		else {
-			log.warn("[{}] : {}", action, nonNull(thrw) ? thrw.getMessage() : "");
-		}
-	}
 
 	default void emitReport(String action, String msg) {
 		if(canCollect()) {
 			var stc = getConfiguration().isDebugMode()
 					? exceptionStackTraceRows(new Exception(), -1) 
 					: null;
-			emitTrace(report(action, msg, stc)); 
+			emitTrace(report(action, msg, null, stc)); 
 		}
-		else {
-			log.warn("[{}] : {}", action, msg);
+	}
+	
+	default void emitReport(String action, Throwable thrw) {
+		emitReport(action, null, thrw);
+	}
+	
+	default void emitReport(String action, String msg, Throwable thrw) {
+		if(canCollect()) {
+			var exp = nonNull(thrw) ? thrw.getClass().getSimpleName() + ":" + thrw.getMessage() : null;
+			StackTraceRow[] stc = null;
+			if(getConfiguration().isDebugMode()) {
+				stc = exceptionStackTraceRows(nonNull(thrw) ? thrw : new Exception(), -1);
+			}
+			emitTrace(report(action, msg, exp, stc));
 		}
 	}
 
@@ -83,5 +82,4 @@ public interface TraceHub {
 		static TraceHub INSTANCE = new TraceDispatcherHub();
 		private Holder() {}
 	}
-	
 }

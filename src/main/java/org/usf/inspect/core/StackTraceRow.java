@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.Math.min;
 import static java.lang.String.format;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 import lombok.Getter;
@@ -32,16 +33,19 @@ public final class StackTraceRow {
 	}
 
 	public static StackTraceRow[] exceptionStackTraceRows(Throwable thrw, int maxRows) {
-		StackTraceRow[] rows = null;
-		if(maxRows != 0 && nonNull(thrw)) {
-			var stack = thrw.getStackTrace(); 
-			rows = new StackTraceRow[maxRows < 0 ? stack.length : min(maxRows, stack.length)];
-			for(var i=0; i<rows.length; i++) {
-				rows[i] = new StackTraceRow(
-						stack[i].getClassName(),
-						stack[i].getMethodName(), 
-						stack[i].getLineNumber());
-			}
+		return nonNull(thrw) ? exceptionStackTraceRows(thrw.getStackTrace(), maxRows) : null;
+	}
+	
+	public static StackTraceRow[] exceptionStackTraceRows(StackTraceElement[] stack, int maxRows) {
+		if(isNull(stack) || maxRows == 0) {
+			return null;
+		}
+		var rows = new StackTraceRow[maxRows < 0 ? stack.length : min(maxRows, stack.length)];
+		for(var i=0; i<rows.length; i++) {
+			rows[i] = new StackTraceRow(
+					stack[i].getClassName(),
+					stack[i].getMethodName(), 
+					stack[i].getLineNumber());
 		}
 		return rows;
 	}

@@ -76,9 +76,9 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	
 	InspectConfiguration(ApplicationContext appContext, Environment env) {
 		this.config = loadConfiguration(env);
-		if(this.config.isDebugMode()) {
-			TraceHub.Holder.INSTANCE = new TraceHubDebugger(hub());
-		}
+//		if(this.config.isDebugMode()) {
+//			TraceHub.Holder.INSTANCE = new TraceHubDebugger(hub());
+//		}
 		hub().configure(config);
         this.appContext = appContext;
         var start = ofEpochMilli(appContext.getStartupDate()); //create startup session immediately after configuring hub, before any other bean is created
