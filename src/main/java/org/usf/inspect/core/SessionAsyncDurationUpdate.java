@@ -12,15 +12,15 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public class SessionMaskUpdate implements TracePart {
-	
+public class SessionAsyncDurationUpdate implements TracePart {
+
 	private final UUID id;
 	private final boolean main;
-	private final int mask;
+	private final long asyncDuration;
+	
 	
 	@Override
 	public String toString() {
-		return id + "{set mask=" + mask + "}";
+		return id + "{set asyncDuration=" + asyncDuration + "}";
 	}
-
 }

@@ -100,34 +100,38 @@ public final class SessionContextManager {
 		}
 	}
 	
-	public static void clearContext(AbstractSessionUpdate session) {
+	public static SessionContext clearContext(AbstractSessionUpdate session) {
 		if(isNull(session)) {
 			hub().emitReport("clearContext", "session cannot be null");
-			return;
+			return null;
 		}
+		var ctx = startupContext;
 		if(session.isStartup()) {
-			if(isNull(startupContext)) {
+			if(isNull(ctx)) {
 				hub().emitReport("clearContext", "");
 			}
-			if(startupContext.getSession() == session) {
+			else if(ctx.getSession() == session) {
 				startupContext = null;
+				return ctx;
 			}
 			else {
 				reportContextConflict("clearContext", startupContext.getSession().getId(), session.getId());
 			}
 		}
 		else {
-			var ctx = localContext.get();
+			ctx = localContext.get();
 			if(isNull(ctx)) {
 				hub().emitReport("clearContext", "");
 			}
 			else if(ctx.getSession() == session) {
 				localContext.remove();  //even if !complete
+				return ctx;
 			}
 			else {
 				reportContextConflict("clearContext", ctx.getSession().getId(), session.getId());
 			}
 		}
+		return null;
 	}
 
 	public static HttpSessionSignal createHttpSession(Instant start, UUID uuid) { // HttpRequest.id
@@ -136,7 +140,7 @@ public final class SessionContextManager {
 		return sgn;
 	}
 	
-	static MainSessionSignal createMainSession(MainSessionType type, Instant start) {
+	public static MainSessionSignal createMainSession(MainSessionType type, Instant start) {
 		return new MainSessionSignal(nextId(), start, threadName(), type.name());
 	}
 	

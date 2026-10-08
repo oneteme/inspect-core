@@ -48,10 +48,13 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 				update.setStatus(SUCCESS);
 			}
 			update.setEnd(end);
-			hub().emitTrace(update);
-			if(update instanceof AbstractSessionUpdate ctx) {
-				clearContext(ctx);
+			if(update instanceof AbstractSessionUpdate session) {
+				var ctx = clearContext(session);
+				if(nonNull(ctx)) {
+					ctx.updateAsync(); //initial duration
+				}
 			}
+			hub().emitTrace(update);
 		}
 	}
 
@@ -72,18 +75,18 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 	public static <R> ExecutionTracer<R> forLocalRequest(Instant start, SafeConsumer<LocalRequestSignal> cons) {
 		var sgn = createLocalRequest(start);
 		traceSignal(sgn, cons, "ExecutionTracer.forLocalRequest");
-		return new ExecutionTracer<>(new LocalRequestUpdate(nonNull(sgn) ? sgn.getId() : null));		
+		return new ExecutionTracer<>(new LocalRequestUpdate(sgn.getId()));		
 	}
 	
 	public static <R> ExecutionTracer<R> forMainSession(Instant start, MainSessionType type, SafeConsumer<MainSessionSignal> cons) {
 		var sgn = createMainSession(type, start);
 		traceSignal(sgn, cons, "ExecutionTracer.forMainSession");
-		return new ExecutionTracer<>(new MainSessionUpdate(nonNull(sgn) ? sgn.getId() : null));		
+		return new ExecutionTracer<>(new MainSessionUpdate(sgn.getId()));		
 	}
 	
 	public static <R> ExecutionTracer<R> forHttpSession(HttpSessionSignal sgn, SafeConsumer<HttpSessionSignal> cons) {
 		traceSignal(sgn, cons, "ExecutionTracer.forHttpSession");
-		return new ExecutionTracer<>(new HttpSessionUpdate(nonNull(sgn) ? sgn.getId() : null));		
+		return new ExecutionTracer<>(new HttpSessionUpdate(sgn.getId()));		
 	}
 	
 	protected static <T extends TraceSignal> void traceSignal(T sgn, SafeConsumer<? super T> supp, String action) {
