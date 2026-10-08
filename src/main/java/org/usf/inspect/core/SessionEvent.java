@@ -29,8 +29,4 @@ public final class SessionEvent implements EventTrace {
 		.withInstant(instant)
 		.format();
 	}
-
-	public enum LogLevel {
-		INFO, WARN, ERROR, @Deprecated(forRemoval = true, since = "v1.2") REPORT;
-	}
 }

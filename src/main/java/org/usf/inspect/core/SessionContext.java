@@ -19,11 +19,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class SessionContext {
 	
+	@Getter 
+	private final AbstractSessionUpdate session;
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
 	private final AtomicInteger requestMask = new AtomicInteger(); // thread safe
-
-	@Getter
-	private final AbstractSessionUpdate session;
 	
 	public boolean updateEventMask(SessionEventMask mask) {
 		return !mask.is(requestMask.getAndUpdate(v-> {

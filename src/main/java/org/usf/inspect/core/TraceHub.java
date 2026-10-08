@@ -1,9 +1,12 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.slf4j.LoggerFactory.getLogger;
 import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.ReportEvent.report;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
+
+import org.slf4j.Logger;
 
 /**
  * 
@@ -11,6 +14,8 @@ import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
  *
  */
 public interface TraceHub {
+	
+	static Logger log = getLogger(TraceHub.class);
 	
 	InspectCollectorConfiguration getConfiguration();
 	
@@ -34,6 +39,9 @@ public interface TraceHub {
 			}
 			emitTrace(report(action, msg, stc));
 		}
+		else {
+			log.warn("[{}] : {}", action, nonNull(thrw) ? thrw.getMessage() : "");
+		}
 	}
 
 	default void emitReport(String action, String msg) {
@@ -42,6 +50,9 @@ public interface TraceHub {
 					? exceptionStackTraceRows(new Exception(), -1) 
 					: null;
 			emitTrace(report(action, msg, stc)); 
+		}
+		else {
+			log.warn("[{}] : {}", action, msg);
 		}
 	}
 

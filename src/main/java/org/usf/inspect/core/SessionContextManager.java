@@ -7,9 +7,6 @@ import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionEvent.LogLevel.ERROR;
-import static org.usf.inspect.core.SessionEvent.LogLevel.INFO;
-import static org.usf.inspect.core.SessionEvent.LogLevel.WARN;
 import static org.usf.inspect.core.SessionEventMask.EVENT;
 import static org.usf.inspect.core.SessionEventMask.FTP;
 import static org.usf.inspect.core.SessionEventMask.JDBC;
@@ -22,7 +19,7 @@ import static org.usf.inspect.core.TraceHub.hub;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.usf.inspect.core.SessionEvent.LogLevel;
+import org.usf.inspect.core.SessionLog.LogLevel;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -177,18 +174,6 @@ public final class SessionContextManager {
 	public static SessionEvent createLog(LogLevel lvl, String msg) {
 		var sid = requireSessionIdFor(EVENT, "SessionContextManager.emitLog");
 		return new SessionEvent(systemUTC().instant(), lvl.name(), msg, null, sid);
-	}
-	
-	public static void emitInfo(String msg) {
-		hub().emitTrace(createLog(INFO, msg));
-	}
-
-	public static void emitWarn(String msg) {
-		hub().emitTrace(createLog(WARN, msg));
-	}
-
-	public static void emitError(String msg) {
-		hub().emitTrace(createLog(ERROR, msg));
 	}
 	
 	static UUID requireSessionIdFor(SessionEventMask mask, String action) {
