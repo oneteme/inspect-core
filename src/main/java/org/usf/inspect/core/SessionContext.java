@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
 import static java.time.Duration.between;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.TraceHub.hub;
 
@@ -46,16 +47,19 @@ public final class SessionContext {
 					hub().emitTrace(new SessionAsyncDurationUpdate(session.getId(), session instanceof MainSessionUpdate, drt));
 				}
 				else {
-					hub().emitReport("SessionContext.threadCountDown", "");
+					hub().emitReport("SessionContext.threadCountDown", "asyncDuration already set to " + drt);
 				}
-//				System.err.println(session);
 			}
 			return v;
 		});
 	}
 
 	public boolean wasCompleted() {
-		return nonNull(session.getEnd()) && threadCount.get() == 0;
+		if(nonNull(session.getEnd())) {
+			var drt = session.getAsyncDuration();
+			return isNull(drt) || drt > -1;
+		}
+		return false;
 	}
 	
 	public boolean isStartup() {
@@ -64,13 +68,11 @@ public final class SessionContext {
 	
 	public void updateAsync() {
 		threadCount.updateAndGet(v->{
-			if(v > 0) {
-				if(nonNull(session.getEnd())) {
-					session.setAsyncDuration(-1L);
-				}
-				else {
-					hub().emitReport("SessionContext.updateAsync", "");
-				}
+			if(isNull(session.getEnd())) {
+				hub().emitReport("SessionContext.updateAsync", "session not completed yet, end is null");
+			}
+			else if(v > 0) {
+				session.setAsyncDuration(-1L); //initial duration
 			}
 			return v;
 		});

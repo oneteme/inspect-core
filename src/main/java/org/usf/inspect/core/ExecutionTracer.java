@@ -51,7 +51,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 			if(update instanceof AbstractSessionUpdate session) {
 				var ctx = clearContext(session);
 				if(nonNull(ctx)) {
-					ctx.updateAsync(); //initial duration
+					ctx.updateAsync();
 				}
 			}
 			hub().emitTrace(update);

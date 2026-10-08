@@ -214,12 +214,13 @@ public class InspectConfiguration implements WebMvcConfigurer {
 	
 	public static SimpleModule coreModule() {
 		return new SimpleModule("inspect-core-module").registerSubtypes(
-				new NamedType(ReportEvent.class, 					"00"),  
+				new NamedType(ReportEvent.class, 				"00"),  
 				new NamedType(MachineResourceUsage.class, 		"01"),
 				new NamedType(RestRemoteServerProperties.class, "02"),
 				new NamedType(SessionMaskUpdate.class,			"03"),  
-				new NamedType(ExceptionTrace.class,				"04"), 
-				new NamedType(SessionEvent.class,				"05"),
+				new NamedType(SessionAsyncDurationUpdate.class,	"04"),  
+				new NamedType(ExceptionTrace.class,				"05"), 
+				new NamedType(SessionEvent.class,				"06"),
 				new NamedType(MainSessionSignal.class,  		"10"),
 				new NamedType(MainSessionUpdate.class,  		"11"), 
 				new NamedType(HttpSessionSignal.class,  		"20"), 
