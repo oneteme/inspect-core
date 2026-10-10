@@ -8,7 +8,8 @@
 	<version>1.2.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>inspect-core</name>
-	<description>INtegrated System Performance Evaluation and Communication Tracking core libray</description>
+	<description>INtegrated System Performance Evaluation and Communication
+		Tracking core libray</description>
 	<url>https://oneteme.github.io/</url>
 	<developers>
 		<developer>
@@ -44,6 +45,12 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>2.0.9</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 			<version>${spring.version}</version>
@@ -53,14 +60,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-aop</artifactId>
 			<version>${spring.version}</version> <!-- !provided: internal use -->
-		</dependency><!-- Source: https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
-<!-- Source: https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
-<dependency>
-    <groupId>org.slf4j</groupId>
-    <artifactId>slf4j-api</artifactId>
-    <version>2.0.9</version>
-    <scope>provided</scope>
-</dependency>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
@@ -68,16 +68,16 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-	    <groupId>org.springframework.ldap</groupId>
-	    <artifactId>spring-ldap-core</artifactId>
-	    <version>3.2.0</version>
+			<groupId>org.springframework.ldap</groupId>
+			<artifactId>spring-ldap-core</artifactId>
+			<version>3.2.0</version>
 			<scope>provided</scope>
 			<exclusions>
-        <exclusion>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </exclusion>
-    </exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.jcraft</groupId>
@@ -85,26 +85,23 @@
 			<version>0.1.55</version>
 			<scope>provided</scope>
 		</dependency>
-<!-- Source: https://mvnrepository.com/artifact/jakarta.mail/jakarta.mail-api -->
 		<dependency>
-	    <groupId>jakarta.mail</groupId>
-	    <artifactId>jakarta.mail-api</artifactId>
-	    <version>2.1.5</version>
-	    <scope>provided</scope>
+			<groupId>jakarta.mail</groupId>
+			<artifactId>jakarta.mail-api</artifactId>
+			<version>2.1.5</version>
+			<scope>provided</scope>
 		</dependency>
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-core</artifactId>
-      <version>9.22.3</version>
-      <scope>provided</scope>
-    </dependency>
-    <!-- Source: https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
-
-<!--		<dependency>-->
-<!--			<groupId>com.github.jsqlparser</groupId>-->
-<!--			<artifactId>jsqlparser</artifactId>-->
-<!--			<version>5.3</version>-->
-<!--		</dependency>-->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+			<version>9.22.3</version>
+			<scope>provided</scope>
+		</dependency>
+		<!--		<dependency>-->
+		<!--			<groupId>com.github.jsqlparser</groupId>-->
+		<!--			<artifactId>jsqlparser</artifactId>-->
+		<!--			<version>5.3</version>-->
+		<!--		</dependency>-->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
@@ -124,9 +121,9 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-	    <groupId>junit</groupId>
-	    <artifactId>junit</artifactId>
-	    <version>4.13.2</version> <!-- latest -->
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.13.2</version> <!-- latest -->
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -141,33 +138,35 @@
 			<version>2.3.232</version>
 			<scope>test</scope>
 		</dependency>
-	<dependency>
-	    <groupId>com.icegreen</groupId>
-	    <artifactId>greenmail</artifactId>
-	    <version>2.1.13</version>
-	    <scope>test</scope><exclusions>
-        <exclusion>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </exclusion>
-    </exclusions>
-	</dependency>
-	<dependency>
-    <groupId>com.squareup.okhttp3</groupId>
-    <artifactId>mockwebserver</artifactId>
-    <version>4.12.0</version>
-    <scope>test</scope>
-</dependency>
+		<dependency>
+			<groupId>com.icegreen</groupId>
+			<artifactId>greenmail</artifactId>
+			<version>2.1.13</version>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>mockwebserver</artifactId>
+			<version>4.12.0</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.sshd</groupId>
 			<artifactId>sshd-sftp</artifactId>
 			<version>2.14.0</version>
-			<scope>test</scope><exclusions>
-        <exclusion>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </exclusion>
-    </exclusions>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.unboundid</groupId>
@@ -193,7 +192,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-    		<version>3.4.2</version>
+				<version>3.4.2</version>
 				<configuration>
 					<archive>
 						<manifest>
@@ -258,9 +257,9 @@
 								</goals>
 							</execution>
 						</executions>
-            <configuration>
-                <failOnError>false</failOnError>
-            </configuration>
+						<configuration>
+							<failOnError>false</failOnError>
+						</configuration>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -279,9 +278,11 @@
 								<goals>
 									<goal>sign</goal>
 								</goals>
-		            <configuration>
-		                <signer>bc</signer> <!-- Bouncy Castle based signer that does not depend on external gpg processes -->
-		            </configuration>
+								<configuration>
+									<signer>bc</signer> <!-- Bouncy Castle based
+									signer that does not depend on external gpg
+									processes -->
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
@@ -297,7 +298,8 @@
 		<repository>
 			<id>ossrh</id>
 			<name>Central Repository OSSRH</name>
-			<url>https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/</url>
+			<url>
+				https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/</url>
 		</repository>
 	</distributionManagement>
 </project>

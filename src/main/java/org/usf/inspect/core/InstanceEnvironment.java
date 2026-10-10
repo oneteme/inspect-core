@@ -36,7 +36,7 @@ public final class InstanceEnvironment {
 	private final String hash; //commit hash$
 	private final String collector; //spring-collector-xx, ng-collector-xx,..
 	private final Map<String, String> additionalProperties; //additional properties, e.g. for docker container, kubernetes pod, etc.
-	private final InspectCollectorConfiguration configuration;
+	private final InspectCollectorProperties configuration;
 	private MachineResource resource; //init/max heap +  init/max metaspace
 	//server usage ..
 	private Instant end;

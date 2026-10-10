@@ -1,5 +1,9 @@
 org.usf.inspect.core.InspectConfiguration
-org.usf.inspect.jdbc.FlywayModuleConfiguration
-org.usf.inspect.http.ReactorModuleConfiguration
-org.usf.inspect.dir.DirectoryModuleConfiguration
-org.usf.inspect.logging.LogbackModuleConfiguration
+org.usf.inspect.core.InspectCoreConfiguration
+org.usf.inspect.logging.InspectLogbackConfiguration
+org.usf.inspect.reactor.InspectReactorConfiguration
+org.usf.inspect.http.InspectWebMvcConfiguration
+org.usf.inspect.http.InspectHttpClientConfiguration
+org.usf.inspect.http.InspectWebClientConfiguration
+org.usf.inspect.flyway.InspectFlywayConfiguration
+org.usf.inspect.ldap.InspectDirectoryConfiguration

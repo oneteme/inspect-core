@@ -7,6 +7,10 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.springframework.aop.support.AopUtils.getMostSpecificMethod;
 import static org.springframework.core.annotation.AnnotationUtils.findAnnotation;
+import static org.usf.inspect.core.AnnotationMonitoringProperties.INSPECT_TRACEABLE;
+import static org.usf.inspect.core.AnnotationMonitoringProperties.SPRING_CAHCE;
+import static org.usf.inspect.core.AnnotationMonitoringProperties.SPRING_SCHEDULE;
+import static org.usf.inspect.core.AnnotationMonitoringProperties.SPRING_TRANSACTION;
 import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
@@ -35,8 +39,6 @@ import org.springframework.core.Ordered;
 import org.springframework.transaction.annotation.Transactional;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -46,16 +48,30 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Aspect
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class MethodExecutionMonitor implements Ordered {
 
 	private final AspectUserProvider userProvider;
+	private final boolean ignoreCache;
+	private final boolean ignoreSchedule;
+	private final boolean ignoreTransaction;
+	private final boolean ignoreTraceable;
+	
+	public MethodExecutionMonitor(AspectUserProvider userProvider, AnnotationMonitoringProperties properties) {
+		this.userProvider = userProvider;
+		this.ignoreCache = properties.getExcludes().contains(SPRING_CAHCE);
+		this.ignoreSchedule = properties.getExcludes().contains(SPRING_SCHEDULE);
+		this.ignoreTransaction = properties.getExcludes().contains(SPRING_TRANSACTION);
+		this.ignoreTraceable = properties.getExcludes().contains(INSPECT_TRACEABLE);
+	}
 
 	public static <E extends Throwable> void trackRunnable(LocalRequestType type, String name, SafeRunnable<E> fn) throws E {
 		trackCallable(type, name, fn);
 	}
 
 	public static <T, E extends Throwable> T trackCallable(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
+		if(hub().isEnabled()) {
+			return fn.call();
+		}
 		return call(fn, forLocalRequest(systemUTC().instant(), sgn->{
 			var frm = upperStackFrame(MethodExecutionMonitor.class); //skip MethodExecutionMonitor
 			sgn.setName(name);
@@ -71,17 +87,23 @@ public class MethodExecutionMonitor implements Ordered {
 		}));
 	}
 
-	@Around("@annotation(TraceableStage)"
-			+ " && !@annotation(org.springframework.scheduling.annotation.Scheduled)"
-			+ " && !@annotation(org.springframework.scheduling.annotation.Schedules)") //batch <> TraceableStage
+	@Around("@annotation(TraceableStage) "
+			+ "&& !@annotation(org.springframework.scheduling.annotation.Scheduled) "
+			+ "&& !@annotation(org.springframework.scheduling.annotation.Schedules)") //batch <> TraceableStage
 	Object aroundMethod(ProceedingJoinPoint point) throws Throwable {
+		if(ignoreTraceable) {
+			return point.proceed();
+		}
 		var ctx = activeContext();
-		return isNull(ctx) ? aroundSchedule(point) : aroundMethod(point, EXEC.name());
+		return isNull(ctx) ? aroundSchedule(point) : aroundMethod(point, EXEC);
 	}
 	
-	@Around("@annotation(org.springframework.scheduling.annotation.Scheduled)"
-			+ " || @annotation(org.springframework.scheduling.annotation.Schedules)")
+	@Around("@annotation(org.springframework.scheduling.annotation.Scheduled) "
+			+ "|| @annotation(org.springframework.scheduling.annotation.Schedules)")
 	Object aroundSchedule(ProceedingJoinPoint point) throws Throwable {
+		if(ignoreSchedule) {
+			return point.proceed();
+		}
 		var ctx = activeContext();
 		if(nonNull(ctx) && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
 			hub().emitReport("MethodExecutionMonitor.aroundSchedule", "active session context found, but not completed");
@@ -93,7 +115,7 @@ public class MethodExecutionMonitor implements Ordered {
 		}));
 	}
 
-	@Around("(@annotation(org.springframework.cache.annotation.Cacheable) "
+	@Around("@annotation(org.springframework.cache.annotation.Cacheable) "
 	        + "|| @within(org.springframework.cache.annotation.Cacheable) "
 	        + "|| @annotation(org.springframework.cache.annotation.CachePut) "
 	        + "|| @within(org.springframework.cache.annotation.CachePut) "
@@ -101,17 +123,27 @@ public class MethodExecutionMonitor implements Ordered {
 	        + "|| @within(org.springframework.cache.annotation.CacheEvict) "
 	        + "|| @annotation(org.springframework.cache.annotation.Caching) "
 	        + "|| @within(org.springframework.cache.annotation.Caching) "
-	        + "|| @annotation(org.springframework.transaction.annotation.Transactional) "
-	        + "|| @within(org.springframework.transaction.annotation.Transactional)) "
 	        + "&& !@annotation(TraceableStage)") 
 	Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
-		var typ = nonNull(findMethodOrClassAnnotation(targetMethod(point), Transactional.class)) ? TRANSACTION : CACHE;
-		return aroundMethod(point, typ.name());
+		if(ignoreCache) {
+			return point.proceed();
+		}
+		return aroundMethod(point, CACHE);
+	}
+	
+	@Around("(@annotation(org.springframework.transaction.annotation.Transactional) "
+	        + "|| @within(org.springframework.transaction.annotation.Transactional)) "
+	        + "&& !@annotation(TraceableStage)") 
+	Object aroundTransactionnal(ProceedingJoinPoint point) throws Throwable {
+		if(ignoreTransaction) {
+			return point.proceed();
+		}
+		return aroundMethod(point, TRANSACTION);
 	}
 
-	Object aroundMethod(ProceedingJoinPoint point, String type) throws Throwable {
+	Object aroundMethod(ProceedingJoinPoint point, LocalRequestType type) throws Throwable {
 		return call(point::proceed, forLocalRequest(systemUTC().instant(), sgn->{
-			sgn.setType(type);
+			sgn.setType(type.name());
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 		}));
@@ -124,7 +156,7 @@ public class MethodExecutionMonitor implements Ordered {
 	
 	static String resolveStageName(ProceedingJoinPoint point) {
 		var mth = targetMethod(point);
-		var ant = findAnnotation(mth, TraceableStage.class);
+		var ant = findAnnotation(mth, TraceableStage.class); 
 		if(nonNull(ant)) { //keep TraceableStage over Cacheable/Transactional to allow name override
 			return ant.name().isEmpty()
 					? mth.getName()

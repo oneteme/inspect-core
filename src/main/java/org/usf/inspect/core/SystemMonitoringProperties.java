@@ -14,7 +14,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class ResourceMonitoringProperties {
+public class SystemMonitoringProperties {
 
 	private boolean enabled;
 	private File disk = new File("/");

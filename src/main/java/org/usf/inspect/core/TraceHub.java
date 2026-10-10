@@ -6,6 +6,8 @@ import static org.usf.inspect.core.ExceptionTrace.fromException;
 import static org.usf.inspect.core.ReportEvent.report;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 
 /**
@@ -17,9 +19,9 @@ public interface TraceHub {
 
 	static Logger log = getLogger(TraceHub.class);
 	
-	InspectCollectorConfiguration getConfiguration();
+	InspectCollectorProperties getConfiguration();
 	
-	default void configure(InspectCollectorConfiguration config) { }
+	default void configure(InspectCollectorProperties properties, TracePublisher publisher, List<DispatchHook> hooks) { }
 
 	default boolean canCollect() {return false;}
 

@@ -7,7 +7,6 @@ import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
 import static java.lang.management.ManagementFactory.getThreadMXBean;
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.io.File;
@@ -25,7 +24,7 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @RequiredArgsConstructor
-public final class MachineResourceMonitor implements DispatchHook {
+public final class SystemMonitor implements DispatchHook {
 
 	private static final int MB = 1024 * 1024;
 
@@ -38,9 +37,9 @@ public final class MachineResourceMonitor implements DispatchHook {
 	
 	private long totalDiskSpace;
 
-	public MachineResourceMonitor(File file) {
-		this.file = file;
-		processCpuLoad = processCpuLoadSupplier(osBean);
+	public SystemMonitor(SystemMonitoringProperties prop) {
+		this.file = prop.getDisk();
+		this.processCpuLoad = processCpuLoadSupplier(osBean);
 	}
 	
 	@Override
@@ -68,7 +67,7 @@ public final class MachineResourceMonitor implements DispatchHook {
 			var heap = memoryBean.getHeapMemoryUsage();
 			var startedThreadCount = threadBean.getTotalStartedThreadCount();
 //			var meta = bean.getNonHeapMemoryUsage()
-			hub().emitTrace(new MachineResourceUsage(systemUTC().instant(),
+			hub().emitTrace(new SystemMetrics(systemUTC().instant(),
 					toMb(heap.getUsed()), 
 					toMb(heap.getCommitted()), 
 //					toMb(meta.getUsed()), 
@@ -118,10 +117,5 @@ public final class MachineResourceMonitor implements DispatchHook {
 			};
 		}
 		return ()-> -1;
-	}
-	
-	public static MachineResourceMonitor machineResourceMonitor(ResourceMonitoringProperties prop) {
-		logLoadingBean("machineResourceMonitor", MachineResourceMonitor.class);
-		return new MachineResourceMonitor(prop.getDisk(), processCpuLoadSupplier(osBean));
 	}
 }

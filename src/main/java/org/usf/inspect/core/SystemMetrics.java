@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @RequiredArgsConstructor
-public final class MachineResourceUsage implements EventTrace {
+public final class SystemMetrics implements EventTrace {
 	
 	private final Instant instant;
 

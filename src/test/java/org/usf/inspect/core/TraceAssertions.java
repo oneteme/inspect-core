@@ -102,7 +102,7 @@ public final class TraceAssertions {
 		var elp = 0;
 		for(var i=1; i<trace.size()-1; i++) {
 			var trc = trace.get(i);
-			if(trc instanceof Metric stg) {
+			if(trc instanceof TimedTrace stg) {
 				elp += between(stg.getStart(), stg.getEnd()).toNanos();
 			}
 		}
@@ -122,7 +122,7 @@ public final class TraceAssertions {
 		var prv = sgn.getStart();
 		for(var i=1; i<trace.size()-1; i++) {
 			var trc = trace.get(i);
-			if(trc instanceof Metric stg) {
+			if(trc instanceof TimedTrace stg) {
 				System.out.println(" | +%2s".formatted(between(prv, stg.getStart()).toMillis()) + "ns => " + stg);
 				prv = stg.getEnd();
 			}

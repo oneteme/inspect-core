@@ -1,14 +1,17 @@
-package org.usf.inspect.dir;
+package org.usf.inspect.ldap;
 
-import static org.usf.inspect.dir.ContextSourceWrapper.wrap;
+import static org.usf.inspect.core.Constants.LDAP_ENABLED;
+import static org.usf.inspect.ldap.ContextSourceWrapper.wrap;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.ldap.core.ContextSource;
+import org.usf.inspect.core.InspectCoreConfiguration;
 
 /**
  * 
@@ -16,9 +19,10 @@ import org.springframework.ldap.core.ContextSource;
  *
  */
 @Configuration
-@ConditionalOnClass(name="org.springframework.ldap.core.ContextSource")
-@ConditionalOnProperty(prefix = "inspect.collector", name = "enabled", havingValue = "true")
-public class DirectoryModuleConfiguration {
+@ConditionalOnBean(InspectCoreConfiguration.class) //inspect enabled
+@ConditionalOnClass(name="org.springframework.ldap.core.ContextSource") //spring-ldap dependency present
+@ConditionalOnProperty(name = LDAP_ENABLED, havingValue = "true", matchIfMissing = true)
+public class InspectDirectoryConfiguration {
 	
 	@Bean
 	BeanPostProcessor contextSourceWrapper() {

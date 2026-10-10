@@ -24,7 +24,7 @@ public class SchedulingProperties {
 	private Duration interval = ofSeconds(60);
 	private DispatchState state = DISPATCH;
 
-	void validate() {
+	public void validate() {
 		assertBetween(interval, ofSeconds(10), ofHours(1), "interval");
 	}
 }

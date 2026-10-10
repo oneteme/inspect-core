@@ -10,7 +10,7 @@ import java.time.Instant;
  * @author u$f
  *
  */
-public interface Metric extends EventTrace {
+public interface TimedTrace extends EventTrace {
 	
 	Instant getStart();
 

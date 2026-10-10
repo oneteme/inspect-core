@@ -2,17 +2,15 @@ package org.usf.inspect.core;
 
 import static java.lang.Runtime.getRuntime;
 import static java.lang.Thread.currentThread;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.DispatchState.DISABLE;
-import static org.usf.inspect.core.InspectConfiguration.createObjectMapper;
-import static org.usf.inspect.core.MachineResourceMonitor.machineResourceMonitor;
 import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -40,12 +38,12 @@ public class TraceDispatcherHub implements TraceHub {
 	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISABLE);
 	private final String name;
 	
-	public TraceDispatcherHub() {
+	protected TraceDispatcherHub() {
 		this("inspect-agt-publisher");
 	}
 	
 	@Getter
-	private InspectCollectorConfiguration configuration;
+	private InspectCollectorProperties configuration;
 	private ProcessingQueue<EventTrace> queue;
 	private EventTraceBus eventBus;
 	private TracePublisher publisher;
@@ -54,23 +52,18 @@ public class TraceDispatcherHub implements TraceHub {
 	private int threshold;
 	
 	@Override
-	public void configure(InspectCollectorConfiguration configuration) {
-		configure(configuration, resolveExporter(configuration.getTracing().getRemote(), configuration.isDebugMode()));
-	}
-	
-	public void configure(InspectCollectorConfiguration configuration, TracePublisher publiser) {
+	public void configure(InspectCollectorProperties configuration, TracePublisher publiser, List<DispatchHook> hooks) {
 		if(!scheduling()) {
 			this.configuration = configuration;
 			if(configuration.isEnabled()) {
-				var max = configuration.getTracing().getQueueCapacity();
-				queue = new ProcessingQueue<>(max);
 				atomicState.set(configuration.getScheduling().getState());
+				var max = configuration.getTracing().getQueueCapacity();
+				this.queue = new ProcessingQueue<>(max);
 				this.threshold= (int) (max *.9); //90% of max capacity
 				this.publisher = publiser;
 				this.eventBus = new EventTraceBus();
-				if(configuration.getMonitoring().getResources().isEnabled()) {
-					var rsc = configuration.getMonitoring().getResources();
-					eventBus.registerHook(machineResourceMonitor(rsc));
+				if(nonNull(hooks)) {
+					hooks.forEach(eventBus::registerHook);
 				}
 				start();
 			}
@@ -83,9 +76,9 @@ public class TraceDispatcherHub implements TraceHub {
 	private void start() {
 		if(isEnabled()) {
 			if(!scheduling()) {//single thread to avoid concurrent queue access
-				var es = newSingleThreadScheduledExecutor(daemonThread(name)); 
+				var schc = newSingleThreadScheduledExecutor(daemonThread(name)); 
 				var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
-				this.executor = configuration.isDebugMode() ? wrap(es, false) : es;
+				this.executor = configuration.isDebugMode() ? wrap(schc, false) : schc;
 				log.info("◴ scheduling traces dispatch every {} seconds", delay);
 				this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 				getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
@@ -163,9 +156,9 @@ public class TraceDispatcherHub implements TraceHub {
 				Class<?>[] priorityTypes = {
 						AbstractStage.class, 
 			            ExceptionTrace.class, 
-			            MachineResourceUsage.class, 
-			            ReportEvent.class, 
-			            SessionEvent.class};
+			            SystemMetrics.class, 
+			            SessionEvent.class, 
+			            ReportEvent.class};
 		        for(Class<?> clazz : priorityTypes) {
 		    	    var len = queue.removeIf(clazz::isInstance);
 		            log.warn(" ❌ removed {} traces of type {}", len, clazz.getSimpleName());
@@ -260,33 +253,6 @@ public class TraceDispatcherHub implements TraceHub {
 			thr.setDaemon(true);
 			thr.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));
 			return thr;
-		};
-	}
-	
-	static TracePublisher resolveExporter(RemoteServerProperties rsp, boolean debug) {
-		if(rsp instanceof RestRemoteServerProperties prop) {
-			return new RestClientTracePublisher(prop, createObjectMapper(), debug);
-		}
-		if(isNull(rsp)) {
-			log.warn("remote tracing is disabled, traces will be lost");
-			return noExporter(); //no remote agent
-		}
-		throw new UnsupportedOperationException("unsupported remote " + rsp);
-	}	
-	
-	static TracePublisher noExporter() {
-		
-		return new TracePublisher() {
-			
-			@Override
-			public void register(InstanceEnvironment env) {
-				//do nothing
-			}
-			
-			@Override
-			public void flush(boolean complete, ProcessingQueue<EventTrace> queue) {
-				queue.clear();
-			}
 		};
 	}
 }

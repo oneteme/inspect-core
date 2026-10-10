@@ -2,6 +2,7 @@ package org.usf.inspect.ftp;
 
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
+import static org.usf.inspect.core.Constants.JSCH_FTP_ENABLED;
 import static org.usf.inspect.core.FtpCommand.CD;
 import static org.usf.inspect.core.FtpCommand.CHGRP;
 import static org.usf.inspect.core.FtpCommand.CHMOD;
@@ -252,7 +253,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	}
 
 	public static final ChannelSftp wrap(@NonNull ChannelSftp channel, String beanName) {
-		if(hub().isEnabled()){
+		if(hub().isEnabled() && hub().getConfiguration().getBooleanProperty(JSCH_FTP_ENABLED, true)){
 			if(channel.getClass() != ChannelSftpWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "channelSftp"), channel.getClass());
 				return new ChannelSftpWrapper(channel);

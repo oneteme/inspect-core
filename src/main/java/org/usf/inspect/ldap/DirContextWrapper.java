@@ -1,4 +1,4 @@
-package org.usf.inspect.dir;
+package org.usf.inspect.ldap;
 
 import static org.usf.inspect.core.DirCommand.ATTRIB;
 import static org.usf.inspect.core.DirCommand.LIST;

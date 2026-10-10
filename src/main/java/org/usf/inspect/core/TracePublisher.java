@@ -15,7 +15,7 @@ import org.slf4j.Logger;
  */
 public interface TracePublisher {
 	
-	static Logger log = getLogger(TracePublisher.class);
+	static final Logger log = getLogger(TracePublisher.class);
 
     static final byte RETRY = 1;
     static final byte ABORT = 0;

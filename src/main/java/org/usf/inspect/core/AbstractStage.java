@@ -18,7 +18,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public abstract class AbstractStage implements Metric {
+public abstract class AbstractStage implements TimedTrace {
 
 	private UUID requestId;
 	private int order; // stages has same start sometimes (duration=0)

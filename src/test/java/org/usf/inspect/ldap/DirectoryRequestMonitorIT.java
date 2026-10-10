@@ -1,4 +1,4 @@
-package org.usf.inspect.dir;
+package org.usf.inspect.ldap;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -15,6 +15,7 @@ import javax.naming.directory.SearchControls;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.usf.inspect.ldap.DirectoryConnectionLifecycleTracer;
 
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;

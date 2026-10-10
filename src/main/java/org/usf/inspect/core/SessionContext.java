@@ -19,8 +19,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class SessionContext {
 	
-	@Getter 
-	private final AbstractSessionUpdate session;
+	@Getter	private final AbstractSessionUpdate session;
+	@Getter	private final boolean startup;
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
 	private final AtomicInteger requestMask = new AtomicInteger(); // thread safe
 	
@@ -59,10 +59,6 @@ public final class SessionContext {
 			return isNull(drt) || drt > -1;
 		}
 		return false;
-	}
-	
-	public boolean isStartup() {
-		return session.isStartup();
 	}
 	
 	public void updateAsync() {

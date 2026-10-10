@@ -7,6 +7,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
+import static org.usf.inspect.core.Constants.SCHEDULING_ENABLED;
 import static org.usf.inspect.core.ContextPropagators.wrapCallable;
 import static org.usf.inspect.core.ContextPropagators.wrapRunnable;
 import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
@@ -41,7 +42,7 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 
 	private final boolean contextPropagationOnly;
 	
-	ScheduledExecutorServiceWrapper(ScheduledExecutorService es, boolean contextPropagationOnly) {
+	ScheduledExecutorServiceWrapper(ScheduledExecutorService es, boolean contextPropagationOnly) { //as MainSession
 		super(es);
 		this.contextPropagationOnly = contextPropagationOnly;
 	}
@@ -121,6 +122,11 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 	
 	ScheduledExecutorService se() {
 		return (ScheduledExecutorService) es;
+	}
+	
+
+	public static ScheduledExecutorService wrap(ScheduledExecutorService es) {
+		return wrap(es, !hub().getConfiguration().getBooleanProperty(SCHEDULING_ENABLED, true), null);
 	}
 
 	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean contextPropagationOnly) {

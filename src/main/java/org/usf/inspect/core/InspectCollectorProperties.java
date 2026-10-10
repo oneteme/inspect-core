@@ -12,12 +12,12 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-public class InspectCollectorConfiguration {
+public class InspectCollectorProperties {
 	
 	private boolean enabled = false;
 	private boolean debugMode = false; // enable debug mode, e.g. for testing
 	private SchedulingProperties scheduling = new SchedulingProperties(); //replace dispatch
-	private MonitoringConfiguration monitoring = new MonitoringConfiguration();
+	private MonitoringProperties monitoring = new MonitoringProperties();
 	private TracingProperties tracing = new TracingProperties();
 	
 	public void validate() {
@@ -28,8 +28,8 @@ public class InspectCollectorConfiguration {
 		}
 	}
 	
-	static InspectCollectorConfiguration initializeConfiguration(boolean enable) {
-		var config = new InspectCollectorConfiguration();
+	static InspectCollectorProperties initializeConfiguration(boolean enable) {
+		var config = new InspectCollectorProperties();
 		config.setEnabled(enable);
 		return config;
 	}

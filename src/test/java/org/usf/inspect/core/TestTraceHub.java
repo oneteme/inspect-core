@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.unmodifiableList;
-import static org.usf.inspect.core.InspectCollectorConfiguration.initializeConfiguration;
+import static org.usf.inspect.core.InspectCollectorProperties.initializeConfiguration;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ public class TestTraceHub implements TraceHub, InvocationInterceptor {
 	private static final TestTraceHub INSTANCE = new TestTraceHub();
 	
 	private final List<EventTrace> traces = synchronizedList(new ArrayList<>());
-	private final InspectCollectorConfiguration configuration = initializeConfiguration(true);
+	private final InspectCollectorProperties configuration = initializeConfiguration(true);
 
 	@Override
 	public void emitTrace(EventTrace trace) {

@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.core.SessionContextManager.createMainSession;
@@ -24,11 +25,17 @@ import lombok.Getter;
 public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer {
 
 	private final TraceUpdate update; //may be null
-
+	private final boolean startup;
+	
 	public ExecutionTracer(TraceUpdate update) {
+		this(update, false);
+	}
+
+	public ExecutionTracer(TraceUpdate update, boolean startup) {
 		this.update = update;
+		this.startup = startup;
 		if(update instanceof AbstractSessionUpdate session) {
-			setActiveContext(session);
+			setActiveContext(session, startup);
 		}
 		this.update.setStatus(UNKNOWN); //initial status
 	}
@@ -49,7 +56,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 			}
 			update.setEnd(end);
 			if(update instanceof AbstractSessionUpdate session) {
-				var ctx = clearContext(session);
+				var ctx = clearContext(session, startup);
 				if(nonNull(ctx)) {
 					ctx.updateAsync();
 				}
@@ -81,7 +88,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 	public static <R> ExecutionTracer<R> forMainSession(Instant start, MainSessionType type, SafeConsumer<MainSessionSignal> cons) {
 		var sgn = createMainSession(type, start);
 		traceSignal(sgn, cons, "ExecutionTracer.forMainSession");
-		return new ExecutionTracer<>(new MainSessionUpdate(sgn.getId()));		
+		return new ExecutionTracer<>(new MainSessionUpdate(sgn.getId()), type == STARTUP);		
 	}
 	
 	public static <R> ExecutionTracer<R> forHttpSession(HttpSessionSignal sgn, SafeConsumer<HttpSessionSignal> cons) {

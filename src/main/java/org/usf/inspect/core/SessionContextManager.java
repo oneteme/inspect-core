@@ -1,7 +1,6 @@
 package org.usf.inspect.core;
 
 import static java.lang.String.format;
-import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
@@ -18,8 +17,6 @@ import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 import java.util.UUID;
-
-import org.usf.inspect.core.SessionLog.LogLevel;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -74,12 +71,16 @@ public final class SessionContextManager {
 	}
 
 	public static void setActiveContext(AbstractSessionUpdate session) {
+		setActiveContext(session, false);
+	}
+
+	static void setActiveContext(AbstractSessionUpdate session, boolean startup) {
 		if(isNull(session) || nonNull(session.getEnd())) {
 			reportNullOrCompletedContext("setActiveContext");
 		}
-		else if(session.isStartup()) {
+		else if(startup) {
 			if(isNull(startupContext)) {
-				startupContext = new SessionContext(session);
+				startupContext = new SessionContext(session, startup);
 			}
 			else if(startupContext.getSession() == session) {
 				hub().emitReport("setActiveContext", "startup context already set");
@@ -93,17 +94,21 @@ public final class SessionContextManager {
 			if(nonNull(ctx) && !ctx.wasCompleted()) {
 				hub().emitReport("setActiveContext", "current context is not completed " + ctx.getSession().getId());
 			}
-			localContext.set(new SessionContext(session));
+			localContext.set(new SessionContext(session, false));
 		}
 	}
 	
 	public static SessionContext clearContext(AbstractSessionUpdate session) {
+		return clearContext(session, false);
+	}
+	
+	static SessionContext clearContext(AbstractSessionUpdate session, boolean startup) {
 		if(isNull(session)) {
 			hub().emitReport("clearContext", "session cannot be null");
 			return null;
 		}
 		var ctx = startupContext;
-		if(session.isStartup()) {
+		if(startup) {
 			if(isNull(ctx)) {
 				hub().emitReport("clearContext", "");
 			}

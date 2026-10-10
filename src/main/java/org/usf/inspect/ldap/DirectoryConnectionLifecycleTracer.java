@@ -1,4 +1,4 @@
-package org.usf.inspect.dir;
+package org.usf.inspect.ldap;
 
 import static java.net.URI.create;
 import static java.util.Objects.nonNull;

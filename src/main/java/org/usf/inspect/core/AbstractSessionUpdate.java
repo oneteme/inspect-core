@@ -3,8 +3,6 @@ package org.usf.inspect.core;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -34,11 +32,6 @@ public abstract class AbstractSessionUpdate implements TraceUpdate {
 	
 	public void setEnd(Instant end){
 		this.end = end;
-	}
-	
-	@JsonIgnore
-	public boolean isStartup() {
-		return false;
 	}
 	
 	@Override
