@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.util.Objects.nonNull;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.usf.inspect.core.ExceptionTrace.fromException;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.ReportEvent.report;
 import static org.usf.inspect.core.StackTraceRow.exceptionStackTraceRows;
 
@@ -19,9 +20,7 @@ public interface TraceHub {
 
 	static Logger log = getLogger(TraceHub.class);
 	
-	InspectCollectorProperties getConfiguration();
-	
-	default void configure(InspectCollectorProperties properties, TracePublisher publisher, List<DispatchHook> hooks) { }
+	default void configure(SchedulingProperties properties, TracePublisher publisher, List<DispatchHook> hooks) { }
 
 	default boolean canCollect() {return false;}
 
@@ -32,10 +31,9 @@ public interface TraceHub {
 	@Deprecated
 	default boolean emitTask(DispatchTask task) {return false;}
 
-
 	default void emitReport(String action, String msg) {
 		if(canCollect()) {
-			var stc = getConfiguration().isDebugMode()
+			var stc = getConfiguration().getProperties().isDebugMode()
 					? exceptionStackTraceRows(new Exception(), -1) 
 					: null;
 			emitTrace(report(action, msg, null, stc)); 
@@ -50,7 +48,7 @@ public interface TraceHub {
 		if(canCollect()) {
 			var exp = nonNull(thrw) ? thrw.getClass().getSimpleName() + ":" + thrw.getMessage() : null;
 			StackTraceRow[] stc = null;
-			if(getConfiguration().isDebugMode()) {
+			if(getConfiguration().getProperties().isDebugMode()) {
 				stc = exceptionStackTraceRows(nonNull(thrw) ? thrw : new Exception(), -1);
 			}
 			emitTrace(report(action, msg, exp, stc));
@@ -59,7 +57,7 @@ public interface TraceHub {
 
 	default void emitExceptionTrace(Throwable thrw, TraceUpdate upd, long offset) {
 		if(canCollect()) {
-			var cfg = getConfiguration().getMonitoring().getException();
+			var cfg = getConfiguration().getProperties().getMonitoring().getException();
 			var trc = upd instanceof AbstractSessionUpdate 
 					? fromException(thrw, cfg.getMaxCauseDepth(), cfg.getMaxStackTraceRows())
 					: fromException(thrw, 0, 0);

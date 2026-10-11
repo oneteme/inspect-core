@@ -14,6 +14,7 @@ import static org.usf.inspect.core.AnnotationMonitoringProperties.SPRING_TRANSAC
 import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.LocalRequestType.CACHE;
 import static org.usf.inspect.core.LocalRequestType.EXEC;
@@ -69,7 +70,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	public static <T, E extends Throwable> T trackCallable(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
-		if(hub().isEnabled()) {
+		if(getConfiguration().isEnabled()) {
 			return fn.call();
 		}
 		return call(fn, forLocalRequest(systemUTC().instant(), sgn->{

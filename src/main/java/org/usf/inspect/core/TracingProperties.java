@@ -19,15 +19,18 @@ import lombok.ToString;
 @ToString
 public class TracingProperties { //add remote
 	
-	private int queueCapacity = 100_000; // {n} max buffering traces, min=100
+	@Deprecated(forRemoval = true, since = "v1.2") //move to Scheduling
+	private int queueCapacity = 100_000; //move to SchedulingProperties
 	private RemoteServerProperties remote; //replace server
 	//v1.1
 	@JsonIgnore
 	@Deprecated(since = "v1.2", forRemoval = true)
 	private DumpProperties dump = new DumpProperties();
+	//1.2
+	private PublisherType type;
 	
 	void validate() {
-		assertGreaterOrEquals(queueCapacity, 10, "queue-capacity");
+		assertGreaterOrEquals(queueCapacity, 100, "queue-capacity");
 		dump.validate();
 		if(nonNull(remote)) {
 			remote.validate();

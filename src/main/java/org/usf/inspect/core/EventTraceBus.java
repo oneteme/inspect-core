@@ -22,16 +22,12 @@ public final class EventTraceBus {
 		dispatchHooks.add(hook);
 	}
 	
-	public void removeHook(DispatchHook hook) {
-		dispatchHooks.remove(hook);
-	}
-	
 	public void triggerInstanceEmit(InstanceEnvironment env){
 		triggerHooks(h-> h.onInstanceEmit(env));
 	}
 	
 	public void triggerSchedule(){
-		triggerHooks(h-> h.onSchedule());
+		triggerHooks(DispatchHook::onSchedule);
 	}
 	
 	void triggerHooks(Consumer<? super DispatchHook> post){

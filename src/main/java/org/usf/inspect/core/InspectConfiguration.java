@@ -1,7 +1,6 @@
 package org.usf.inspect.core;
 
-import static java.lang.Boolean.parseBoolean;
-import static java.lang.String.format;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.Constants.INSPECT_ENABLED;
@@ -12,8 +11,11 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.StandardEnvironment;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -22,13 +24,16 @@ import lombok.extern.slf4j.Slf4j;
  *
  */
 @Slf4j
-@Getter
 @Configuration
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 @ConditionalOnProperty(name = INSPECT_ENABLED, havingValue = "true", matchIfMissing = false) 
 public class InspectConfiguration {
+	
+	static InspectConfiguration INSTANCE = new InspectConfiguration(new InspectCollectorProperties(), new StandardEnvironment());
 
-	private final Environment environment;
+	@Getter
 	private final InspectCollectorProperties properties;
+	private final Environment environment;
 	
 	InspectConfiguration(Environment environment) {
 		this.environment = environment;
@@ -41,29 +46,35 @@ public class InspectConfiguration {
 		logLoadingBean("systemMonitor", SystemMonitor.class);
 		return new SystemMonitor(properties.getMonitoring().getSystem());
 	}
-	
-	public String getProperty(String key) {
-		return environment.getProperty(key);
+
+	public boolean isEnabled() {
+		return properties.isEnabled();
 	}
 	
-	public boolean getBooleanProperty(String key, boolean matchIfMissing) {
-		var v = environment.getProperty(key);
-		return nonNull(v) ? parseBoolean(v) : matchIfMissing;
+	public boolean isEnabled(String key, boolean matchIfMissing) {
+		return properties.isEnabled() && environment.getProperty(key, boolean.class, matchIfMissing);
+	}
+	
+	public static InspectConfiguration getConfiguration() {
+		return INSTANCE;
 	}
 	
 	static InspectCollectorProperties loadConfiguration(Environment env) {
+		if(isNull(env) || !"true".equals(env.getProperty("inspect.collector.enabled"))) {
+			return new InspectCollectorProperties();
+		}
 		log.info("loading 'inspect.collector' configuration from environment");
-		var bnd = Binder.get(env);
-        var conf = bnd.bind("inspect.collector", InspectCollectorProperties.class)
+		var bind = Binder.get(env);
+        var conf = bind.bind("inspect.collector", InspectCollectorProperties.class)	
         	.orElseThrow(()-> new IllegalStateException("cannot bind 'inspect.collector' configuration"));
-        var mode = bnd.bind("inspect.collector.tracing.remote.mode", DispatchMode.class).orElse(null);
+        var mode = conf.getTracing().getType();
         if(nonNull(mode)) {
-        	var expr = switch (mode) {
-        	case REST -> bnd.bind("inspect.collector.tracing.remote", RestRemoteServerProperties.class)
-        		.orElseThrow(()-> new IllegalStateException("cannot bind 'inspect.collector' configuration"));
-        	default -> throw new UnsupportedOperationException(format("dispatching type '%s' is not supported, ", mode));
+        	var publisher = switch (mode) {
+        	case REST -> bind.bind("inspect.collector.tracing.remote", RestRemoteServerProperties.class)
+        		.orElseThrow(()-> new IllegalStateException("cannot bind 'inspect.collector.tracing.remote' configuration"));
+        	default -> throw new UnsupportedOperationException("unsupported publisher type: " + mode);
         	};
-        	conf.getTracing().setRemote(expr);
+        	conf.getTracing().setRemote(publisher);
         }
         conf.validate();
         return conf;

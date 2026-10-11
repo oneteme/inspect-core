@@ -4,7 +4,7 @@ import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.ContextPropagators.wrapCallable;
 import static org.usf.inspect.core.ContextPropagators.wrapRunnable;
-import static org.usf.inspect.core.TraceHub.hub;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -51,9 +51,9 @@ public class ExecutorServiceWrapper implements ExecutorService {
 	public static ExecutorService wrap(ExecutorService es) {
 		return wrap(es, null);
 	}
-
+	
 	public static ExecutorService wrap(@NonNull ExecutorService es, String beanName) {
-		if(hub().isEnabled()){
+		if(getConfiguration().isEnabled()){
 			if(es.getClass() != ExecutorServiceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "executorService"), es.getClass());
 				return new ExecutorServiceWrapper(es);

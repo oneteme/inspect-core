@@ -20,6 +20,9 @@ public final class Constants {
 
 	public static final String SCHEDULING_ENABLED 	= "inspect.collector.monitoring.scheduling.enabled";
 
+	public static final String JUNIT4_ENABLED 		= "inspect.collector.monitoring.junit4.enabled";
+	public static final String JUNIT5_ENABLED 		= "inspect.collector.monitoring.junit5.enabled";
+	public static final String STREAM_ENABLED 		= "inspect.collector.monitoring.stream.enabled";
 	public static final String SYSTEM_ENABLED 		= "inspect.collector.monitoring.system.enabled";
 	public static final String JSCH_FTP_ENABLED		= "inspect.collector.monitoring.jsch-ftp.enabled";
 	public static final String JAKARTA_MAIL_ENABLED = "inspect.collector.monitoring.jakarta-mail.enabled";

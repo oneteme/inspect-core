@@ -23,7 +23,7 @@ public final class ContextPropagators {
     }
 	
     public static Runnable wrapRunnable(Runnable run, boolean updateThreadCount) {
-    	var ctx = activeContext(); //do not use requireActiveContext
+    	var ctx = activeContext();
     	return isNull(ctx) ? run : ()-> runInContext(run, ctx, updateThreadCount);
 	}
     

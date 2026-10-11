@@ -3,7 +3,7 @@ package org.usf.inspect.ldap;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.Constants.LDAP_ENABLED;
-import static org.usf.inspect.core.TraceHub.hub;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 
 import javax.naming.directory.DirContext;
 
@@ -46,7 +46,7 @@ public final class ContextSourceWrapper implements ContextSource {
 	}
 	
 	public static ContextSource wrap(@NonNull ContextSource ctx, String beanName) {
-		if(hub().isEnabled() && hub().getConfiguration().getBooleanProperty(LDAP_ENABLED, true)){
+		if(getConfiguration().isEnabled(LDAP_ENABLED, true)){
 			if(ctx.getClass() != ContextSourceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "contextSource"), ctx.getClass());
 				return new ContextSourceWrapper(ctx);

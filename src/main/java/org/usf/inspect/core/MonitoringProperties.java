@@ -20,8 +20,6 @@ public final class MonitoringProperties {
 	//v1.2
 	private LogbackMonitoringProperties logback = new LogbackMonitoringProperties();
 	private AnnotationMonitoringProperties annotation = new AnnotationMonitoringProperties();
-	private JschFtpConfigurationProperties jschFtp = new JschFtpConfigurationProperties();
-	private JakartaMailConfigurationProperties jakartaMail = new JakartaMailConfigurationProperties();
 	
 	void validate() {
 		httpRoute.validate();

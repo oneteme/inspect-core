@@ -10,15 +10,16 @@ import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.Constants.SCHEDULING_ENABLED;
 import static org.usf.inspect.core.ContextPropagators.wrapCallable;
 import static org.usf.inspect.core.ContextPropagators.wrapRunnable;
-import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectExecutor.exec;
-import static org.usf.inspect.core.LocalRequestType.EXEC;
+import static org.usf.inspect.core.MainSessionType.SCHEDULE;
+import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.TraceHub.hub;
 
-import java.util.UUID;
+import java.lang.StackWalker.StackFrame;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -36,108 +37,90 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper implements ScheduledExecutorService {
 
-	private static final String SCHEDULE = "schedule";
-	private static final String SCHEDULE_AT_FIXED_RATE = "scheduleAtFixedRate";
-	private static final String SCHEDULE_WITH_FIXED_DELAY = "scheduleWithFixedDelay";
-
-	private final boolean contextPropagationOnly;
+	private final boolean propagateContext; //reactor context propagation
 	
-	ScheduledExecutorServiceWrapper(ScheduledExecutorService es, boolean contextPropagationOnly) { //as MainSession
+	ScheduledExecutorServiceWrapper(ScheduledExecutorService es, boolean propagateContext) { //as MainSession
 		super(es);
-		this.contextPropagationOnly = contextPropagationOnly;
+		this.propagateContext = propagateContext;
 	}
 
 	@Override
 	public <V> ScheduledFuture<V> schedule(Callable<V> task, long delay, TimeUnit unit) {
-		if(contextPropagationOnly) {
-			return se().schedule(wrapCallable(task), delay, unit);
-		}
-		var trc = localRequestTracer(SCHEDULE);
-		var tsk = aroundScheduleTask(task, SCHEDULE, trc.getUpdate().getId());
-		return call(()-> se().schedule(tsk, delay, unit), trc);
+		var wrapper = propagateContext ? wrapCallable(task) : wrapAndTraceCallable(task);
+		return se().schedule(wrapper, delay, unit);
 	}
 
 	@Override
 	public ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit) {
-		if(contextPropagationOnly) {
-			return se().schedule(wrapRunnable(task), delay, unit);
-		}
-		var trc = localRequestTracer(SCHEDULE);
-		var tsk = aroundScheduleTask(task, SCHEDULE, trc.getUpdate().getId());
-		return call(()-> se().schedule(tsk, delay, unit), trc);
+		var wrapper = propagateContext ? wrapRunnable(task) : wrapAndTraceRunnable(task);
+		return se().schedule(wrapper, delay, unit);
 	}
 
 	@Override
 	public ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long initialDelay, long period, TimeUnit unit) {
-		if(contextPropagationOnly) {
-			return se().scheduleAtFixedRate(wrapRunnable(task), initialDelay, period, unit);
-		}
-		var trc = localRequestTracer(SCHEDULE_AT_FIXED_RATE);
-		var tsk = aroundScheduleTask(task, SCHEDULE_AT_FIXED_RATE, trc.getUpdate().getId());
-		return call(()-> se().scheduleAtFixedRate(tsk, initialDelay, period, unit), trc);
+		var wrapper = propagateContext ? wrapRunnable(task) : wrapAndTraceRunnable(task);
+		return se().scheduleAtFixedRate(wrapper, initialDelay, period, unit);
 	}
 
 	@Override
 	public ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, long initialDelay, long delay, TimeUnit unit) {
-		if(contextPropagationOnly) {
-			return se().scheduleWithFixedDelay(wrapRunnable(task), initialDelay, delay, unit);
-		}
-		var trc = localRequestTracer(SCHEDULE_WITH_FIXED_DELAY);
-		var tsk = aroundScheduleTask(task, SCHEDULE_WITH_FIXED_DELAY, trc.getUpdate().getId());
-		return call(()-> se().scheduleWithFixedDelay(tsk, initialDelay, delay, unit), trc);
-	}
-	
-	Runnable aroundScheduleTask(Runnable task, String methodName, UUID requestId) {
-		var cnt = new AtomicLong();
-		return ()-> exec(task::run, scheduleSessionTracer(methodName, cnt));
-	}
-	
-	<T> Callable<T> aroundScheduleTask(Callable<T> task, String methodName, UUID requestId){
-		var cnt = new AtomicLong();
-		return ()-> call(task::call, scheduleSessionTracer(methodName, cnt));
-	}
-	
-	<T> ExecutionTracer<T> scheduleSessionTracer(String methodName, AtomicLong cnt){
-		return forMainSession(systemUTC().instant(), MainSessionType.SCHEDULE, sgn-> { 
-			sgn.setName(methodName + '#' + cnt.incrementAndGet());
-			sgn.setLocation(formatLocation(se().getClass().getName(), methodName));
-		});
-	}
-	
-	<T> ExecutionTracer<T> localRequestTracer(String name){
-		var frm = getInstance(RETAIN_CLASS_REFERENCE).walk(fr-> fr
-				.dropWhile(f-> f.getDeclaringClass() == this.getClass()) //skip ScheduledExecutorServiceWrapper
-				.findFirst().orElse(null));
-		return forLocalRequest(systemUTC().instant(), sgn-> {
-			sgn.setType(EXEC.name());
-			sgn.setName(name);
-			if(nonNull(frm)) {
-				if(isNull(name)) {
-					sgn.setName(frm.getMethodName());
-				}
-				sgn.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
-			}
-		});
+		var wrapper = propagateContext ? wrapRunnable(task) : wrapAndTraceRunnable(task);
+		return se().scheduleWithFixedDelay(wrapper, initialDelay, delay, unit);
 	}
 	
 	ScheduledExecutorService se() {
 		return (ScheduledExecutorService) es;
 	}
 	
-
-	public static ScheduledExecutorService wrap(ScheduledExecutorService es) {
-		return wrap(es, !hub().getConfiguration().getBooleanProperty(SCHEDULING_ENABLED, true), null);
-	}
-
-	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean contextPropagationOnly) {
-		return wrap(es, contextPropagationOnly, null);
+	static Runnable wrapAndTraceRunnable(Runnable task) {
+		var cnt = new AtomicLong();
+		var ctx = activeContext();
+		var frm = upperStackFrame();
+		return ()-> exec(task::run, scheduleSessionTracer(cnt, ctx, frm));
 	}
 	
-	public static ScheduledExecutorService wrap(@NonNull ScheduledExecutorService es, boolean contextPropagationOnly, String beanName) {
-		if(hub().isEnabled()){
+	static <T> Callable<T> wrapAndTraceCallable(Callable<T> task){
+		var cnt = new AtomicLong();
+		var ctx = activeContext();
+		var frm = upperStackFrame();
+		return ()-> call(task::call, scheduleSessionTracer(cnt, ctx, frm));
+	}
+	
+	static <T> ExecutionTracer<T> scheduleSessionTracer(AtomicLong counter, SessionContext ctx, StackFrame frame){
+		return forMainSession(systemUTC().instant(), SCHEDULE, sgn-> {
+			if(nonNull(frame)) {
+				sgn.setName(frame.getMethodName() + "#schedule(" + counter.incrementAndGet() + ')');
+				sgn.setLocation(formatLocation(frame.getClassName(), frame.getMethodName()));
+			}
+			if(nonNull(ctx)) {
+				sgn.setParentId(ctx.getSession().getId());
+			}
+		});
+	}
+	
+	static StackFrame upperStackFrame(){
+		var sf = getInstance(RETAIN_CLASS_REFERENCE).walk(fr-> fr
+				.dropWhile(f-> f.getDeclaringClass() == ScheduledExecutorServiceWrapper.class)
+				.findFirst().orElse(null));
+		if(isNull(sf)) {
+			hub().emitReport("ScheduledExecutorServiceWrapper.upperStackFrame", "stackFrame is null");
+		}
+		return sf;
+	}
+	
+	public static ScheduledExecutorService wrap(ScheduledExecutorService es) {
+		return wrap(es, !getConfiguration().isEnabled(SCHEDULING_ENABLED, true), null);
+	}
+
+	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean propagateContext) {
+		return wrap(es, propagateContext, null);
+	}
+	
+	public static ScheduledExecutorService wrap(@NonNull ScheduledExecutorService es, boolean propagateContext, String beanName) {
+		if(getConfiguration().isEnabled()){
 			if(es.getClass() != ScheduledExecutorServiceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "scheduledExecutorService"), es.getClass());
-				return new ScheduledExecutorServiceWrapper(es, contextPropagationOnly);
+				return new ScheduledExecutorServiceWrapper(es, propagateContext);
 			}
 			else {
 				log.warn("{}: {} is already wrapped", beanName, es);

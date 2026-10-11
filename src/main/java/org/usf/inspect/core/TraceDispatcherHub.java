@@ -7,6 +7,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.DispatchState.DISABLE;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
 
 import java.util.Collection;
@@ -36,14 +37,8 @@ import lombok.extern.slf4j.Slf4j;
 public class TraceDispatcherHub implements TraceHub {
 	
 	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISABLE);
-	private final String name;
-	
-	protected TraceDispatcherHub() {
-		this("inspect-agt-publisher");
-	}
 	
 	@Getter
-	private InspectCollectorProperties configuration;
 	private ProcessingQueue<EventTrace> queue;
 	private EventTraceBus eventBus;
 	private TracePublisher publisher;
@@ -52,43 +47,26 @@ public class TraceDispatcherHub implements TraceHub {
 	private int threshold;
 	
 	@Override
-	public void configure(InspectCollectorProperties configuration, TracePublisher publiser, List<DispatchHook> hooks) {
+	public void configure(SchedulingProperties properties, TracePublisher publisher, List<DispatchHook> hooks) {
 		if(!scheduling()) {
-			this.configuration = configuration;
-			if(configuration.isEnabled()) {
-				atomicState.set(configuration.getScheduling().getState());
-				var max = configuration.getTracing().getQueueCapacity();
-				this.queue = new ProcessingQueue<>(max);
-				this.threshold= (int) (max *.9); //90% of max capacity
-				this.publisher = publiser;
-				this.eventBus = new EventTraceBus();
-				if(nonNull(hooks)) {
-					hooks.forEach(eventBus::registerHook);
-				}
-				start();
+			atomicState.set(properties.getState());
+			var max = properties.getQueueCapacity();
+			this.queue = new ProcessingQueue<>(max);
+			this.threshold= (int) (max *.9); //90% of max capacity
+			this.publisher = publisher;
+			this.eventBus = new EventTraceBus();
+			if(nonNull(hooks)) {
+				hooks.forEach(eventBus::registerHook);
 			}
+			var schc = newSingleThreadScheduledExecutor(daemonThread(properties.getName())); 
+			var delay = properties.getInterval().getSeconds(); //delay >= 10s
+			this.executor = getConfiguration().getProperties().isDebugMode() ? wrap(schc, false) : schc;
+			log.info("◴ scheduling traces dispatch every {} seconds", delay);
+			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
+			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
 		else {
-			log.warn("cannot reconfigure while scheduling");
-		}
-	}
-	
-	private void start() {
-		if(isEnabled()) {
-			if(!scheduling()) {//single thread to avoid concurrent queue access
-				var schc = newSingleThreadScheduledExecutor(daemonThread(name)); 
-				var delay = configuration.getScheduling().getInterval().getSeconds(); //delay >= 10s
-				this.executor = configuration.isDebugMode() ? wrap(schc, false) : schc;
-				log.info("◴ scheduling traces dispatch every {} seconds", delay);
-				this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
-				getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
-			}
-			else {
-				log.warn("cannot start scheduling, already started");
-			}
-		}
-		else { //do not throw exception, allow to start server with disabled inspect
-			log.warn("tracing is disabled, traces will be lost");
+			emitReport("TraceDispatcherHub.configure", "cannot reconfigure hub while scheduling");
 		}
 	}
 
@@ -148,8 +126,8 @@ public class TraceDispatcherHub implements TraceHub {
 	
 	void removeIfCapacityExceeded() {
 		if(queue.isCapacityExceeded()) {
-			var max = configuration.getTracing().getQueueCapacity();
 			var sze = queue.size();
+			var max = queue.getMaxCapacity();
 		    log.warn("⚠ QUEUE CAPACITY EXCEEDED: current size = {}, max capacity = {}", sze, max);
 		    log.info("performing targeted trace cleanup to prevent memory leaks...");
 			try {
@@ -189,16 +167,11 @@ public class TraceDispatcherHub implements TraceHub {
 	}
 
 	public boolean setState(DispatchState state) {
-		if(isEnabled()) { //do not allow to change state if disabled => configuration is not set
+		if(isEnabled()) { //do not allow to change state if disabled
 			atomicState.set(state);
 			return true;
 		}
 		return false;
-	}
-	
-	@Deprecated(forRemoval = true, since = "1.2.0")
-	public Collection<EventTrace> peek() {
-		return queue.peek();
 	}
 	
 	//require single thread executor to avoid concurrent queue access
@@ -243,6 +216,9 @@ public class TraceDispatcherHub implements TraceHub {
 					currentThread().interrupt();
 				}
 			}
+		}
+		else {
+			log.warn("scheduler service is not running, cannot shutdown");
 		}
 	}
 	

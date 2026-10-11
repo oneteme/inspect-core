@@ -57,7 +57,9 @@ public class InspectCoreConfiguration {
 	private final Instant startup;
 	
 	InspectCoreConfiguration(InspectConfiguration config, ApplicationContext appContext, List<DispatchHook> hooks) {
-		hub().configure(config.getProperties(), coreTracePublisher(config.getProperties()), hooks);
+		InspectConfiguration.INSTANCE = config;
+		var prp = config.getProperties();
+		hub().configure(prp.getScheduling(), coreTracePublisher(prp.getTracing()), hooks);
 		this.startup = ofEpochMilli(appContext.getStartupDate());
 		//create startup session immediately after configuring hub, before any other bean is created
 		this.tracer = forMainSession(startup, STARTUP, sgn-> sgn.setName("main"));
@@ -141,10 +143,11 @@ public class InspectCoreConfiguration {
     	return new DefaultApplicationPropertiesProvider(env);
     }
     
-	static TracePublisher coreTracePublisher(InspectCollectorProperties properties) {
-		var rsp = properties.getTracing().getRemote();
+	static TracePublisher coreTracePublisher(TracingProperties properties) {
+		var rsp = properties.getRemote();
 		if(rsp instanceof RestRemoteServerProperties prop) {
-			return new RestClientTracePublisher(prop, createObjectMapper(), properties.isDebugMode());
+			var debug = InspectConfiguration.getConfiguration().getProperties().isDebugMode();
+			return new RestClientTracePublisher(prop, createObjectMapper(),debug);
 		}
 		if(isNull(rsp)) {
 			log.warn("remote tracing is disabled, traces will be lost");

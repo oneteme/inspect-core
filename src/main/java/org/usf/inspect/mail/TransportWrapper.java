@@ -3,9 +3,9 @@ package org.usf.inspect.mail;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.Constants.JAKARTA_MAIL_ENABLED;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.MailCommand.SEND;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
@@ -62,7 +62,7 @@ public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @
 	}
 	
 	public static TransportWrapper wrap(@NonNull Transport trsp, String beanName) {
-		if(hub().isEnabled() && hub().getConfiguration().getBooleanProperty(JAKARTA_MAIL_ENABLED, true)){
+		if(getConfiguration().isEnabled(JAKARTA_MAIL_ENABLED, true)){
 			logWrappingBean(requireNonNullElse(beanName, "transport"), trsp.getClass());
 		}
 		return new TransportWrapper(trsp); //cannot implement or extends Transport

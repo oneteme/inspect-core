@@ -3,8 +3,8 @@ package org.usf.inspect.jdbc;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.Constants.JDBC_ENABLED;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.call;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -47,7 +47,7 @@ public final class DataSourceWrapper implements DataSource {
 	}
 	
 	public static DataSource wrap(@NonNull DataSource ds, String beanName) {
-		if(hub().isEnabled() && hub().getConfiguration().getBooleanProperty(JDBC_ENABLED, true)) {
+		if(getConfiguration().isEnabled(JDBC_ENABLED, true)) {
 			if(ds.getClass() != DataSourceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "dataSource"), ds.getClass());
 				return new DataSourceWrapper(ds);

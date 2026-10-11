@@ -3,9 +3,10 @@ package org.usf.inspect.core;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.StreamSupport.stream;
+import static org.usf.inspect.core.Constants.STREAM_ENABLED;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SessionContextManager.contextPropagator;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.Collection;
 import java.util.Spliterator;
@@ -39,7 +40,7 @@ public final class StreamProxy {
 	}
 	
 	public static <T> Stream<T> trackStream(Stream<T> stream) {
-		if(hub().isEnabled()){
+		if(getConfiguration().isEnabled(STREAM_ENABLED, true)){
 			var ctx = activeContext();
 			if(nonNull(ctx)) {
 				var cs = new ContextSpliterator<>(stream.spliterator(), ctx);

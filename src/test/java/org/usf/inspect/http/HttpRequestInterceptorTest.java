@@ -17,10 +17,10 @@ import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
+import static org.usf.inspect.core.TraceAssertions.assertPerformance;
 import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
 import static org.usf.inspect.core.TraceAssertions.assertRequestStage;
 import static org.usf.inspect.core.TraceAssertions.assertRequestUpdate;
-import static org.usf.inspect.core.TraceAssertions.assertPerformance;
 
 import java.io.IOException;
 import java.time.Instant;

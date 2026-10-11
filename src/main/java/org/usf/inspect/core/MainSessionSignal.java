@@ -16,6 +16,8 @@ import lombok.Setter;
 public final class MainSessionSignal extends AbstractSessionSignal {
 
 	private final String type;
+	//v1.2
+	private UUID parentId;
 	
 	public MainSessionSignal(UUID id, Instant start, String threadName, String type) {
 		super(id, start, threadName);

@@ -13,9 +13,9 @@ import static org.usf.inspect.core.FtpCommand.MKDIR;
 import static org.usf.inspect.core.FtpCommand.PUT;
 import static org.usf.inspect.core.FtpCommand.RENAME;
 import static org.usf.inspect.core.FtpCommand.RM;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectExecutor.exec;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -253,7 +253,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 	}
 
 	public static final ChannelSftp wrap(@NonNull ChannelSftp channel, String beanName) {
-		if(hub().isEnabled() && hub().getConfiguration().getBooleanProperty(JSCH_FTP_ENABLED, true)){
+		if(getConfiguration().isEnabled(JSCH_FTP_ENABLED, true)){
 			if(channel.getClass() != ChannelSftpWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "channelSftp"), channel.getClass());
 				return new ChannelSftpWrapper(channel);

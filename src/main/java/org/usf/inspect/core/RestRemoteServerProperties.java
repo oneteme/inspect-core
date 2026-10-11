@@ -36,6 +36,9 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	@JsonIgnore //avoid to be serialized in JSON
 	private String token; //optional
 	
+	@Deprecated(forRemoval = true, since = "v1.2") //move to TracingProperties
+	private PublisherType mode;
+	
 	@Override
 	public void validate() {
 		assertAbsolute(host, "host");

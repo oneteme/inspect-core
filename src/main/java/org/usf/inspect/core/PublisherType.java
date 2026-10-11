@@ -5,10 +5,10 @@ package org.usf.inspect.core;
  * @author u$f
  *
  */
-public enum DispatchMode {
+public enum PublisherType {
 	
 	REST,
 	//JMS, KAFKA, Redis
-	//Binary, BDD
+	//stream
 	;
 }

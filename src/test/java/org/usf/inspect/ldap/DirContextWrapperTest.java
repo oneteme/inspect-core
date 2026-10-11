@@ -37,8 +37,6 @@ import org.usf.inspect.core.DirectoryRequestStage;
 import org.usf.inspect.core.DirectoryRequestUpdate;
 import org.usf.inspect.core.EventTrace;
 import org.usf.inspect.core.StagePayload;
-import org.usf.inspect.ldap.DirContextWrapper;
-import org.usf.inspect.ldap.DirectoryConnectionLifecycleTracer;
 
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
