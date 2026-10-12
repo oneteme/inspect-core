@@ -28,7 +28,7 @@ import org.usf.inspect.core.InspectCoreConfiguration;
  */
 @Configuration
 @ConditionalOnBean(InspectCoreConfiguration.class) //inspect enabled
-@ConditionalOnClass(name="org.flywaydb.core.api.configuration.FluentConfiguration") //flayway dependency present
+@ConditionalOnClass(name="org.flywaydb.core.api.configuration.FluentConfiguration") //flyway dependency present
 @ConditionalOnProperty(name = FLYWAY_ENABLED, havingValue = "true", matchIfMissing = true)
 public class InspectFlywayConfiguration {
 	

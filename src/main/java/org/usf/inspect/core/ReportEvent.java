@@ -21,8 +21,8 @@ import lombok.Setter;
 public final class ReportEvent implements EventTrace {
 	
 	private final Instant instant;
-	private final String thread;
-	private final String action;
+	private final String thread; //1.2
+	private final String action; //1.2
 	private final String message;
 	private final String exception; //v1.2
 	private final StackTraceRow[] stackRows;
