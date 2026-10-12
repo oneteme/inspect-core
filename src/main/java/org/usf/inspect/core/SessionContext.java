@@ -39,14 +39,13 @@ public final class SessionContext {
 	public void threadCountDown() {
 		threadCount.updateAndGet(v->{
 			if(--v == 0 && nonNull(session.getAsyncDuration())) {
-				var drt = session.getAsyncDuration();
-				if(drt == -1) {
+				if(session.getAsyncDuration() == -1) {
 					var now = systemUTC().instant();
 					session.setAsyncDuration(between(session.getEnd(), now).toMillis());
-					hub().emitTrace(new SessionAsyncDurationUpdate(session.getId(), session instanceof MainSessionUpdate, drt));
+					hub().emitTrace(new SessionAsyncDurationUpdate(session.getId(), session instanceof MainSessionUpdate, session.getAsyncDuration()));
 				}
 				else {
-					hub().emitReport("SessionContext.threadCountDown", "asyncDuration already set to " + drt);
+					hub().emitReport("SessionContext.threadCountDown", "asyncDuration already set to " + session.getAsyncDuration());
 				}
 			}
 			return v;

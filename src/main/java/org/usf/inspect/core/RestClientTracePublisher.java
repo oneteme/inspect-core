@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.lang.Byte.parseByte;
 import static java.time.Clock.systemUTC;
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptyList;
@@ -89,7 +88,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 			attempts = 0;
 		}
 		queue.pollAll(snp->{ 
-			mergeTraces(snp);
+			mergeTraceParts(snp);
 			return flushTraces(id, complete, snp);
 		});
 	}
@@ -103,11 +102,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 			return emptyList();
 		}
 		catch (RestClientException e) {
-			var retry = evaluateRetry(e);
-			if(retry > ABORT) {
-				return traces; //turn back to queue, will retry later
-			}
-			if(retry < ABORT) {
+			if(shouldRetry(e)) {
 				pendingBatch = arr; //will retry later, do not turn back to queue
 			}
 			return emptyList();
@@ -122,7 +117,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 			pendingBatch = null;
 		}
 		catch (RestClientException e) {
-			if(evaluateRetry(e) == ABORT) { //abort
+			if(!shouldRetry(e)) { //abort
 				pendingBatch = null;
 				attempts = 0;
 			}
@@ -162,35 +157,26 @@ public final class RestClientTracePublisher implements TracePublisher {
 		throw new DispatchException("failed to register instance, attempt #"+attempts);
 	}
 
-	//see https://www.baeldung.com/java-socket-connection-read-timeout
-	byte evaluateRetry(RestClientException e) {
+	boolean shouldRetry(RestClientException e) {
+		if(e instanceof HttpClientErrorException rsp) { //40x : BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT
+			hub().emitReport("RestClientTracePublisher.evaluateRetry[status="+rsp.getStatusCode()+"]", e);
+			return rsp.getStatusCode() == TOO_MANY_REQUESTS; //retry only if server is overloaded, otherwise abort
+		}
 		if(e instanceof HttpServerErrorException rsp) { //50x check header !?
 			var hdr = rsp.getResponseHeaders();
 			if(nonNull(hdr) && hdr.containsKey(TRACE_RETRY_HEADER)) {
-				var retry = hdr.getFirst(TRACE_RETRY_HEADER);
-				try {
-					return parseByte(retry);
-				} catch (Exception ex) {
-					hub().emitReport("RestTraceExporter.evaluateRetry[retry="+retry+"]" , ex);
-					return DEFER;
-				}
+				return RETRY.equals(hdr.getFirst(TRACE_RETRY_HEADER));
 			}
-			hub().emitReport("RestTraceExporter.evaluateRetry[retry=null]", e);
-			return DEFER;
+			hub().emitReport("RestClientTracePublisher.evaluateRetry[retry=null]", e);
+		}//see https://www.baeldung.com/java-socket-connection-read-timeout
+		if(e instanceof ResourceAccessException rae 
+				&& rae.getCause() instanceof SocketTimeoutException cause) { 
+			hub().emitReport("RestClientTracePublisher.evaluateRetry[timeout]", cause);
 		}
-		if(e instanceof HttpClientErrorException rsp) { //40x : BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT
-			hub().emitReport("RestTraceExporter.evaluateRetry[status="+rsp.getStatusCode()+"]", e);
-			return rsp.getStatusCode() == TOO_MANY_REQUESTS ? RETRY : ABORT; //retry after delay !
+		else {
+			hub().emitReport("RestClientTracePublisher.evaluateRetry", e);
 		}
-		else if(e instanceof ResourceAccessException rae 
-				&& rae.getCause() instanceof SocketTimeoutException 
-				&& nonNull(rae.getCause().getMessage())
-				&& !rae.getCause().getMessage().toLowerCase().contains("connect")) { 
-			hub().emitReport("RestTraceExporter.evaluateRetry[timeout]", rae.getCause());
-			return DEFER;
-		}
-		hub().emitReport("RestTraceExporter.evaluateRetry", e);
-		return RETRY;
+		return true;
 	}
 
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper, boolean debug) {
@@ -222,7 +208,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 					req.getHeaders().add(CONTENT_ENCODING, "gzip");
 				}
 				catch (Exception e) {/*do not throw exception */
-					hub().emitReport("RestTraceExporter.bodyCompressionInterceptor", e);
+					hub().emitReport("RestClientTracePublisher.bodyCompressionInterceptor", e);
 					req.getHeaders().remove(CONTENT_ENCODING);
 					baos.reset();
 				}

@@ -53,7 +53,7 @@ public class InspectWebMvcConfiguration implements WebMvcConfigurer {
     @Bean
 	HttpRoutePredicate routePredicate(InspectCollectorProperties conf) {
     	logRegistringBean("routePredicate", HttpRoutePredicate.class);
-    	return compile(conf.getMonitoring().getHttpRoute());
+    	return compile(conf.getMonitoring().getWebmvc());
 	}
 
     @Bean

@@ -38,7 +38,6 @@ public class TraceDispatcherHub implements TraceHub {
 	
 	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISABLE);
 	
-	@Getter
 	private ProcessingQueue<EventTrace> queue;
 	private EventTraceBus eventBus;
 	private TracePublisher publisher;

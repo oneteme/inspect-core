@@ -16,11 +16,11 @@ public class SessionAsyncDurationUpdate implements TracePart {
 
 	private final UUID id;
 	private final boolean main;
-	private final long asyncDuration;
+	private final long duration;
 	
 	
 	@Override
 	public String toString() {
-		return id + "{set asyncDuration=" + asyncDuration + "}";
+		return id + "{set asyncDuration=" + duration + "}";
 	}
 }

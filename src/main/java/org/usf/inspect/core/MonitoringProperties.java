@@ -14,15 +14,28 @@ import lombok.ToString;
 @ToString
 public final class MonitoringProperties {
 
-	private HttpRouteMonitoringProperties httpRoute = new HttpRouteMonitoringProperties(); //replace restSession
+	private HttpRouteMonitoringProperties webmvc = new HttpRouteMonitoringProperties();
 	private SystemMonitoringProperties system = new SystemMonitoringProperties();
 	private ExceptionMonitoringProperties exception = new ExceptionMonitoringProperties();
 	//v1.2
 	private LogbackMonitoringProperties logback = new LogbackMonitoringProperties();
 	private AnnotationMonitoringProperties annotation = new AnnotationMonitoringProperties();
 	
+	private DefaultMonitoringProperties scheduling = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties stream = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties jdbc = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties ldap = new DefaultMonitoringProperties();
+	
+	private DefaultMonitoringProperties jschFtp = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties jakartaMail = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties httpclient = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties reactor = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties flyway = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties junit4 = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties junit5 = new DefaultMonitoringProperties();
+	
 	void validate() {
-		httpRoute.validate();
+		webmvc.validate();
 		system.validate();
 		exception.validate();
 		logback.validate();
