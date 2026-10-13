@@ -49,48 +49,32 @@ public interface TracePublisher {
 				}
 				var prt = e.getValue().stream().max(comparing(SessionAsyncDurationUpdate::getDuration)).orElseThrow(); //cannot be empty since e.getValue().size() > 1
 				e.getValue().remove(prt); //keep only the last update
-				log.warn("⨇ merging {} update traces for session {}, asyncDuration is {}", 
+				log.warn("⨇ merging {} update traces for session {}, asyncDuration will be updated to {}", 
 						e.getValue().size(), e.getKey(), prt.getDuration());
 			}
+			else if(upd.get().getAsyncDuration() != -1) {
+				log.warn("⨇ cannot merge {} update traces for session {}, asyncDuration update is {}, but final asyncDuration is {}", 
+						e.getValue().size(), e.getKey(), upd.get().getAsyncDuration(), 
+						e.getValue().stream().mapToLong(SessionAsyncDurationUpdate::getDuration).max().orElseThrow());
+			}
 			else {
-				var finalDuration = upd.get().getAsyncDuration();
-				if(finalDuration == -1) {
-					long maxDuration = -1;
-					if(e.getValue().size() == 1) {
-						maxDuration = e.getValue().get(0).getDuration();
-						if(maxDuration > 0) {
-							log.debug("⨇ merging update trace for session {}, final asyncDuration is {}", 
-									e.getKey(), finalDuration);
-						}
-						else {
-							log.warn("⨇ merging update trace for session {}, final asyncDuration is {}, but update asyncDuration is {}", 
-									e.getKey(), finalDuration, maxDuration);
-						}
-					}
-					else {
-						maxDuration = e.getValue().stream().max(comparing(SessionAsyncDurationUpdate::getDuration)).orElseThrow().getDuration();
-						if(maxDuration > 0)  {
-							log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}", 
-									e.getValue().size(), e.getKey(), finalDuration);
-						}
-						else {
-							log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}, but asyncDuration update is {}", 
-									e.getValue().size(), e.getKey(), finalDuration, maxDuration);
-						}
-					}
-					upd.get().setAsyncDuration(maxDuration);
+				var prt = e.getValue().size() == 1 
+						? e.getValue().get(0) 
+						: e.getValue().stream().max(comparing(SessionAsyncDurationUpdate::getDuration)).orElseThrow();
+				var maxDuration = prt.getDuration();
+				if(e.getValue().size() == 1) {
+					log.debug("⨇ merging update trace for session {}, final asyncDuration is {}", e.getKey(), maxDuration);
 				}
 				else {
-					log.warn("illegal state");
-					continue;
+					log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}", e.getValue().size(), e.getKey(), maxDuration);
 				}
+				upd.get().setAsyncDuration(maxDuration);
 			}
 			traces.removeAll(e.getValue());
 		}
 	}
 	
 	static void mergeMaskTraces(List<EventTrace> traces) {
-		
 		var map = traces.stream().<SessionMaskUpdate>mapMulti((t, c)-> {
 			if(t instanceof SessionMaskUpdate upd) {
 				c.accept(upd);
@@ -103,26 +87,26 @@ public interface TracePublisher {
 			.findAny();
 			if(upd.isEmpty()) {
 				if(e.getValue().size() == 1) {
-					continue;
+					continue; //only one update, no need to merge
 				}
-				var prt = e.getValue().stream().max(comparing(SessionMaskUpdate::getMask)).orElseThrow();
-				e.getValue().remove(prt); //keep only the last update
-				log.debug("⨇ merging {} update traces for session {}, eventMask is {}", 
-						e.getValue().size(), e.getKey(), prt.getMask());
+				var maskUpdate = e.getValue().stream().max(comparing(SessionMaskUpdate::getMask)).orElseThrow();
+				e.getValue().remove(maskUpdate); //keep only the last update
+				log.debug("⨇ merging {} update traces for session {}, eventMask will be updated to {}",
+						e.getValue().size(), e.getKey(), maskUpdate.getMask());
 			}
 			else {
 				var finalMask = upd.get().getEventMask();
-				var prt = e.getValue().size() == 1 
+				var maskUpdate = e.getValue().size() == 1 
 						? e.getValue().get(0) 
 						: e.getValue().stream().max(comparing(SessionMaskUpdate::getMask)).orElseThrow();
-				var maxMask = prt.getMask();
-				if(finalMask == maxMask) {
+				if(maskUpdate.getMask() == finalMask) {
 					log.debug("⨇ merging {} update traces for session {}, final eventMask is {}", 
 							e.getValue().size(), e.getKey(), finalMask);
 				}
-				else {
-					log.warn("⨇ merging {} update traces for session {}, final eventMask is {}, but eventMask update is {}", 
-							e.getValue().size(), e.getKey(), finalMask, maxMask);
+				else { //asynchronous update, keep the last update mask
+					upd.get().setEventMask(maskUpdate.getMask());
+					log.debug("⨇ merging {} update traces for session {}, final eventMask is {} and will be updated to {}",
+							e.getValue().size(), e.getKey(), finalMask, maskUpdate.getMask());
 				}
 			}
 			traces.removeAll(e.getValue());

@@ -19,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class SessionContext {
 	
+	private static final long asyncDurationInitialValue = -1L;
+	
 	@Getter	private final AbstractSessionUpdate session;
 	@Getter	private final boolean startup;
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
@@ -39,7 +41,7 @@ public final class SessionContext {
 	public void threadCountDown() {
 		threadCount.updateAndGet(v->{
 			if(--v == 0 && nonNull(session.getAsyncDuration())) {
-				if(session.getAsyncDuration() == -1) {
+				if(session.getAsyncDuration() == asyncDurationInitialValue) {
 					var now = systemUTC().instant();
 					session.setAsyncDuration(between(session.getEnd(), now).toMillis());
 					hub().emitTrace(new SessionAsyncDurationUpdate(session.getId(), session instanceof MainSessionUpdate, session.getAsyncDuration()));
@@ -55,7 +57,7 @@ public final class SessionContext {
 	public boolean wasCompleted() {
 		if(nonNull(session.getEnd())) {
 			var drt = session.getAsyncDuration();
-			return isNull(drt) || drt > -1;
+			return isNull(drt) || drt > asyncDurationInitialValue;
 		}
 		return false;
 	}
@@ -66,7 +68,7 @@ public final class SessionContext {
 				hub().emitReport("SessionContext.updateAsync", "session not completed yet, end is null");
 			}
 			else if(v > 0) {
-				session.setAsyncDuration(-1L); //initial duration
+				session.setAsyncDuration(asyncDurationInitialValue); //initial duration
 			}
 			return v;
 		});

@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.lang.String.format;
 import static java.time.Duration.ofHours;
 import static java.time.Duration.ofSeconds;
 import static org.usf.inspect.core.Assertions.assertBetween;
