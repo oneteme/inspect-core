@@ -185,7 +185,7 @@ public final class SessionContextManager {
 		var ctx = activeContext();
 		if(nonNull(ctx)) {
 			var ses = ctx.getSession();
-			if(ctx.updateEventMask(mask)) {
+			if(ctx.updateEventsMask(mask)) {
 				var upd = new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ctx.getSession().getEventMask());
 				hub().emitTrace(upd);
 			}

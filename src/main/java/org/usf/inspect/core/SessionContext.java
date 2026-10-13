@@ -22,10 +22,10 @@ public final class SessionContext {
 	@Getter	private final AbstractSessionUpdate session;
 	@Getter	private final boolean startup;
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
-	private final AtomicInteger requestMask = new AtomicInteger(); // thread safe
+	private final AtomicInteger eventsMask = new AtomicInteger(); // thread safe
 	
-	public boolean updateEventMask(SessionEventMask mask) {
-		return !mask.is(requestMask.getAndUpdate(v-> {
+	public boolean updateEventsMask(SessionEventMask mask) {
+		return !mask.is(eventsMask.getAndUpdate(v-> {
 			v = v|mask.getValue();
 			session.setEventMask(v); //safe thread update
 			return v;

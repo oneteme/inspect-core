@@ -103,7 +103,7 @@ public class TraceDispatcherHub implements TraceHub {
 		}
 	}
 	
-	void schedule() { //dispatch immediately
+	void schedule() {
 		eventBus.triggerSchedule();
 		dispatchTraces(false);
 	}
