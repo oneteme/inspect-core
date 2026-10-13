@@ -27,7 +27,6 @@ import lombok.RequiredArgsConstructor;
  *
  */
 @Configuration
-@RequiredArgsConstructor
 @ConditionalOnBean(InspectCoreConfiguration.class) //inspect enabled
 @ConditionalOnClass(name = "ch.qos.logback.classic.Logger") //slf-api dependency present
 @ConditionalOnProperty(name = LOGBACK_ENABLED, havingValue = "true", matchIfMissing = true)
@@ -50,7 +49,7 @@ public class InspectLogbackConfiguration {
 
 	    @Override
 	    protected void append(ILoggingEvent event) {
-	        if(event.getLevel().isGreaterOrEqual(level)) {
+	        if(event.getLevel().isGreaterOrEqual(level)) { //exclude self
 	        	try {
 					var lvl = event.getLevel().toString();
 					var tms = ofEpochMilli(event.getTimeStamp());

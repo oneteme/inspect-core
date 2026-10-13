@@ -54,28 +54,35 @@ public interface TracePublisher {
 			}
 			else {
 				var finalDuration = upd.get().getAsyncDuration();
-				if(e.getValue().size() == 1) {
-					var maxDuration = e.getValue().get(0).getDuration();
-					if(maxDuration == finalDuration)  {
-						log.debug("⨇ merging update trace for session {}, final asyncDuration is {}", 
-								e.getKey(), finalDuration);
+				if(finalDuration == -1) {
+					long maxDuration = -1;
+					if(e.getValue().size() == 1) {
+						maxDuration = e.getValue().get(0).getDuration();
+						if(maxDuration > 0) {
+							log.debug("⨇ merging update trace for session {}, final asyncDuration is {}", 
+									e.getKey(), finalDuration);
+						}
+						else {
+							log.warn("⨇ merging update trace for session {}, final asyncDuration is {}, but update asyncDuration is {}", 
+									e.getKey(), finalDuration, maxDuration);
+						}
 					}
 					else {
-						log.warn("⨇ merging update trace for session {}, final asyncDuration is {}, but update asyncDuration is {}", 
-								e.getKey(), finalDuration, maxDuration);
+						maxDuration = e.getValue().stream().max(comparing(SessionAsyncDurationUpdate::getDuration)).orElseThrow().getDuration();
+						if(maxDuration > 0)  {
+							log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}", 
+									e.getValue().size(), e.getKey(), finalDuration);
+						}
+						else {
+							log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}, but asyncDuration update is {}", 
+									e.getValue().size(), e.getKey(), finalDuration, maxDuration);
+						}
 					}
+					upd.get().setAsyncDuration(maxDuration);
 				}
 				else {
-					var prt = e.getValue().stream().max(comparing(SessionAsyncDurationUpdate::getDuration)).orElseThrow();
-					var maxDuration = prt.getDuration();
-					if(maxDuration == finalDuration)  {
-						log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}", 
-								e.getValue().size(), e.getKey(), finalDuration);
-					}
-					else {
-						log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}, but asyncDuration update is {}", 
-								e.getValue().size(), e.getKey(), finalDuration, maxDuration);
-					}
+					log.warn("illegal state");
+					continue;
 				}
 			}
 			traces.removeAll(e.getValue());

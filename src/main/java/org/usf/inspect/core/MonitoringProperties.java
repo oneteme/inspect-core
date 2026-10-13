@@ -29,6 +29,7 @@ public final class MonitoringProperties {
 	private DefaultMonitoringProperties jschFtp = new DefaultMonitoringProperties();
 	private DefaultMonitoringProperties jakartaMail = new DefaultMonitoringProperties();
 	private DefaultMonitoringProperties httpclient = new DefaultMonitoringProperties();
+	private DefaultMonitoringProperties webclient = new DefaultMonitoringProperties();
 	private DefaultMonitoringProperties reactor = new DefaultMonitoringProperties();
 	private DefaultMonitoringProperties flyway = new DefaultMonitoringProperties();
 	private DefaultMonitoringProperties junit4 = new DefaultMonitoringProperties();
