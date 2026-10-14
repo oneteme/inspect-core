@@ -14,7 +14,6 @@ import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_RETRY_HEADER;
 
 import java.io.ByteArrayOutputStream;
@@ -149,18 +148,18 @@ public final class RestClientTracePublisher implements TracePublisher {
 				return instance.getId();
 			}
 			catch(RestClientException e) {//server / client ?
-				log.warn("failed to register instance, attempt #{}: {}", attempts, e.getMessage());
+				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt #{}: {}", attempts, e);
 			}
 		}
 		else {
-			log.warn("instance environment is not set, cannot register instance");
+			REPORTER.warn("RestClientTracePublisher.ensureInstanceRegistered: instance environment is not set, cannot register instance");
 		}
 		throw new DispatchException("failed to register instance, attempt #"+attempts);
 	}
 
 	boolean shouldRetry(RestClientException e) {
 		if(e instanceof HttpClientErrorException rsp) { //40x : BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT
-			hub().emitReport("RestClientTracePublisher.evaluateRetry[status="+rsp.getStatusCode()+"]", e);
+			REPORTER.error("RestClientTracePublisher.evaluateRetry: status={}", rsp.getStatusCode(), e);
 			return rsp.getStatusCode() == TOO_MANY_REQUESTS; //retry only if server is overloaded, otherwise abort
 		}
 		if(e instanceof HttpServerErrorException rsp) { //50x check header !?
@@ -168,14 +167,14 @@ public final class RestClientTracePublisher implements TracePublisher {
 			if(nonNull(hdr) && hdr.containsKey(TRACE_RETRY_HEADER)) {
 				return RETRY.equals(hdr.getFirst(TRACE_RETRY_HEADER));
 			}
-			hub().emitReport("RestClientTracePublisher.evaluateRetry[retry=null]", e);
+			REPORTER.error("RestClientTracePublisher.evaluateRetry: '{}' is null", TRACE_RETRY_HEADER, e);
 		}//see https://www.baeldung.com/java-socket-connection-read-timeout
 		if(e instanceof ResourceAccessException rae 
 				&& rae.getCause() instanceof SocketTimeoutException cause) { 
-			hub().emitReport("RestClientTracePublisher.evaluateRetry[timeout]", cause);
+			REPORTER.error("RestClientTracePublisher.evaluateRetry: timeout", cause);
 		}
 		else {
-			hub().emitReport("RestClientTracePublisher.evaluateRetry", e);
+			REPORTER.error("RestClientTracePublisher.evaluateRetry", e);
 		}
 		return true;
 	}
@@ -209,7 +208,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 					req.getHeaders().add(CONTENT_ENCODING, "gzip");
 				}
 				catch (Exception e) {/*do not throw exception */
-					hub().emitReport("RestClientTracePublisher.bodyCompressionInterceptor", e);
+					REPORTER.error("RestClientTracePublisher.bodyCompressionInterceptor: failed compressing body request", e);
 					req.getHeaders().remove(CONTENT_ENCODING);
 					baos.reset();
 				}

@@ -4,7 +4,9 @@ import static java.util.Objects.nonNull;
 import static org.slf4j.LoggerFactory.getILoggerFactory;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.usf.inspect.core.Constants.LOGBACK_ENABLED;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.ReportEvent.report;
 import static org.usf.inspect.core.SessionContextManager.createLog;
 import static org.usf.inspect.core.TraceHub.hub;
 
@@ -14,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.usf.inspect.core.InspectConfiguration;
 import org.usf.inspect.core.InspectCoreConfiguration;
+import org.usf.inspect.core.ReportEvent;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -49,15 +52,15 @@ public class InspectLogbackConfiguration {//Async !?
 		private final Level level;
 
 	    @Override
-	    protected void append(ILoggingEvent event) {
-	        if(event.getLevel().isGreaterOrEqual(level)) { //exclude self
+	    protected void append(ILoggingEvent event) {//TODO exclude REPORTER
+	        if(event.getLevel().isGreaterOrEqual(level)) {
 	        	try {//trace exception/stack !?
 					var lvl = event.getLevel();
 					var lct = locationFrom(event.getCallerData(), event.getLoggerName());
 					hub().emitTrace(createLog(event.getInstant(), event.getThreadName(), lvl.toString(), event.getFormattedMessage(), lct));
 	        	}
-	        	catch (Exception e) { //don't log to avoid infinite loop
-	        		hub().emitReport("InspectLogAppender.append", e);
+	        	catch (Exception e) {
+	        		REPORTER.error("InspectLogAppender.append: ", e);
 	        	}
 	        }
 	    }
