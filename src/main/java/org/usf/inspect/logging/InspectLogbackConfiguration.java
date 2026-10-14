@@ -1,12 +1,13 @@
 package org.usf.inspect.logging;
 
+import static ch.qos.logback.core.spi.FilterReply.DENY;
+import static ch.qos.logback.core.spi.FilterReply.NEUTRAL;
 import static java.util.Objects.nonNull;
 import static org.slf4j.LoggerFactory.getILoggerFactory;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.usf.inspect.core.Constants.LOGBACK_ENABLED;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.Helper.formatLocation;
-import static org.usf.inspect.core.ReportEvent.report;
 import static org.usf.inspect.core.SessionContextManager.createLog;
 import static org.usf.inspect.core.TraceHub.hub;
 
@@ -16,13 +17,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.usf.inspect.core.InspectConfiguration;
 import org.usf.inspect.core.InspectCoreConfiguration;
-import org.usf.inspect.core.ReportEvent;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
+import ch.qos.logback.core.filter.Filter;
+import ch.qos.logback.core.spi.FilterReply;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -41,8 +43,14 @@ public class InspectLogbackConfiguration {//Async !?
 		var lvl = Level.valueOf(prp.getLevel().name());
         var app = new InspectLogAppender(lvl);
         app.setContext((LoggerContext) getILoggerFactory());
-        app.setName("INSPECT_APPENDER");
+        app.setName("INSPECT_LOGGER");
         app.start();
+        app.addFilter(new Filter<ILoggingEvent>() {
+			@Override //double check (REPORTER.isAdditive=false)
+			public FilterReply decide(ILoggingEvent event) { 
+				return event.getLoggerName().equals(REPORTER.getName()) ? DENY : NEUTRAL;
+			}
+		});
         ((Logger) getLogger(prp.getRootPackage())).addAppender(app);        
     }
 
@@ -52,7 +60,7 @@ public class InspectLogbackConfiguration {//Async !?
 		private final Level level;
 
 	    @Override
-	    protected void append(ILoggingEvent event) {//TODO exclude REPORTER
+	    protected void append(ILoggingEvent event) {
 	        if(event.getLevel().isGreaterOrEqual(level)) {
 	        	try {//trace exception/stack !?
 					var lvl = event.getLevel();

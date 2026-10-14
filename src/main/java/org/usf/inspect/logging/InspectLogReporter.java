@@ -1,10 +1,13 @@
 package org.usf.inspect.logging;
 
 import static ch.qos.logback.classic.Level.WARN;
+import static ch.qos.logback.core.spi.FilterReply.DENY;
+import static ch.qos.logback.core.spi.FilterReply.NEUTRAL;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.slf4j.LoggerFactory.getILoggerFactory;
 import static org.slf4j.LoggerFactory.getLogger;
+import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -18,6 +21,8 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.StackTraceElementProxy;
 import ch.qos.logback.core.AppenderBase;
+import ch.qos.logback.core.filter.Filter;
+import ch.qos.logback.core.spi.FilterReply;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -36,14 +41,12 @@ public class InspectLogReporter extends AppenderBase<ILoggingEvent> {
 	
     @Override
     protected void append(ILoggingEvent event) {
-        if(event.getLevel().isGreaterOrEqual(WARN)) {
-        	try {
-        		hub.emitTrace(createReportEvent(event));
-        	}
-        	catch (Exception e) {
-        		//don't log to avoid infinite loop
-        	}
-        }
+    	try {
+    		hub.emitTrace(createReportEvent(event));
+    	}
+    	catch (Exception e) {
+    		//don't log to avoid infinite loop
+    	}
     }
     
     protected ReportEvent createReportEvent(ILoggingEvent event) {
@@ -84,6 +87,12 @@ public class InspectLogReporter extends AppenderBase<ILoggingEvent> {
         appn.setContext((LoggerContext) getILoggerFactory());
         appn.setName("INSPECT_REPORTER_" + counter.incrementAndGet());
         appn.start();
+        appn.addFilter(new Filter<ILoggingEvent>() {
+			@Override //double check (REPORTER.isAdditive=false)
+			public FilterReply decide(ILoggingEvent event) { 
+				return event.getLevel().isGreaterOrEqual(WARN) ? DENY : NEUTRAL;
+			}
+		});
         var root = configureLogger(loggerName, additive);
         root.addAppender(appn);
         return root;
