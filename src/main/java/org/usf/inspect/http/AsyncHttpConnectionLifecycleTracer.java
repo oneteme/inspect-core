@@ -2,9 +2,9 @@ package org.usf.inspect.http;
 
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.HttpAction.EXECUTION;
 import static org.usf.inspect.core.HttpAction.INITIALIZATION;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 
@@ -38,7 +38,7 @@ final class AsyncHttpConnectionLifecycleTracer extends AbstractHttpConnectionLif
 					traceHeaders(res.statusCode(), res.headers().asHttpHeaders());
 				}
 				catch (Exception ex) {
-					hub().emitReport("AsyncHttpConnectionLifecycleTracer.exchangeStage", ex);
+					REPORTER.error("AsyncHttpConnectionLifecycleTracer.exchangeStage: failed to trace headers", ex);
 				}
 			}
 			stageListener((s,e,o,t)-> createStage(EXECUTION, s, e)).safeHandle(lastTimestamp, now, null, thrw);

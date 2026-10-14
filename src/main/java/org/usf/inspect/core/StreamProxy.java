@@ -40,7 +40,7 @@ public final class StreamProxy {
 	}
 	
 	public static <T> Stream<T> trackStream(Stream<T> stream) {
-		if(getConfiguration().isEnabled(STREAM_ENABLED, true)){
+		if(nonNull(stream) && getConfiguration().isEnabled(STREAM_ENABLED, true)){
 			var ctx = activeContext();
 			if(nonNull(ctx)) {
 				var cs = new ContextSpliterator<>(stream.spliterator(), ctx);

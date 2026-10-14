@@ -20,7 +20,6 @@ import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
  * @author u$f
  *
  */
-@InspectTest
 public final class Junit5TestMonitor implements InvocationInterceptor {
 
 	@Override

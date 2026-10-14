@@ -1,10 +1,17 @@
 package org.usf.inspect.core;
 
+import static org.slf4j.LoggerFactory.getLogger;
+
+import org.slf4j.Logger;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Constants {
+	
+	public static final String REPORTER_NAME 		= "org.usf.inspect.reporter";
+	public static final Logger REPORTER 			= getLogger(REPORTER_NAME);
 	
 	public static final String INSPECT_ENABLED 		= "inspect.collector.enabled";
 	//TD use prefix inspect.collector.monitoring

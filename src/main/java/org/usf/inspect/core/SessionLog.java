@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
+import static org.usf.inspect.core.Helper.threadName;
 import static org.usf.inspect.core.SessionContextManager.createLog;
 import static org.usf.inspect.core.SessionLog.LogLevel.ALERT;
 import static org.usf.inspect.core.SessionLog.LogLevel.ERROR;
@@ -31,12 +32,12 @@ public final class SessionLog {
 		emitLog(ERROR, msg);
 	}
 	
-	public static void emitAlert(String msg) {
+	static void emitAlert(String msg) {
 		emitLog(ALERT, msg); //dispatch immediately 
 	}
 	
 	public static void emitLog(LogLevel level, String msg) {
-		hub().emitTrace(createLog(systemUTC().instant(), level.name(), msg, null));
+		hub().emitTrace(createLog(systemUTC().instant(), threadName(), level.name(), msg, null));
 	}
 
 	public enum LogLevel {

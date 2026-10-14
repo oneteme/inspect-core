@@ -2,9 +2,9 @@ package org.usf.inspect.reactor;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SessionContextManager.contextPropagator;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -116,7 +116,7 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 			subscription.request(n);
 		}
 		else {
-			hub().emitReport("CoreSubscriberProxy.request", "subscription cannot be null");
+			REPORTER.warn("CoreSubscriberProxy.request: subscription cannot be null");
 		}
 	}
 
@@ -131,7 +131,7 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 			}
 		}
 		else {
-			hub().emitReport("CoreSubscriberProxy.cancel", "subscription cannot be null");
+			REPORTER.warn("CoreSubscriberProxy.cancel: subscription cannot be null");
 		}
 	}
 

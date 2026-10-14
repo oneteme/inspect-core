@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
@@ -62,7 +63,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	
 	public <T> ExecutionListener<T> connectionListener(StageBuilder<T> stgBuilder, SafeBiConsumer<TraceSignal,T> cons) {
 		if(nonNull(update) || stageCounter.get() > 0) {
-			hub().emitReport("ConnectionLifecycleTracer.connectionListener", "tracer was not reset");
+			REPORTER.warn("ConnectionLifecycleTracer.connectionListener: tracer was not reset");
 			reset();
 		}
 		return (s,e,o,t)-> {
@@ -71,7 +72,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 				cons.accept(sgn, o);
 			}
 			catch (Exception ex) {
-				hub().emitReport("ConnectionLifecycleTracer.connectionListener", ex);
+				REPORTER.warn("ConnectionLifecycleTracer.connectionListener: error while executing connection consumer", ex);
 			}
 			hub().emitTrace(sgn);
 			this.update = update(sgn);

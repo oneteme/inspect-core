@@ -37,7 +37,7 @@ public class InspectReactorConfiguration implements InitializingBean, Disposable
 
 	@Override
 	public void afterPropertiesSet() {
-		setExecutorServiceDecorator(HOOK_KEY, (sc, es)-> wrap(es, true, "reactorExecutorServiceDecorator")); //TODO check this
+		setExecutorServiceDecorator(HOOK_KEY, (sc, es)-> wrap(es, true, "reactorExecutorServiceDecorator"));
 		log.info("registering reactor hooks '{}'", HOOK_KEY);
 		onScheduleHook(HOOK_KEY, ContextPropagators::wrapRunnable);
 		onEachOperator(HOOK_KEY, lift(CoreSubscriberProxy::lift));

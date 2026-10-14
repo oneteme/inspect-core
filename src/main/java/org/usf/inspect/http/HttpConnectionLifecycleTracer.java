@@ -1,7 +1,7 @@
 package org.usf.inspect.http;
 
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.HttpAction.EXECUTION;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
@@ -21,7 +21,7 @@ final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycl
 				traceHeaders(o.getStatusCode(), o.getHeaders()); 
 			}
 			catch (Exception ex) {
-				hub().emitReport("HttpConnectionLifecycleTracer.exchangeStageListener", ex);
+				REPORTER.error("HttpConnectionLifecycleTracer.exchangeStageListener: failed to trace headers", ex);
 			}
 			return createStage(EXECUTION, s, e); 
 		},(trc, res)-> signal((HttpRequestSignal)trc, request.getMethod(), request.getURI(), request.getHeaders()));

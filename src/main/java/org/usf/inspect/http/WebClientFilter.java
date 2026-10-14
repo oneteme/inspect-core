@@ -2,8 +2,8 @@ package org.usf.inspect.http;
 
 import static java.util.Objects.nonNull;
 import static org.springframework.web.reactive.function.client.ClientRequest.from;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.InspectExecutor.call;
-import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 
 import java.util.concurrent.CancellationException;
@@ -44,7 +44,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 			return from(request).header(TRACE_ID_HEADER, trc.getId().toString()).build();
 		}
 		catch (Exception e) {
-			hub().emitReport("WebClientFilter.request", e);
+			REPORTER.error("WebClientFilter.request: failed to mutate request", e);
 		}
 		return request;
 	}
@@ -58,7 +58,7 @@ public final class WebClientFilter implements ExchangeFilterFunction {
 					.build();
 		}
 		catch (Exception e) {
-			hub().emitReport("WebClientFilter.response", e);
+			REPORTER.error("WebClientFilter.response: failed to mutate response", e);
 		}
 		return reponse;
 	}

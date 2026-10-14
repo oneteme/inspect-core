@@ -7,6 +7,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.Constants.SCHEDULING_ENABLED;
 import static org.usf.inspect.core.ContextPropagators.wrapCallable;
 import static org.usf.inspect.core.ContextPropagators.wrapRunnable;
@@ -17,7 +18,6 @@ import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.core.MainSessionType.SCHEDULE;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.lang.StackWalker.StackFrame;
 import java.util.concurrent.Callable;
@@ -26,15 +26,11 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper implements ScheduledExecutorService {
 
 	private final boolean propagateContext; //reactor context propagation
@@ -103,7 +99,7 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 				.dropWhile(f-> f.getDeclaringClass() == ScheduledExecutorServiceWrapper.class)
 				.findFirst().orElse(null));
 		if(isNull(sf)) {
-			hub().emitReport("ScheduledExecutorServiceWrapper.upperStackFrame", "stackFrame is null");
+			 REPORTER.warn("ScheduledExecutorServiceWrapper.upperStackFrame: stackFrame is null");
 		}
 		return sf;
 	}
@@ -116,14 +112,14 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 		return wrap(es, propagateContext, null);
 	}
 	
-	public static ScheduledExecutorService wrap(@NonNull ScheduledExecutorService es, boolean propagateContext, String beanName) {
-		if(getConfiguration().isEnabled()){
+	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean propagateContext, String beanName) {
+		if(nonNull(es) && getConfiguration().isEnabled()){
 			if(es.getClass() != ScheduledExecutorServiceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "scheduledExecutorService"), es.getClass());
 				return new ScheduledExecutorServiceWrapper(es, propagateContext);
 			}
 			else {
-				log.warn("{}: {} is already wrapped", beanName, es);
+				REPORTER.warn("{}: {} is already wrapped", beanName, es);
 			}
 		}
 		return es;

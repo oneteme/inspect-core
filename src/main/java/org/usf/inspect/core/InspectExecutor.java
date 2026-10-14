@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.TraceHub.hub;
+import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.time.Instant;
 import java.util.EventListener;
@@ -41,7 +41,7 @@ public final class InspectExecutor {
 				listener.safeHandle(s, e, o, t);
 			}
 			else {
-				hub().emitReport("InspectExecutor.call", "listener is null");
+				REPORTER.warn("InspectExecutor.call: listener is null");
 			}
 		}
 	}
@@ -56,7 +56,7 @@ public final class InspectExecutor {
 				handle(start, end, obj, thrw);
 			}
 			catch (Throwable ex) { // do not throw exception
-				hub().emitReport("ExecutionListener.safeHandle", ex);
+				REPORTER.error("ExecutionListener.safeHandle: failed to handle execution", ex);
 			}
 		}
 	}

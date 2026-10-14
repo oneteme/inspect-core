@@ -1,8 +1,10 @@
 package org.usf.inspect.jdbc;
 
+import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.Constants.JDBC_ENABLED;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.call;
 
@@ -12,17 +14,14 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 
 import lombok.AccessLevel;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DataSourceWrapper implements DataSource {
 	
@@ -46,14 +45,14 @@ public final class DataSourceWrapper implements DataSource {
 		return wrap(ds, null);
 	}
 	
-	public static DataSource wrap(@NonNull DataSource ds, String beanName) {
-		if(getConfiguration().isEnabled(JDBC_ENABLED, true)) {
+	public static DataSource wrap(DataSource ds, String beanName) {
+		if(nonNull(ds) && getConfiguration().isEnabled(JDBC_ENABLED, true)) {
 			if(ds.getClass() != DataSourceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "dataSource"), ds.getClass());
 				return new DataSourceWrapper(ds);
 			}
 			else {
-				log.warn("{}: {} is already wrapped", beanName, ds);
+				REPORTER.warn("{}: {} is already wrapped", beanName, ds);
 			}
 		}
 		return ds;

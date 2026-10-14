@@ -9,14 +9,12 @@ import org.springframework.http.client.ClientHttpResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @RequiredArgsConstructor
 public final class ClientHttpResponseWrapper implements ClientHttpResponse {
 

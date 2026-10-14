@@ -1,9 +1,10 @@
 package org.usf.inspect.logging;
 
-import static java.time.Instant.ofEpochMilli;
+import static java.util.Objects.nonNull;
 import static org.slf4j.LoggerFactory.getILoggerFactory;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.usf.inspect.core.Constants.LOGBACK_ENABLED;
+import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.SessionContextManager.createLog;
 import static org.usf.inspect.core.TraceHub.hub;
 
@@ -39,26 +40,34 @@ public class InspectLogbackConfiguration {
         app.setContext((LoggerContext) getILoggerFactory());
         app.setName("INSPECT_APPENDER");
         app.start();
-        ((Logger) getLogger(prp.getRootPackage())).addAppender(app);
+        ((Logger) getLogger(prp.getRootPackage())).addAppender(app);        
     }
 
 	@RequiredArgsConstructor
-	public final class InspectLogAppender extends AppenderBase<ILoggingEvent> {
+	public static final class InspectLogAppender extends AppenderBase<ILoggingEvent> {
 		
 		private final Level level;
 
 	    @Override
 	    protected void append(ILoggingEvent event) {
 	        if(event.getLevel().isGreaterOrEqual(level)) { //exclude self
-	        	try {
-					var lvl = event.getLevel().toString();
-					var tms = ofEpochMilli(event.getTimeStamp());
-					hub().emitTrace(createLog(tms, lvl, event.getFormattedMessage(), event.getLoggerName()));
+	        	try {//trace exception/stack !?
+					var lvl = event.getLevel();
+					var lct = locationFrom(event.getCallerData(), event.getLoggerName());
+					hub().emitTrace(createLog(event.getInstant(), event.getThreadName(), lvl.toString(), event.getFormattedMessage(), lct));
 	        	}
-	        	catch (Exception e) {
+	        	catch (Exception e) { //don't log to avoid infinite loop
 	        		hub().emitReport("InspectLogAppender.append", e);
 	        	}
 	        }
 	    }
+	}
+	
+	static String locationFrom(StackTraceElement[] stack, String defaultLocation) {
+		if(nonNull(stack) && stack.length>0) {
+			var ste = stack[0];
+			return formatLocation(ste.getClassName(), ste.getMethodName(), ste.getLineNumber());
+		}
+		return defaultLocation;
 	}
 }

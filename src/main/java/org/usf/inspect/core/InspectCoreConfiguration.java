@@ -4,12 +4,14 @@ import static java.lang.System.getProperty;
 import static java.net.InetAddress.getLocalHost;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.Constants.ANNOTATION_ENABLED;
 import static org.usf.inspect.core.Constants.JDBC_ENABLED;
+import static org.usf.inspect.core.Constants.REPORTER;
+import static org.usf.inspect.core.Constants.REPORTER_NAME;
+import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectCoreModule.createObjectMapper;
@@ -17,6 +19,7 @@ import static org.usf.inspect.core.InstanceType.SERVER;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
+import static org.usf.inspect.logging.InspectLogReporter.configureLogReporter;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -39,6 +42,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.usf.inspect.logging.InspectLogReporter;
 
 import jakarta.servlet.ServletContext;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +64,7 @@ public class InspectCoreConfiguration {
 		InspectConfiguration.INSTANCE = config;
 		var prp = config.getProperties();
 		hub().configure(prp.getScheduling(), coreTracePublisher(prp.getTracing()), hooks);
+		configureLogReporter(REPORTER_NAME, true, ()-> new InspectLogReporter(hub(), prp.isDebugMode()));
 		this.startup = ofEpochMilli(appContext.getStartupDate());
 		//create startup session immediately after configuring hub, before any other bean is created
 		this.tracer = forMainSession(startup, STARTUP, sgn-> sgn.setName("main"));
@@ -108,15 +113,12 @@ public class InspectCoreConfiguration {
 		}
 		return e-> {
 			if(e instanceof ApplicationReadyEvent || e instanceof ApplicationFailedEvent) {
-				if(nonNull(tracer)) {
+				if(assertActiveTracer(tracer, "InspectConfiguration.appEventListener")) {
 					var exp = e instanceof ApplicationFailedEvent f ? f.getException() : null;
 					tracer.map((t,o)-> {
 						var lct = formatLocation(e.getSpringApplication().getMainApplicationClass().getName(), "main");
 						((MainSessionUpdate)t).setLocation(lct);
 					}).safeHandle(null, ofEpochMilli(e.getTimestamp()), null, exp);
-				}
-				else {
-					hub().emitReport("InspectConfiguration.appEventListener", "tracer is null, cannot trace event " + e.getClass().getSimpleName());
 				}
 			}
 		};
@@ -193,7 +195,7 @@ public class InspectCoreConfiguration {
 		try {
 			return getLocalHost().getHostAddress(); //hostName ?
 		} catch (UnknownHostException e) {
-			log.warn("error while getting host address {}", e.getMessage());
+			REPORTER.error("InspectCoreConfiguration.hostAddress:", e);
 			return null;
 		}
 	}

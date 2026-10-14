@@ -11,6 +11,7 @@ import static org.usf.inspect.core.AnnotationMonitoringProperties.INSPECT_TRACEA
 import static org.usf.inspect.core.AnnotationMonitoringProperties.SPRING_CAHCE;
 import static org.usf.inspect.core.AnnotationMonitoringProperties.SPRING_SCHEDULE;
 import static org.usf.inspect.core.AnnotationMonitoringProperties.SPRING_TRANSACTION;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
@@ -23,7 +24,6 @@ import static org.usf.inspect.core.MainSessionType.SCHEDULE;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodTemplate;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.lang.StackWalker.StackFrame;
 import java.lang.annotation.Annotation;
@@ -40,14 +40,11 @@ import org.springframework.core.Ordered;
 import org.springframework.transaction.annotation.Transactional;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @Aspect
 public class MethodExecutionMonitor implements Ordered {
 
@@ -107,7 +104,7 @@ public class MethodExecutionMonitor implements Ordered {
 		}
 		var ctx = activeContext();
 		if(nonNull(ctx) && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
-			hub().emitReport("MethodExecutionMonitor.aroundSchedule", "active session context found, but not completed");
+			REPORTER.warn("MethodExecutionMonitor.aroundSchedule: active session context found, but not completed");
 		}
 		return call(point::proceed, forMainSession(systemUTC().instant(), SCHEDULE, sgn-> { 
 			sgn.setName(resolveStageName(point));

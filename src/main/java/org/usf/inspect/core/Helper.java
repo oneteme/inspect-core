@@ -18,6 +18,10 @@ public final class Helper {
 		return t.isVirtual() ?  ""+t.threadId() : t.getName();
 	}
 
+	public static String formatLocation(String className, String methodName, int lineNumber) {
+		return formatLocation(className, methodName) + ':' + lineNumber;
+	}
+
 	public static String formatLocation(String className, String methodName) {
 		return className + '.' + methodName + "()";
 	}

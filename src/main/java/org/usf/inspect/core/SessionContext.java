@@ -4,6 +4,7 @@ import static java.time.Clock.systemUTC;
 import static java.time.Duration.between;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,7 +48,7 @@ public final class SessionContext {
 					hub().emitTrace(new SessionAsyncDurationUpdate(session.getId(), session instanceof MainSessionUpdate, session.getAsyncDuration()));
 				}
 				else {
-					hub().emitReport("SessionContext.threadCountDown", "asyncDuration already set to " + session.getAsyncDuration());
+					REPORTER.warn("SessionContext.threadCountDown: asyncDuration already set to " + session.getAsyncDuration());
 				}
 			}
 			return v;
@@ -65,7 +66,7 @@ public final class SessionContext {
 	public void updateAsync() {
 		threadCount.updateAndGet(v->{
 			if(isNull(session.getEnd())) {
-				hub().emitReport("SessionContext.updateAsync", "session not completed yet, end is null");
+				REPORTER.warn("SessionContext.updateAsync: session not completed yet, end is null");
 			}
 			else if(v > 0) {
 				session.setAsyncDuration(asyncDurationInitialValue); //initial duration

@@ -1,19 +1,17 @@
 package org.usf.inspect.core;
 
 import static java.util.Collections.synchronizedList;
+import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 public final class EventTraceBus {
 
 	private final List<DispatchHook> dispatchHooks = synchronizedList(new ArrayList<>());
@@ -36,7 +34,7 @@ public final class EventTraceBus {
 				post.accept(h);
 			}
 			catch (Exception e) { //catch exception => next hook
-				log.warn("failed to execute hook '{}'", h.getClass().getSimpleName());
+				REPORTER.warn("failed to execute hook '{}'", h.getClass().getSimpleName());
 			}
 		});
 	}

@@ -1,8 +1,10 @@
 package org.usf.inspect.ldap;
 
+import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.Constants.LDAP_ENABLED;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 
 import javax.naming.directory.DirContext;
@@ -11,16 +13,13 @@ import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.ContextSource;
 
 import lombok.AccessLevel;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public final class ContextSourceWrapper implements ContextSource {
 
@@ -45,14 +44,14 @@ public final class ContextSourceWrapper implements ContextSource {
 		return wrap(ctx, null);
 	}
 	
-	public static ContextSource wrap(@NonNull ContextSource ctx, String beanName) {
-		if(getConfiguration().isEnabled(LDAP_ENABLED, true)){
+	public static ContextSource wrap(ContextSource ctx, String beanName) {
+		if(nonNull(ctx) && getConfiguration().isEnabled(LDAP_ENABLED, true)){
 			if(ctx.getClass() != ContextSourceWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "contextSource"), ctx.getClass());
 				return new ContextSourceWrapper(ctx);
 			}
 			else {
-				log.warn("{}: {} is already wrapped", beanName, ctx);
+				REPORTER.warn("{}: {} is already wrapped", beanName, ctx);
 			}
 		}
 		return ctx;

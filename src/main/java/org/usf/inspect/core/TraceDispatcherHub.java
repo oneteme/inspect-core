@@ -6,6 +6,7 @@ import static java.util.Objects.nonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
@@ -65,7 +66,7 @@ public class TraceDispatcherHub implements TraceHub {
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
 		else {
-			emitReport("TraceDispatcherHub.configure", "cannot reconfigure hub while scheduling");
+			REPORTER.warn("TraceDispatcherHub.configure: cannot reconfigure hub while scheduling");
 		}
 	}
 

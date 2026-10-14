@@ -3,6 +3,7 @@ package org.usf.inspect.jdbc;
 import static java.util.Arrays.copyOf;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.DatabaseAction.BATCH;
 import static org.usf.inspect.core.DatabaseAction.CONNECTION;
 import static org.usf.inspect.core.DatabaseAction.DISCONNECTION;
@@ -172,7 +173,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 			batchStageBuilder = null;
 		}
 		else {
-			hub().emitReport("emitBatchStage", "empty batch or already traced");
+			REPORTER.warn("DatabaseConnectionLifecycleTracer.emitBatchStage: empty batch or already traced");
 		}
 	}
 
@@ -203,7 +204,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 				}
 			}
 			catch (Exception e) {
-				hub().emitReport("DatabaseConnectionLifecycleTracer.updateStageRowsCount", e);
+				REPORTER.warn("DatabaseConnectionLifecycleTracer.updateStageRowsCount: failed to update last stage rows count", e);
 			}
 		}
 	}
@@ -257,7 +258,7 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 				((DatabaseRequestUpdate)getUpdate()).setCommand(mainCommand.name());
 			}
 			catch (Exception e) {
-				hub().emitReport("parseAndMergeCommand", e);
+				REPORTER.error("DatabaseConnectionLifecycleTracer.parseAndMergeCommand: failed to parse command", e);
 			}
 		}
 	}

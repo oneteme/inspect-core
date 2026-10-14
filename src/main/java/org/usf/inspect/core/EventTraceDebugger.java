@@ -1,13 +1,10 @@
 package org.usf.inspect.core;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 public final class EventTraceDebugger implements DispatchHook { //inspect.client.log : SESSION | REQUEST | STAGE
 	
 //	private static final Comparator<? super Metric> METRIC_COMPARATOR = comparing(Metric::getStart);

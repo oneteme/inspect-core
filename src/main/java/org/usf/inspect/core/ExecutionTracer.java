@@ -1,6 +1,7 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
@@ -72,7 +73,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 					cons.accept(update, o); //execute before
 				}
 				catch (Exception ex) {
-					hub().emitReport("ExecutionTracer.map", ex);
+					REPORTER.warn("ExecutionTracer.map: error while executing consumer", ex);
 				}
 				handle(s, e, o, t);
 			}
@@ -101,7 +102,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 			supp.accept(sgn);
 		}
 		catch (Exception e) {
-			hub().emitReport(action, e);
+			REPORTER.error("ExecutionTracer.traceSignal:", e);
 		}
 		hub().emitTrace(sgn);
 	}

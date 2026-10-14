@@ -1,8 +1,10 @@
 package org.usf.inspect.ftp;
 
+import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElse;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.Constants.JSCH_FTP_ENABLED;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.FtpCommand.CD;
 import static org.usf.inspect.core.FtpCommand.CHGRP;
 import static org.usf.inspect.core.FtpCommand.CHMOD;
@@ -27,16 +29,13 @@ import com.jcraft.jsch.SftpException;
 import com.jcraft.jsch.SftpProgressMonitor;
 
 import lombok.AccessLevel;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ChannelSftpWrapper extends ChannelSftp {
 	
@@ -252,14 +251,14 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 		return wrap(channel, null);
 	}
 
-	public static final ChannelSftp wrap(@NonNull ChannelSftp channel, String beanName) {
-		if(getConfiguration().isEnabled(JSCH_FTP_ENABLED, true)){
+	public static final ChannelSftp wrap(ChannelSftp channel, String beanName) {
+		if(nonNull(channel) && getConfiguration().isEnabled(JSCH_FTP_ENABLED, true)){
 			if(channel.getClass() != ChannelSftpWrapper.class) {
 				logWrappingBean(requireNonNullElse(beanName, "channelSftp"), channel.getClass());
 				return new ChannelSftpWrapper(channel);
 			}
 			else { //will duplicate traces
-				log.warn("{}: {} is already wrapped", beanName, channel);
+				REPORTER.warn("{}: {} is already wrapped", beanName, channel);
 			}
 		}
 		return channel;

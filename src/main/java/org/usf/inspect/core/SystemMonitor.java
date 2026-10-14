@@ -7,6 +7,7 @@ import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
 import static java.lang.management.ManagementFactory.getThreadMXBean;
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.io.File;
@@ -77,7 +78,7 @@ public final class SystemMonitor implements DispatchHook {
 					startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount, (short)processCpuLoad.getAsInt()));
 		}
 		catch(Exception e) {
-			hub().emitReport("MachineResourceMonitor.onSchedule", e);
+			REPORTER.warn("Failed to collect system metrics", e);
 		}
 	}
 

@@ -8,10 +8,10 @@ import static java.util.UUID.fromString;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.SessionContextManager.createHttpRequest;
 import static org.usf.inspect.core.SessionContextManager.nextId;
-import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.http.WebUtils.TRACE_ID_HEADER;
 import static org.usf.inspect.http.WebUtils.extractAuthScheme;
 
@@ -132,7 +132,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 				streamStage.setName(TRANSMISSION.name());
 			}
 			else {
-				hub().emitReport("AbstractHttpConnectionLifecycleTracer.onTransmissionStart", "streamStage already started");
+				REPORTER.warn("AbstractHttpConnectionLifecycleTracer.onTransmissionStart: streamStage already started");
 			}
 		}
 	}
@@ -144,7 +144,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 				streamStage.setEnd(systemUTC().instant());
 			}
 			else {
-				hub().emitReport("AbstractHttpConnectionLifecycleTracer.onTransmissionEnd", "streamStage already ended");
+				REPORTER.warn("AbstractHttpConnectionLifecycleTracer.onTransmissionEnd: streamStage already ended");
 			}
 		}
 	}
@@ -159,7 +159,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 					traceResponseContent(captor);
 				}
 				catch (Exception ex) {
-					hub().emitReport("AbstractHttpConnectionLifecycleTracer.complete", ex);
+					REPORTER.error("AbstractHttpConnectionLifecycleTracer.complete: failed to trace response content", ex);
 				}
 			}
 			StageBuilder<Void> stgBuilder = null;
@@ -179,7 +179,7 @@ abstract class AbstractHttpConnectionLifecycleTracer extends ConnectionLifecycle
 				return getUpdate().getId().equals(fromString(sid));
 			}
 			catch (Exception e) {
-				hub().emitReport("AbstractHttpConnectionLifecycleTracer.assertSameID", "session.id=" + sid);
+				REPORTER.error("AbstractHttpConnectionLifecycleTracer.assertSameID: failed to parse trace id=" + sid, e);
 			}
 		}
 		return false;

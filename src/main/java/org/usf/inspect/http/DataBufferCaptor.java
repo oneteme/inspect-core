@@ -3,7 +3,7 @@ package org.usf.inspect.http;
 import static java.lang.Math.min;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.TraceHub.hub;
+import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.io.ByteArrayOutputStream;
 import java.util.concurrent.CancellationException;
@@ -11,7 +11,6 @@ import java.util.concurrent.CancellationException;
 import org.springframework.core.io.buffer.DataBuffer;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
@@ -19,7 +18,6 @@ import reactor.core.publisher.Flux;
  * @author u$f
  *
  */
-@Slf4j
 @RequiredArgsConstructor
 final class DataBufferCaptor implements StreamCaptor {
 
@@ -70,7 +68,7 @@ final class DataBufferCaptor implements StreamCaptor {
 						}
 					}
 				} catch (Exception e) {
-					hub().emitReport("DataBufferCaptor.onBuffer", e);
+					REPORTER.error("DataBufferCaptor.onBuffer: failed to capture buffer", e);
 					this.bufferStream = null; // stop capturing, keep counting
 				}
 			}

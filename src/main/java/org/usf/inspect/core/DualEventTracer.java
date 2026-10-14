@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.TraceHub.hub;
+import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.time.Instant;
 
@@ -63,20 +63,20 @@ public interface DualEventTracer {
 				return true;
 			}
 			else {
-				hub().emitReport(action, "trace update is already completed");
+		    	REPORTER.warn("{}: trace update is already completed", action);
 			}
 		}
 		else {
-			hub().emitReport(action, "trace update is null");
+	    	REPORTER.warn("{}: trace update is null", action);
 		}
     	return false;
     }
     
-    public static boolean assertActiveTracer(DualEventTracer tracer, String action) {
+    static boolean assertActiveTracer(DualEventTracer tracer, String action) {
     	if(nonNull(tracer)) {
     		return tracer.assertActiveTraceUpdate(action);
     	}
-		hub().emitReport(action, "tracer is null");
+    	REPORTER.warn("{}: tracer is null", action);
     	return false;
     }
     

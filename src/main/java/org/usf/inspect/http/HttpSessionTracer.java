@@ -12,6 +12,7 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CACHE_CONTROL;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.USER_AGENT;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.HttpAction.DELEGATION;
 import static org.usf.inspect.core.HttpAction.EXECUTION;
 import static org.usf.inspect.core.HttpAction.FINALIZATION;
@@ -64,7 +65,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 	}
 	
 	public static HttpSessionTracer httpSessionTracer(HttpServletRequest request) {
-		var signal = createHttpSession(systemUTC().instant(), parseUUID(request.getHeader(TRACE_ID_HEADER)));
+		var signal = createHttpSession(systemUTC().instant(), parseTraceUUID(request.getHeader(TRACE_ID_HEADER)));
 		traceSignal(signal, sgn->{
 			sgn.setMethod(request.getMethod());
 			sgn.setURI(fromRequest(request));
@@ -108,7 +109,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				}
 			}
 			else {
-				hub().emitReport("HttpSessionTracer.handle", "response is null");
+				REPORTER.warn("HttpSessionTracer.handle: response is null");
 			}
 			super.handle(start, end, null, thrw);
 		}
@@ -174,7 +175,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				streamStage.setName(TRANSMISSION.name());
 			}
 			else {
-				hub().emitReport("HttpSessionTracer.onTransmissionStart", "streamStage already started");
+				REPORTER.warn("HttpSessionTracer.onTransmissionStart: streamStage already started");
 			}
 		}
 	}
@@ -186,7 +187,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				streamStage.setEnd(systemUTC().instant());
 			}
 			else {
-				hub().emitReport("HttpSessionTracer.onTransmissionEnd", "streamStage already ended");
+				REPORTER.warn("HttpSessionTracer.onTransmissionEnd: streamStage already ended");
 			}
 		}
 	}
@@ -208,13 +209,13 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 				.toArray(String[]::new);
 	}
 	
-	static UUID parseUUID(String id) {
+	static UUID parseTraceUUID(String id) {
 		if(nonNull(id)) {
 			try {
 				return fromString(id);
 			}
 			catch (Exception e) {
-				hub().emitReport("HttpSessionTracer.parseUUID", e);
+				REPORTER.warn("Invalid trace id: {}", id, e);
 			}
 		}
 		return null;
