@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class SessionContext {
 	
-	private static final long asyncDurationInitialValue = -1L;
+	static final long asyncDurationInitialValue = -1L;
 	
 	@Getter	private final AbstractSessionUpdate session;
 	@Getter	private final boolean startup;

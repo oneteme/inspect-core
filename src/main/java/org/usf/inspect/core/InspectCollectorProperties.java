@@ -19,6 +19,8 @@ public class InspectCollectorProperties {
 	private SchedulingProperties scheduling = new SchedulingProperties(); //replace dispatch
 	private MonitoringProperties monitoring = new MonitoringProperties();
 	private TracingProperties tracing = new TracingProperties();
+	//v1.2
+	private ReporterProperties reporting = new ReporterProperties();
 	
 	public void validate() {
 		if(enabled) {

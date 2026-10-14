@@ -22,7 +22,7 @@ import lombok.experimental.Delegate;
  *
  */
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
-public final class TransportWrapper  { //cannot extends jakarta.mail.Transport @see constructor
+public final class TransportWrapper { //cannot extends jakarta.mail.Transport @see constructor
 	
 	@Delegate
 	private final Transport trsp;

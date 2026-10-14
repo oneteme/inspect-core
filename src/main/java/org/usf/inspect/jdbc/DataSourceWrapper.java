@@ -52,7 +52,7 @@ public final class DataSourceWrapper implements DataSource {
 				return new DataSourceWrapper(ds);
 			}
 			else {
-				REPORTER.warn("{}: {} is already wrapped", beanName, ds);
+				REPORTER.warn("ContextSourceWrapper.wrap: {} is already wrapped", requireNonNullElse(beanName, "dataSource"));
 			}
 		}
 		return ds;

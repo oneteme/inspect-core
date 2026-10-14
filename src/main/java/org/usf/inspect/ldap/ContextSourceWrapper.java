@@ -51,7 +51,7 @@ public final class ContextSourceWrapper implements ContextSource {
 				return new ContextSourceWrapper(ctx);
 			}
 			else {
-				REPORTER.warn("{}: {} is already wrapped", beanName, ctx);
+				REPORTER.warn("ContextSourceWrapper.wrap: {} is already wrapped", requireNonNullElse(beanName, "contextSource"));
 			}
 		}
 		return ctx;

@@ -39,7 +39,7 @@ public final class ReportEvent implements EventTrace {
 		return new EventTraceFormatter()
 		.withInstant(instant)
 		.withThread(thread)
-		.withAction("REPORT")
+		.withAction("⚠"+ action)
 		.withMessageAsTopic(action + " : " + message)
 		.format();
 	}

@@ -79,13 +79,19 @@ public class InspectLogReporter extends AppenderBase<ILoggingEvent> {
 		return null;
 	}
     
-    public static void configureLogReporter(String loggerName, boolean additive, Supplier<InspectLogReporter> fn) {
-    	var appender = fn.get();
-        appender.setContext((LoggerContext) getILoggerFactory());
-        appender.setName("INSPECT_REPORTER_" + counter.incrementAndGet());
-        appender.start();
+    public static Logger configureLogger(String loggerName, boolean additive, Supplier<InspectLogReporter> fn) {
+    	var appn = fn.get();
+        appn.setContext((LoggerContext) getILoggerFactory());
+        appn.setName("INSPECT_REPORTER_" + counter.incrementAndGet());
+        appn.start();
+        var root = configureLogger(loggerName, additive);
+        root.addAppender(appn);
+        return root;
+    }
+
+    public static Logger configureLogger(String loggerName, boolean additive) {
         var root = (Logger) getLogger(loggerName);
         root.setAdditive(additive);
-        root.addAppender(appender);
+        return root;
     }
 }

@@ -4,7 +4,10 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.Constants.INSPECT_ENABLED;
+import static org.usf.inspect.core.Constants.REPORTER_NAME;
 import static org.usf.inspect.core.Constants.SYSTEM_ENABLED;
+import static org.usf.inspect.core.TraceHub.hub;
+import static org.usf.inspect.logging.InspectLogReporter.configureLogger;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -12,6 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
+import org.usf.inspect.logging.InspectLogReporter;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -38,6 +42,13 @@ public class InspectConfiguration {
 	InspectConfiguration(Environment environment) {
 		this.environment = environment;
 		this.properties = loadConfiguration(environment);
+		var report = properties.getReporting();
+		if(report.isEnabled()) {
+			configureLogger(REPORTER_NAME, false, ()-> new InspectLogReporter(hub(), report.isStackTrace()));
+		}
+		else {
+			configureLogger(REPORTER_NAME, false);
+		}
 	}
 	
 	@Bean //hook must be loaded before hubDispatcher

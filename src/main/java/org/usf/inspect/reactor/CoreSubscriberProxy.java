@@ -27,7 +27,7 @@ import reactor.util.context.Context;
  */
 public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscription {
 
-	static final String CONTEXT_KEY = "inspect.session";
+	static final String CONTEXT_KEY = "inspect.context";
 	
 	private final CoreSubscriber<? super T> sub;
 	private final SessionContext ctx;
@@ -42,7 +42,7 @@ public final class CoreSubscriberProxy<T> implements CoreSubscriber<T>, Subscrip
 	}
 
 	public static <T> CoreSubscriber<? super T> lift(Scannable scn, CoreSubscriber<? super T> sub) {
-		if (sub instanceof CoreSubscriberProxy<?>) {
+		if(sub instanceof CoreSubscriberProxy<?>) {
 	        return sub;
 	    }
 		SessionContext ctx = sub.currentContext().getOrDefault(CONTEXT_KEY, null);

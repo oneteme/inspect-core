@@ -258,7 +258,7 @@ public final class ChannelSftpWrapper extends ChannelSftp {
 				return new ChannelSftpWrapper(channel);
 			}
 			else { //will duplicate traces
-				REPORTER.warn("{}: {} is already wrapped", beanName, channel);
+				REPORTER.warn("ChannelSftpWrapper.wrap: {} is already wrapped", requireNonNullElse(beanName, "channelSftp"));
 			}
 		}
 		return channel;

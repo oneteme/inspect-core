@@ -5,7 +5,6 @@ import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * 
@@ -21,21 +20,24 @@ public final class EventTraceBus {
 	}
 	
 	public void triggerInstanceEmit(InstanceEnvironment env){
-		triggerHooks(h-> h.onInstanceEmit(env));
+		for(var h : dispatchHooks) {
+			try {
+				h.onInstanceEmit(env);
+			}
+			catch (Exception e) { //catch exception => next hook
+				REPORTER.warn("{}.onInstanceEmit: failed to execute hook", h.getClass().getSimpleName(), e);
+			}
+		}
 	}
 	
 	public void triggerSchedule(){
-		triggerHooks(DispatchHook::onSchedule);
-	}
-	
-	void triggerHooks(Consumer<? super DispatchHook> post){
-		dispatchHooks.forEach(h -> {
+		for(var h : dispatchHooks) {
 			try {
-				post.accept(h);
+				h.onSchedule();
 			}
 			catch (Exception e) { //catch exception => next hook
-				REPORTER.warn("failed to execute hook '{}'", h.getClass().getSimpleName());
+				REPORTER.warn("{}.onSchedule: failed to execute hook", h.getClass().getSimpleName(), e);
 			}
-		});
+		}
 	}
 }

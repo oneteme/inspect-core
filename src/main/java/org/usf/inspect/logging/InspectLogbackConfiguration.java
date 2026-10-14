@@ -31,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 @ConditionalOnBean(InspectCoreConfiguration.class) //inspect enabled
 @ConditionalOnClass(name = "ch.qos.logback.classic.Logger") //slf-api dependency present
 @ConditionalOnProperty(name = LOGBACK_ENABLED, havingValue = "true", matchIfMissing = true)
-public class InspectLogbackConfiguration {
+public class InspectLogbackConfiguration {//Async !?
 	
     InspectLogbackConfiguration(InspectConfiguration config) {
 		var prp = config.getProperties().getMonitoring().getLogback();

@@ -1,8 +1,10 @@
 package org.usf.inspect.core;
 
 import static java.util.Comparator.comparing;
+import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static org.slf4j.LoggerFactory.getLogger;
+import static org.usf.inspect.core.SessionContext.asyncDurationInitialValue;
 
 import java.io.File;
 import java.util.List;
@@ -39,11 +41,11 @@ public interface TracePublisher {
 			}
 		}).collect(groupingBy(TracePart::getId));
 		for(var e : map.entrySet()) {
-			var upd = traces.stream()
+			var res = traces.stream()
 			.filter(t-> t instanceof AbstractSessionUpdate u && u.getId().equals(e.getKey()))
 			.map(AbstractSessionUpdate.class::cast)
 			.findAny();
-			if(upd.isEmpty()) {
+			if(res.isEmpty()) {
 				if(e.getValue().size() == 1) {
 					continue;
 				}
@@ -52,23 +54,29 @@ public interface TracePublisher {
 				log.warn("⨇ merging {} update traces for session {}, asyncDuration will be updated to {}", 
 						e.getValue().size(), e.getKey(), prt.getDuration());
 			}
-			else if(upd.get().getAsyncDuration() != -1) {
-				log.warn("⨇ cannot merge {} update traces for session {}, asyncDuration update is {}, but final asyncDuration is {}", 
-						e.getValue().size(), e.getKey(), upd.get().getAsyncDuration(), 
-						e.getValue().stream().mapToLong(SessionAsyncDurationUpdate::getDuration).max().orElseThrow());
-			}
 			else {
 				var prt = e.getValue().size() == 1 
 						? e.getValue().get(0) 
 						: e.getValue().stream().max(comparing(SessionAsyncDurationUpdate::getDuration)).orElseThrow();
 				var maxDuration = prt.getDuration();
-				if(e.getValue().size() == 1) {
-					log.debug("⨇ merging update trace for session {}, final asyncDuration is {}", e.getKey(), maxDuration);
+				var upd = res.get();
+				if(nonNull(upd.getAsyncDuration())) {
+					if(upd.getAsyncDuration() == asyncDurationInitialValue || upd.getAsyncDuration() == maxDuration) {
+						if(e.getValue().size() == 1) {
+							log.debug("⨇ merging update trace for session {}, final asyncDuration is {}", e.getKey(), maxDuration);
+						}
+						else {
+							log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}", e.getValue().size(), e.getKey(), maxDuration);
+						}
+						res.get().setAsyncDuration(maxDuration);
+					}
+					else{
+						log.warn(ABORT);
+					}
 				}
 				else {
-					log.warn("⨇ merging {} update traces for session {}, final asyncDuration is {}", e.getValue().size(), e.getKey(), maxDuration);
+					log.warn("");
 				}
-				upd.get().setAsyncDuration(maxDuration);
 			}
 			traces.removeAll(e.getValue());
 		}

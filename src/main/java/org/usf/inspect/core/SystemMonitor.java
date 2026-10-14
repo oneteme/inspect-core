@@ -7,7 +7,6 @@ import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
 import static java.lang.management.ManagementFactory.getThreadMXBean;
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.io.File;
@@ -32,8 +31,8 @@ public final class SystemMonitor implements DispatchHook {
 	private static final MemoryMXBean memoryBean = getMemoryMXBean();
 	private static final ThreadMXBean threadBean = getThreadMXBean();
 	private static final OperatingSystemMXBean osBean = getOperatingSystemMXBean();
-	private final File file;
 	
+	private final File file;
 	private final IntSupplier processCpuLoad;
 	
 	private long totalDiskSpace;
@@ -45,41 +44,31 @@ public final class SystemMonitor implements DispatchHook {
 	
 	@Override
 	public void onInstanceEmit(InstanceEnvironment instance) {
-		try{
-			var heap = memoryBean.getHeapMemoryUsage();
-//			var meta = bean.getNonHeapMemoryUsage()
-			totalDiskSpace = file.getTotalSpace();
-			instance.setResource(new MachineResource(
-					toMb(heap.getInit()), 
-					toMb(heap.getMax()), 
+		var heap = memoryBean.getHeapMemoryUsage();
+//		var meta = bean.getNonHeapMemoryUsage()
+		totalDiskSpace = file.getTotalSpace();
+		instance.setResource(new MachineResource(
+				toMb(heap.getInit()), 
+				toMb(heap.getMax()), 
 //					toMb(meta.getInit()), 
 //					toMb(meta.getMax()),
-					toMb(totalDiskSpace),
-					getRuntime().availableProcessors()));
-		}
-		catch(Exception e) {
-			//ignore
-		}
+				toMb(totalDiskSpace),
+				getRuntime().availableProcessors()));
 	}
 
 	@Override
 	public void onSchedule() {
-		try{
-			var heap = memoryBean.getHeapMemoryUsage();
-			var startedThreadCount = threadBean.getTotalStartedThreadCount();
+		var heap = memoryBean.getHeapMemoryUsage();
+		var startedThreadCount = threadBean.getTotalStartedThreadCount();
 //			var meta = bean.getNonHeapMemoryUsage()
-			hub().emitTrace(new SystemMetrics(systemUTC().instant(),
-					toMb(heap.getUsed()), 
-					toMb(heap.getCommitted()), 
+		hub().emitTrace(new SystemMetrics(systemUTC().instant(),
+				toMb(heap.getUsed()), 
+				toMb(heap.getCommitted()), 
 //					toMb(meta.getUsed()), 
 //					toMb(meta.getCommitted()),
-					totalDiskSpace > 0 ? toMb(totalDiskSpace - file.getUsableSpace()) : -1,
-					threadBean.getThreadCount(),
-					startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount, (short)processCpuLoad.getAsInt()));
-		}
-		catch(Exception e) {
-			REPORTER.warn("Failed to collect system metrics", e);
-		}
+				totalDiskSpace > 0 ? toMb(totalDiskSpace - file.getUsableSpace()) : -1,
+				threadBean.getThreadCount(),
+				startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount, (short)processCpuLoad.getAsInt()));
 	}
 
 	static int toMb(long value) {

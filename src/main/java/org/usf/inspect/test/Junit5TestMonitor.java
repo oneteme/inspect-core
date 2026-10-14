@@ -26,28 +26,28 @@ public final class Junit5TestMonitor implements InvocationInterceptor {
 	public void interceptBeforeAllMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		
-		processInvocation(invocation, extensionContext, "Junit5TestMonitor.interceptBeforeAllMethod");
+		processInvocation(invocation, extensionContext);
 	}
 
 	@Override
 	public void interceptBeforeEachMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext,
 			ExtensionContext extensionContext) throws Throwable {
 		
-		processInvocation(invocation, extensionContext, "Junit5TestMonitor.interceptBeforeEachMethod");
+		processInvocation(invocation, extensionContext);
 	}
 	
 	@Override
 	public void interceptAfterAllMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 
-		processInvocation(invocation, extensionContext, "Junit5TestMonitor.interceptAfterAllMethod");
+		processInvocation(invocation, extensionContext);
 	}
 	
 	@Override
 	public void interceptAfterEachMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 
-		processInvocation(invocation, extensionContext, "Junit5TestMonitor.interceptAfterEachMethod");
+		processInvocation(invocation, extensionContext);
 	}
 	
 	
@@ -55,21 +55,21 @@ public final class Junit5TestMonitor implements InvocationInterceptor {
 	public void interceptTestMethod(Invocation<Void> invocation, ReflectiveInvocationContext<Method> invocationContext,
 			ExtensionContext extensionContext) throws Throwable {
 		
-		processInvocation(invocation, extensionContext, "Junit5TestMonitor.interceptTestMethod");
+		processInvocation(invocation, extensionContext);
 	}
 	
 	@Override
 	public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext,
 			ExtensionContext extensionContext) throws Throwable {
 		
-		processInvocation(invocation, extensionContext, "Junit5TestMonitor.interceptDynamicTest");
+		processInvocation(invocation, extensionContext);
 	}
 	
-	static void processInvocation(Invocation<Void> invocation, ExtensionContext extensionContext, String action) throws Throwable {
+	static void processInvocation(Invocation<Void> invocation, ExtensionContext extensionContext) throws Throwable {
 		if(getConfiguration().isEnabled(JUNIT5_ENABLED, true)) {
 			call(invocation::proceed, forMainSession(systemUTC().instant(), TEST, sgn-> {
-				sgn.setName(extensionContext.getDisplayName());
 				//TODO before/after method name
+				sgn.setName(extensionContext.getDisplayName());
 				sgn.setLocation(formatLocation(extensionContext.getRequiredTestClass().getName(), extensionContext.getRequiredTestMethod().getName()));
 				//set test user
 			}));
