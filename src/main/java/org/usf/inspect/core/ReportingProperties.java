@@ -12,7 +12,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-public final class ReporterProperties {
+public final class ReportingProperties {
 
 	private boolean enabled = true;
 	private boolean stackTrace = true;

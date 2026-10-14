@@ -200,7 +200,7 @@ public final class SessionContextManager {
 	}
 	
 	static void reportNullOrCompletedContext(String action) {
-		REPORTER.warn("SessionContextManager.{}: session context is null or already completed", action);
+		REPORTER.warn("{}: session context is null or already completed", action);
 	}
 
 	static void reportContextConflict(String action, UUID prev, UUID next) {

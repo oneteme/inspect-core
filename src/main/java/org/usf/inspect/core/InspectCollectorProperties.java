@@ -15,12 +15,13 @@ import lombok.ToString;
 public class InspectCollectorProperties {
 	
 	private boolean enabled = false;
+	@Getter
 	private boolean debugMode = false; // enable debug mode, e.g. for testing
-	private SchedulingProperties scheduling = new SchedulingProperties(); //replace dispatch
+	private SchedulingProperties scheduling = new SchedulingProperties();
 	private MonitoringProperties monitoring = new MonitoringProperties();
 	private TracingProperties tracing = new TracingProperties();
 	//v1.2
-	private ReporterProperties reporting = new ReporterProperties();
+	private ReportingProperties reporting = new ReportingProperties();
 	
 	public void validate() {
 		if(enabled) {

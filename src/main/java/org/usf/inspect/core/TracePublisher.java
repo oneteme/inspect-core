@@ -6,10 +6,10 @@ import static java.util.stream.Collectors.groupingBy;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.usf.inspect.core.SessionContext.asyncDurationInitialValue;
 
-import java.io.File;
 import java.util.List;
 
 import org.slf4j.Logger;
+
 /**
  * 
  * @author u$f
@@ -25,9 +25,6 @@ public interface TracePublisher {
 	void register(InstanceEnvironment instance) throws DispatchException;
     
 	void flush(boolean complete, ProcessingQueue<EventTrace> queue) throws DispatchException;
-
-	@Deprecated(forRemoval = true, since = "v1.2")
-	default void dispatch(File dumpFile) {}
 
 	default void mergeTraceParts(List<EventTrace> traces){
 		mergeMaskTraces(traces);
@@ -71,11 +68,11 @@ public interface TracePublisher {
 						res.get().setAsyncDuration(maxDuration);
 					}
 					else{
-						log.warn(ABORT);
+						log.warn("⨇ unexpected asyncDuration value {} for session {}, cannot be updated to {}", upd.getAsyncDuration(), e.getKey(), maxDuration);
 					}
 				}
 				else {
-					log.warn("");
+					log.warn("⨇ unexpected null asyncDuration value for session {}, cannot be updated to {}", e.getKey(), maxDuration);
 				}
 			}
 			traces.removeAll(e.getValue());

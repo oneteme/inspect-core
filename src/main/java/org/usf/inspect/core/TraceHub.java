@@ -28,18 +28,6 @@ public interface TraceHub {
 
 	default void emitTrace(EventTrace trace) { }
 
-	@Deprecated
-	default boolean emitTask(DispatchTask task) {return false;}
-
-	default void emitReport(String action, String msg) {
-		if(canCollect()) {
-			var stc = getConfiguration().getProperties().isDebugMode()
-					? exceptionStackTraceRows(new Exception(), -1) 
-					: null;
-			emitTrace(report(action, msg, null, stc)); 
-		}
-	}
-	
 	default void emitReport(String action, Throwable thrw) {
 		emitReport(action, null, thrw);
 	}
