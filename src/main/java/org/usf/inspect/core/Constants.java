@@ -7,6 +7,11 @@ import org.slf4j.Logger;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Constants {
 	

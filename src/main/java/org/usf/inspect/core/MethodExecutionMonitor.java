@@ -103,13 +103,16 @@ public class MethodExecutionMonitor implements Ordered {
 			return point.proceed();
 		}
 		var ctx = activeContext();
-		if(nonNull(ctx) && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
+		if(nonNull(ctx) && !ctx.isFullyCompleted() && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
 			REPORTER.warn("MethodExecutionMonitor.aroundSchedule: active session context found, but not completed");
 		}
 		return call(point::proceed, forMainSession(systemUTC().instant(), SCHEDULE, sgn-> { 
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));
+//			if(nonNull(ctx)) {
+//				sgn.setParentId(ctx.getSession().getId());
+//			}
 		}));
 	}
 
