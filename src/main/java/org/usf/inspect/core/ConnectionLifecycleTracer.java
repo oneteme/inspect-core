@@ -7,6 +7,8 @@ import static org.usf.inspect.core.TraceHub.hub;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.usf.inspect.TraceSignal;
+import org.usf.inspect.TraceUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
 

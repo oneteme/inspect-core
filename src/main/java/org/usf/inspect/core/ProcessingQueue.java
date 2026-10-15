@@ -54,7 +54,7 @@ public final class ProcessingQueue<T> {
 		    }
 			items = op.apply(items); //partial consumption, may return unprocessed items
 		}
-		catch (OutOfMemoryError e) {
+		catch (OutOfMemoryError e) { 
 			log.error("out of memory error while queue processing, {} traces will be aborted", items.size());
 			items = emptyList(); //do not add items back to the queue, may release memory
 			throw e;

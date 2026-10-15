@@ -1,0 +1,44 @@
+package org.usf.inspect;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+
+import org.usf.inspect.config.InspectCollectorProperties;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+/**
+ * 
+ * @author u$f
+ *
+ */
+@Getter
+@Setter
+@ToString
+@RequiredArgsConstructor
+public final class InstanceEnvironment {
+
+	private final UUID id;
+	private final Instant instant; //startup time TD : rename to start
+	private final InstanceType type; //server, client
+	private final String name; //project name
+	private final String version; //project version using : maven, NPM, ..
+	private final String env; //dev, test, prod,..
+	private final String address; //IP address
+	private final String os;  //operating system : Window, Linux,..
+	private final String re;  //runtime environment : JAVA, Browsers,..
+	private final String user; //system user
+	private final String branch; //branch name
+	private final String hash; //commit hash$
+	private final String collector; //spring-collector-xx, ng-collector-xx,..
+	private final Map<String, String> additionalProperties; //additional properties, e.g. for docker container, kubernetes pod, etc.
+	private final InspectCollectorProperties configuration;
+	private MachineResource resource; //init/max heap +  init/max metaspace
+	//server usage ..
+	private Instant end;
+	private String namespace;
+}

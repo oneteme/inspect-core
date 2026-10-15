@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
-import static org.usf.inspect.core.StreamProxy.parallel;
 import static org.usf.inspect.core.TestTraceHub.clearTraces;
+import static org.usf.inspect.util.StreamProxy.parallel;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -20,6 +20,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.usf.inspect.AbstractSessionUpdate;
+import org.usf.inspect.MainSessionUpdate;
 
 @ExtendWith(TestTraceHub.class)
 class StreamProxyTest {

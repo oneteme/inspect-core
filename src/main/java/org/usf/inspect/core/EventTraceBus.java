@@ -6,6 +6,8 @@ import static org.usf.inspect.core.Constants.REPORTER;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.usf.inspect.InstanceEnvironment;
+
 /**
  * 
  * @author u$f

@@ -14,7 +14,7 @@ import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.http.WebUtils.TRACE_RETRY_HEADER;
+import static org.usf.inspect.web.WebUtils.TRACE_RETRY_HEADER;
 
 import java.io.ByteArrayOutputStream;
 import java.net.SocketTimeoutException;
@@ -33,7 +33,10 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import org.usf.inspect.http.HttpRequestInterceptor;
+import org.usf.inspect.EventTrace;
+import org.usf.inspect.InstanceEnvironment;
+import org.usf.inspect.config.RestRemoteServerProperties;
+import org.usf.inspect.web.httpclient.HttpRequestInterceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

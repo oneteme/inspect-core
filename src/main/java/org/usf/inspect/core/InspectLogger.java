@@ -2,11 +2,11 @@ package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionContextManager.createLog;
 import static org.usf.inspect.core.InspectLogger.LogLevel.ALERT;
 import static org.usf.inspect.core.InspectLogger.LogLevel.ERROR;
 import static org.usf.inspect.core.InspectLogger.LogLevel.INFO;
 import static org.usf.inspect.core.InspectLogger.LogLevel.WARN;
+import static org.usf.inspect.core.SessionContextManager.createLog;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import lombok.AccessLevel;

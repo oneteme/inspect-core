@@ -2,24 +2,24 @@ package org.usf.inspect.mail;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.CommandType.merge;
-import static org.usf.inspect.core.MailAction.CONNECTION;
-import static org.usf.inspect.core.MailAction.DISCONNECTION;
-import static org.usf.inspect.core.MailAction.EXECUTE;
+import static org.usf.inspect.CommandType.merge;
+import static org.usf.inspect.MailAction.CONNECTION;
+import static org.usf.inspect.MailAction.DISCONNECTION;
+import static org.usf.inspect.MailAction.EXECUTE;
 import static org.usf.inspect.core.SessionContextManager.createMailSignal;
 
 import java.time.Instant;
 import java.util.stream.Stream;
 
+import org.usf.inspect.Mail;
+import org.usf.inspect.MailAction;
+import org.usf.inspect.MailCommand;
+import org.usf.inspect.MailRequestSignal;
+import org.usf.inspect.MailRequestStage;
+import org.usf.inspect.MailRequestUpdate;
+import org.usf.inspect.TraceSignal;
 import org.usf.inspect.core.ConnectionLifecycleTracer;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.Mail;
-import org.usf.inspect.core.MailAction;
-import org.usf.inspect.core.MailCommand;
-import org.usf.inspect.core.MailRequestSignal;
-import org.usf.inspect.core.MailRequestStage;
-import org.usf.inspect.core.MailRequestUpdate;
-import org.usf.inspect.core.TraceSignal;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;

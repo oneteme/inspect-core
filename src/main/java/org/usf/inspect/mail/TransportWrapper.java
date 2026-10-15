@@ -1,11 +1,11 @@
 package org.usf.inspect.mail;
 
 import static java.util.Objects.requireNonNullElse;
+import static org.usf.inspect.MailCommand.SEND;
 import static org.usf.inspect.core.BeanUtils.logWrappingBean;
 import static org.usf.inspect.core.Constants.JAKARTA_MAIL_ENABLED;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.exec;
-import static org.usf.inspect.core.MailCommand.SEND;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;

@@ -1,0 +1,179 @@
+package org.usf.inspect.web;
+
+import static java.time.Duration.ofMillis;
+import static java.time.Instant.now;
+import static java.util.Objects.nonNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.usf.inspect.HttpAction.EXECUTION;
+import static org.usf.inspect.HttpAction.TRANSMISSION;
+import static org.usf.inspect.core.DualEventTracer.APP_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
+import static org.usf.inspect.core.DualEventTracer.CNX_SSL_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
+import static org.usf.inspect.core.TestTraceHub.clearTraces;
+import static org.usf.inspect.core.TestTraceHub.getTraces;
+import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
+import static org.usf.inspect.core.TraceAssertions.assertPerformance;
+import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
+import static org.usf.inspect.core.TraceAssertions.assertRequestStage;
+import static org.usf.inspect.core.TraceAssertions.assertRequestUpdate;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.util.List;
+
+import javax.net.ssl.SSLContext;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import org.usf.inspect.EventTrace;
+import org.usf.inspect.HttpRequestSignal;
+import org.usf.inspect.HttpRequestStage;
+import org.usf.inspect.HttpRequestUpdate;
+import org.usf.inspect.web.httpclient.HttpRequestInterceptor;
+
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.SocketPolicy;
+
+class HttpRequestInterceptorTest {
+	
+	private static String HOST =  "localhost";
+	
+	private final MockWebServer server = new MockWebServer();
+	
+	private final RestTemplate template = new RestTemplateBuilder()
+			.interceptors(new HttpRequestInterceptor())
+			.setConnectTimeout(ofMillis(100))
+			.setReadTimeout(ofMillis(50))
+			.build();
+
+    @BeforeEach
+    void setUp() throws IOException {
+    	clearTraces();
+        server.start();
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+    	assertPerformance(5, getTraces());
+    	server.close();
+    }
+    
+    @Test
+    void test_connection_invalid_scheme() {
+        testConnectError(APP_ERROR, "unknown-scheme", HOST, -1, "unknown-scheme://localhost/test", ResourceAccessException.class);
+    }
+    
+    @Test
+    void test_connection_unknown_host() {
+    	testConnectError(CNX_UNKNOWN_HOST, "http", "myhost", -1, "http://myhost/", ResourceAccessException.class);
+    }
+    
+    @Test
+    void test_connection_bad_port() {
+    	testConnectError(CNX_REFUSED, "http", HOST, 1234, "http://localhost:1234/", ResourceAccessException.class);
+    }
+    
+    @Test //SocketTimeoutException
+ 	void test_connection_timeout() {
+    	server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
+        testConnectError(CNX_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
+ 	}
+    
+    @Test
+    void test_connection_reset() {
+        server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START));
+        testConnectError(CNX_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
+    }
+    
+    @Test
+    void test_connection_lost() {
+        server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+        testConnectError(CNX_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
+    }
+    
+    @Test
+ 	void test_connection_ssl() throws Exception {
+    	var sslContext = SSLContext.getInstance("TLS");
+    	sslContext.init(null, null, null); 
+		try(var secureServer = new MockWebServer()) {
+	        secureServer.useHttps(sslContext.getSocketFactory(), false);
+			secureServer.start();
+			testConnectError(CNX_SSL_ERROR, "https", secureServer.getHostName(), secureServer.getPort(), secureServer.url("/").toString(), ResourceAccessException.class);
+		}
+ 	}
+
+    void testConnectError(int status, String scheme, String host, int port, String url, Class<? extends Exception> type) {
+
+        var start = now();
+        assertThrows(type, ()-> template.getForEntity(url, String.class));
+        var end = now();
+        
+        assertConnectionFailedTraces(status, scheme, host, port, start, end, getTraces());
+    }
+    
+  	static void assertConnectionFailedTraces(int status, String scheme, String host, int port, Instant beforeStart, Instant afterEnd, List<EventTrace> traces){
+  		assertEquals(4, traces.size());
+  		var idx = 0;
+  		var sgn = assertRequestSignal(scheme, host, port, null, beforeStart, HttpRequestSignal.class, traces.get(idx++));
+  		var stg = assertRequestStage(EXECUTION.name(), null, sgn.getId(), idx, null, sgn.getStart(), HttpRequestStage.class, traces.get(idx++));
+  		assertExceptionTrace(sgn.getId(), stg.getOrder(), traces.get(idx++));
+  		assertRequestUpdate(status, sgn.getId(), null, stg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
+  	}
+    
+    @ParameterizedTest
+    @ValueSource(ints = {200, 201, 202}) //TODO 204 no content 
+    void test_http_call(int status) {
+        server.enqueue(new MockResponse().setResponseCode(status).setBody("OK"));
+        
+        var start = now();
+        assertDoesNotThrow(()-> template.getForEntity(server.url("/api").toString(), String.class));
+        var end = now();
+        
+        assertRequestTraces(status, start, end, "OK", getTraces());
+    }
+    
+    @ParameterizedTest
+    @ValueSource(ints = {400, 401, 403, 404, 409, 502, 503, 504}) //TODO 407 : ResourceAccessException vs ProtocolException
+    void test_http_call2(int status) {
+        server.enqueue(new MockResponse().setResponseCode(status).setBody("not OK"));
+        var url = server.url("/api").toString();
+        
+        var start = now();
+        assertThrows(RestClientException.class, ()-> template.getForEntity(url, String.class));
+        var end = now();
+        
+        assertRequestTraces(status, start, end, "not OK", getTraces());
+    }
+    
+	void assertRequestTraces(int status, Instant beforeStart, Instant afterEnd, String body, List<EventTrace> traces){
+		assertEquals(4, traces.size());
+		var idx = 0;
+		var signal = assertRequestSignal("http", server.getHostName(), server.getPort(), null, beforeStart, HttpRequestSignal.class, traces.get(idx++));
+		var strStg = assertRequestStage(EXECUTION.name(), null, signal.getId(), idx, null, signal.getStart(), HttpRequestStage.class, traces.get(idx++));
+		var endStg = assertRequestStage(TRANSMISSION.name(), null, signal.getId(), idx, null, strStg.getEnd(), HttpRequestStage.class, traces.get(idx++));		
+		var upd = assertRequestUpdate(status, signal.getId(), null, endStg.getEnd(), afterEnd, HttpRequestUpdate.class, traces.get(idx));
+		if(nonNull(body)) {
+			if(status >= 400) { //retains body content for error response only
+				assertEquals(body, upd.getBodyContent());
+			}
+			assertEquals(body.length(), upd.getDataSize());
+		}
+		else {
+			assertNull(upd.getBodyContent());
+			assertEquals(-1, upd.getDataSize());
+		}
+	}
+}

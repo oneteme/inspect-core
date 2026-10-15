@@ -4,18 +4,31 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
+import static org.usf.inspect.SessionEventMask.EVENT;
+import static org.usf.inspect.SessionEventMask.FTP;
+import static org.usf.inspect.SessionEventMask.JDBC;
+import static org.usf.inspect.SessionEventMask.LDAP;
+import static org.usf.inspect.SessionEventMask.LOCAL;
+import static org.usf.inspect.SessionEventMask.REST;
+import static org.usf.inspect.SessionEventMask.SMTP;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.Helper.threadName;
-import static org.usf.inspect.core.SessionEventMask.EVENT;
-import static org.usf.inspect.core.SessionEventMask.FTP;
-import static org.usf.inspect.core.SessionEventMask.JDBC;
-import static org.usf.inspect.core.SessionEventMask.LDAP;
-import static org.usf.inspect.core.SessionEventMask.LOCAL;
-import static org.usf.inspect.core.SessionEventMask.REST;
-import static org.usf.inspect.core.SessionEventMask.SMTP;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import org.usf.inspect.AbstractSessionUpdate;
+import org.usf.inspect.DatabaseRequestSignal;
+import org.usf.inspect.DirectoryRequestSignal;
+import org.usf.inspect.FtpRequestSignal;
+import org.usf.inspect.HttpRequestSignal;
+import org.usf.inspect.HttpSessionSignal;
+import org.usf.inspect.LocalRequestSignal;
+import org.usf.inspect.MailRequestSignal;
+import org.usf.inspect.MainSessionSignal;
+import org.usf.inspect.MainSessionType;
+import org.usf.inspect.SessionEvent;
+import org.usf.inspect.SessionEventMask;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

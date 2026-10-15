@@ -1,0 +1,63 @@
+package org.usf.inspect.web.httpclient;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
+import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
+import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
+import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
+import static org.usf.inspect.core.DualEventTracer.INT_TIMEOUT;
+
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
+import java.net.http.HttpTimeoutException;
+import java.nio.channels.UnresolvedAddressException;
+import java.util.concurrent.TimeoutException;
+
+import org.junit.jupiter.api.Test;
+import org.usf.inspect.web.httpclient.HttpConnectionLifecycleTracer;
+
+class AbstractHttpRequestMonitorTest {
+
+	HttpConnectionLifecycleTracer listener = new HttpConnectionLifecycleTracer();
+	
+    @Test
+    void shouldMapHttpTimeoutException() {
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new HttpTimeoutException("timeout")));
+    }
+
+    @Test
+    void shouldMapSocketTimeoutException() {
+        assertEquals(INT_TIMEOUT, listener.resolveStatus(new SocketTimeoutException("timeout"))); //TODO : connect | read timeout
+    }
+
+    @Test
+    void shouldMapTimeoutException() {
+        assertEquals(CNX_INTERRUPTED, listener.resolveStatus(new TimeoutException("timeout")));
+    }
+
+    @Test
+    void shouldMapInterruptedException() {
+        assertEquals(CNX_INTERRUPTED,listener.resolveStatus(new InterruptedException("interrupted")));
+    }
+
+    @Test
+    void shouldMapSocketException() {
+        assertEquals(CNX_ERROR, listener.resolveStatus(new SocketException("connection reset")));
+    }
+
+    @Test
+    void shouldMapUnknownHostException() {
+        assertEquals(CNX_UNKNOWN_HOST, listener.resolveStatus(new UnknownHostException("unknown host")));
+    }
+
+    @Test
+    void shouldMapUnresolvedAddressException() {
+        assertEquals(CNX_UNKNOWN_HOST, listener.resolveStatus(new UnresolvedAddressException()));
+    }
+
+    @Test
+    void shouldMapUnknownException() {
+        assertEquals(INT_ERROR, listener.resolveStatus(new RuntimeException("boom")));
+    }
+}

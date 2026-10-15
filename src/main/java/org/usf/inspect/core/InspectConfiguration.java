@@ -7,7 +7,7 @@ import static org.usf.inspect.core.Constants.INSPECT_ENABLED;
 import static org.usf.inspect.core.Constants.REPORTER_NAME;
 import static org.usf.inspect.core.Constants.SYSTEM_ENABLED;
 import static org.usf.inspect.core.TraceHub.hub;
-import static org.usf.inspect.logging.InspectLogReporter.configureLogger;
+import static org.usf.inspect.slf4j.InspectLogReporter.configureLogger;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -15,7 +15,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
-import org.usf.inspect.logging.InspectLogReporter;
+import org.usf.inspect.config.InspectCollectorProperties;
+import org.usf.inspect.config.RestRemoteServerProperties;
+import org.usf.inspect.slf4j.InspectLogReporter;
 
 import lombok.AccessLevel;
 import lombok.Getter;

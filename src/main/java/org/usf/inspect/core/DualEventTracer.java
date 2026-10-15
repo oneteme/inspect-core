@@ -6,6 +6,10 @@ import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.time.Instant;
 
+import org.usf.inspect.AbstractSessionUpdate;
+import org.usf.inspect.AbstractStage;
+import org.usf.inspect.TraceUpdate;
+
 /**
  * Contract for tracers operating on a dual-event telemetry model.
  * <p>

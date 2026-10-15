@@ -2,12 +2,17 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.slf4j.LoggerFactory.getLogger;
-import static org.usf.inspect.core.ExceptionTrace.fromException;
+import static org.usf.inspect.ExceptionTrace.fromException;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 
 import java.util.List;
 
 import org.slf4j.Logger;
+import org.usf.inspect.AbstractSessionUpdate;
+import org.usf.inspect.EventTrace;
+import org.usf.inspect.InstanceEnvironment;
+import org.usf.inspect.TraceUpdate;
+import org.usf.inspect.config.SchedulingProperties;
 
 /**
  * 

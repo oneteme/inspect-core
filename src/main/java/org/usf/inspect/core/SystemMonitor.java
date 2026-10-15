@@ -16,6 +16,11 @@ import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Method;
 import java.util.function.IntSupplier;
 
+import org.usf.inspect.InstanceEnvironment;
+import org.usf.inspect.MachineResource;
+import org.usf.inspect.SystemMetrics;
+import org.usf.inspect.config.SystemMonitoringProperties;
+
 import lombok.RequiredArgsConstructor;
 
 /**

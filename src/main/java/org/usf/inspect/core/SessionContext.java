@@ -9,6 +9,12 @@ import static org.usf.inspect.core.TraceHub.hub;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.usf.inspect.AbstractSessionUpdate;
+import org.usf.inspect.MainSessionUpdate;
+import org.usf.inspect.SessionAsyncDurationUpdate;
+import org.usf.inspect.SessionEventMask;
+import org.usf.inspect.SessionMaskUpdate;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

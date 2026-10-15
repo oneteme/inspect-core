@@ -9,7 +9,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
-import static org.usf.inspect.core.ScheduledExecutorServiceWrapper.wrap;
+import static org.usf.inspect.util.ScheduledExecutorServiceWrapper.wrap;
 
 import java.util.Collection;
 import java.util.List;
@@ -21,6 +21,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+
+import org.usf.inspect.AbstractRequestSignal;
+import org.usf.inspect.AbstractRequestUpdate;
+import org.usf.inspect.AbstractSessionSignal;
+import org.usf.inspect.AbstractSessionUpdate;
+import org.usf.inspect.AbstractStage;
+import org.usf.inspect.EventTrace;
+import org.usf.inspect.ExceptionTrace;
+import org.usf.inspect.InstanceEnvironment;
+import org.usf.inspect.ReportEvent;
+import org.usf.inspect.SessionEvent;
+import org.usf.inspect.SessionMaskUpdate;
+import org.usf.inspect.SystemMetrics;
+import org.usf.inspect.config.SchedulingProperties;
 
 import lombok.AccessLevel;
 import lombok.Getter;

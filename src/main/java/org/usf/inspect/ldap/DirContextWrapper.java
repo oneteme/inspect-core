@@ -1,9 +1,9 @@
 package org.usf.inspect.ldap;
 
-import static org.usf.inspect.core.DirCommand.ATTRIB;
-import static org.usf.inspect.core.DirCommand.LIST;
-import static org.usf.inspect.core.DirCommand.LOOKUP;
-import static org.usf.inspect.core.DirCommand.SEARCH;
+import static org.usf.inspect.DirCommand.ATTRIB;
+import static org.usf.inspect.DirCommand.LIST;
+import static org.usf.inspect.DirCommand.LOOKUP;
+import static org.usf.inspect.DirCommand.SEARCH;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectExecutor.exec;
 

@@ -4,12 +4,12 @@ import static java.time.Clock.systemUTC;
 import static java.util.Arrays.stream;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
+import static org.usf.inspect.LocalRequestType.EXEC;
 import static org.usf.inspect.core.Constants.FLYWAY_ENABLED;
 import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.exec;
-import static org.usf.inspect.core.LocalRequestType.EXEC;
-import static org.usf.inspect.jdbc.DataSourceWrapper.wrap;
+import static org.usf.inspect.sql.DataSourceWrapper.wrap;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

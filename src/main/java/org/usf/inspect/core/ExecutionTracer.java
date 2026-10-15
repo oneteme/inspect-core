@@ -1,8 +1,8 @@
 package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.MainSessionType.STARTUP;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.core.MainSessionType.STARTUP;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.core.SessionContextManager.createMainSession;
@@ -11,6 +11,16 @@ import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 
+import org.usf.inspect.AbstractSessionUpdate;
+import org.usf.inspect.HttpSessionSignal;
+import org.usf.inspect.HttpSessionUpdate;
+import org.usf.inspect.LocalRequestSignal;
+import org.usf.inspect.LocalRequestUpdate;
+import org.usf.inspect.MainSessionSignal;
+import org.usf.inspect.MainSessionType;
+import org.usf.inspect.MainSessionUpdate;
+import org.usf.inspect.TraceSignal;
+import org.usf.inspect.TraceUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
 import org.usf.inspect.core.SafeCallable.SafeBiConsumer;
 import org.usf.inspect.core.SafeCallable.SafeConsumer;

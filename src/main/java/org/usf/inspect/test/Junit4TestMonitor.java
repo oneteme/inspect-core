@@ -1,12 +1,12 @@
 package org.usf.inspect.test;
 
 import static java.time.Clock.systemUTC;
+import static org.usf.inspect.MainSessionType.TEST;
 import static org.usf.inspect.core.Constants.JUNIT4_ENABLED;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.exec;
-import static org.usf.inspect.core.MainSessionType.TEST;
 
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;

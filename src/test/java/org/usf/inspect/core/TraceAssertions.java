@@ -15,6 +15,17 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.usf.inspect.AbstractRemoteRequestSignal;
+import org.usf.inspect.AbstractRequestSignal;
+import org.usf.inspect.AbstractRequestUpdate;
+import org.usf.inspect.AbstractStage;
+import org.usf.inspect.EventTrace;
+import org.usf.inspect.ExceptionTrace;
+import org.usf.inspect.StagePayload;
+import org.usf.inspect.TimedTrace;
+import org.usf.inspect.TraceSignal;
+import org.usf.inspect.TraceUpdate;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 

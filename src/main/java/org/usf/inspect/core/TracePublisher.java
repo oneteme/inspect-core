@@ -9,6 +9,12 @@ import static org.usf.inspect.core.SessionContext.asyncDurationInitialValue;
 import java.util.List;
 
 import org.slf4j.Logger;
+import org.usf.inspect.AbstractSessionUpdate;
+import org.usf.inspect.EventTrace;
+import org.usf.inspect.InstanceEnvironment;
+import org.usf.inspect.SessionAsyncDurationUpdate;
+import org.usf.inspect.SessionMaskUpdate;
+import org.usf.inspect.TracePart;
 
 /**
  * 

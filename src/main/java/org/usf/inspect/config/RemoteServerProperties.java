@@ -1,0 +1,19 @@
+package org.usf.inspect.config;
+
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+/**
+ * 
+ * @author u$f
+ *
+ */
+@JsonTypeInfo(
+	    use = JsonTypeInfo.Id.NAME,
+	    include = JsonTypeInfo.As.PROPERTY,
+	    property = "@type")
+public interface RemoteServerProperties {
+
+	Retention getRetentionMaxAge();
+
+	void validate();
+}

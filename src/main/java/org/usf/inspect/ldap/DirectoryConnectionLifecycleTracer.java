@@ -2,25 +2,25 @@ package org.usf.inspect.ldap;
 
 import static java.net.URI.create;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.CommandType.merge;
-import static org.usf.inspect.core.DirAction.CONNECTION;
-import static org.usf.inspect.core.DirAction.DISCONNECTION;
-import static org.usf.inspect.core.DirAction.EXECUTE;
+import static org.usf.inspect.CommandType.merge;
+import static org.usf.inspect.DirAction.CONNECTION;
+import static org.usf.inspect.DirAction.DISCONNECTION;
+import static org.usf.inspect.DirAction.EXECUTE;
 import static org.usf.inspect.core.SessionContextManager.createNamingSignal;
 
 import java.time.Instant;
 
 import javax.naming.directory.DirContext;
 
+import org.usf.inspect.DirAction;
+import org.usf.inspect.DirCommand;
+import org.usf.inspect.DirectoryRequestSignal;
+import org.usf.inspect.DirectoryRequestStage;
+import org.usf.inspect.DirectoryRequestUpdate;
+import org.usf.inspect.StagePayload;
+import org.usf.inspect.TraceSignal;
 import org.usf.inspect.core.ConnectionLifecycleTracer;
-import org.usf.inspect.core.DirAction;
-import org.usf.inspect.core.DirCommand;
-import org.usf.inspect.core.DirectoryRequestSignal;
-import org.usf.inspect.core.DirectoryRequestStage;
-import org.usf.inspect.core.DirectoryRequestUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.StagePayload;
-import org.usf.inspect.core.TraceSignal;
 
 import lombok.NoArgsConstructor;
 

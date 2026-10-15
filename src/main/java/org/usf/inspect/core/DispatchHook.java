@@ -1,5 +1,7 @@
 package org.usf.inspect.core;
 
+import org.usf.inspect.InstanceEnvironment;
+
 /**
  * 
  * @author u$f

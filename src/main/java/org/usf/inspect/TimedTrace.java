@@ -1,0 +1,24 @@
+package org.usf.inspect;
+
+import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.util.Objects.nonNull;
+
+import java.time.Instant;
+
+/**
+ * 
+ * @author u$f
+ *
+ */
+public interface TimedTrace extends EventTrace {
+	
+	Instant getStart();
+
+	Instant getEnd();
+	
+	default long duration(){
+		return nonNull(getStart()) && nonNull(getEnd()) 
+				? getStart().until(getEnd(), MILLIS)
+				: -1; // not set yet
+	}
+}

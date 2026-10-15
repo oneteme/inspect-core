@@ -70,8 +70,7 @@ public final class SpelEvaluator {
 				return val.toString();
 			}
 		} catch (Exception e) {
-			log.warn("Failed to evaluate SpEL expression '{}' on {}.{}: {}", exprValue, 
-					method.getDeclaringClass().getSimpleName(), method.getName(), e.getMessage());
+			log.error("Failed to evaluate SpEL expression '{}' on {}", exprValue, method.getName(), e);
 		}
 		return method.getName(); //fallback
 	}

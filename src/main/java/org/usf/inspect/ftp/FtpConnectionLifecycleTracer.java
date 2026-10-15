@@ -5,23 +5,23 @@ import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_CONNECTION;
 import static com.jcraft.jsch.ChannelSftp.SSH_FX_NO_SUCH_FILE;
 import static com.jcraft.jsch.ChannelSftp.SSH_FX_PERMISSION_DENIED;
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.CommandType.merge;
-import static org.usf.inspect.core.FtpAction.CONNECTION;
-import static org.usf.inspect.core.FtpAction.DISCONNECTION;
-import static org.usf.inspect.core.FtpAction.EXECUTE;
+import static org.usf.inspect.CommandType.merge;
+import static org.usf.inspect.FtpAction.CONNECTION;
+import static org.usf.inspect.FtpAction.DISCONNECTION;
+import static org.usf.inspect.FtpAction.EXECUTE;
 import static org.usf.inspect.core.SessionContextManager.createFtpSignal;
 
 import java.time.Instant;
 
+import org.usf.inspect.FtpAction;
+import org.usf.inspect.FtpCommand;
+import org.usf.inspect.FtpRequestSignal;
+import org.usf.inspect.FtpRequestStage;
+import org.usf.inspect.FtpRequestUpdate;
+import org.usf.inspect.StagePayload;
+import org.usf.inspect.TraceSignal;
 import org.usf.inspect.core.ConnectionLifecycleTracer;
-import org.usf.inspect.core.FtpAction;
-import org.usf.inspect.core.FtpCommand;
-import org.usf.inspect.core.FtpRequestSignal;
-import org.usf.inspect.core.FtpRequestStage;
-import org.usf.inspect.core.FtpRequestUpdate;
 import org.usf.inspect.core.InspectExecutor.ExecutionListener;
-import org.usf.inspect.core.StagePayload;
-import org.usf.inspect.core.TraceSignal;
 
 import com.jcraft.jsch.ChannelSftp;
 

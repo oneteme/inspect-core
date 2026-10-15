@@ -1,0 +1,26 @@
+package org.usf.inspect;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * 
+ * Optimizes application performance by efficiently managing protocol activations.
+ * This enum uses a bitmask strategy to represent and check activated protocols based on session data,
+ * reducing unnecessary queries to a large database table.
+ *  
+ * @author u$f
+ *
+ */
+@Getter
+@RequiredArgsConstructor
+public enum SessionEventMask {
+	
+	LOCAL(0x1), JDBC(0x2), REST(0x4), FTP(0x8), SMTP(0x10), LDAP(0x20), EVENT(0x400);
+	
+	private final int value;
+	
+	public boolean is(int value) {
+		return (value & this.value) == this.value;
+	}
+}
