@@ -24,6 +24,7 @@ public final class SessionContext {
 	
 	@Getter	private final AbstractSessionUpdate session;
 	@Getter	private final boolean startup;
+	
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
 	private final AtomicInteger eventsMask = new AtomicInteger(); // thread safe
 	

@@ -79,10 +79,12 @@ public final class SessionContextManager {
 				startupContext = new SessionContext(session, startup);
 			}
 			else if(startupContext.getSession() == session) {
-				REPORTER.warn("SessionContextManager.setActiveContext: startup context already set for session {}", session.getId());
+				REPORTER.warn("SessionContextManager.setActiveContext: startup context already set for session {}", 
+						session.getId());
 			}
 			else {
-				reportContextConflict("setActiveContext", startupContext.getSession().getId(), session.getId());
+				REPORTER.warn("SessionContextManager.setActiveContext: cannot override startup context {} with {}", 
+						startupContext.getSession().getId(), session.getId());
 			}
 		}
 		else {
@@ -124,7 +126,8 @@ public final class SessionContextManager {
 				return ctx;
 			}
 			else {
-				reportContextConflict("clearContext", startupContext.getSession().getId(), session.getId());
+				REPORTER.warn("SessionContextManager.clearContext: cannot clear startup context {} with {}", 
+						ctx.getSession().getId(), session.getId());
 			}
 			return null;
 		}
@@ -145,7 +148,8 @@ public final class SessionContextManager {
 			return ctx;
 		}
 		else {
-			reportContextConflict("clearContext", ctx.getSession().getId(), session.getId());
+			REPORTER.warn("SessionContextManager.clearContext: cannot clear context {} with {}", 
+					ctx.getSession().getId(), session.getId());
 		}
 		return null;
 	}
@@ -221,10 +225,6 @@ public final class SessionContextManager {
 		return false;
 	}
 	
-	static void reportContextConflict(String action, UUID prev, UUID next) {
-		REPORTER.warn("SessionContextManager.{}: session context conflict : previous={}, next={}", action, prev, next);
-	}
-
 	@FunctionalInterface
 	public interface ContextPropagator extends AutoCloseable {
 		
