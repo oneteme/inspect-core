@@ -13,7 +13,6 @@ import static org.usf.inspect.core.SessionEventMask.LDAP;
 import static org.usf.inspect.core.SessionEventMask.LOCAL;
 import static org.usf.inspect.core.SessionEventMask.REST;
 import static org.usf.inspect.core.SessionEventMask.SMTP;
-import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -32,10 +31,11 @@ public final class SessionContextManager {
 	private static final ThreadLocal<SessionContext> localContext = new ThreadLocal<>(); //replaceable ScopedValue in Java 21+
 	private static SessionContext startupContext; //avoid ThreadLocal for startup context
     
+	private static final ContextPropagator EMPTY_CONTEXT_PROPAGATOR = ()->{};
+	
 	public static ContextPropagator contextPropagator(SessionContext ctx, boolean updateThreadCount, String action) {
-		if(isNull(ctx) || ctx.wasCompleted()) {
-			reportNullOrCompletedContext(action);
-			return ()-> {};
+		if(!assertActiveContext(ctx, action)) {
+			return EMPTY_CONTEXT_PROPAGATOR;
 		}
     	var prv = activeContext();
     	if(ctx != prv) {
@@ -64,51 +64,58 @@ public final class SessionContextManager {
 		if(isNull(ctx)) {
 			ctx = startupContext;
 		}
-		if(nonNull(ctx) && ctx.wasCompleted()) {
+		if(nonNull(ctx) && ctx.isFullyCompleted()) {
 			ctx = null;
 		}
 		return ctx;
 	}
-
-	public static void setActiveContext(AbstractSessionUpdate session) {
-		setActiveContext(session, false);
-	}
-
+	
 	static void setActiveContext(AbstractSessionUpdate session, boolean startup) {
-		if(isNull(session) || nonNull(session.getEnd())) {
-			reportNullOrCompletedContext("setActiveContext");
-		}
-		else if(startup) {
-			if(isNull(startupContext)) {
+		if(startup) {
+			if(isNull(session) || nonNull(session.getEnd())) {
+				REPORTER.warn("SessionContextManager.setActiveContext: startup session context is null or already completed");
+			}
+			else if(isNull(startupContext)) {
 				startupContext = new SessionContext(session, startup);
 			}
 			else if(startupContext.getSession() == session) {
-				REPORTER.warn("SessionContextManager.setActiveContext: startup context already set");
+				REPORTER.warn("SessionContextManager.setActiveContext: startup context already set for session {}", session.getId());
 			}
 			else {
 				reportContextConflict("setActiveContext", startupContext.getSession().getId(), session.getId());
 			}
 		}
 		else {
-			var ctx = localContext.get();
-			if(nonNull(ctx) && !ctx.wasCompleted()) {
-				REPORTER.warn("SessionContextManager.setActiveContext: current context is not completed {}", ctx.getSession().getId());
-			}
-			localContext.set(new SessionContext(session, false));
+			setActiveContext(session);
 		}
 	}
-	
-	public static SessionContext clearContext(AbstractSessionUpdate session) {
-		return clearContext(session, false);
+
+	public static void setActiveContext(AbstractSessionUpdate session) {
+		if(isNull(session) || nonNull(session.getEnd())) {
+			REPORTER.warn("SessionContextManager.setActiveContext: session context is null or already completed");
+		}
+		else {
+			var ctx = localContext.get();
+			if(isNull(ctx)) {
+				localContext.set(new SessionContext(session, false));
+			}
+			else if(ctx.getSession() != session) {
+				if(nonNull(ctx.isFullyCompleted())) {
+					REPORTER.warn("SessionContextManager.setActiveContext: current context is not completed {} and will be overridden with {}",
+							ctx.getSession().getId(), session.getId());
+				}
+				localContext.set(new SessionContext(session, false));
+			}// else same context session
+		}
 	}
 	
 	static SessionContext clearContext(AbstractSessionUpdate session, boolean startup) {
-		if(isNull(session)) {
-			REPORTER.warn("SessionContextManager.clearContext: session cannot be null");
-			return null;
-		}
-		var ctx = startupContext;
 		if(startup) {
+			if(isNull(session)) {
+				REPORTER.warn("SessionContextManager.clearContext: session cannot be null");
+				return null;
+			}
+			var ctx = startupContext;
 			if(isNull(ctx)) {
 				REPORTER.warn("SessionContextManager.clearContext: startup context is null");
 			}
@@ -119,19 +126,26 @@ public final class SessionContextManager {
 			else {
 				reportContextConflict("clearContext", startupContext.getSession().getId(), session.getId());
 			}
+			return null;
+		}
+		return clearContext(session);
+	}
+	
+	public static SessionContext clearContext(AbstractSessionUpdate session) {
+		if(isNull(session)) {
+			REPORTER.warn("SessionContextManager.clearContext: session cannot be null");
+			return null;
+		}
+		var ctx = localContext.get();
+		if(isNull(ctx)) {
+			REPORTER.warn("SessionContextManager.clearContext: session context is null");
+		}
+		else if(ctx.getSession() == session) {
+			localContext.remove();  //even if !complete
+			return ctx;
 		}
 		else {
-			ctx = localContext.get();
-			if(isNull(ctx)) {
-				REPORTER.warn("SessionContextManager.clearContext: local context is null");
-			}
-			else if(ctx.getSession() == session) {
-				localContext.remove();  //even if !complete
-				return ctx;
-			}
-			else {
-				reportContextConflict("clearContext", ctx.getSession().getId(), session.getId());
-			}
+			reportContextConflict("clearContext", ctx.getSession().getId(), session.getId());
 		}
 		return null;
 	}
@@ -183,15 +197,10 @@ public final class SessionContextManager {
 	
 	static UUID requireSessionIdFor(SessionEventMask mask, String action) {
 		var ctx = activeContext();
-		if(nonNull(ctx)) {
-			var ses = ctx.getSession();
-			if(ctx.updateEventsMask(mask)) {
-				var upd = new SessionMaskUpdate(ses.getId(), ses instanceof MainSessionUpdate, ctx.getSession().getEventMask());
-				hub().emitTrace(upd);
-			}
-			return ses.getId();
+		if(assertActiveContext(ctx, action)) {
+			ctx.updateEventsMask(mask);
+			return ctx.getSession().getId();
 		}
-		reportNullOrCompletedContext(action);
 		return null;
 	}
 
@@ -199,10 +208,19 @@ public final class SessionContextManager {
 		return randomUUID();
 	}
 	
-	static void reportNullOrCompletedContext(String action) {
-		REPORTER.warn("{}: session context is null or already completed", action);
+	static boolean assertActiveContext(SessionContext ctx, String action) {
+		if(isNull(ctx)) {
+			REPORTER.warn("{}: session context is null", action);
+		}
+		else if(ctx.isFullyCompleted()) {
+			REPORTER.warn("{}: session context is already completed", action);
+		}
+		else {
+			return true;
+		}
+		return false;
 	}
-
+	
 	static void reportContextConflict(String action, UUID prev, UUID next) {
 		REPORTER.warn("SessionContextManager.{}: session context conflict : previous={}, next={}", action, prev, next);
 	}

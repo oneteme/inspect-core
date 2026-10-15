@@ -27,12 +27,12 @@ public final class SessionContext {
 	private final AtomicInteger threadCount = new AtomicInteger(); // thread safe
 	private final AtomicInteger eventsMask = new AtomicInteger(); // thread safe
 	
-	public boolean updateEventsMask(SessionEventMask mask) {
-		return !mask.is(eventsMask.getAndUpdate(v-> {
-			v = v|mask.getValue();
-			session.setEventMask(v); //safe thread update
-			return v;
-		}));
+	public void updateEventsMask(SessionEventMask mask) {
+		var prv = eventsMask.getAndUpdate(v-> v|mask.getValue()); 
+		if(!mask.is(prv)) {
+			session.setEventMask(eventsMask.get());
+			hub().emitTrace(new SessionMaskUpdate(session.getId(), session instanceof MainSessionUpdate, session.getEventMask()));
+		}
 	}
 
 	public void threadCountUp() {
@@ -40,22 +40,23 @@ public final class SessionContext {
 	}
 	
 	public void threadCountDown() {
-		threadCount.updateAndGet(v->{
-			if(--v == 0 && nonNull(session.getAsyncDuration())) {
-				if(session.getAsyncDuration() == asyncDurationInitialValue) {
-					var now = systemUTC().instant();
-					session.setAsyncDuration(between(session.getEnd(), now).toMillis());
-					hub().emitTrace(new SessionAsyncDurationUpdate(session.getId(), session instanceof MainSessionUpdate, session.getAsyncDuration()));
-				}
-				else {
-					REPORTER.warn("SessionContext.threadCountDown: asyncDuration already set to " + session.getAsyncDuration());
-				}
+		var v = threadCount.decrementAndGet();
+		if(v == 0 && nonNull(session.getAsyncDuration())) {
+			if(session.getAsyncDuration() == asyncDurationInitialValue) {
+				var now = systemUTC().instant();
+				session.setAsyncDuration(between(session.getEnd(), now).toMillis());
+				hub().emitTrace(new SessionAsyncDurationUpdate(session.getId(), session instanceof MainSessionUpdate, session.getAsyncDuration()));
 			}
-			return v;
-		});
+			else {
+				REPORTER.warn("SessionContext.threadCountDown: asyncDuration already set to {}", session.getAsyncDuration());
+			}
+		}
+		else if(v < 0) {
+			REPORTER.warn("SessionContext.threadCountDown: threadCount is negative {}", v);
+		}
 	}
 
-	public boolean wasCompleted() {
+	public boolean isFullyCompleted() {
 		if(nonNull(session.getEnd())) {
 			var drt = session.getAsyncDuration();
 			return isNull(drt) || drt > asyncDurationInitialValue;
@@ -63,15 +64,15 @@ public final class SessionContext {
 		return false;
 	}
 	
-	public void updateAsync() {
-		threadCount.updateAndGet(v->{
-			if(isNull(session.getEnd())) {
-				REPORTER.warn("SessionContext.updateAsync: session not completed yet, end is null");
-			}
-			else if(v > 0) {
-				session.setAsyncDuration(asyncDurationInitialValue); //initial duration
-			}
-			return v;
-		});
+	public void checkPendingAsync() {
+		if(isNull(session.getEnd())) {
+			REPORTER.warn("SessionContext.updateAsync: session end is null");
+		}
+		if(nonNull(session.getAsyncDuration())) {
+			REPORTER.warn("SessionContext.updateAsync: asyncDuration already set to {}", session.getAsyncDuration());
+		}
+		else if(threadCount.get() > 0) {
+			session.setAsyncDuration(asyncDurationInitialValue); //initial duration
+		}
 	}
 }

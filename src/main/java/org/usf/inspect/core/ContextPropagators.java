@@ -27,10 +27,6 @@ public final class ContextPropagators {
     	return isNull(ctx) ? run : ()-> runInContext(run, ctx, updateThreadCount);
 	}
     
-    public static void runInContext(Runnable run, SessionContext ctx) {
-    	runInContext(run, ctx, true);
-    }
-    
     public static void runInContext(Runnable run, SessionContext ctx, boolean updateThreadCount) {
        	try(var sp = contextPropagator(ctx, updateThreadCount, "ContextPropagators.runInContext")){
        		run.run();
@@ -46,17 +42,13 @@ public final class ContextPropagators {
     	return isNull(ctx) ? cmd : ()-> callInContext(cmd, ctx, updateThreadCount);
 	}
 
-    public static <T> T callInContext(Callable<T> cmd, SessionContext ctx) throws Exception {
-    	return callInContext(cmd, ctx, true);
-    }
-    
     public static <T> T callInContext(Callable<T> cmd, SessionContext ctx, boolean updateThreadCount) throws Exception {
        	try(var sp = contextPropagator(ctx, updateThreadCount, "ContextPropagators.callInContext")){
        		return cmd.call();
        	}
     }
     
-    public static <T> Supplier<T> wrapSupplier(Supplier<T> cmd) {
+    public static <T> Supplier<T> wrapSupplier(Supplier<T> cmd) {//CompletableFuture.supplyAsync
     	return wrapSupplier(cmd, true);
     }
     
@@ -64,10 +56,6 @@ public final class ContextPropagators {
     	var ctx = activeContext(); //do not use requireActiveContext
     	return isNull(ctx) ? cmd : ()-> supplyInContext(cmd, ctx, updateThreadCount);
 	}
-    
-    public static <T> T supplyInContext(Supplier<T> cmd, SessionContext ctx) {
-    	return supplyInContext(cmd, ctx, true);
-    }
     
     public static <T> T supplyInContext(Supplier<T> cmd, SessionContext ctx, boolean updateThreadCount) {
        	try(var sp = contextPropagator(ctx, updateThreadCount, "ContextPropagators.supplyInContext")){

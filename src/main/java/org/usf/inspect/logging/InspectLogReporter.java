@@ -7,7 +7,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.slf4j.LoggerFactory.getILoggerFactory;
 import static org.slf4j.LoggerFactory.getLogger;
-import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -90,7 +89,7 @@ public class InspectLogReporter extends AppenderBase<ILoggingEvent> {
         appn.addFilter(new Filter<ILoggingEvent>() {
 			@Override //double check (REPORTER.isAdditive=false)
 			public FilterReply decide(ILoggingEvent event) { 
-				return event.getLevel().isGreaterOrEqual(WARN) ? DENY : NEUTRAL;
+				return event.getLevel().isGreaterOrEqual(WARN) ? NEUTRAL : DENY;
 			}
 		});
         var root = configureLogger(loggerName, additive);
