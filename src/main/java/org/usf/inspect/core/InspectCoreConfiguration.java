@@ -41,12 +41,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.usf.inspect.EventTrace;
+import org.usf.inspect.InspectCollectorProperties;
 import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.MainSessionUpdate;
+import org.usf.inspect.RestRemoteServerProperties;
+import org.usf.inspect.TracingProperties;
 import org.usf.inspect.aspect.MethodExecutionMonitor;
-import org.usf.inspect.config.InspectCollectorProperties;
-import org.usf.inspect.config.RestRemoteServerProperties;
-import org.usf.inspect.config.TracingProperties;
 
 import jakarta.servlet.ServletContext;
 import lombok.extern.slf4j.Slf4j;

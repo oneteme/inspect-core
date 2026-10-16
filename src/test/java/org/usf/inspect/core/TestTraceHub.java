@@ -2,7 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.unmodifiableList;
-import static org.usf.inspect.config.InspectCollectorProperties.initializeConfiguration;
+import static org.usf.inspect.InspectCollectorProperties.initializeConfiguration;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.usf.inspect.EventTrace;
-import org.usf.inspect.config.InspectCollectorProperties;
+import org.usf.inspect.InspectCollectorProperties;
 
 import lombok.Getter;
 

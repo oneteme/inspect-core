@@ -4,8 +4,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-import org.usf.inspect.config.InspectCollectorProperties;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;

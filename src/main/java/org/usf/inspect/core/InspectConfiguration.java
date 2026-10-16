@@ -15,8 +15,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
-import org.usf.inspect.config.InspectCollectorProperties;
-import org.usf.inspect.config.RestRemoteServerProperties;
+import org.usf.inspect.InspectCollectorProperties;
+import org.usf.inspect.RestRemoteServerProperties;
 import org.usf.inspect.slf4j.InspectLogReporter;
 
 import lombok.AccessLevel;

@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.usf.inspect.config.InspectCollectorProperties;
+import org.usf.inspect.InspectCollectorProperties;
 import org.usf.inspect.core.HttpUserProvider;
 import org.usf.inspect.core.InspectCoreConfiguration;
 

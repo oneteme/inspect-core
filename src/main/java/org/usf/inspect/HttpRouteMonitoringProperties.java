@@ -1,4 +1,4 @@
-package org.usf.inspect.config;
+package org.usf.inspect;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;

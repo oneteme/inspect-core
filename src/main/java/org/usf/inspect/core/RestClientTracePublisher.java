@@ -35,7 +35,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.usf.inspect.EventTrace;
 import org.usf.inspect.InstanceEnvironment;
-import org.usf.inspect.config.RestRemoteServerProperties;
+import org.usf.inspect.RestRemoteServerProperties;
 import org.usf.inspect.web.httpclient.HttpRequestInterceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;

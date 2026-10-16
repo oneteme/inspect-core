@@ -6,7 +6,7 @@ import static java.util.Objects.nonNull;
 import java.util.function.Predicate;
 
 import org.springframework.util.AntPathMatcher;
-import org.usf.inspect.config.HttpRouteMonitoringProperties;
+import org.usf.inspect.HttpRouteMonitoringProperties;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

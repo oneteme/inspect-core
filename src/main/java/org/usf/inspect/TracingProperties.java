@@ -1,4 +1,4 @@
-package org.usf.inspect.config;
+package org.usf.inspect;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Assertions.assertGreaterOrEquals;

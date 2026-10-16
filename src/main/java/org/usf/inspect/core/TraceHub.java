@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import org.usf.inspect.AbstractSessionUpdate;
 import org.usf.inspect.EventTrace;
 import org.usf.inspect.InstanceEnvironment;
+import org.usf.inspect.SchedulingProperties;
 import org.usf.inspect.TraceUpdate;
-import org.usf.inspect.config.SchedulingProperties;
 
 /**
  * 

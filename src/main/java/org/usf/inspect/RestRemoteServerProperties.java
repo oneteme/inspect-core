@@ -1,4 +1,4 @@
-package org.usf.inspect.config;
+package org.usf.inspect;
 
 import static java.net.URI.create;
 import static java.time.Duration.ofDays;

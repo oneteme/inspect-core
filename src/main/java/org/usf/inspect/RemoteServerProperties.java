@@ -1,4 +1,4 @@
-package org.usf.inspect.config;
+package org.usf.inspect;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 

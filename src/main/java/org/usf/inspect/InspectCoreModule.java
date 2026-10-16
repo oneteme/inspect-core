@@ -2,8 +2,6 @@ package org.usf.inspect;
 
 import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 
-import org.usf.inspect.config.RestRemoteServerProperties;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;

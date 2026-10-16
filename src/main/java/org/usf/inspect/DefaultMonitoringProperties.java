@@ -1,4 +1,4 @@
-package org.usf.inspect.config;
+package org.usf.inspect;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -9,12 +9,11 @@ import lombok.ToString;
  * @author u$f
  *
  */
-@Setter
 @Getter
+@Setter
 @ToString
-public final class ReportingProperties {
+public class DefaultMonitoringProperties {
 
 	private boolean enabled = true;
-	private boolean stackTrace = true;
 
 }

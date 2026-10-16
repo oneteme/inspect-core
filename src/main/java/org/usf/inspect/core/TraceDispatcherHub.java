@@ -31,10 +31,10 @@ import org.usf.inspect.EventTrace;
 import org.usf.inspect.ExceptionTrace;
 import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.ReportEvent;
+import org.usf.inspect.SchedulingProperties;
 import org.usf.inspect.SessionEvent;
 import org.usf.inspect.SessionMaskUpdate;
 import org.usf.inspect.SystemMetrics;
-import org.usf.inspect.config.SchedulingProperties;
 
 import lombok.AccessLevel;
 import lombok.Getter;
