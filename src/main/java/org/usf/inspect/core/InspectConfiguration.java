@@ -9,6 +9,7 @@ import static org.usf.inspect.core.Constants.SYSTEM_ENABLED;
 import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.slf4j.InspectLogReporter.configureLogger;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Bean;
@@ -31,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Configuration
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 @ConditionalOnProperty(name = INSPECT_ENABLED, havingValue = "true", matchIfMissing = false) 
 public class InspectConfiguration {
 	
@@ -41,6 +42,7 @@ public class InspectConfiguration {
 	private final InspectCollectorProperties properties;
 	private final Environment environment;
 	
+	@Autowired
 	InspectConfiguration(Environment environment) {
 		this.environment = environment;
 		this.properties = loadConfiguration(environment);
