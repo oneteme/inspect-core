@@ -8,12 +8,11 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+import org.springframework.core.env.StandardEnvironment;
 import org.usf.inspect.EventTrace;
-import org.usf.inspect.InspectCollectorProperties;
 
 import lombok.Getter;
 
@@ -28,7 +27,7 @@ public class TestTraceHub implements TraceHub, InvocationInterceptor {
 	private static final TestTraceHub INSTANCE = new TestTraceHub();
 	
 	private final List<EventTrace> traces = synchronizedList(new ArrayList<>());
-	private final InspectCollectorProperties configuration = initializeConfiguration(true);
+	private final InspectConfiguration configuration = new InspectConfiguration(initializeConfiguration(true), new StandardEnvironment());
 
 	@Override
 	public void emitTrace(EventTrace trace) {
@@ -40,10 +39,10 @@ public class TestTraceHub implements TraceHub, InvocationInterceptor {
 			ExtensionContext extensionContext) throws Throwable {
 		processWithTestHub(invocation);
 	}
-	
+
 	@Override
-	public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext,
-			ExtensionContext extensionContext) throws Throwable {
+	public void interceptTestTemplateMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
 		processWithTestHub(invocation);
 	}
 	
@@ -57,11 +56,14 @@ public class TestTraceHub implements TraceHub, InvocationInterceptor {
 	
 	static void processWithTestHub(Invocation<Void> invocation) throws Throwable {
 		var prv = TraceHub.hub();
+		var prvConfig = InspectConfiguration.INSTANCE;
 		try {
+			InspectConfiguration.INSTANCE = INSTANCE.configuration;
 			TraceHub.Holder.INSTANCE = INSTANCE;
 			invocation.proceed();
 		} finally {
 			TraceHub.Holder.INSTANCE = prv;
+			InspectConfiguration.INSTANCE = prvConfig;
 		}
 	}
 }

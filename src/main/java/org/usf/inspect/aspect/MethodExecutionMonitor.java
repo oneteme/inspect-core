@@ -1,7 +1,5 @@
 package org.usf.inspect.aspect;
 
-import static java.lang.StackWalker.getInstance;
-import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -19,13 +17,13 @@ import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
 import static org.usf.inspect.core.ExecutionTracer.forMainSession;
 import static org.usf.inspect.core.Helper.formatLocation;
+import static org.usf.inspect.core.Helper.upperStackFrame;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodTemplate;
 
-import java.lang.StackWalker.StackFrame;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
@@ -73,21 +71,21 @@ public class MethodExecutionMonitor implements Ordered {
 
 	public static <T, E extends Throwable> T trackCallable(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		if(getConfiguration().isEnabled()) {
-			return fn.call();
-		}
-		return call(fn, forLocalRequest(systemUTC().instant(), sgn->{
-			var frm = upperStackFrame(MethodExecutionMonitor.class); //skip MethodExecutionMonitor
-			sgn.setName(name);
-			if(nonNull(type)) {
-				sgn.setType(type.name());
-			}
-			if(nonNull(frm)) {
-				if(isNull(sgn.getName())) {
-					sgn.setName(frm.getMethodName());
+			return call(fn, forLocalRequest(systemUTC().instant(), sgn->{
+				var frm = upperStackFrame(MethodExecutionMonitor.class); //skip MethodExecutionMonitor
+				sgn.setName(name);
+				if(nonNull(type)) {
+					sgn.setType(type.name());
 				}
-				sgn.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
-			}
-		}));
+				if(nonNull(frm)) {
+					if(isNull(sgn.getName())) {
+						sgn.setName(frm.getMethodName());
+					}
+					sgn.setLocation(formatLocation(frm.getClassName(), frm.getMethodName()));
+				}
+			}));
+		}
+		return fn.call();
 	}
 
 	@Around("@annotation(org.usf.inspect.core.TraceableStage) "
@@ -216,11 +214,5 @@ public class MethodExecutionMonitor implements Ordered {
 	static String locationFrom(ProceedingJoinPoint point) {
 		var mth = targetMethod(point);
 		return formatLocation(mth.getDeclaringClass().getName(), mth.getName());
-	}
-	
-	static StackFrame upperStackFrame(Class<?> clazz) {
-		return getInstance(RETAIN_CLASS_REFERENCE).walk(fr-> fr
-				.dropWhile(f-> f.getDeclaringClass() == clazz) //skip MethodExecutionMonitor
-				.findFirst().orElse(null));
 	}
 }

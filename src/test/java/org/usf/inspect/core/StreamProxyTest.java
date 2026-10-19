@@ -26,7 +26,7 @@ import org.usf.inspect.MainSessionUpdate;
 @ExtendWith(TestTraceHub.class)
 class StreamProxyTest {
 	
-	private AbstractSessionUpdate session;
+	AbstractSessionUpdate session;
 
 	@BeforeEach
 	void setup(){

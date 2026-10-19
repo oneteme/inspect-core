@@ -26,6 +26,8 @@ public abstract class AbstractSessionUpdate implements TraceUpdate {
 	private String user;
 	private String location; //class.method, URL, endpoint
 	@Deprecated(forRemoval = true, since = "1.2")
+	private int requestMask; //see SessionRequestMask
+	@Deprecated(forRemoval = true, since = "1.2")
 	private ExceptionTrace exception; //trace exception separately
 	private int eventMask; //see SessionEventMask
 	//v1.2

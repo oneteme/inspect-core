@@ -1,6 +1,10 @@
 package org.usf.inspect.core;
 
+import static java.lang.StackWalker.getInstance;
+import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
 import static java.lang.Thread.currentThread;
+
+import java.lang.StackWalker.StackFrame;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -24,5 +28,12 @@ public final class Helper {
 
 	public static String formatLocation(String className, String methodName) {
 		return className + '.' + methodName + "()";
+	}
+	
+	public static StackFrame upperStackFrame(Class<?> typeToSkip) {
+		return getInstance(RETAIN_CLASS_REFERENCE).walk(fr-> fr
+				.skip(1) //skip Helper.upperStackFrame
+				.dropWhile(f-> f.getDeclaringClass() == typeToSkip) //skip MethodExecutionMonitor
+				.findFirst().orElse(null));
 	}
 }

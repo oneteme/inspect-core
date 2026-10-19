@@ -32,11 +32,11 @@ import org.usf.inspect.core.InspectCoreConfiguration;
 @ConditionalOnProperty(name = REACTOR_ENABLED, havingValue = "true", matchIfMissing = true)
 public class InspectReactorConfiguration implements InitializingBean, DisposableBean {
 
-	static final String HOOK_KEY = "inspect-context-propagation";
+	private static final String HOOK_KEY = "inspect-context-propagation";
 
 	@Override
 	public void afterPropertiesSet() {
-		setExecutorServiceDecorator(HOOK_KEY, (sc, es)-> wrap(es, true, "reactorExecutorServiceDecorator"));
+		setExecutorServiceDecorator(HOOK_KEY, (sc, es)-> wrap(es, false, "reactorExecutorServiceDecorator"));
 		logRegistringHook("reactor hooks", HOOK_KEY);
 		onScheduleHook(HOOK_KEY, ContextPropagators::wrapRunnable);
 		onEachOperator(HOOK_KEY, lift(CoreSubscriberProxy::lift));

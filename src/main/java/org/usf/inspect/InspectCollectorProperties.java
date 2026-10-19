@@ -15,7 +15,6 @@ import lombok.ToString;
 public class InspectCollectorProperties {
 	
 	private boolean enabled = false;
-	@Getter
 	private boolean debugMode = false; // enable debug mode, e.g. for testing
 	private SchedulingProperties scheduling = new SchedulingProperties();
 	private MonitoringProperties monitoring = new MonitoringProperties();

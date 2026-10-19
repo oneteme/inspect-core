@@ -52,13 +52,13 @@ public class ExecutorServiceWrapper implements ExecutorService {
 	}
 	
 	public static ExecutorService wrap(ExecutorService es, String beanName) {
-		if(nonNull(es) && getConfiguration().isEnabled()){
-			if(es.getClass() != ExecutorServiceWrapper.class) {
-				logWrappingBean(requireNonNullElse(beanName, "executorService"), es.getClass());
-				return new ExecutorServiceWrapper(es);
+		if(nonNull(es) && getConfiguration().isEnabled()){ //context propagation only 
+			if(es instanceof ExecutorServiceWrapper) {
+				REPORTER.warn("ExecutorServiceWrapper:wrap {} is already wrapped", es);
 			}
 			else {
-				REPORTER.warn("ExecutorServiceWrapper:wrap {} is already wrapped", es);
+				logWrappingBean(requireNonNullElse(beanName, "executorService"), es.getClass());
+				return new ExecutorServiceWrapper(es);
 			}
 		}
 		return es;
