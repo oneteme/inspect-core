@@ -13,8 +13,6 @@ import static org.usf.inspect.core.TraceHub.hub;
 import java.time.Instant;
 
 import org.usf.inspect.AbstractSessionUpdate;
-import org.usf.inspect.HttpSessionSignal;
-import org.usf.inspect.HttpSessionUpdate;
 import org.usf.inspect.LocalRequestSignal;
 import org.usf.inspect.LocalRequestUpdate;
 import org.usf.inspect.MainSessionSignal;

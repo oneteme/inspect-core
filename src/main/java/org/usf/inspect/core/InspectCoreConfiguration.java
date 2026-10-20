@@ -45,7 +45,6 @@ import org.usf.inspect.InspectCollectorProperties;
 import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.MainSessionUpdate;
 import org.usf.inspect.RestRemoteServerProperties;
-import org.usf.inspect.TraceUpdate;
 import org.usf.inspect.TracingProperties;
 import org.usf.inspect.aspect.MethodExecutionMonitor;
 
