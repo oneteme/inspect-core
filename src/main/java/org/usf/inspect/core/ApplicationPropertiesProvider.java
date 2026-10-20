@@ -23,7 +23,6 @@ public interface ApplicationPropertiesProvider {
 	
 	String getEnvironment();
 	
-	//v1.1
 	default Map<String, String> additionalProperties(ServletContext servletContext) {
 		return emptyMap(); 
 	}

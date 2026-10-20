@@ -3,6 +3,7 @@ package org.usf.inspect.core;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.MainSessionType.STARTUP;
 import static org.usf.inspect.core.Constants.REPORTER;
+import static org.usf.inspect.core.ExceptionTracer.emitExceptionTrace;
 import static org.usf.inspect.core.SessionContextManager.clearContext;
 import static org.usf.inspect.core.SessionContextManager.createLocalRequest;
 import static org.usf.inspect.core.SessionContextManager.createMainSession;
@@ -60,7 +61,7 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 				if(update.getStatus() < 0) {
 					update.setStatus(resolveStatus(thrw));
 				}
-				hub().emitExceptionTrace(thrw, update, end.toEpochMilli());
+				emitExceptionTrace(thrw, update, end.toEpochMilli());
 			}
 			else if(update.getStatus() < 0) {
 				update.setStatus(SUCCESS);

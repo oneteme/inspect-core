@@ -45,7 +45,7 @@ public class InspectConfiguration {
 	@Autowired
 	InspectConfiguration(Environment environment) {
 		this.environment = environment;
-		this.properties = loadConfiguration(environment);
+		this.properties = loadConfiguration(environment, "inspect.collector");
 		var report = properties.getReporting();
 		if(report.isEnabled()) {
 			configureLogger(REPORTER_NAME, false, ()-> new InspectLogReporter(hub(), report.isStackTrace()));
@@ -74,19 +74,19 @@ public class InspectConfiguration {
 		return INSTANCE;
 	}
 	
-	static InspectCollectorProperties loadConfiguration(Environment env) {
-		if(isNull(env) || !"true".equals(env.getProperty("inspect.collector.enabled"))) {
+	static InspectCollectorProperties loadConfiguration(Environment env, String prefix) {
+		if(isNull(env) || !"true".equals(env.getProperty(prefix+".enabled"))) {
 			return new InspectCollectorProperties();
 		}
-		log.info("loading 'inspect.collector' configuration from environment");
+		log.info("loading '{}' configuration from environment", prefix);
 		var bind = Binder.get(env);
-        var conf = bind.bind("inspect.collector", InspectCollectorProperties.class)	
-        	.orElseThrow(()-> new IllegalStateException("cannot bind 'inspect.collector' configuration"));
+        var conf = bind.bind(prefix, InspectCollectorProperties.class)	
+        	.orElseThrow(()-> new IllegalStateException("cannot bind '%s' configuration".formatted(prefix)));
         var mode = conf.getTracing().getType();
         if(nonNull(mode)) {
         	var publisher = switch (mode) {
-        	case REST -> bind.bind("inspect.collector.tracing.remote", RestRemoteServerProperties.class)
-        		.orElseThrow(()-> new IllegalStateException("cannot bind 'inspect.collector.tracing.remote' configuration"));
+        	case REST -> bind.bind(prefix+".tracing.remote", RestRemoteServerProperties.class)
+        		.orElseThrow(()-> new IllegalStateException("cannot bind '%s.tracing.remote' configuration".formatted(prefix)));
         	default -> throw new UnsupportedOperationException("unsupported publisher type: " + mode);
         	};
         	conf.getTracing().setRemote(publisher);

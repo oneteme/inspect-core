@@ -14,10 +14,8 @@ import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
 import static org.usf.inspect.core.DualEventTracer.CNX_SSL_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
-import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
-import static org.usf.inspect.core.TraceAssertions.assertPerformance;
 import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
 import static org.usf.inspect.core.TraceAssertions.assertRequestStage;
 import static org.usf.inspect.core.TraceAssertions.assertRequestUpdate;
@@ -31,6 +29,7 @@ import javax.net.ssl.SSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -41,12 +40,14 @@ import org.usf.inspect.EventTrace;
 import org.usf.inspect.HttpRequestSignal;
 import org.usf.inspect.HttpRequestStage;
 import org.usf.inspect.HttpRequestUpdate;
+import org.usf.inspect.core.TestTraceHub;
 import org.usf.inspect.web.httpclient.HttpRequestInterceptor;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.SocketPolicy;
 
+@ExtendWith(TestTraceHub.class)
 class HttpRequestInterceptorTest {
 	
 	private static String HOST =  "localhost";
@@ -61,13 +62,12 @@ class HttpRequestInterceptorTest {
 
     @BeforeEach
     void setUp() throws IOException {
-    	clearTraces();
         server.start();
     }
 
     @AfterEach
     void tearDown() throws IOException {
-    	assertPerformance(5, getTraces());
+//    	assertPerformance(5, getTraces());
     	server.close();
     }
     

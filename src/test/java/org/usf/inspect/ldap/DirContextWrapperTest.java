@@ -14,7 +14,6 @@ import static org.usf.inspect.DirCommand.LIST;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
 import static org.usf.inspect.core.DualEventTracer.SUCCESS;
-import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
 import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
@@ -32,11 +31,13 @@ import javax.naming.directory.InitialDirContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.usf.inspect.DirectoryRequestSignal;
 import org.usf.inspect.DirectoryRequestStage;
 import org.usf.inspect.DirectoryRequestUpdate;
 import org.usf.inspect.EventTrace;
 import org.usf.inspect.StagePayload;
+import org.usf.inspect.core.TestTraceHub;
 
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
@@ -46,6 +47,7 @@ import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
  * @author u$f
  *
  */
+@ExtendWith(TestTraceHub.class)
 class DirContextWrapperTest {
 	
 	private static final String HOST = "localhost";
@@ -56,7 +58,6 @@ class DirContextWrapperTest {
 	
     @BeforeEach
     void setUp() throws Exception {
-    	clearTraces();
         server.startListening();
     }
 

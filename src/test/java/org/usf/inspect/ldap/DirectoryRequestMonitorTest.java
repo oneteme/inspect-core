@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.usf.inspect.core.DualEventTracer.APP_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
 import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
@@ -52,7 +53,7 @@ class DirectoryRequestMonitorTest {
     @Test
     void should_return_unknown_error_for_unknown_exception() {
         int ex = listener.resolveStatus(new IllegalArgumentException("test"));
-        assertEquals(INT_ERROR, ex);
+        assertEquals(APP_ERROR, ex);
     }
 
     @Test

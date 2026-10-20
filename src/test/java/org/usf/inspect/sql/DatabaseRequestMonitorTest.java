@@ -1,6 +1,7 @@
 package org.usf.inspect.sql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.usf.inspect.core.DualEventTracer.APP_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
 import static org.usf.inspect.core.DualEventTracer.CNX_REFUSED;
@@ -19,7 +20,6 @@ import java.sql.SQLTimeoutException;
 import java.sql.SQLTransientConnectionException;
 
 import org.junit.jupiter.api.Test;
-import org.usf.inspect.sql.DatabaseConnectionLifecycleTracer;
 
 class DatabaseRequestMonitorTest {
 
@@ -91,6 +91,6 @@ class DatabaseRequestMonitorTest {
 
     @Test
     void shouldReturnUnknownError() {
-        assertEquals(INT_ERROR, listener.resolveStatus(new IllegalArgumentException()));
+        assertEquals(APP_ERROR, listener.resolveStatus(new IllegalArgumentException()));
     }
 }

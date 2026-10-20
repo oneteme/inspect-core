@@ -20,7 +20,6 @@ import static org.usf.inspect.core.DualEventTracer.CNX_TIMEOUT;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
 import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
 import static org.usf.inspect.core.DualEventTracer.SUCCESS;
-import static org.usf.inspect.core.TestTraceHub.clearTraces;
 import static org.usf.inspect.core.TestTraceHub.getTraces;
 import static org.usf.inspect.core.TraceAssertions.assertExceptionTrace;
 import static org.usf.inspect.core.TraceAssertions.assertRequestSignal;
@@ -36,12 +35,14 @@ import org.eclipse.angus.mail.util.MailConnectException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.usf.inspect.EventTrace;
 import org.usf.inspect.MailRequestSignal;
 import org.usf.inspect.MailRequestStage;
 import org.usf.inspect.MailRequestUpdate;
+import org.usf.inspect.core.TestTraceHub;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
@@ -60,6 +61,7 @@ import jakarta.mail.internet.MimeMessage;
  * @author u$f
  *
  */
+@ExtendWith(TestTraceHub.class)
 class TransportWrapperTest {
 
 	private static String HOST = "localhost";  // greenMail.getSmtp().getBindTo() return 127.0.0.1
@@ -70,7 +72,6 @@ class TransportWrapperTest {
 
 	@BeforeEach
 	void setUp() {
-		clearTraces();
 		greenMail.start();
 	}
 

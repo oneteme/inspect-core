@@ -1,8 +1,10 @@
 package org.usf.inspect.web.httpclient;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.usf.inspect.core.DualEventTracer.CNX_ABORTED;
 import static org.usf.inspect.core.DualEventTracer.CNX_ERROR;
 import static org.usf.inspect.core.DualEventTracer.CNX_INTERRUPTED;
+import static org.usf.inspect.core.DualEventTracer.CNX_TIMEOUT;
 import static org.usf.inspect.core.DualEventTracer.CNX_UNKNOWN_HOST;
 import static org.usf.inspect.core.DualEventTracer.INT_ERROR;
 import static org.usf.inspect.core.DualEventTracer.INT_TIMEOUT;
@@ -15,7 +17,6 @@ import java.nio.channels.UnresolvedAddressException;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.Test;
-import org.usf.inspect.web.httpclient.HttpConnectionLifecycleTracer;
 
 class AbstractHttpRequestMonitorTest {
 
@@ -23,7 +24,7 @@ class AbstractHttpRequestMonitorTest {
 	
     @Test
     void shouldMapHttpTimeoutException() {
-        assertEquals(INT_TIMEOUT, listener.resolveStatus(new HttpTimeoutException("timeout")));
+        assertEquals(CNX_TIMEOUT, listener.resolveStatus(new HttpTimeoutException("timeout")));
     }
 
     @Test
@@ -33,7 +34,7 @@ class AbstractHttpRequestMonitorTest {
 
     @Test
     void shouldMapTimeoutException() {
-        assertEquals(CNX_INTERRUPTED, listener.resolveStatus(new TimeoutException("timeout")));
+        assertEquals(CNX_ABORTED, listener.resolveStatus(new TimeoutException("timeout")));
     }
 
     @Test

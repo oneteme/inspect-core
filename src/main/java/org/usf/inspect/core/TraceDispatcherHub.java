@@ -60,7 +60,6 @@ public class TraceDispatcherHub implements TraceHub {
 	private AtomicBoolean dispatchNow = new AtomicBoolean();
 	private int threshold;
 	
-	@Override
 	public void configure(SchedulingProperties properties, TracePublisher publisher, List<DispatchHook> hooks) {
 		if(!scheduling()) {
 			atomicState.set(properties.getState());
@@ -181,7 +180,7 @@ public class TraceDispatcherHub implements TraceHub {
 	}
 
 	public boolean setState(DispatchState state) {
-		if(isEnabled()) { //do not allow to change state if disabled
+		if(scheduling()) { //do not allow state change if scheduling is not started
 			atomicState.set(state);
 			return true;
 		}
@@ -204,8 +203,7 @@ public class TraceDispatcherHub implements TraceHub {
 		return completedFuture(fn.apply(queue.peek()));
 	}
 	
-	@Override
-	public boolean canCollect() {
+	protected boolean canCollect() {
 		return scheduling() && atomicState.get().canCollect(); 
 	}
 	
@@ -219,7 +217,7 @@ public class TraceDispatcherHub implements TraceHub {
 			executor.shutdown();
 			InterruptedException ie = null;
 			try {
-				executor.awaitTermination(30, SECONDS);
+				executor.awaitTermination(10, SECONDS);
 			} catch (InterruptedException e) { // shutting down host
 				log.warn("interrupted while waiting for executor termination", e);
 				ie = e;

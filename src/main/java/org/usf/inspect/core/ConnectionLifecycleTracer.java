@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.core.Constants.REPORTER;
+import static org.usf.inspect.core.ExceptionTracer.emitExceptionTrace;
 import static org.usf.inspect.core.TraceHub.hub;
 
 import java.time.Instant;
@@ -100,7 +101,7 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 					if(update.getStatus() < 0) {
 						update.setStatus(resolveStatus(t));
 					}
-					hub().emitExceptionTrace(t, update, nonNull(stg) ? stg.getOrder() : -1);
+					emitExceptionTrace(t, update, nonNull(stg) ? stg.getOrder() : -1);
 				}
 			}
 		};

@@ -18,6 +18,7 @@ import static org.usf.inspect.HttpAction.FINALIZATION;
 import static org.usf.inspect.HttpAction.INITIALIZATION;
 import static org.usf.inspect.HttpAction.TRANSMISSION;
 import static org.usf.inspect.core.Constants.REPORTER;
+import static org.usf.inspect.core.ExceptionTracer.emitExceptionTrace;
 import static org.usf.inspect.core.SessionContextManager.createHttpSession;
 import static org.usf.inspect.core.SessionContextManager.setActiveContext;
 import static org.usf.inspect.core.TraceHub.hub;
@@ -159,7 +160,7 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 	public void emitError(Throwable thrw) {
 		if(assertActiveTraceUpdate("HttpSessionTracer.emitError")) {
 			if(lastException != thrw) {
-				hub().emitExceptionTrace(thrw, getUpdate(), systemUTC().instant().toEpochMilli());
+				emitExceptionTrace(thrw, getUpdate(), systemUTC().instant().toEpochMilli());
 				lastException = thrw;
 			}
 		}

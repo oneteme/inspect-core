@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 public final class MainSessionSignal extends AbstractSessionSignal {
 
-	private final String type;
+	private String type; //v1.1 => v1.2 type conversion
 	//v1.2
 	private UUID parentId;
 	

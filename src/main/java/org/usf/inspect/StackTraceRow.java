@@ -1,9 +1,6 @@
 package org.usf.inspect;
 
-import static java.lang.Math.min;
 import static java.lang.String.format;
-import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -30,31 +27,5 @@ public final class StackTraceRow {
 	@Override
 	public String toString() {
 		return format("%s.%s(%s:%d)", className, methodName, resolveFileName(), lineNumber);
-	}
-
-	public static StackTraceRow[] exceptionStackTraceRows(Throwable thrw, int maxRows) {
-		return nonNull(thrw) ? exceptionStackTraceRows(thrw.getStackTrace(), maxRows) : null;
-	}
-	
-	public static StackTraceRow[] exceptionStackTraceRows(StackTraceElement[] stack, int maxRows) {
-		if(isNull(stack) || maxRows == 0) {
-			return null;
-		}
-		var rows = new StackTraceRow[maxRows < 0 ? stack.length : min(maxRows, stack.length)];
-		for(var i=0; i<rows.length; i++) {
-			rows[i] = new StackTraceRow(
-					stack[i].getClassName(),
-					stack[i].getMethodName(), 
-					stack[i].getLineNumber());
-		}
-		return rows;
-	}
-	
-	public static void appendStackTrace(StringBuilder sb, StackTraceRow[] stackRows) {
-		if(nonNull(stackRows)) {
-			for(var row : stackRows) {
-				sb.append("\n  at ").append(row);
-			}
-		}
 	}
 }

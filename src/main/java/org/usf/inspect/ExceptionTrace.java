@@ -1,8 +1,6 @@
 package org.usf.inspect;
 
 import static java.time.Instant.ofEpochMilli;
-import static java.util.Objects.nonNull;
-import static org.usf.inspect.StackTraceRow.exceptionStackTraceRows;
 
 import java.util.UUID;
 
@@ -30,22 +28,6 @@ public final class ExceptionTrace implements EventTrace {
 	private byte traceType; //TraceType
 	private long offset; //order | duration
 	private UUID traceId; //request | session
-	
-	public static ExceptionTrace fromException(Throwable thrw) {
-		return fromException(thrw, 0, 0);
-	}
-	
-	public static ExceptionTrace fromException(Throwable thrw, int maxCauses, int maxRows) {
-		if(nonNull(thrw)) {
-			var cause = thrw.getCause();
-			return new ExceptionTrace(
-					thrw.getClass().getName(), 
-					thrw.getMessage(), 
-					exceptionStackTraceRows(thrw, maxRows),
-					maxCauses != 0 && nonNull(cause) && thrw != cause ? fromException(cause, --maxCauses, maxRows) : null);
-		}
-		return null;
-	}
 	
 	@Override
 	public String toString() {

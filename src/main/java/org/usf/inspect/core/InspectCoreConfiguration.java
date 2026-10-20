@@ -67,7 +67,7 @@ public class InspectCoreConfiguration {
 	InspectCoreConfiguration(InspectConfiguration config, ApplicationContext appContext, List<DispatchHook> hooks) {
 		InspectConfiguration.INSTANCE = config;
 		var prp = config.getProperties();
-		hub().configure(prp.getScheduling(), coreTracePublisher(prp.getTracing()), hooks);
+		((TraceDispatcherHub)hub()).configure(prp.getScheduling(), coreTracePublisher(prp.getTracing()), hooks);
 		this.startup = ofEpochMilli(appContext.getStartupDate());
 		//create startup session immediately after configuring hub, before any other bean is created
 		this.tracer = forMainSession(startup, STARTUP, sgn-> sgn.setName("main"));
