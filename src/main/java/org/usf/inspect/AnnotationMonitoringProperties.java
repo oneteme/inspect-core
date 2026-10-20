@@ -20,7 +20,7 @@ public class AnnotationMonitoringProperties {
 	
 	public static String SPRING_CAHCE = "sprting.cache"; // exclude all cache annotation
 	public static String SPRING_SCHEDULE = "sprting.schedule"; //exclude  Scheduled &  Schedules annotation
-	public static String SPRING_TRANSACTION = "sprting.tranction"; //exclude Transactional annotation
+	public static String SPRING_TRANSACTION = "sprting.transaction"; //exclude Transactional annotation
 	public static String INSPECT_TRACEABLE = "inspect.traceable"; //exclude TraceableStage annotation
 
 	private boolean enabled = true;

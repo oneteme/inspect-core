@@ -208,7 +208,7 @@ public final class SessionContextManager {
 	}
 
 	public static SessionEvent createLog(Instant instant, String threadname, String lvl, String msg, String location) {
-		var sid = requireSessionIdFor(EVENT, "SessionContextManager.emitLog");
+		var sid = requireSessionIdFor(EVENT, "SessionContextManager.createLog");
 		return new SessionEvent(instant, lvl, msg, threadname, location, sid);
 	}
 	

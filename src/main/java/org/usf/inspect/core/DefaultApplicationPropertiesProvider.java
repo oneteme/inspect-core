@@ -35,26 +35,32 @@ public class DefaultApplicationPropertiesProvider implements ApplicationProperti
 
 	@Override
 	public String getName() {
-		return getEnvironmentProperty("name");
+		var name = getInspectApplicationProperty("name");
+		return nonNull(name) ? name : env.getProperty("spring.application.name");
 	}
 
 	@Override
 	public String getVersion() {
-		return getEnvironmentProperty("version");
+		return getInspectApplicationProperty("version");
 	}
 
 	@Override
 	public String getBranch() {
-		return getEnvironmentProperty("branch");
+		return getInspectApplicationProperty("branch");
 	}
 
 	@Override
 	public String getCommitHash() {
-		return getEnvironmentProperty("hash");
+		return getInspectApplicationProperty("hash");
 	}
 	
-	private String getEnvironmentProperty(String p) {
-		return env.getProperty("spring.application." + p);
+	@Override
+	public java.lang.String getNamespace() {
+		return getInspectApplicationProperty("namespace");
+	}
+	
+	String getInspectApplicationProperty(@NonNull String p) {
+		return env.getProperty("inspect.application." + p);
 	}
 
 	@Override

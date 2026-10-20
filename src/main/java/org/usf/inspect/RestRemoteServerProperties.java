@@ -2,10 +2,8 @@ package org.usf.inspect;
 
 import static java.net.URI.create;
 import static java.time.Duration.ofDays;
-import static java.util.Objects.isNull;
 import static org.usf.inspect.core.Assertions.assertAbsolute;
 import static org.usf.inspect.core.Assertions.assertBetween;
-import static org.usf.inspect.core.Assertions.assertIdentifier;
 import static org.usf.inspect.core.Assertions.assertPositive;
 
 import java.net.URI;
@@ -32,9 +30,8 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 	private int compressMinSize = 0; // size in bytes, 0: no compression
 	//v1.2
 	private Retention retentionMaxAge = new Retention();
-	private String namespace; //optional
-	@JsonIgnore //avoid to be serialized in JSON
-	private String token; //optional
+	@JsonIgnore //cannot be serialized from json, only from yaml
+	private String token=""; //optional
 	
 	@Deprecated(forRemoval = true, since = "v1.2") //move to TracingProperties
 	private PublisherType mode;
@@ -48,14 +45,5 @@ public final class RestRemoteServerProperties implements RemoteServerProperties 
 		assertPositive(compressMinSize, "compress-min-size");
 		assertBetween(retentionMaxAge.getAudit(), ofDays(1), ofDays(365), "retention.audit");
 		assertBetween(retentionMaxAge.getDiagnostic(), ofDays(1), ofDays(365), "retention.diagnostic");
-		if(isNull(namespace)) {
-			namespace = "";
-		}
-		else {
-			assertIdentifier(namespace, "namespace");
-		}
-		if(isNull(token)) {
-			token = "";
-		}
 	}
 }

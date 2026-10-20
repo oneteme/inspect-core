@@ -32,6 +32,7 @@ import org.usf.inspect.ExceptionTrace;
 import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.ReportEvent;
 import org.usf.inspect.SchedulingProperties;
+import org.usf.inspect.SessionAsyncDurationUpdate;
 import org.usf.inspect.SessionEvent;
 import org.usf.inspect.SessionMaskUpdate;
 import org.usf.inspect.SystemMetrics;
@@ -71,7 +72,7 @@ public class TraceDispatcherHub implements TraceHub {
 			if(nonNull(hooks)) {
 				hooks.forEach(eventBus::registerHook);
 			}
-			var schc = newSingleThreadScheduledExecutor(daemonThread(properties.getName())); 
+			var schc = newSingleThreadScheduledExecutor(daemonThread(properties.getThreadName())); 
 			var delay = properties.getInterval().getSeconds(); //delay >= 10s
 			this.executor = getConfiguration().getProperties().isDebugMode() ? wrap(schc, true) : schc;
 			log.info("◴ scheduling traces dispatch every {} seconds", delay);
@@ -147,7 +148,9 @@ public class TraceDispatcherHub implements TraceHub {
 				Class<?>[] priorityTypes = {
 						AbstractStage.class, 
 			            ExceptionTrace.class, 
-			            SystemMetrics.class, 
+			            SystemMetrics.class,
+			            SessionMaskUpdate.class,
+			            SessionAsyncDurationUpdate.class,
 			            SessionEvent.class, 
 			            ReportEvent.class};
 		        for(Class<?> clazz : priorityTypes) {
@@ -162,8 +165,8 @@ public class TraceDispatcherHub implements TraceHub {
 	    	    if (queue.size() < max) {
 	                return;
 	            }
-	    	    len = queue.removeIf(o -> o instanceof AbstractSessionSignal || o instanceof AbstractSessionUpdate || o instanceof SessionMaskUpdate);
-	    	    log.warn(" ❌ removed {} traces of type AbstractSessionSignal/AbstractSessionUpdate/SessionMaskUpdate", len);
+	    	    len = queue.removeIf(o -> o instanceof AbstractSessionSignal || o instanceof AbstractSessionUpdate);
+	    	    log.warn(" ❌ removed {} traces of type AbstractSessionSignal/AbstractSessionUpdate", len);
 			}
 			catch (Throwable e) {
 				log.error("💥 CRITICAL: failed to remove traces as capacity exceeded", e);

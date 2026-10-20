@@ -23,14 +23,12 @@ import org.usf.inspect.slf4j.InspectLogReporter;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  * @author u$f
  *
  */
-@Slf4j
 @Configuration
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 @ConditionalOnProperty(name = INSPECT_ENABLED, havingValue = "true", matchIfMissing = false) 
@@ -42,8 +40,7 @@ public class InspectConfiguration {
 	private final InspectCollectorProperties properties;
 	private final Environment environment;
 	
-	@Autowired
-	InspectConfiguration(Environment environment) {
+	@Autowired InspectConfiguration(Environment environment) {
 		this.environment = environment;
 		this.properties = loadConfiguration(environment, "inspect.collector");
 		var report = properties.getReporting();
@@ -78,7 +75,7 @@ public class InspectConfiguration {
 		if(isNull(env) || !"true".equals(env.getProperty(prefix+".enabled"))) {
 			return new InspectCollectorProperties();
 		}
-		log.info("loading '{}' configuration from environment", prefix);
+		logLoadingBean("inspect.collector", InspectCollectorProperties.class);
 		var bind = Binder.get(env);
         var conf = bind.bind(prefix, InspectCollectorProperties.class)	
         	.orElseThrow(()-> new IllegalStateException("cannot bind '%s' configuration".formatted(prefix)));

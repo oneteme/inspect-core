@@ -10,6 +10,7 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.encodeBasicAuth;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
@@ -55,15 +56,15 @@ public final class RestClientTracePublisher implements TracePublisher {
 
 	private final RestRemoteServerProperties properties;
 	private final RestTemplate template;
+
 	private InstanceEnvironment instance;
-	
 	private boolean registered;
 	private int attempts;
 	private int sequence;
 	private EventTrace[] pendingBatch;
 
-	public RestClientTracePublisher(RestRemoteServerProperties properties, ObjectMapper mapper, boolean debug) {
-		this(properties, defaultRestTemplate(properties, mapper, debug));
+	public RestClientTracePublisher(RestRemoteServerProperties properties, ObjectMapper mapper, String namespace, boolean debug) {
+		this(properties, defaultRestTemplate(properties, mapper, namespace, debug));
 	}
 
 	@Override
@@ -150,8 +151,17 @@ public final class RestClientTracePublisher implements TracePublisher {
 				log.info("instance registered successfully, id={}", instance.getId());
 				return instance.getId();
 			}
+			catch(HttpClientErrorException rsp) {
+				if(rsp.getStatusCode() == CONFLICT) { //409 : instance already registered, ignore
+					registered = true;
+					attempts = 0;
+					log.info("instance already registered, id={}", instance.getId());
+					return instance.getId();
+				}
+				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt #{}: status={}", attempts, rsp.getStatusCode(), rsp);
+			}
 			catch(RestClientException e) {//server / client ?
-				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt #{}: {}", attempts, e);
+				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt #{}", attempts, e);
 			}
 		}
 		else {
@@ -182,7 +192,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 		return true;
 	}
 
-	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper, boolean debug) {
+	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper, String namespace, boolean debug) {
 		var json = new MappingJackson2HttpMessageConverter(mapper);
 		var plain = new StringHttpMessageConverter(); //for instanceID
 		var bldr = new RestTemplateBuilder()
@@ -190,7 +200,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 				.setConnectTimeout(ofSeconds(10))
 				.setReadTimeout(ofSeconds(30))
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-				.defaultHeader(AUTHORIZATION, "Basic " + encodeBasicAuth(properties.getNamespace(), properties.getToken(), null));
+				.defaultHeader(AUTHORIZATION, "Basic " + encodeBasicAuth(namespace, properties.getToken(), null));
 		if(properties.getCompressMinSize() > 0) {
 			log.info("body compression enabled, min size={} bytes", properties.getCompressMinSize());
 			bldr = bldr.interceptors(bodyCompressionInterceptor(properties.getCompressMinSize()));

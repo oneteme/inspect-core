@@ -12,7 +12,7 @@ import jakarta.servlet.ServletContext;
  *
  */
 public interface ApplicationPropertiesProvider {
-
+	
 	String getName();
 	
 	String getVersion();
@@ -22,6 +22,8 @@ public interface ApplicationPropertiesProvider {
 	String getCommitHash();
 	
 	String getEnvironment();
+	
+	String getNamespace();
 	
 	default Map<String, String> additionalProperties(ServletContext servletContext) {
 		return emptyMap(); 

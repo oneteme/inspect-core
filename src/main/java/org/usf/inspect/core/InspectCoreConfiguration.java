@@ -45,6 +45,7 @@ import org.usf.inspect.InspectCollectorProperties;
 import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.MainSessionUpdate;
 import org.usf.inspect.RestRemoteServerProperties;
+import org.usf.inspect.TraceUpdate;
 import org.usf.inspect.TracingProperties;
 import org.usf.inspect.aspect.MethodExecutionMonitor;
 
@@ -64,10 +65,11 @@ public class InspectCoreConfiguration {
 	private final ExecutionTracer<?> tracer;
 	private final Instant startup;
 	
-	InspectCoreConfiguration(InspectConfiguration config, ApplicationContext appContext, List<DispatchHook> hooks) {
+	InspectCoreConfiguration(InspectConfiguration config, ApplicationContext appContext, List<DispatchHook> hooks, ApplicationPropertiesProvider provider) {
 		InspectConfiguration.INSTANCE = config;
 		var prp = config.getProperties();
-		((TraceDispatcherHub)hub()).configure(prp.getScheduling(), coreTracePublisher(prp.getTracing()), hooks);
+		var psh = coreTracePublisher(prp.getTracing(), provider.getNamespace());
+		((TraceDispatcherHub)hub()).configure(prp.getScheduling(), psh, hooks);
 		this.startup = ofEpochMilli(appContext.getStartupDate());
 		//create startup session immediately after configuring hub, before any other bean is created
 		this.tracer = forMainSession(startup, STARTUP, sgn-> sgn.setName("main"));
@@ -148,11 +150,11 @@ public class InspectCoreConfiguration {
     	return new DefaultApplicationPropertiesProvider(env);
     }
     
-	static TracePublisher coreTracePublisher(TracingProperties properties) {
+	static TracePublisher coreTracePublisher(TracingProperties properties, String namespace) {
 		var rsp = properties.getRemote();
 		if(rsp instanceof RestRemoteServerProperties prop) {
 			var debug = InspectConfiguration.getConfiguration().getProperties().isDebugMode();
-			return new RestClientTracePublisher(prop, createObjectMapper(),debug);
+			return new RestClientTracePublisher(prop, createObjectMapper(), namespace, debug);
 		}
 		if(isNull(rsp)) {
 			log.warn("remote tracing is disabled, traces will be lost");
@@ -178,7 +180,7 @@ public class InspectCoreConfiguration {
 	}
 
 	static InstanceEnvironment newInstanceEnvironment(UUID sid, Instant start, InspectCollectorProperties conf, ApplicationPropertiesProvider provider, ServletContext servletContext) {
-		return new InstanceEnvironment(sid,
+		var env = new InstanceEnvironment(sid,
 				start, SERVER,
 				provider.getName(), 
 				provider.getVersion(),
@@ -192,6 +194,8 @@ public class InspectCoreConfiguration {
 				collectorID(),
 				provider.additionalProperties(servletContext),
 				conf);
+		env.setNamespace(provider.getNamespace());
+		return env;
 	}
 
 	static String hostAddress() {
