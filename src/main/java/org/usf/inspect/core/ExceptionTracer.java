@@ -24,7 +24,7 @@ public final class ExceptionTracer {
 
 	public static void emitExceptionTrace(Throwable thrw, TraceUpdate upd, long offset) {
 		var cfg = getConfiguration().getProperties().getMonitoring().getException();
-		if(cfg.isEnabled() && nonNull(thrw)) {
+		if(getConfiguration().isEnabled() && cfg.isEnabled() && nonNull(thrw)) {
 			var trc = upd instanceof AbstractSessionUpdate 
 					? fromException(thrw, cfg.getMaxCauseDepth(), cfg.getMaxStackTraceRows())
 					: fromException(thrw, 0, 0);
@@ -47,11 +47,11 @@ public final class ExceptionTracer {
 	}
 
 
-	public static StackTraceRow[] exceptionStackTraceRows(Throwable thrw, int maxRows) {
+	static StackTraceRow[] exceptionStackTraceRows(Throwable thrw, int maxRows) {
 		return nonNull(thrw) ? exceptionStackTraceRows(thrw.getStackTrace(), maxRows) : null;
 	}
 	
-	public static StackTraceRow[] exceptionStackTraceRows(StackTraceElement[] stack, int maxRows) {
+	static StackTraceRow[] exceptionStackTraceRows(StackTraceElement[] stack, int maxRows) {
 		if(isNull(stack) || maxRows == 0) {
 			return null;
 		}

@@ -46,7 +46,7 @@ class StreamProxyTest {
 	void testParallel_TryAdvance() {
 		var tn = currentThread().getName();
 		var sess = createParallelStream(100)
-		.filter(not(v-> currentThread().getName().equals(tn)))
+		.filter(not(v-> currentThread().getName().equals(tn))) //at 
 		.findAny().map(v-> activeContext());
 		assertTrue(sess.isPresent(), "Session should be present");
 		assertEquals(session, sess.get().getSession(), "Session should be the same as the one before processing the stream");
