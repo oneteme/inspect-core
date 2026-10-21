@@ -34,35 +34,39 @@ import org.usf.inspect.core.SessionContext;
  */
 public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper implements ScheduledExecutorService {
 
-	private final boolean traceSession;
+	private final boolean traceSession; //trace schedule as MainSession
 	
-	ScheduledExecutorServiceWrapper(ScheduledExecutorService es, boolean traceSession) { //as MainSession
+	ScheduledExecutorServiceWrapper(ScheduledExecutorService es, boolean traceSession) {
 		super(es);
 		this.traceSession = traceSession;
 	}
 
 	@Override
 	public <V> ScheduledFuture<V> schedule(Callable<V> task, long delay, TimeUnit unit) {
-		var wrapper = traceSession ? wrapAndTraceCallable(task) : wrapCallable(task);
-		return se().schedule(wrapper, delay, unit);
+		return se().schedule(traceSession 
+				? wrapAndTraceCallable(task) 
+				: wrapCallable(task), delay, unit);
 	}
 
 	@Override
 	public ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit) {
-		var wrapper = traceSession ? wrapAndTraceRunnable(task) : wrapRunnable(task);
-		return se().schedule(wrapper, delay, unit);
+		return se().schedule(traceSession 
+				? wrapAndTraceRunnable(task) 
+				: wrapRunnable(task), delay, unit);
 	}
 
 	@Override
 	public ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long initialDelay, long period, TimeUnit unit) {
-		var wrapper = traceSession ? wrapAndTraceRunnable(task) : wrapRunnable(task);
-		return se().scheduleAtFixedRate(wrapper, initialDelay, period, unit);
+		return se().scheduleAtFixedRate(traceSession 
+				? wrapAndTraceRunnable(task) 
+				: wrapRunnable(task), initialDelay, period, unit);
 	}
 
 	@Override
 	public ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, long initialDelay, long delay, TimeUnit unit) {
-		var wrapper = traceSession ? wrapAndTraceRunnable(task) : wrapRunnable(task);
-		return se().scheduleWithFixedDelay(wrapper, initialDelay, delay, unit);
+		return se().scheduleWithFixedDelay(traceSession 
+				? wrapAndTraceRunnable(task) 
+				: wrapRunnable(task), initialDelay, delay, unit);
 	}
 	
 	ScheduledExecutorService se() {
@@ -99,18 +103,18 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 		return wrap(es, getConfiguration().isEnabled(SCHEDULING_ENABLED, false), null);
 	}
 
-	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean propagateContext) {
-		return wrap(es, propagateContext, null);
+	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean traceSession) {
+		return wrap(es, traceSession, null);
 	}
 	
-	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean propagateContext, String beanName) {
+	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean traceSession, String beanName) {
 		if(nonNull(es) && getConfiguration().isEnabled()){
 			if(es instanceof ScheduledExecutorServiceWrapper) {
 				REPORTER.warn("ScheduledExecutorServiceWrapper.wrap: {} is already wrapped", es);
 			}
 			else {
 				logWrappingBean(requireNonNullElse(beanName, "scheduledExecutorService"), es.getClass());
-				return new ScheduledExecutorServiceWrapper(es, propagateContext);
+				return new ScheduledExecutorServiceWrapper(es, traceSession);
 			}
 		}
 		return es;

@@ -1,4 +1,4 @@
-package org.usf.inspect.util;
+package org.usf.inspect.core;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

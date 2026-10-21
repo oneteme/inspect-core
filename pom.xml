@@ -8,34 +8,42 @@
 	<version>1.2.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>inspect-core</name>
-	<description>INtegrated System Performance Evaluation and Communication
-		Tracking core libray</description>
-	<url>https://oneteme.github.io/</url>
-	<developers>
-		<developer>
-			<name>u$f</name>
-			<email>usf.alami@gmail.com</email>
-			<organization>JARVIS</organization>
-			<organizationUrl>https://oneteme.github.io/</organizationUrl>
-		</developer>
-	</developers>
-	<scm>
-		<url>https://github.com/oneteme/inspect-core</url>
-	</scm>
+	<description>INtegrated System Performance Evaluation and Communication Tracking core libray</description>
+	<url>https://oneteme.github.io/inspect.io</url>
 	<licenses>
 		<license>
 			<name>Apache License 2.0</name>
 			<url>https://github.com/oneteme/inspect-core/blob/main/LICENSE</url>
 		</license>
 	</licenses>
+	<organization>
+	    <name>JARVIS</name>
+		<url>https://oneteme.github.io</url>
+	</organization>
+	<developers>
+		<developer>
+			<name>u$f</name>
+			<email>usf.alami@gmail.com</email>
+			<organization>JARVIS</organization>
+			<organizationUrl>https://oneteme.github.io</organizationUrl>
+		</developer>
+	</developers>
+	<scm>
+	    <url>https://github.com/oneteme/inspect-core</url>
+		<connection>scm:git:git://github.com/oneteme/inspect-core.git</connection>
+	    <developerConnection>scm:git:ssh://git@github.com:oneteme/inspect-core.git</developerConnection>
+	</scm>
+	<issueManagement>
+    	<system>GitHub</system>
+    	<url>https://github.com/oneteme/inspect-core/issues</url>
+	</issueManagement>
 	<properties>
 		<java.version>21</java.version>
 		<junit.version>5.8.1</junit.version>
 		<spring.version>3.0.5</spring.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<maven.compiler.source>${java.version}</maven.compiler.source>
-		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<maven.compiler.release>${java.version}</maven.compiler.release>
 	</properties>
 	<dependencies>
 		<dependency>

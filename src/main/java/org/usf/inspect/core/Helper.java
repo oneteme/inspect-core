@@ -32,8 +32,8 @@ public final class Helper {
 	
 	public static StackFrame upperStackFrame(Class<?> typeToSkip) {
 		return getInstance(RETAIN_CLASS_REFERENCE).walk(fr-> fr
-				.skip(1) //skip Helper.upperStackFrame
-				.dropWhile(f-> f.getDeclaringClass() == typeToSkip) //skip MethodExecutionMonitor
+				.skip(1) //skip Helper.upperStackFrame first
+				.dropWhile(f-> f.getDeclaringClass() == typeToSkip) //skip type
 				.findFirst().orElse(null));
 	}
 }

@@ -25,9 +25,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.usf.inspect.AbstractSessionUpdate;
 import org.usf.inspect.MainSessionUpdate;
+import org.usf.inspect.core.DisabledConfiguration;
 import org.usf.inspect.core.SessionContext;
 import org.usf.inspect.core.TestTraceHub;
 
+/**
+ * 
+ * @author u$f
+ *
+ */
 @ExtendWith(TestTraceHub.class)
 class StreamProxyTest {
 	

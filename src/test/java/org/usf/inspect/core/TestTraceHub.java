@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.springframework.core.env.StandardEnvironment;
 import org.usf.inspect.EventTrace;
-import org.usf.inspect.util.DisabledConfiguration;
 
 import lombok.Getter;
 

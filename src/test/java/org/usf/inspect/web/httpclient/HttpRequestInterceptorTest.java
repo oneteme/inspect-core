@@ -1,4 +1,4 @@
-package org.usf.inspect.web;
+package org.usf.inspect.web.httpclient;
 
 import static java.time.Duration.ofMillis;
 import static java.time.Instant.now;
@@ -41,7 +41,6 @@ import org.usf.inspect.HttpRequestSignal;
 import org.usf.inspect.HttpRequestStage;
 import org.usf.inspect.HttpRequestUpdate;
 import org.usf.inspect.core.TestTraceHub;
-import org.usf.inspect.web.httpclient.HttpRequestInterceptor;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
