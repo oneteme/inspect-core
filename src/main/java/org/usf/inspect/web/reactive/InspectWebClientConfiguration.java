@@ -23,7 +23,6 @@ import org.usf.inspect.core.InspectCoreConfiguration;
 public class InspectWebClientConfiguration {
 
 	@Bean
-	@ConditionalOnClass(name = "org.springframework.web.reactive.function.client.ExchangeFilterFunction")
 	WebClientCustomizer webClientCustomizer() {
 		return wcb-> {
 			logRegistringBean("webClientFilter", WebClientFilter.class);

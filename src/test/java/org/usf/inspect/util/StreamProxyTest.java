@@ -72,7 +72,7 @@ class StreamProxyTest {
 	
 	@Test
 	void testTrackStream_Null() {
-		assertNull(trackStream(null), "");
+		assertNull(trackStream(null), "Stream should be null if the input stream is null");
 	}
 	
 	Stream<?> createParallelStream(int length) {

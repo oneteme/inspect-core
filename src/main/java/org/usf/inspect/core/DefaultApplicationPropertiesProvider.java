@@ -55,7 +55,7 @@ public class DefaultApplicationPropertiesProvider implements ApplicationProperti
 	}
 	
 	@Override
-	public java.lang.String getNamespace() {
+	public String getNamespace() {
 		return getInspectApplicationProperty("namespace");
 	}
 	

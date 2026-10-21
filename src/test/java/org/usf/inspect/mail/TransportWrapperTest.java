@@ -65,7 +65,7 @@ import jakarta.mail.internet.MimeMessage;
 class TransportWrapperTest {
 
 	private static String HOST = "localhost";  // greenMail.getSmtp().getBindTo() return 127.0.0.1
-	private static String PORT = "250";
+	private static String PORT = "3025";
 	
 	private static GreenMail greenMail = new GreenMail(new ServerSetup(Integer.valueOf(PORT), null, ServerSetup.PROTOCOL_SMTP));
 	private static String USER = getProperty("user.name");
