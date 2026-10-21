@@ -11,6 +11,7 @@ import static org.usf.inspect.core.TraceHub.hub;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 /**
  * 
@@ -36,7 +37,7 @@ public final class InspectLogger {
 		emitLog(ALERT, msg); //dispatch immediately 
 	}
 	
-	public static void emitLog(LogLevel level, String msg) {
+	public static void emitLog(@NonNull LogLevel level, String msg) {
 		hub().emitTrace(createLog(systemUTC().instant(), threadName(), level.name(), msg, null));
 	}
 

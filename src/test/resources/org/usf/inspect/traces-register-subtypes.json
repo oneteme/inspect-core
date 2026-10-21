@@ -1,0 +1,518 @@
+[
+  {
+    "@type": "00",
+    "instant": 1792612800.000000000,
+    "thread": "main",
+    "action": "REPORT",
+    "message": "report message",
+    "exception": "java.lang.IllegalStateException: boom",
+    "stackRows": [
+      {
+        "className": "org.usf.inspect.service.ReportService",
+        "methodName": "emit",
+        "lineNumber": 42
+      }
+    ],
+    "level": "WARN",
+    "sessionId": "10000000-0000-0000-0000-000000000000",
+    "instanceId": "20000000-0000-0000-0000-000000000000"
+  },
+  {
+    "@type": "01",
+    "instant": 1792612801.000000000,
+    "usedHeap": 128,
+    "commitedHeap": 256,
+    "usedDiskSpace": 1024,
+    "activeThreadCount": 8,
+    "startedThreadCount": 120,
+    "cpuUsage": 1234,
+    "instanceId": "20000000-0000-0000-0000-000000000001"
+  },
+  {
+    "@type": "03",
+    "id": "10000000-0000-0000-0000-000000000003",
+    "main": true,
+    "mask": 42
+  },
+  {
+    "@type": "04",
+    "id": "10000000-0000-0000-0000-000000000004",
+    "main": false,
+    "duration": 900
+  },
+  {
+    "@type": "05",
+    "type": "java.lang.IllegalStateException",
+    "message": "failure",
+    "stackTraceRows": [
+      {
+        "className": "org.usf.inspect.service.TraceService",
+        "methodName": "push",
+        "lineNumber": 88
+      }
+    ],
+    "cause": {
+	  "@type": "05",
+      "type": "java.lang.RuntimeException",
+      "message": "root-cause",
+      "stackTraceRows": [
+        {
+          "className": "org.usf.inspect.service.RootService",
+          "methodName": "root",
+          "lineNumber": 21
+        }
+      ],
+      "traceType": 12,
+      "offset": 1792612802000,
+      "traceId": "10000000-0000-0000-0000-000000000005"
+    },
+    "traceType": 11,
+    "offset": 1792612801000,
+    "traceId": "10000000-0000-0000-0000-000000000006"
+  },
+  {
+    "@type": "06",
+    "instant": 1792612802.000000000,
+    "type": "INFO",
+    "value": "event-value",
+    "scope": "main-thread",
+    "location": "service.run",
+    "sessionId": "10000000-0000-0000-0000-000000000006",
+    "instanceId": "20000000-0000-0000-0000-000000000006"
+  },
+  {
+    "@type": "10",
+    "id": "10000000-0000-0000-0000-000000000010",
+    "start": 1792612803.000000000,
+    "threadName": "worker-1",
+    "name": "scheduler-job",
+    "location": "org.usf.inspect.jobs.SyncJob.run",
+    "user": "batch-user",
+    "instanceId": "20000000-0000-0000-0000-000000000010",
+    "type": "SCHEDULE",
+    "parentId": "10000000-0000-0000-0000-000000000001"
+  },
+  {
+    "@type": "11",
+    "id": "10000000-0000-0000-0000-000000000011",
+    "end": 1792612811.000000000,
+    "start": 1792612803.000000000,
+    "name": "scheduler-job",
+    "user": "batch-user",
+    "location": "org.usf.inspect.jobs.SyncJob.run",
+    "requestMask": 63,
+    "exception": {
+	  "@type": "05",
+      "type": "java.io.IOException",
+      "message": "io failure",
+      "stackTraceRows": [
+        {
+          "className": "org.usf.inspect.jobs.SyncJob",
+          "methodName": "run",
+          "lineNumber": 120
+        }
+      ],
+      "traceType": 10,
+      "offset": 1792612811000,
+      "traceId": "10000000-0000-0000-0000-000000000011"
+    },
+    "eventMask": 127,
+    "status": 0,
+    "asyncDuration": 1500
+  },
+  {
+    "@type": "20",
+    "id": "10000000-0000-0000-0000-000000000020",
+    "start": 1792612804.000000000,
+    "threadName": "http-nio-1",
+    "name": "GET /api/orders",
+    "location": "http://api.example.com/api/orders",
+    "user": "alice",
+    "instanceId": "20000000-0000-0000-0000-000000000020",
+    "method": "GET",
+    "protocol": "https",
+    "host": "api.example.com",
+    "port": 443,
+    "path": "/api/orders",
+    "query": "page=1&size=20",
+    "authScheme": "Bearer",
+    "dataSize": 512,
+    "contentEncoding": "gzip",
+    "userAgent": "Mozilla/5.0",
+    "linked": true,
+    "forwardedAddresses": [
+      "192.0.2.10",
+      "198.51.100.11"
+    ]
+  },
+  {
+    "@type": "21",
+    "id": "10000000-0000-0000-0000-000000000021",
+    "end": 1792612812.000000000,
+    "start": 1792612804.000000000,
+    "name": "GET /api/orders",
+    "user": "alice",
+    "location": "http://api.example.com/api/orders",
+    "requestMask": 31,
+    "exception": {
+	  "@type": "05",
+      "type": "java.lang.IllegalArgumentException",
+      "message": "bad request",
+      "stackTraceRows": [
+        {
+          "className": "org.usf.inspect.web.OrderController",
+          "methodName": "list",
+          "lineNumber": 75
+        }
+      ],
+      "traceType": 20,
+      "offset": 1792612812000,
+      "traceId": "10000000-0000-0000-0000-000000000021"
+    },
+    "eventMask": 15,
+    "status": 200,
+    "asyncDuration": 250,
+    "dataSize": 4096,
+    "contentType": "application/json",
+    "contentEncoding": "gzip",
+    "bodyContent": "{\"ok\":true}",
+    "cacheControl": "no-cache"
+  },
+  {
+    "@type": "110",
+    "id": "10000000-0000-0000-0000-000000000110",
+    "sessionId": "10000000-0000-0000-0000-000000000010",
+    "start": 1792612805.000000000,
+    "threadName": "worker-1",
+    "user": "batch-user",
+    "instanceId": "20000000-0000-0000-0000-000000000110",
+    "name": "local-cache-read",
+    "type": "CACHE",
+    "location": "org.usf.inspect.cache.LocalCache.get"
+  },
+  {
+    "@type": "111",
+    "id": "10000000-0000-0000-0000-000000000111",
+    "command": "READ",
+    "end": 1792612813.000000000,
+    "status": 0,
+    "start": 1792612805.000000000,
+    "exception": {
+	  "@type": "05",
+      "type": "java.lang.RuntimeException",
+      "message": "cache miss",
+      "stackTraceRows": [
+        {
+          "className": "org.usf.inspect.cache.LocalCache",
+          "methodName": "get",
+          "lineNumber": 53
+        }
+      ],
+      "traceType": 30,
+      "offset": 1792612813000,
+      "traceId": "10000000-0000-0000-0000-000000000111"
+    }
+  },
+  {
+    "@type": "120",
+    "id": "10000000-0000-0000-0000-000000000120",
+    "sessionId": "10000000-0000-0000-0000-000000000020",
+    "start": 1792612806.000000000,
+    "threadName": "http-nio-2",
+    "user": "alice",
+    "instanceId": "20000000-0000-0000-0000-000000000120",
+    "protocol": "https",
+    "host": "gateway.example.com",
+    "port": 443,
+    "method": "POST",
+    "path": "/backend/order",
+    "query": "dryRun=false",
+    "authScheme": "Bearer",
+    "dataSize": 2048,
+    "contentEncoding": "gzip"
+  },
+  {
+    "@type": "121",
+    "id": "10000000-0000-0000-0000-000000000121",
+    "command": "SEND",
+    "end": 1792612814.000000000,
+    "status": 201,
+    "dataSize": 8192,
+    "contentType": "application/json",
+    "contentEncoding": "gzip",
+    "bodyContent": "{\"id\":123}",
+    "linked": true
+  },
+  {
+    "@type": "130",
+    "id": "10000000-0000-0000-0000-000000000130",
+    "sessionId": "10000000-0000-0000-0000-000000000020",
+    "start": 1792612807.000000000,
+    "threadName": "jdbc-worker",
+    "user": "dbuser",
+    "instanceId": "20000000-0000-0000-0000-000000000130",
+    "protocol": "jdbc:postgresql",
+    "host": "db.example.com",
+    "port": 5432,
+    "name": "orders-db",
+    "schema": "public",
+    "driverVersion": "42.7.3",
+    "productName": "PostgreSQL",
+    "productVersion": "16"
+  },
+  {
+    "@type": "131",
+    "id": "10000000-0000-0000-0000-000000000131",
+    "command": "EXECUTE",
+    "end": 1792612815.000000000,
+    "status": 0,
+    "failed": false
+  },
+  {
+    "@type": "140",
+    "id": "10000000-0000-0000-0000-000000000140",
+    "sessionId": "10000000-0000-0000-0000-000000000020",
+    "start": 1792612808.000000000,
+    "threadName": "ftp-worker",
+    "user": "ftp-user",
+    "instanceId": "20000000-0000-0000-0000-000000000140",
+    "protocol": "sftp",
+    "host": "sftp.example.com",
+    "port": 22,
+    "serverVersion": "OpenSSH_9.8",
+    "clientVersion": "JSch_0.1.55"
+  },
+  {
+    "@type": "141",
+    "id": "10000000-0000-0000-0000-000000000141",
+    "command": "PUT",
+    "end": 1792612816.000000000,
+    "status": 0,
+    "failed": false
+  },
+  {
+    "@type": "150",
+    "id": "10000000-0000-0000-0000-000000000150",
+    "sessionId": "10000000-0000-0000-0000-000000000020",
+    "start": 1792612809.000000000,
+    "threadName": "mail-worker",
+    "user": "mailer",
+    "instanceId": "20000000-0000-0000-0000-000000000150",
+    "protocol": "smtps",
+    "host": "smtp.example.com",
+    "port": 465
+  },
+  {
+    "@type": "151",
+    "id": "10000000-0000-0000-0000-000000000151",
+    "command": "SEND",
+    "end": 1792612817.000000000,
+    "status": 0,
+    "failed": false
+  },
+  {
+    "@type": "160",
+    "id": "10000000-0000-0000-0000-000000000160",
+    "sessionId": "10000000-0000-0000-0000-000000000020",
+    "start": 1792612810.000000000,
+    "threadName": "ldap-worker",
+    "user": "ldap-user",
+    "instanceId": "20000000-0000-0000-0000-000000000160",
+    "protocol": "ldaps",
+    "host": "ldap.example.com",
+    "port": 636
+  },
+  {
+    "@type": "161",
+    "id": "10000000-0000-0000-0000-000000000161",
+    "command": "SEARCH",
+    "end": 1792612818.000000000,
+    "status": 0,
+    "failed": false
+  },
+  {
+    "@type": "210",
+    "requestId": "10000000-0000-0000-0000-000000000210",
+    "order": 1,
+    "name": "HTTP_HANDSHAKE",
+    "start": 1792612811.000000000,
+    "end": 1792612811.100000000,
+    "command": "CONNECT",
+    "exception": {
+	  "@type": "05",
+      "type": "java.lang.IllegalStateException",
+      "message": "stage warning",
+      "stackTraceRows": [
+        {
+          "className": "org.usf.inspect.http.HttpClient",
+          "methodName": "connect",
+          "lineNumber": 35
+        }
+      ],
+      "traceType": 40,
+      "offset": 100,
+      "traceId": "10000000-0000-0000-0000-000000000210"
+    },
+    "payload": {
+      "args": [
+        "arg1",
+        "arg2"
+      ],
+      "count": [
+        1,
+        2
+      ]
+    }
+  },
+  {
+    "@type": "220",
+    "requestId": "10000000-0000-0000-0000-000000000220",
+    "order": 1,
+    "name": "HTTP_WRITE",
+    "start": 1792612812.000000000,
+    "end": 1792612812.100000000,
+    "command": "SEND",
+    "exception": {
+	  "@type": "05",
+      "type": "java.lang.RuntimeException",
+      "message": "none",
+      "traceType": 41,
+      "offset": 100,
+      "traceId": "10000000-0000-0000-0000-000000000220"
+    },
+    "payload": {
+      "args": [
+        "body"
+      ],
+      "count": [
+        128
+      ]
+    }
+  },
+  {
+    "@type": "230",
+    "requestId": "10000000-0000-0000-0000-000000000230",
+    "order": 1,
+    "name": "DB_EXEC",
+    "start": 1792612813.000000000,
+    "end": 1792612813.100000000,
+    "command": "EXECUTE",
+    "exception": {
+	  "@type": "05",
+      "type": "java.sql.SQLException",
+      "message": "slow query",
+      "traceType": 42,
+      "offset": 100,
+      "traceId": "10000000-0000-0000-0000-000000000230"
+    },
+    "payload": {
+      "args": [
+        "select * from t_order"
+      ],
+      "count": [
+        25
+      ]
+    },
+    "count": [
+      25
+    ],
+    "args": [
+      "batch-1"
+    ]
+  },
+  {
+    "@type": "240",
+    "requestId": "10000000-0000-0000-0000-000000000240",
+    "order": 1,
+    "name": "FTP_TRANSFER",
+    "start": 1792612814.000000000,
+    "end": 1792612814.100000000,
+    "command": "PUT",
+    "exception": {
+	  "@type": "05",
+      "type": "com.jcraft.jsch.SftpException",
+      "message": "permission denied",
+      "traceType": 43,
+      "offset": 100,
+      "traceId": "10000000-0000-0000-0000-000000000240"
+    },
+    "payload": {
+      "args": [
+        "/remote/path/file.txt"
+      ],
+      "count": [
+        1
+      ]
+    },
+    "args": [
+      "legacy-arg"
+    ]
+  },
+  {
+    "@type": "250",
+    "requestId": "10000000-0000-0000-0000-000000000250",
+    "order": 1,
+    "name": "SMTP_SEND",
+    "start": 1792612815.000000000,
+    "end": 1792612815.100000000,
+    "command": "SEND",
+    "exception": {
+	  "@type": "05",
+      "type": "jakarta.mail.MessagingException",
+      "message": "smtp timeout",
+      "traceType": 44,
+      "offset": 100,
+      "traceId": "10000000-0000-0000-0000-000000000250"
+    },
+    "payload": {
+      "args": [
+        "to:user@example.com"
+      ],
+      "count": [
+        1
+      ]
+    },
+    "mail": {
+      "subject": "Integration report",
+      "contentType": "text/plain",
+      "from": [
+        "noreply@example.com"
+      ],
+      "recipients": [
+        "user@example.com"
+      ],
+      "replyTo": [
+        "support@example.com"
+      ],
+      "size": 2048
+    }
+  },
+  {
+    "@type": "260",
+    "requestId": "10000000-0000-0000-0000-000000000260",
+    "order": 1,
+    "name": "LDAP_SEARCH",
+    "start": 1792612816.000000000,
+    "end": 1792612816.100000000,
+    "command": "SEARCH",
+    "exception": {
+	  "@type": "05",
+      "type": "javax.naming.NamingException",
+      "message": "invalid base dn",
+      "traceType": 45,
+      "offset": 100,
+      "traceId": "10000000-0000-0000-0000-000000000260"
+    },
+    "payload": {
+      "args": [
+        "dc=example,dc=com"
+      ],
+      "count": [
+        3
+      ]
+    },
+    "args": [
+      "legacy-ldap-arg"
+    ]
+  }
+]

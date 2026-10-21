@@ -21,7 +21,7 @@ public final class InspectCoreModule extends SimpleModule {
 		registerSubtypes(
 				new NamedType(ReportEvent.class, 				"00"),  
 				new NamedType(SystemMetrics.class, 				"01"),
-				new NamedType(RestRemoteServerProperties.class, "02"),
+				new NamedType(RestRemoteServerProperties.class, "02"), //TODO: change name because it is not a trace event
 				new NamedType(SessionMaskUpdate.class,			"03"),  
 				new NamedType(SessionAsyncDurationUpdate.class,	"04"),  
 				new NamedType(ExceptionTrace.class,				"05"), 
