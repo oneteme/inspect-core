@@ -1,11 +1,13 @@
 package org.usf.inspect.util;
 
+import static java.lang.Math.random;
 import static java.lang.Thread.currentThread;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Stream.generate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
@@ -46,7 +48,7 @@ class StreamProxyTest {
 	void testParallel_TryAdvance() {
 		var tn = currentThread().getName();
 		var sess = createParallelStream(100)
-		.filter(not(v-> currentThread().getName().equals(tn))) //at 
+		.filter(not(v-> currentThread().getName().equals(tn))) //must invoke tryAdvance on another thread
 		.findAny().map(v-> activeContext());
 		assertTrue(sess.isPresent(), "Session should be present");
 		assertEquals(session, sess.get().getSession(), "Session should be the same as the one before processing the stream");
@@ -56,7 +58,7 @@ class StreamProxyTest {
 	void testParallel_forEachRemaining() {
 		var map = new ConcurrentHashMap<String, AbstractSessionUpdate>();
 		createParallelStream(100)
-		.forEach(v-> map.computeIfAbsent(currentThread().getName(), k-> ofNullable(activeContext()).map(SessionContext::getSession).orElse(null)));
+		.forEach(v-> map.computeIfAbsent(currentThread().getName(), k-> ofNullable(activeContext()).map(SessionContext::getSession).orElse(null))); //must invoke forEachRemaining on another thread
 		assertTrue(map.size() > 1, "Should have more than one thread");
 		map.values().forEach(sess-> assertEquals(session, sess, "Session should be the same as the one before processing the stream"));
 	}
@@ -64,11 +66,27 @@ class StreamProxyTest {
 	@Test
 	@DisabledConfiguration
 	void testTrackStream_TryAdvance() {
-		var stream = createParallelStream(10);
+		var stream = createParallelStream(1);
 		assertSame(stream, trackStream(stream), "Stream should be the same when tracking is disabled");
 	}
 	
+	@Test
+	void testTrackStream_Null() {
+		assertNull(trackStream(null), "");
+	}
+	
 	Stream<?> createParallelStream(int length) {
-		return parallel(generate(()-> 0).limit(length));
+		return parallel(generate(()-> 0)
+				.limit(length))
+				.peek(v->{sleep();}); //must do something to ensure multi-threading !!;
+	}
+	
+	static void sleep() {
+		var v = (int) (random() * 10);
+		try {
+			Thread.sleep(v);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 	}
 }

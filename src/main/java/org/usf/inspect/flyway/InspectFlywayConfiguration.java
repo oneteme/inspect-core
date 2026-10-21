@@ -38,7 +38,7 @@ public class InspectFlywayConfiguration {
 	}
 
 	@Bean
-	public FlywayMigrationStrategy flywayMigrationStrategy() {
+	FlywayMigrationStrategy flywayMigrationStrategy() {
 		return fly-> exec(fly::migrate, forLocalRequest(systemUTC().instant(), sgn->{
 			sgn.setType(EXEC.name());
 			sgn.setName("FlywayMigration");

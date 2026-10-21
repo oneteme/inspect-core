@@ -23,7 +23,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-//TODO dispatching
+//TODO rename to dispatching
 public class SchedulingProperties {
 	
 	private Duration interval = ofSeconds(60);

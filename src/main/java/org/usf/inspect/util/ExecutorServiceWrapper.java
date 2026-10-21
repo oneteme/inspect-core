@@ -54,7 +54,7 @@ public class ExecutorServiceWrapper implements ExecutorService {
 	public static ExecutorService wrap(ExecutorService es, String beanName) {
 		if(nonNull(es) && getConfiguration().isEnabled()){ //context propagation only 
 			if(es instanceof ExecutorServiceWrapper) {
-				REPORTER.warn("ExecutorServiceWrapper:wrap {} is already wrapped", es);
+				REPORTER.warn("ExecutorServiceWrapper.wrap: {} is already wrapped", es);
 			}
 			else {
 				logWrappingBean(requireNonNullElse(beanName, "executorService"), es.getClass());

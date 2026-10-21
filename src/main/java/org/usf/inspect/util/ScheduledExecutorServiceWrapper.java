@@ -106,7 +106,7 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 	public static ScheduledExecutorService wrap(ScheduledExecutorService es, boolean propagateContext, String beanName) {
 		if(nonNull(es) && getConfiguration().isEnabled()){
 			if(es instanceof ScheduledExecutorServiceWrapper) {
-				REPORTER.warn("ScheduledExecutorServiceWrapper:wrap {} is already wrapped", es);
+				REPORTER.warn("ScheduledExecutorServiceWrapper.wrap: {} is already wrapped", es);
 			}
 			else {
 				logWrappingBean(requireNonNullElse(beanName, "scheduledExecutorService"), es.getClass());
