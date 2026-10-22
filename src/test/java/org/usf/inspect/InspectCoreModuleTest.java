@@ -8,8 +8,6 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-
 /**
  * 
  * @author u$f
@@ -20,8 +18,7 @@ class InspectCoreModuleTest {
     @Test
     void testRegisterSubtypes() throws Exception {
         
-    	var mapper = assertDoesNotThrow(InspectCoreModule::createObjectMapper, "Failed to create ObjectMapper")
-        		.registerModule(new ParameterNamesModule()); //support constructor parameter names for deserialization
+    	var mapper = assertDoesNotThrow(InspectCoreModule::createObjectMapper, "Failed to create ObjectMapper").build();
         
         var stream = InspectCoreModuleTest.class.getResourceAsStream("/org/usf/inspect/traces-register-subtypes.json");
         assertNotNull(stream);

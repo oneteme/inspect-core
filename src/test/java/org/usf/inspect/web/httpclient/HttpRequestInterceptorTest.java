@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -55,8 +55,8 @@ class HttpRequestInterceptorTest {
 	
 	private final RestTemplate template = new RestTemplateBuilder()
 			.interceptors(new HttpRequestInterceptor())
-			.setConnectTimeout(ofMillis(100))
-			.setReadTimeout(ofMillis(50))
+			.connectTimeout(ofMillis(100))
+			.readTimeout(ofMillis(50))
 			.build();
 
     @BeforeEach

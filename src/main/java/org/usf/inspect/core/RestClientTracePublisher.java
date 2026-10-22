@@ -25,10 +25,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -39,11 +39,10 @@ import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.RestRemoteServerProperties;
 import org.usf.inspect.web.httpclient.HttpRequestInterceptor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 
@@ -63,7 +62,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 	private int sequence;
 	private EventTrace[] pendingBatch;
 
-	public RestClientTracePublisher(RestRemoteServerProperties properties, ObjectMapper mapper, String namespace, boolean debug) {
+	public RestClientTracePublisher(RestRemoteServerProperties properties, JsonMapper.Builder mapper, String namespace, boolean debug) {
 		this(properties, defaultRestTemplate(properties, mapper, namespace, debug));
 	}
 
@@ -145,7 +144,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 				.queryParam("atm", ++attempts).build().toUri();
 		if(nonNull(instance)) {
 			try {
-				template.postForObject(uri, instance, String.class);
+				template.put(uri, instance);
 				registered = true;
 				attempts = 0;
 				log.info("instance registered successfully, id={}", instance.getId());
@@ -177,7 +176,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 		}
 		if(e instanceof HttpServerErrorException rsp) { //50x check header !?
 			var hdr = rsp.getResponseHeaders();
-			if(nonNull(hdr) && hdr.containsKey(TRACE_RETRY_HEADER)) {
+			if(nonNull(hdr) && hdr.containsHeader(TRACE_RETRY_HEADER)) {
 				return RETRY.equals(hdr.getFirst(TRACE_RETRY_HEADER));
 			}
 			REPORTER.error("RestClientTracePublisher.evaluateRetry: '{}' is null", TRACE_RETRY_HEADER, e);
@@ -192,13 +191,13 @@ public final class RestClientTracePublisher implements TracePublisher {
 		return true;
 	}
 
-	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, ObjectMapper mapper, String namespace, boolean debug) {
-		var json = new MappingJackson2HttpMessageConverter(mapper);
+	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, JsonMapper.Builder mapper, String namespace, boolean debug) {
+		var json = new JacksonJsonHttpMessageConverter(mapper);
 		var plain = new StringHttpMessageConverter(); //for instanceID
 		var bldr = new RestTemplateBuilder()
 				.messageConverters(json, plain) //minimum converters
-				.setConnectTimeout(ofSeconds(10))
-				.setReadTimeout(ofSeconds(30))
+				.connectTimeout(ofSeconds(10))
+				.readTimeout(ofSeconds(30))
 				.defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
 				.defaultHeader(AUTHORIZATION, "Basic " + encodeBasicAuth(namespace, properties.getToken(), null));
 		if(properties.getCompressMinSize() > 0) {

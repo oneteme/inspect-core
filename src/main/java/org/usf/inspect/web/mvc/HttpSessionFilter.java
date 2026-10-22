@@ -15,7 +15,7 @@ import static org.usf.inspect.web.mvc.InspectServletRequestListener.requireSessi
 import java.io.IOException;
 import java.util.Map;
 
-import org.springframework.boot.web.servlet.error.ErrorController;
+import org.springframework.boot.webmvc.error.ErrorController;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.AsyncHandlerInterceptor;

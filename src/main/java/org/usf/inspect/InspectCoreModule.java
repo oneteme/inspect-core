@@ -1,12 +1,10 @@
 package org.usf.inspect;
 
-import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.jsontype.NamedType;
+import tools.jackson.databind.module.SimpleModule;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.NamedType;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
  * 
@@ -50,14 +48,21 @@ public final class InspectCoreModule extends SimpleModule {
 				new NamedType(DirectoryRequestStage.class,		"260"));
 	}
 	
-	public static ObjectMapper createObjectMapper() {
+	public static JsonMapper.Builder createObjectMapper() {
 		
-		return json()
-				.modules(new JavaTimeModule(), new InspectCoreModule())
-				.build()
-				.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-		//		.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
-		//		.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
+		return tools.jackson.databind.json.JsonMapper.builder()
+				.findAndAddModules()
+                .changeDefaultPropertyInclusion(incl -> incl //replace .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
+                        .withValueInclusion(JsonInclude.Include.NON_EMPTY)   // for standard 
+                        .withContentInclusion(JsonInclude.Include.NON_EMPTY) // for Maps/Collections
+                )
+                .addModule(new InspectCoreModule());
+//		
+//		return json()
+//				.modules(new InspectCoreModule()) //Jackson 3 includes the former Java 8 date/time modules directly
+//				.build()
+//		//		.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
+//		//		.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
 	}
 
 }

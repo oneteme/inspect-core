@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.lang.Thread.currentThread;
 import static java.util.UUID.randomUUID;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
