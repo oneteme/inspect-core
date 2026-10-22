@@ -255,7 +255,9 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 		if(assertActiveTraceUpdate("DatabaseConnectionLifecycleTracer.parseAndMergeCommand")) {
 			try {
 				mainCommand = mergeCommand(mainCommand, extractCommand(sql));
-				((DatabaseRequestUpdate)getUpdate()).setCommand(mainCommand.name());
+				if(nonNull(mainCommand)) {
+					((DatabaseRequestUpdate)getUpdate()).setCommand(mainCommand.name());
+				}
 			}
 			catch (Exception e) {
 				REPORTER.error("DatabaseConnectionLifecycleTracer.parseAndMergeCommand: failed to parse command", e);
