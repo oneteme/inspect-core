@@ -84,7 +84,7 @@ class StreamProxyTest {
 	Stream<?> createParallelStream(int length) {
 		return parallel(generate(()-> 0)
 				.limit(length))
-				.peek(v->{sleep();}); //must do something to ensure multi-threading !!;
+				.peek(v->{sleep();}); //simulate some processing time in order to increase the chance of context switching between threads
 	}
 	
 	static void sleep() {

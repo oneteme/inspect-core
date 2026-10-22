@@ -32,12 +32,12 @@ public interface TracePublisher {
     
 	void flush(boolean complete, ProcessingQueue<EventTrace> queue) throws DispatchException;
 
-	default void mergeTraceParts(List<EventTrace> traces){
+	default void mergeTraceParts(List<? extends EventTrace> traces){
 		mergeMaskTraces(traces);
 		mergeAsyncDurationTraces(traces);
 	}
 	
-	static void mergeAsyncDurationTraces(List<EventTrace> traces) {
+	static void mergeAsyncDurationTraces(List<? extends EventTrace> traces) {
 		var map = traces.stream().<SessionAsyncDurationUpdate>mapMulti((t, c)-> {
 			if(t instanceof SessionAsyncDurationUpdate prt) {
 				c.accept(prt);
@@ -85,7 +85,7 @@ public interface TracePublisher {
 		}
 	}
 	
-	static void mergeMaskTraces(List<EventTrace> traces) {
+	static void mergeMaskTraces(List<? extends EventTrace> traces) {
 		var map = traces.stream().<SessionMaskUpdate>mapMulti((t, c)-> {
 			if(t instanceof SessionMaskUpdate upd) {
 				c.accept(upd);
