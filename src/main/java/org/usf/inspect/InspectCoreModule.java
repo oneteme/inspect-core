@@ -50,12 +50,10 @@ public final class InspectCoreModule extends SimpleModule {
 	
 	public static JsonMapper.Builder jsonMapperBuilder() {
 		return JsonMapper.builder()
-				.findAndAddModules()
                 .addModule(new InspectCoreModule())
                 .changeDefaultPropertyInclusion(incl -> incl //replace .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
                         .withValueInclusion(JsonInclude.Include.NON_EMPTY)   // for standard 
-                        .withContentInclusion(JsonInclude.Include.NON_EMPTY) // for Maps/Collections
-                );
+                        .withContentInclusion(JsonInclude.Include.NON_EMPTY)); // for Maps/Collections
 	}
 
 }
