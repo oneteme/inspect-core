@@ -48,21 +48,14 @@ public final class InspectCoreModule extends SimpleModule {
 				new NamedType(DirectoryRequestStage.class,		"260"));
 	}
 	
-	public static JsonMapper.Builder createObjectMapper() {
-		
-		return tools.jackson.databind.json.JsonMapper.builder()
+	public static JsonMapper.Builder jsonMapperBuilder() {
+		return JsonMapper.builder()
 				.findAndAddModules()
+                .addModule(new InspectCoreModule())
                 .changeDefaultPropertyInclusion(incl -> incl //replace .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
                         .withValueInclusion(JsonInclude.Include.NON_EMPTY)   // for standard 
                         .withContentInclusion(JsonInclude.Include.NON_EMPTY) // for Maps/Collections
-                )
-                .addModule(new InspectCoreModule());
-//		
-//		return json()
-//				.modules(new InspectCoreModule()) //Jackson 3 includes the former Java 8 date/time modules directly
-//				.build()
-//		//		.disable(WRITE_DATES_AS_TIMESTAMPS) important! write Instant as double
-//		//		.configure(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL, true) // force deserialize NamedType if @type is missing
+                );
 	}
 
 }

@@ -18,7 +18,7 @@ class InspectCoreModuleTest {
     @Test
     void testRegisterSubtypes() throws Exception {
         
-    	var mapper = assertDoesNotThrow(InspectCoreModule::createObjectMapper, "Failed to create ObjectMapper").build();
+    	var mapper = assertDoesNotThrow(InspectCoreModule::jsonMapperBuilder, "Failed to create ObjectMapper").build();
         
         var stream = InspectCoreModuleTest.class.getResourceAsStream("/org/usf/inspect/traces-register-subtypes.json");
         assertNotNull(stream);

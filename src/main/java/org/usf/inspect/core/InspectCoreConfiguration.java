@@ -5,7 +5,7 @@ import static java.net.InetAddress.getLocalHost;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNullElse;
-import static org.usf.inspect.InspectCoreModule.createObjectMapper;
+import static org.usf.inspect.InspectCoreModule.jsonMapperBuilder;
 import static org.usf.inspect.InstanceType.SERVER;
 import static org.usf.inspect.MainSessionType.STARTUP;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
@@ -153,7 +153,7 @@ public class InspectCoreConfiguration {
 		var rsp = properties.getRemote();
 		if(rsp instanceof RestRemoteServerProperties prop) {
 			var debug = InspectConfiguration.getConfiguration().getProperties().isDebugMode();
-			return new RestClientTracePublisher(prop, createObjectMapper(), namespace, debug);
+			return new RestClientTracePublisher(prop, jsonMapperBuilder(), namespace, debug);
 		}
 		if(isNull(rsp)) {
 			log.warn("remote tracing is disabled, traces will be lost");
