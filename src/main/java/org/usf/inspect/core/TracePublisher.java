@@ -28,9 +28,9 @@ public interface TracePublisher {
     static final String RETRY = "1";
     static final String ABORT = "0";
 	
-	void register(InstanceEnvironment instance) throws DispatchException;
+	void register(InstanceEnvironment instance) throws TraceDispatchException;
     
-	void flush(boolean complete, ProcessingQueue<EventTrace> queue) throws DispatchException;
+	void flush(boolean complete, ProcessingQueue<EventTrace> queue) throws TraceDispatchException;
 
 	default void mergeTraceParts(List<? extends EventTrace> traces){
 		mergeMaskTraces(traces);

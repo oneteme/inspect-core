@@ -112,7 +112,7 @@ public class InspectCoreConfiguration {
     	var instance = newInstanceEnvironment(upd.getId(), startup, config.getProperties(), provider, servletContext);
 		try {
 			hub().dispatch(instance);
-		} catch (DispatchException e) {
+		} catch (TraceDispatchException e) {
 			throw new IllegalStateException("cannot dispatch instance environment", e);
 		}
 		return e-> {

@@ -10,7 +10,7 @@ import org.usf.inspect.InstanceEnvironment;
  */
 public interface TraceHub {
 
-	default void dispatch(InstanceEnvironment instance) throws DispatchException { }
+	default void dispatch(InstanceEnvironment instance) throws TraceDispatchException { }
 
 	default void emitTrace(EventTrace trace) { }
 

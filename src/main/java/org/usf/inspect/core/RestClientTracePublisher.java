@@ -77,7 +77,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 	}
 
 	@Override
-	public void flush(boolean complete, ProcessingQueue<EventTrace> queue) throws DispatchException {
+	public void flush(boolean complete, ProcessingQueue<EventTrace> queue) throws TraceDispatchException {
 		var id = ensureInstanceRegistered();
 		if(nonNull(pendingBatch)) {
 			flushPendingBatch(id);
@@ -136,7 +136,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 	            .toUri();
 	}
 
-	UUID ensureInstanceRegistered() throws DispatchException {
+	UUID ensureInstanceRegistered() throws TraceDispatchException {
 		if(registered) {
 			return instance.getId();
 		}
@@ -166,7 +166,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 		else {
 			REPORTER.warn("RestClientTracePublisher.ensureInstanceRegistered: instance environment is not set, cannot register instance");
 		}
-		throw new DispatchException("failed to register instance, attempt #"+attempts);
+		throw new TraceDispatchException("failed to register instance, attempt #"+attempts);
 	}
 
 	boolean shouldRetry(RestClientException e) {

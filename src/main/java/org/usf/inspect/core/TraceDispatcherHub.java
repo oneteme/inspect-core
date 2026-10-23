@@ -85,13 +85,13 @@ public class TraceDispatcherHub implements TraceHub {
 	}
 
 	@Override
-	public void dispatch(InstanceEnvironment instance) throws DispatchException { //dispatch immediately
+	public void dispatch(InstanceEnvironment instance) throws TraceDispatchException { //dispatch immediately
 		if(canCollect()) {
 			eventBus.triggerInstanceEmit(instance);
 			publisher.register(instance);
 		}
 		else {
-			throw new DispatchException("cannot dispatch, hub is not enabled or scheduling is not started");
+			throw new TraceDispatchException("cannot dispatch, hub is not enabled or scheduling is not started");
 		}
 	}
 	
@@ -128,7 +128,7 @@ public class TraceDispatcherHub implements TraceHub {
 			if(atomicState.get().canDispatch()) {
 				publisher.flush(shutdown, queue);
 			}
-		} catch (DispatchException e) {
+		} catch (TraceDispatchException e) {
 			//do nothing
 		} catch (Throwable e) { //unexpected error, do not throw exception to avoid scheduler shutdown
 			log.error("unexpected error while dispatching traces", e);
