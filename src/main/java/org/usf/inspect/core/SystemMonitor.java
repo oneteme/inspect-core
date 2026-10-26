@@ -1,6 +1,5 @@
 package org.usf.inspect.core;
 
-import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Runtime.getRuntime;
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.lang.management.ManagementFactory.getOperatingSystemMXBean;
@@ -64,7 +63,6 @@ public final class SystemMonitor implements DispatchHook {
 	@Override
 	public void onSchedule() {
 		var heap = memoryBean.getHeapMemoryUsage();
-		var startedThreadCount = threadBean.getTotalStartedThreadCount();
 //		var meta = bean.getNonHeapMemoryUsage()
 		hub().emitTrace(new SystemMetrics(systemUTC().instant(),
 				toMb(heap.getUsed()), 
@@ -73,7 +71,8 @@ public final class SystemMonitor implements DispatchHook {
 //				toMb(meta.getCommitted()),
 				totalDiskSpace > 0 ? toMb(totalDiskSpace - file.getUsableSpace()) : -1,
 				threadBean.getThreadCount(),
-				startedThreadCount > MAX_VALUE ? -1 : (int) startedThreadCount, (short)processCpuLoad.getAsInt()));
+				threadBean.getDaemonThreadCount(), 
+				(short)processCpuLoad.getAsInt()));
 	}
 
 	static int toMb(long value) {

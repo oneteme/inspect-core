@@ -7,6 +7,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 import static org.usf.inspect.core.SessionContext.asyncDurationInitialValue;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.usf.inspect.AbstractSessionUpdate;
@@ -14,6 +15,7 @@ import org.usf.inspect.EventTrace;
 import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.SessionAsyncDurationUpdate;
 import org.usf.inspect.SessionMaskUpdate;
+import org.usf.inspect.SessionTrace;
 import org.usf.inspect.TracePart;
 
 /**
@@ -92,11 +94,17 @@ public interface TracePublisher {
 			}
 		}).collect(groupingBy(TracePart::getId));
 		for(var e : map.entrySet()) {
-			var upd = traces.stream()
-			.filter(t-> t instanceof AbstractSessionUpdate u && u.getId().equals(e.getKey()))
-			.map(AbstractSessionUpdate.class::cast)
-			.findAny();
-			if(upd.isEmpty()) {
+			var arr = traces.stream()
+			.filter(t-> t instanceof SessionTrace u && u.getId().equals(e.getKey()))
+			.map(SessionTrace.class::cast)
+			.toList();
+			var ses = Optional.<SessionTrace>empty();
+			if(!arr.isEmpty()) {
+				ses = arr.size() == 1
+						? arr.stream().findAny() 
+						: arr.stream().filter(AbstractSessionUpdate.class::isInstance).findAny(); 
+			}
+			if(ses.isEmpty()) {
 				if(e.getValue().size() == 1) {
 					continue; //only one update, no need to merge
 				}
@@ -106,7 +114,7 @@ public interface TracePublisher {
 						e.getValue().size(), e.getKey(), maskUpdate.getMask());
 			}
 			else {
-				var finalMask = upd.get().getEventMask();
+				var finalMask = ses.get().getEventMask();
 				var maskUpdate = e.getValue().size() == 1 
 						? e.getValue().get(0) 
 						: e.getValue().stream().max(comparing(SessionMaskUpdate::getMask)).orElseThrow();
@@ -115,7 +123,7 @@ public interface TracePublisher {
 							e.getValue().size(), e.getKey(), finalMask);
 				}
 				else { //asynchronous update, keep the last update mask
-					upd.get().setEventMask(maskUpdate.getMask());
+					ses.get().setEventMask(maskUpdate.getMask());
 					log.debug("⨇ merging {} update traces for session {}, final eventMask is {} and will be updated to {}",
 							e.getValue().size(), e.getKey(), finalMask, maskUpdate.getMask());
 				}

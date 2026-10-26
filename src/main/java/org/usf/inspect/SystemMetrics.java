@@ -31,7 +31,7 @@ public final class SystemMetrics implements EventTrace {
 	private final int usedDiskSpace;
 	//1.2
 	private final int activeThreadCount;
-	private final int startedThreadCount;
+	private final int daemonThreadCount;
 	private final short cpuUsage; //avoid float precision issue, must be divided by 100 to get the real value, e.g. 1234 => 12.34%
 
 	//server usage 
@@ -43,7 +43,7 @@ public final class SystemMetrics implements EventTrace {
 		.withAction("METRIC")
 		.withInstant(instant)
 		.withMessageAsTopic(format("heap: %d/%d | disk:%d | threads:%d/%d | cpu:%d%%", 
-				usedHeap, commitedHeap, usedDiskSpace, activeThreadCount, startedThreadCount, cpuUsage))
+				usedHeap, commitedHeap, usedDiskSpace, activeThreadCount, daemonThreadCount, cpuUsage))
 		.format();
 	}
 }

@@ -17,7 +17,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public abstract class AbstractSessionUpdate implements TraceUpdate {
+public abstract class AbstractSessionUpdate implements TraceUpdate, SessionTrace {
 
 	private final UUID id;
 	private Instant end;

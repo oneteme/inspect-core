@@ -23,7 +23,7 @@ public abstract class AbstractRequestUpdate implements TraceUpdate {
 	private String command; //READ, EMIT, EDIT, ..
 	private Instant end;
 	//v1.2 : replace failed property
-	private short status = -1; //-1 unknown
+	private short status;
 	
 	@Override
 	public String toString() {

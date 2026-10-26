@@ -5,6 +5,7 @@ import static java.lang.Thread.currentThread;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.DispatchState.DISABLE;
@@ -76,7 +77,7 @@ public class TraceDispatcherHub implements TraceHub {
 			var delay = properties.getInterval().getSeconds(); //delay >= 10s
 			this.executor = getConfiguration().getProperties().isDebugMode() ? wrap(schc, true) : schc;
 			log.info("◴ scheduling traces dispatch every {} seconds", delay);
-			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
+			this.executor.scheduleWithFixedDelay(this::schedule, 1, 1, SECONDS);
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
 		else {
@@ -104,7 +105,7 @@ public class TraceDispatcherHub implements TraceHub {
 	
 	protected void flushIfThresholdReached(){
 		if(queue.size() > threshold && dispatchNow.compareAndSet(false, true)) {  //submit task to avoid concurrent flush
-			executor.submit(()-> {
+			executor.schedule(()-> { // create new session if debug mode
 				try {
 					if(queue.size() > threshold) { //double check, as queue size may have changed since task submission
 						log.warn("⚠ QUEUE THRESHOLD REACHED: current size = {}, threshold = {}", queue.size(), threshold);
@@ -114,7 +115,7 @@ public class TraceDispatcherHub implements TraceHub {
 				finally {
 					dispatchNow.set(false);
 				}
-			});
+			}, 1, MILLISECONDS);
 		}
 	}
 	
