@@ -2,7 +2,6 @@ package org.usf.inspect.core;
 
 import static java.lang.Thread.currentThread;
 import static java.util.UUID.randomUUID;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -69,6 +68,7 @@ class InspectLoggerTest {
         assertSessionEvent("ALERT", "alert-message");
     }
 
+    //TODO add test without session context / inspect disabled to check that no event is emitted
 	public void assertSessionEvent(String type, String value) {
 		assertEquals(2, getTraces().size());
 		

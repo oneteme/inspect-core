@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
 import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectLogger.LogLevel.ALERT;
 import static org.usf.inspect.core.InspectLogger.LogLevel.ERROR;
 import static org.usf.inspect.core.InspectLogger.LogLevel.INFO;
@@ -38,7 +39,9 @@ public final class InspectLogger {
 	}
 	
 	public static void emitLog(@NonNull LogLevel level, String msg) {
-		hub().emitTrace(createLog(systemUTC().instant(), threadName(), level.name(), msg, null));
+		if(getConfiguration().isEnabled()) {
+			hub().emitTrace(createLog(systemUTC().instant(), threadName(), level.name(), msg, null));
+		}
 	}
 
 	public enum LogLevel {
