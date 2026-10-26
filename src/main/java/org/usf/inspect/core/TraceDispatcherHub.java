@@ -77,7 +77,7 @@ public class TraceDispatcherHub implements TraceHub {
 			var delay = properties.getInterval().getSeconds(); //delay >= 10s
 			this.executor = getConfiguration().getProperties().isDebugMode() ? wrap(schc, true) : schc;
 			log.info("◴ scheduling traces dispatch every {} seconds", delay);
-			this.executor.scheduleWithFixedDelay(this::schedule, 1, 1, SECONDS);
+			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
 		else {

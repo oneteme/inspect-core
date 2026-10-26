@@ -15,6 +15,7 @@ import lombok.ToString;
 public final class ReportingProperties {
 
 	private boolean enabled = true;
-	private boolean stackTrace = true;
+	private boolean errorStackTrace = true;
+	private boolean runtimeStackTrace = true;
 
 }

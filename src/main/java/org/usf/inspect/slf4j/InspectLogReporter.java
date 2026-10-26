@@ -5,10 +5,12 @@ import static ch.qos.logback.core.spi.FilterReply.DENY;
 import static ch.qos.logback.core.spi.FilterReply.NEUTRAL;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static java.util.function.Function.identity;
 import static org.slf4j.LoggerFactory.getILoggerFactory;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.usf.inspect.ReportEvent;
@@ -32,11 +34,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InspectLogReporter extends AppenderBase<ILoggingEvent> {
 	
+	private static final Function<StackTraceElementProxy, StackTraceElement> TO_STACK_TRACE_ELEMENT = StackTraceElementProxy::getStackTraceElement;
+	private static final Function<StackTraceElement, StackTraceElement> TO_STACK_TRACE_ELEMENT_IDENTITY = identity();
+	
 	private static final AtomicInteger counter = new AtomicInteger(0);
 	private static final String[] EMPTY_REPORT = new String[2];
 
 	private final TraceHub hub;
-	private final boolean stack;
+	private final boolean errorStackTrace;
+	private final boolean runtimeStackTrace;
 	
     @Override
     protected void append(ILoggingEvent event) {
@@ -51,9 +57,15 @@ public class InspectLogReporter extends AppenderBase<ILoggingEvent> {
     protected ReportEvent createReportEvent(ILoggingEvent event) {
 		String exp = null;
 		StackTraceRow[] stc = null;
-		if(stack && nonNull(event.getThrowableProxy())) {
+		if(nonNull(event.getThrowableProxy())) {
 			exp = event.getThrowableProxy().getClassName() + ": " + event.getThrowableProxy().getMessage();
-			stc = toStackTraceRow(event.getThrowableProxy().getStackTraceElementProxyArray());
+			if(errorStackTrace) {
+				stc = toStackTraceRow(event.getThrowableProxy().getStackTraceElementProxyArray(), TO_STACK_TRACE_ELEMENT);
+			}
+		}
+		else if(runtimeStackTrace) {
+			stc = toStackTraceRow(event.getCallerData(), TO_STACK_TRACE_ELEMENT_IDENTITY);
+			
 		}
 		var arr = splitReportMessage(event.getFormattedMessage());
 		return new ReportEvent(event.getInstant(), event.getThreadName(), arr[0], arr[1], exp, stc);
@@ -69,11 +81,11 @@ public class InspectLogReporter extends AppenderBase<ILoggingEvent> {
     			: new String[] {null, msg};
     }
 	
-    static StackTraceRow[] toStackTraceRow(StackTraceElementProxy[] stack) {
+    static <T> StackTraceRow[] toStackTraceRow(T[] stack, Function<T, StackTraceElement> fn) {
 		if(nonNull(stack) && stack.length > 0) {
 			var stc = new StackTraceRow[stack.length];
 			for(var i=0; i<stack.length; i++) {
-				var e = stack[i].getStackTraceElement();
+				var e = fn.apply(stack[i]);
 				stc[i] = new StackTraceRow(e.getClassName(), e.getMethodName(), e.getLineNumber());
 			}
 			return stc;

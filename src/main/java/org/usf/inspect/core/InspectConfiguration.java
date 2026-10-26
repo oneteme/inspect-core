@@ -45,7 +45,7 @@ public class InspectConfiguration {
 		this.properties = loadConfiguration(environment, "inspect.collector");
 		var report = properties.getReporting();
 		if(report.isEnabled()) {
-			configureLogger(REPORTER_NAME, false, ()-> new InspectLogReporter(hub(), report.isStackTrace()));
+			configureLogger(REPORTER_NAME, false, ()-> new InspectLogReporter(hub(), report.isErrorStackTrace(), report.isRuntimeStackTrace()));
 		}
 		else {
 			configureLogger(REPORTER_NAME, false);
