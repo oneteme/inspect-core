@@ -63,9 +63,8 @@ public class InspectLogReporter extends AppenderBase<ILoggingEvent> {
 				stc = toStackTraceRow(event.getThrowableProxy().getStackTraceElementProxyArray(), TO_STACK_TRACE_ELEMENT);
 			}
 		}
-		else if(runtimeStackTrace) {
+		if(runtimeStackTrace && isNull(stc)) {
 			stc = toStackTraceRow(event.getCallerData(), TO_STACK_TRACE_ELEMENT_IDENTITY);
-			
 		}
 		var arr = splitReportMessage(event.getFormattedMessage());
 		return new ReportEvent(event.getInstant(), event.getThreadName(), arr[0], arr[1], exp, stc);

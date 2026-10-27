@@ -25,7 +25,6 @@ public final class SessionEvent implements EventTrace {
     private final String scope;	//scope of the event e.g. threadname, etc.
     private final String location;  //location of the event e.g. dom, file, etc.
     private final UUID sessionId;
-    
 	//server usage
 	private UUID instanceId;
 

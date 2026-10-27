@@ -40,7 +40,7 @@ public class InspectLogbackConfiguration {//Async !?
 	
     InspectLogbackConfiguration(InspectConfiguration config) {
 		var prp = config.getProperties().getMonitoring().getLogback();
-		var lvl = Level.valueOf(prp.getLevel().name());
+		var lvl = Level.valueOf(prp.getLevel().name()); //TODO cannot convert REPORT/ALERT level
         var app = new InspectLogAppender(lvl);
         app.setContext((LoggerContext) getILoggerFactory());
         app.setName("INSPECT_LOGGER");

@@ -51,7 +51,7 @@ import lombok.NonNull;
  *
  */
 @Aspect
-public class MethodExecutionMonitor implements Ordered {
+public class InspectAnnotationConfiguration implements Ordered {
 
 	private final AspectUserProvider userProvider;
 	private final boolean ignoreCache;
@@ -59,7 +59,7 @@ public class MethodExecutionMonitor implements Ordered {
 	private final boolean ignoreTransaction;
 	private final boolean ignoreTraceable;
 	
-	public MethodExecutionMonitor(AspectUserProvider userProvider, AnnotationMonitoringProperties properties) {
+	public InspectAnnotationConfiguration(AspectUserProvider userProvider, AnnotationMonitoringProperties properties) {
 		this.userProvider = userProvider;
 		this.ignoreCache = properties.getExcludes().contains(SPRING_CAHCE);
 		this.ignoreSchedule = properties.getExcludes().contains(SPRING_SCHEDULE);
@@ -74,7 +74,7 @@ public class MethodExecutionMonitor implements Ordered {
 	public static <T, E extends Throwable> T trackCallable(@NonNull LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		if(getConfiguration().isEnabled()) {
 			return call(fn, localRequestTracer(systemUTC().instant(), type, sgn->{
-				var frm = upperStackFrame(MethodExecutionMonitor.class); //skip MethodExecutionMonitor
+				var frm = upperStackFrame(InspectAnnotationConfiguration.class); //skip MethodExecutionMonitor
 				sgn.setName(name);
 				if(nonNull(frm)) {
 					if(isNull(sgn.getName())) {
@@ -106,7 +106,7 @@ public class MethodExecutionMonitor implements Ordered {
 		}
 		var ctx = activeContext();
 		if(nonNull(ctx) && !ctx.isFullyCompleted() && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
-			REPORTER.warn("MethodExecutionMonitor.aroundSchedule: active session context found, but not completed");
+			REPORTER.warn("InspectAnnotationConfiguration.aroundSchedule: active session context found, but not completed");
 		}
 		return call(point::proceed, mainSessionTracer(systemUTC().instant(), SCHEDULE, sgn-> { 
 			sgn.setName(resolveStageName(point));

@@ -8,14 +8,11 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.core.ContextPropagators.wrapRunnable;
 import static org.usf.inspect.core.DispatchState.DISABLE;
-import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.util.ScheduledExecutorServiceWrapper.wrap;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -64,7 +61,7 @@ public class TraceDispatcherHub implements TraceHub {
 	private int threshold;
 	private boolean debugMode;
 	
-	public void configure(SchedulingProperties properties, TracePublisher publisher, List<DispatchHook> hooks) {
+	public void configure(SchedulingProperties properties, TracePublisher publisher, List<DispatchHook> hooks, boolean debug) {
 		if(!scheduling()) {
 			atomicState.set(properties.getState());
 			var max = properties.getQueueCapacity();
@@ -72,12 +69,12 @@ public class TraceDispatcherHub implements TraceHub {
 			this.threshold= (int) (max *.9); //90% of max capacity
 			this.publisher = publisher;
 			this.eventBus = new EventTraceBus();
+			this.debugMode = debug;
 			if(nonNull(hooks)) {
 				hooks.forEach(eventBus::registerHook);
 			}
-			this.debugMode = getConfiguration().getProperties().isDebugMode();
 			var schc = newSingleThreadScheduledExecutor(daemonThread(properties.getThreadName())); 
-			var delay = properties.getInterval().getSeconds(); //delay >= 10s
+			var delay = properties.getInterval().getSeconds(); //must be >= 10s
 			this.executor = debugMode ? wrap(schc, true) : schc;
 			log.info("◴ scheduling traces dispatch every {} seconds", delay);
 			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
@@ -108,7 +105,7 @@ public class TraceDispatcherHub implements TraceHub {
 	
 	protected void flushIfThresholdReached(){
 		if(queue.size() > threshold && dispatchNow.compareAndSet(false, true)) {  //submit task to avoid concurrent flush
-			Runnable run = ()-> { 
+			executor.schedule(()-> { 
 				try {
 					if(queue.size() > threshold) { //double check, as queue size may have changed since task submission
 						log.warn("⚠ QUEUE THRESHOLD REACHED: current size = {}, threshold = {}", queue.size(), threshold);
@@ -118,13 +115,7 @@ public class TraceDispatcherHub implements TraceHub {
 				finally {
 					dispatchNow.set(false);
 				}
-			};
-			if(debugMode) {// create a new session when debug mode, to avoid no 'active session context' on logging & traces publishing
-				executor.schedule(run, 1, MILLISECONDS);
-			}
-			else { // use current session context to avoid 'no active session' context on logging
-				executor.submit(wrapRunnable(run));
-			}
+			}, 1, MILLISECONDS);
 		}
 	}
 	
@@ -202,18 +193,9 @@ public class TraceDispatcherHub implements TraceHub {
 	
 	//require single thread executor to avoid concurrent queue access
 	public <T> Future<T> peekAsync(Function<Collection<EventTrace>, T> fn){
-		if(scheduling()) {
-			var cf = new CompletableFuture<T>();
-		    executor.submit(() -> {
-		        try {
-		            cf.complete(fn.apply(queue.peek()));
-		        } catch (Exception e) {
-		            cf.completeExceptionally(e);
-		        }
-		    });
-		    return cf;
-		}
-		return completedFuture(fn.apply(queue.peek()));
+	    return scheduling() 
+	    		? executor.submit(()-> fn.apply(queue.peek()))
+	    		: completedFuture(fn.apply(queue.peek()));
 	}
 	
 	protected boolean canCollect() {
@@ -250,10 +232,10 @@ public class TraceDispatcherHub implements TraceHub {
 	static ThreadFactory daemonThread(String threadname) { //counter !?
 		var counter = new AtomicInteger(0);
 		return r-> {
-			var thr = new Thread(r, threadname + "-" + counter.incrementAndGet());
-			thr.setDaemon(true);
-			thr.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));
-			return thr;
+			var trd = new Thread(r, threadname + "-" + counter.incrementAndGet());
+			trd.setDaemon(true);
+			trd.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));
+			return trd;
 		};
 	}
 }

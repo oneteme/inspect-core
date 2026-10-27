@@ -2,6 +2,7 @@ package org.usf.inspect.core;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.InspectCollectorProperties.initializeConfiguration;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.Constants.INSPECT_ENABLED;
 import static org.usf.inspect.core.Constants.REPORTER_NAME;
@@ -34,7 +35,7 @@ import lombok.RequiredArgsConstructor;
 @ConditionalOnProperty(name = INSPECT_ENABLED, havingValue = "true", matchIfMissing = false) 
 public class InspectConfiguration {
 	
-	static InspectConfiguration INSTANCE = new InspectConfiguration(new InspectCollectorProperties(), new StandardEnvironment());
+	static InspectConfiguration INSTANCE = new InspectConfiguration(initializeConfiguration(false), new StandardEnvironment());
 
 	@Getter
 	private final InspectCollectorProperties properties;

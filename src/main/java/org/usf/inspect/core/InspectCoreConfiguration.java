@@ -46,7 +46,7 @@ import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.MainSessionUpdate;
 import org.usf.inspect.RestRemoteServerProperties;
 import org.usf.inspect.TracingProperties;
-import org.usf.inspect.aspect.MethodExecutionMonitor;
+import org.usf.inspect.aspect.InspectAnnotationConfiguration;
 
 import jakarta.servlet.ServletContext;
 import lombok.extern.slf4j.Slf4j;
@@ -68,7 +68,7 @@ public class InspectCoreConfiguration {
 		InspectConfiguration.INSTANCE = config;
 		var prp = config.getProperties();
 		var psh = coreTracePublisher(prp.getTracing(), provider.getNamespace());
-		((TraceDispatcherHub)hub()).configure(prp.getScheduling(), psh, hooks);
+		((TraceDispatcherHub)hub()).configure(prp.getScheduling(), psh, hooks, prp.isDebugMode());
 		this.startup = ofEpochMilli(appContext.getStartupDate());
 		//create startup session immediately after configuring hub, before any other bean is created
 		this.tracer = mainSessionTracer(startup, STARTUP, sgn-> sgn.setName("main"));
@@ -76,9 +76,9 @@ public class InspectCoreConfiguration {
 	
     @Bean
     @ConditionalOnProperty(name = ANNOTATION_ENABLED, havingValue = "true", matchIfMissing = true)
-    MethodExecutionMonitor methodExecutionMonitor(AspectUserProvider aspectUser, InspectConfiguration config) {
-    	logRegistringBean("methodExecutionMonitor", MethodExecutionMonitor.class);
-    	return new MethodExecutionMonitor(aspectUser, config.getProperties().getMonitoring().getAnnotation());
+    InspectAnnotationConfiguration methodExecutionMonitor(AspectUserProvider aspectUser, InspectConfiguration config) {
+    	logRegistringBean("inspectAnnotationConfiguration", InspectAnnotationConfiguration.class);
+    	return new InspectAnnotationConfiguration(aspectUser, config.getProperties().getMonitoring().getAnnotation());
     }
 
     @Bean
