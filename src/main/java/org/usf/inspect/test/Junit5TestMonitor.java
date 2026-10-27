@@ -3,7 +3,7 @@ package org.usf.inspect.test;
 import static java.time.Clock.systemUTC;
 import static org.usf.inspect.MainSessionType.TEST;
 import static org.usf.inspect.core.Constants.JUNIT5_ENABLED;
-import static org.usf.inspect.core.ExecutionTracer.forMainSession;
+import static org.usf.inspect.core.ExecutionTracer.mainSessionTracer;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.call;
@@ -72,7 +72,7 @@ public final class Junit5TestMonitor implements InvocationInterceptor {
 	
 	static <T> T processInvocation(Invocation<T> invocation, ExtensionContext extensionContext, ReflectiveInvocationContext<Method> invocationContext, String prefix) throws Throwable {
 		if(getConfiguration().isEnabled(JUNIT5_ENABLED, true)) {
-			return call(invocation::proceed, forMainSession(systemUTC().instant(), TEST, sgn-> {
+			return call(invocation::proceed, mainSessionTracer(systemUTC().instant(), TEST, sgn-> {
 				//TODO before/after method name
 				sgn.setName(prefix + extensionContext.getDisplayName());
 				sgn.setLocation(formatLocation(invocationContext.getTargetClass().getName(), invocationContext.getExecutable().getName()));

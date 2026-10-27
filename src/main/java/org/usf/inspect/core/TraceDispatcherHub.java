@@ -8,6 +8,7 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.usf.inspect.core.Constants.REPORTER;
+import static org.usf.inspect.core.ContextPropagators.wrapRunnable;
 import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.util.ScheduledExecutorServiceWrapper.wrap;
@@ -61,6 +62,7 @@ public class TraceDispatcherHub implements TraceHub {
 	private ScheduledExecutorService executor;
 	private AtomicBoolean dispatchNow = new AtomicBoolean();
 	private int threshold;
+	private boolean debugMode;
 	
 	public void configure(SchedulingProperties properties, TracePublisher publisher, List<DispatchHook> hooks) {
 		if(!scheduling()) {
@@ -73,9 +75,10 @@ public class TraceDispatcherHub implements TraceHub {
 			if(nonNull(hooks)) {
 				hooks.forEach(eventBus::registerHook);
 			}
+			this.debugMode = getConfiguration().getProperties().isDebugMode();
 			var schc = newSingleThreadScheduledExecutor(daemonThread(properties.getThreadName())); 
 			var delay = properties.getInterval().getSeconds(); //delay >= 10s
-			this.executor = getConfiguration().getProperties().isDebugMode() ? wrap(schc, true) : schc;
+			this.executor = debugMode ? wrap(schc, true) : schc;
 			log.info("◴ scheduling traces dispatch every {} seconds", delay);
 			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
@@ -105,7 +108,7 @@ public class TraceDispatcherHub implements TraceHub {
 	
 	protected void flushIfThresholdReached(){
 		if(queue.size() > threshold && dispatchNow.compareAndSet(false, true)) {  //submit task to avoid concurrent flush
-			executor.schedule(()-> { // create new session if debug mode
+			Runnable run = ()-> { 
 				try {
 					if(queue.size() > threshold) { //double check, as queue size may have changed since task submission
 						log.warn("⚠ QUEUE THRESHOLD REACHED: current size = {}, threshold = {}", queue.size(), threshold);
@@ -115,7 +118,13 @@ public class TraceDispatcherHub implements TraceHub {
 				finally {
 					dispatchNow.set(false);
 				}
-			}, 1, MILLISECONDS);
+			};
+			if(debugMode) {// create a new session when debug mode, to avoid no 'active session context' on logging & traces publishing
+				executor.schedule(run, 1, MILLISECONDS);
+			}
+			else { // use current session context to avoid 'no active session' context on logging
+				executor.submit(wrapRunnable(run));
+			}
 		}
 	}
 	

@@ -14,8 +14,8 @@ import static org.usf.inspect.LocalRequestType.EXEC;
 import static org.usf.inspect.LocalRequestType.TRANSACTION;
 import static org.usf.inspect.MainSessionType.SCHEDULE;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
-import static org.usf.inspect.core.ExecutionTracer.forMainSession;
+import static org.usf.inspect.core.ExecutionTracer.localRequestTracer;
+import static org.usf.inspect.core.ExecutionTracer.mainSessionTracer;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.upperStackFrame;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
@@ -43,6 +43,8 @@ import org.usf.inspect.core.SafeCallable;
 import org.usf.inspect.core.SafeCallable.SafeRunnable;
 import org.usf.inspect.core.TraceableStage;
 
+import lombok.NonNull;
+
 /**
  * 
  * @author u$f
@@ -69,14 +71,11 @@ public class MethodExecutionMonitor implements Ordered {
 		trackCallable(type, name, fn);
 	}
 
-	public static <T, E extends Throwable> T trackCallable(LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
+	public static <T, E extends Throwable> T trackCallable(@NonNull LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		if(getConfiguration().isEnabled()) {
-			return call(fn, forLocalRequest(systemUTC().instant(), sgn->{
+			return call(fn, localRequestTracer(systemUTC().instant(), type, sgn->{
 				var frm = upperStackFrame(MethodExecutionMonitor.class); //skip MethodExecutionMonitor
 				sgn.setName(name);
-				if(nonNull(type)) {
-					sgn.setType(type.name());
-				}
 				if(nonNull(frm)) {
 					if(isNull(sgn.getName())) {
 						sgn.setName(frm.getMethodName());
@@ -109,7 +108,7 @@ public class MethodExecutionMonitor implements Ordered {
 		if(nonNull(ctx) && !ctx.isFullyCompleted() && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
 			REPORTER.warn("MethodExecutionMonitor.aroundSchedule: active session context found, but not completed");
 		}
-		return call(point::proceed, forMainSession(systemUTC().instant(), SCHEDULE, sgn-> { 
+		return call(point::proceed, mainSessionTracer(systemUTC().instant(), SCHEDULE, sgn-> { 
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));
@@ -146,8 +145,7 @@ public class MethodExecutionMonitor implements Ordered {
 	}
 
 	Object aroundMethod(ProceedingJoinPoint point, LocalRequestType type) throws Throwable {
-		return call(point::proceed, forLocalRequest(systemUTC().instant(), sgn->{
-			sgn.setType(type.name());
+		return call(point::proceed, localRequestTracer(systemUTC().instant(), type, sgn->{
 			sgn.setName(resolveStageName(point));
 			sgn.setLocation(locationFrom(point));
 		}));

@@ -9,7 +9,7 @@ import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.Constants.SCHEDULING_ENABLED;
 import static org.usf.inspect.core.ContextPropagators.wrapCallable;
 import static org.usf.inspect.core.ContextPropagators.wrapRunnable;
-import static org.usf.inspect.core.ExecutionTracer.forMainSession;
+import static org.usf.inspect.core.ExecutionTracer.mainSessionTracer;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.Helper.upperStackFrame;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
@@ -88,7 +88,7 @@ public class ScheduledExecutorServiceWrapper extends ExecutorServiceWrapper impl
 	}
 	
 	static <T> ExecutionTracer<T> scheduleSessionTracer(AtomicLong counter, SessionContext ctx, StackFrame frame){
-		return forMainSession(systemUTC().instant(), SCHEDULE, sgn-> {
+		return mainSessionTracer(systemUTC().instant(), SCHEDULE, sgn-> {
 			if(nonNull(frame)) {
 				sgn.setName(frame.getMethodName() + "#schedule_" + counter.incrementAndGet());
 				sgn.setLocation(formatLocation(frame.getClassName(), frame.getMethodName()));

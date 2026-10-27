@@ -24,6 +24,7 @@ import org.usf.inspect.FtpRequestSignal;
 import org.usf.inspect.HttpRequestSignal;
 import org.usf.inspect.HttpSessionSignal;
 import org.usf.inspect.LocalRequestSignal;
+import org.usf.inspect.LocalRequestType;
 import org.usf.inspect.MailRequestSignal;
 import org.usf.inspect.MainSessionSignal;
 import org.usf.inspect.MainSessionType;
@@ -173,13 +174,13 @@ public final class SessionContextManager {
 		return sgn;
 	}
 	
-	public static MainSessionSignal createMainSession(MainSessionType type, Instant start) {
+	public static MainSessionSignal createMainSession(Instant start, MainSessionType type) {
 		return new MainSessionSignal(nextId(), start, threadName(), type.name());
 	}
 	
-	public static LocalRequestSignal createLocalRequest(Instant start) {
+	public static LocalRequestSignal createLocalRequest(Instant start, LocalRequestType type) {
 		var sid = requireSessionIdFor(LOCAL, "SessionContextManager.createLocalRequest");
-		return new LocalRequestSignal(nextId(), sid, start, threadName());
+		return new LocalRequestSignal(nextId(), sid, start, threadName(), type.name());
 	}
 	
 	public static DatabaseRequestSignal createDatabaseSignal(Instant start) {

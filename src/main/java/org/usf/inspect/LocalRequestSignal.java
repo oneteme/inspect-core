@@ -19,8 +19,9 @@ public final class LocalRequestSignal extends AbstractRequestSignal {
 	private String type; //CONST, FILE, CACHE, .. 
 	private String location; //class.method, URL
 
-	public LocalRequestSignal(UUID id, UUID sessionId, Instant start, String threadName) {
+	public LocalRequestSignal(UUID id, UUID sessionId, Instant start, String threadName, String type) {
 		super(id, sessionId, start, threadName);
+		this.type = type;
 	}
 
 }

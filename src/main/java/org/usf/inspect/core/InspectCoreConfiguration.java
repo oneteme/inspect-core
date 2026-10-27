@@ -14,7 +14,7 @@ import static org.usf.inspect.core.Constants.ANNOTATION_ENABLED;
 import static org.usf.inspect.core.Constants.JDBC_ENABLED;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
-import static org.usf.inspect.core.ExecutionTracer.forMainSession;
+import static org.usf.inspect.core.ExecutionTracer.mainSessionTracer;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.sql.DataSourceWrapper.wrap;
@@ -71,7 +71,7 @@ public class InspectCoreConfiguration {
 		((TraceDispatcherHub)hub()).configure(prp.getScheduling(), psh, hooks);
 		this.startup = ofEpochMilli(appContext.getStartupDate());
 		//create startup session immediately after configuring hub, before any other bean is created
-		this.tracer = forMainSession(startup, STARTUP, sgn-> sgn.setName("main"));
+		this.tracer = mainSessionTracer(startup, STARTUP, sgn-> sgn.setName("main"));
 	}
 	
     @Bean

@@ -31,10 +31,11 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.usf.inspect.HttpAction;
+import org.usf.inspect.HttpSessionSignal;
 import org.usf.inspect.HttpSessionStage;
 import org.usf.inspect.HttpSessionUpdate;
-import org.usf.inspect.TraceUpdate;
 import org.usf.inspect.core.ExecutionTracer;
+import org.usf.inspect.core.SafeCallable.SafeConsumer;
 import org.usf.inspect.web.StreamCaptor.StreamExchangeListener;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,24 +61,23 @@ public final class HttpSessionTracer extends ExecutionTracer<Void> implements St
 	@Setter
 	private HttpServletResponse response;
 
-	public HttpSessionTracer(TraceUpdate update, Instant start) {
-		super(update);
-		this.lastTimestamp = start;
+	public HttpSessionTracer(HttpSessionSignal signal, HttpSessionUpdate update, SafeConsumer<HttpSessionSignal> cons) {
+		super(signal, update, cons);
+		this.lastTimestamp = signal.getStart();
 	}
 	
 	public static HttpSessionTracer httpSessionTracer(HttpServletRequest request) {
-		var signal = createHttpSession(systemUTC().instant(), parseTraceUUID(request.getHeader(TRACE_ID_HEADER)));
-		traceSignal(signal, sgn->{
-			sgn.setMethod(request.getMethod());
-			sgn.setURI(fromRequest(request));
-			sgn.setAuthScheme(extractAuthScheme(request.getHeader(AUTHORIZATION))); //extract user !?
-			sgn.setDataSize(request.getContentLength());
-			sgn.setContentEncoding(request.getHeader(CONTENT_ENCODING));
-			sgn.setUserAgent(request.getHeader(USER_AGENT));
-			sgn.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
-		}, "HttpSessionTracer.httpSessionTracer");
-		var upd = new HttpSessionUpdate(signal.getId());
-		return new HttpSessionTracer(upd, signal.getStart());
+		var sgn = createHttpSession(systemUTC().instant(), parseTraceUUID(request.getHeader(TRACE_ID_HEADER)));
+		var upd = new HttpSessionUpdate(sgn.getId());
+		return new HttpSessionTracer(sgn, upd, s->{
+			s.setMethod(request.getMethod());
+			s.setURI(fromRequest(request));
+			s.setAuthScheme(extractAuthScheme(request.getHeader(AUTHORIZATION))); //extract user !?
+			s.setDataSize(request.getContentLength());
+			s.setContentEncoding(request.getHeader(CONTENT_ENCODING));
+			s.setUserAgent(request.getHeader(USER_AGENT));
+			s.setForwardedAddresses(extractAllHeaderValues(request, "X-Forwarded-For"));
+		});
 	}
 	
 	@Override

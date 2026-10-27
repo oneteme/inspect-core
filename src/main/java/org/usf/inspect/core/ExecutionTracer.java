@@ -14,6 +14,7 @@ import java.time.Instant;
 
 import org.usf.inspect.AbstractSessionUpdate;
 import org.usf.inspect.LocalRequestSignal;
+import org.usf.inspect.LocalRequestType;
 import org.usf.inspect.LocalRequestUpdate;
 import org.usf.inspect.MainSessionSignal;
 import org.usf.inspect.MainSessionType;
@@ -37,17 +38,24 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 	private final TraceUpdate update; //may be null
 	private final boolean startup;
 	
-	public ExecutionTracer(TraceUpdate update) {
-		this(update, false);
+	public <S extends TraceSignal> ExecutionTracer(S signal, TraceUpdate update, SafeConsumer<? super S> cons) {
+		this(signal, update, cons, false);
 	}
 
-	public ExecutionTracer(TraceUpdate update, boolean startup) {
+	private <S extends TraceSignal> ExecutionTracer(S signal, TraceUpdate update, SafeConsumer<? super S> cons, boolean startup) {
 		this.update = update;
 		this.startup = startup;
-		if(update instanceof AbstractSessionUpdate session) {
+		if(update instanceof AbstractSessionUpdate session) { 
 			setActiveContext(session, startup);
 		}
-		this.update.setStatus(UNKNOWN); //initial status
+		try {
+			cons.accept(signal);
+		}
+		catch (Exception e) {
+			REPORTER.error("ExecutionTracer.init:", e);
+		}
+		hub().emitTrace(signal);
+		update.setStatus(UNKNOWN); //initial status
 	}
 	
 	@Override
@@ -89,25 +97,15 @@ public class ExecutionTracer<T> implements ExecutionListener<T>, DualEventTracer
 		};
 	}
 	
-	public static <R> ExecutionTracer<R> forLocalRequest(Instant start, SafeConsumer<LocalRequestSignal> cons) {
-		var sgn = createLocalRequest(start);
-		traceSignal(sgn, cons, "ExecutionTracer.forLocalRequest");
-		return new ExecutionTracer<>(new LocalRequestUpdate(sgn.getId()));
+	public static <R> ExecutionTracer<R> localRequestTracer(Instant start, LocalRequestType type, SafeConsumer<LocalRequestSignal> cons) {
+		var sgn = createLocalRequest(start, type);
+		var upd = new LocalRequestUpdate(sgn.getId());
+		return new ExecutionTracer<>(sgn, upd, cons);
 	}
 	
-	public static <R> ExecutionTracer<R> forMainSession(Instant start, MainSessionType type, SafeConsumer<MainSessionSignal> cons) {
-		var sgn = createMainSession(type, start);
-		traceSignal(sgn, cons, "ExecutionTracer.forMainSession");
-		return new ExecutionTracer<>(new MainSessionUpdate(sgn.getId()), type == STARTUP);		
-	}
-	
-	protected static <T extends TraceSignal> void traceSignal(T sgn, SafeConsumer<? super T> supp, String action) {
-		try {
-			supp.accept(sgn);
-		}
-		catch (Exception e) {
-			REPORTER.error("ExecutionTracer.traceSignal:", e);
-		}
-		hub().emitTrace(sgn);
+	public static <R> ExecutionTracer<R> mainSessionTracer(Instant start, MainSessionType type, SafeConsumer<MainSessionSignal> cons) {
+		var sgn = createMainSession(start, type);
+		var upd = new MainSessionUpdate(sgn.getId());
+		return new ExecutionTracer<>(sgn, upd, cons, type == STARTUP);		
 	}
 }

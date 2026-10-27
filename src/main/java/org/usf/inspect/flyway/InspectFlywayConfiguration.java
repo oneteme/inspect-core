@@ -6,7 +6,7 @@ import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
 import static org.usf.inspect.LocalRequestType.EXEC;
 import static org.usf.inspect.core.Constants.FLYWAY_ENABLED;
-import static org.usf.inspect.core.ExecutionTracer.forLocalRequest;
+import static org.usf.inspect.core.ExecutionTracer.localRequestTracer;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.sql.DataSourceWrapper.wrap;
@@ -39,8 +39,7 @@ public class InspectFlywayConfiguration {
 
 	@Bean
 	FlywayMigrationStrategy flywayMigrationStrategy() {
-		return fly-> exec(fly::migrate, forLocalRequest(systemUTC().instant(), sgn->{
-			sgn.setType(EXEC.name());
+		return fly-> exec(fly::migrate, localRequestTracer(systemUTC().instant(), EXEC, sgn->{
 			sgn.setName("FlywayMigration");
 			sgn.setLocation(scriptLocation(fly));
 			sgn.setUser(fly.getConfiguration().getUser());

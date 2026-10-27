@@ -102,7 +102,7 @@ public interface TracePublisher {
 			if(!arr.isEmpty()) {
 				ses = arr.size() == 1
 						? arr.stream().findAny() 
-						: arr.stream().filter(AbstractSessionUpdate.class::isInstance).findAny(); 
+						: arr.stream().filter(AbstractSessionUpdate.class::isInstance).findAny(); //check if there is a session update trace, otherwise warn and keep the first session trace
 			}
 			if(ses.isEmpty()) {
 				if(e.getValue().size() == 1) {
