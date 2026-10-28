@@ -7,6 +7,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.usf.inspect.core.Constants.DISPATCHER_THREAD_NAME;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.util.ScheduledExecutorServiceWrapper.wrap;
@@ -51,6 +52,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TraceDispatcherHub implements TraceHub {
 	
+	//shared counter for all threads created by this class, to avoid thread name collision
+	private static final AtomicInteger COUNTER = new AtomicInteger(0); 
+	
 	private final AtomicReference<DispatchState> atomicState = new AtomicReference<>(DISABLE);
 	
 	private ProcessingQueue<EventTrace> queue;
@@ -73,7 +77,7 @@ public class TraceDispatcherHub implements TraceHub {
 			if(nonNull(hooks)) {
 				hooks.forEach(eventBus::registerHook);
 			}
-			var schc = newSingleThreadScheduledExecutor(daemonThread(properties.getThreadName())); 
+			var schc = newSingleThreadScheduledExecutor(daemonThread()); 
 			var delay = properties.getInterval().getSeconds(); //must be >= 10s
 			this.executor = debugMode ? wrap(schc, true) : schc;
 			log.info("◴ scheduling traces dispatch every {} seconds", delay);
@@ -229,10 +233,9 @@ public class TraceDispatcherHub implements TraceHub {
 		}
 	}
 	
-	static ThreadFactory daemonThread(String threadname) { //counter !?
-		var counter = new AtomicInteger(0);
+	static ThreadFactory daemonThread() {
 		return r-> {
-			var trd = new Thread(r, threadname + "-" + counter.incrementAndGet());
+			var trd = new Thread(r, DISPATCHER_THREAD_NAME + "-" + COUNTER.incrementAndGet());
 			trd.setDaemon(true);
 			trd.setUncaughtExceptionHandler((t,e)-> log.error("uncaught exception on thread {}", t.getName(), e));
 			return trd;

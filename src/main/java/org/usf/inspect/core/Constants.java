@@ -15,6 +15,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Constants {
 	
+	public static final String DISPATCHER_THREAD_NAME = "inspect-dispatcher";
+	
 	public static final String REPORTER_NAME 		= "org.usf.inspect.reporter";
 	public static final Logger REPORTER 			= getLogger(REPORTER_NAME);
 	

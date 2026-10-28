@@ -11,6 +11,7 @@ import static org.usf.inspect.SessionEventMask.LDAP;
 import static org.usf.inspect.SessionEventMask.LOCAL;
 import static org.usf.inspect.SessionEventMask.REST;
 import static org.usf.inspect.SessionEventMask.SMTP;
+import static org.usf.inspect.core.Constants.DISPATCHER_THREAD_NAME;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.Helper.threadName;
 
@@ -228,7 +229,9 @@ public final class SessionContextManager {
 	
 	static boolean assertActiveContext(SessionContext ctx, String action) {
 		if(isNull(ctx)) {
-			REPORTER.warn("{}: session context is null", action);
+			if(!threadName().startsWith(DISPATCHER_THREAD_NAME)) { //avoid report on publisher thread
+				REPORTER.warn("{}: session context is null", action);
+			}
 		}
 		else if(ctx.isFullyCompleted()) {
 			REPORTER.warn("{}: session context is already completed", action);
