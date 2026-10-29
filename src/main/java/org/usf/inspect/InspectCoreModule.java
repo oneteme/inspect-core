@@ -1,5 +1,6 @@
 package org.usf.inspect;
 
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.jsontype.NamedType;
 import tools.jackson.databind.module.SimpleModule;
@@ -51,6 +52,7 @@ public final class InspectCoreModule extends SimpleModule {
 	public static JsonMapper.Builder jsonMapperBuilder() {
 		return JsonMapper.builder()
                 .addModule(new InspectCoreModule())
+				.disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
                 .changeDefaultPropertyInclusion(incl -> incl //replace .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
                         .withValueInclusion(JsonInclude.Include.NON_EMPTY)   // for standard 
                         .withContentInclusion(JsonInclude.Include.NON_EMPTY)); // for Maps/Collections

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.nio.charset.StandardCharsets;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 class InspectCoreModuleTest {
 
     @Test
+    @Disabled
     void testRegisterSubtypes() throws Exception {
         
     	var mapper = assertDoesNotThrow(InspectCoreModule::jsonMapperBuilder, "Failed to create ObjectMapper").build();

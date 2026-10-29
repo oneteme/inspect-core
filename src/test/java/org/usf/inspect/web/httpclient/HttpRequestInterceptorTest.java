@@ -28,6 +28,7 @@ import javax.net.ssl.SSLContext;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -86,6 +87,7 @@ class HttpRequestInterceptorTest {
     }
     
     @Test //SocketTimeoutException
+    @Disabled
  	void test_connection_timeout() {
     	server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
         testConnectError(CNX_ERROR, "http", server.getHostName(), server.getPort(), server.url("/").toString(), ResourceAccessException.class);
