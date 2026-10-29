@@ -57,14 +57,14 @@ public class InspectWebMvcConfiguration implements WebMvcConfigurer {
 	}
 
     @Bean
-    ServletListenerRegistrationBean<ServletRequestListener> inspectRequestListener() {
-        return new ServletListenerRegistrationBean<>(new InspectServletRequestListener());
+    ServletListenerRegistrationBean<ServletRequestListener> inspectRequestListener(HttpRoutePredicate routePredicate) {
+        return new ServletListenerRegistrationBean<>(new InspectServletRequestListener(routePredicate));
 	}
     
     @Bean //important! name == httpSessionFilter
     FilterRegistrationBean<Filter> httpSessionFilter(HttpUserProvider userProvider, HttpRoutePredicate routePredicate) {
     	logRegistringBean("httpSessionFilter", HttpSessionFilter.class);
-    	var filter = new HttpSessionFilter(routePredicate, userProvider);
+    	var filter = new HttpSessionFilter(userProvider);
     	var rb = new FilterRegistrationBean<Filter>(filter);
     	rb.setOrder(HIGHEST_PRECEDENCE);
     	rb.addUrlPatterns("/*"); //check that
@@ -72,8 +72,8 @@ public class InspectWebMvcConfiguration implements WebMvcConfigurer {
     }
     
     @Bean
-    InspectHandlerExceptionResolver exceptionResolverMonitor(HttpRoutePredicate routePredicate) {
+    InspectHandlerExceptionResolver exceptionResolverMonitor() {
     	logRegistringBean("exceptionResolverMonitor", InspectHandlerExceptionResolver.class);
-    	return new InspectHandlerExceptionResolver(routePredicate);
+    	return new InspectHandlerExceptionResolver();
     }
 }

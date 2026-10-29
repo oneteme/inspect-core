@@ -10,6 +10,7 @@ import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodTemplate;
 import static org.usf.inspect.web.WebUtils.TRACE_ID_HEADER;
+import static org.usf.inspect.web.mvc.InspectServletRequestListener.isSessionIgnored;
 import static org.usf.inspect.web.mvc.InspectServletRequestListener.requireSessionTracer;
 
 import java.io.IOException;
@@ -37,7 +38,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class HttpSessionFilter extends OncePerRequestFilter implements AsyncHandlerInterceptor {
 
-	private final HttpRoutePredicate routePredicate;
 	private final HttpUserProvider userProvider;
 	
 	@Override
@@ -74,7 +74,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-		return !routePredicate.accept(request);
+		return isSessionIgnored(request);
 	}
 
 	@Override
@@ -102,7 +102,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 				String lct = null;
 				try {
 					name = resolveEndpointName(handler, request);
-					user = userProvider.getUser(request, name);
+					user = userProvider.getUser(request, name); //move into signal
 					var hm = (HandlerMethod) handler;
 					lct = formatLocation(hm.getBeanType().getName(), hm.getMethod().getName());
 				}

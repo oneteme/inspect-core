@@ -1,6 +1,7 @@
 package org.usf.inspect.web.mvc;
 
 import static java.util.Objects.nonNull;
+import static org.usf.inspect.web.mvc.InspectServletRequestListener.isSessionIgnored;
 import static org.usf.inspect.web.mvc.InspectServletRequestListener.requireSessionTracer;
 
 import org.springframework.core.Ordered;
@@ -19,8 +20,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InspectHandlerExceptionResolver implements HandlerExceptionResolver, Ordered {
 	
-	private final HttpRoutePredicate routePredicate;
-	
 	/**
 	 * Filter → Interceptor.preHandle → Controller → (ControllerAdvice if exception) → Interceptor.postHandle → View → Interceptor.afterCompletion → Filter (end).
 	 * 
@@ -28,7 +27,7 @@ public class InspectHandlerExceptionResolver implements HandlerExceptionResolver
 	 */
 	@Override
 	public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-		if(routePredicate.accept(request)) {
+		if(!isSessionIgnored(request)) {
 			var mnt = requireSessionTracer(request, "InspectHandlerExceptionResolver.resolveException");
 			if(nonNull(mnt)) { //non filtered requests
 				mnt.emitError(ex);
