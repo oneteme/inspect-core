@@ -15,8 +15,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.usf.inspect.InspectCollectorProperties;
 import org.usf.inspect.core.HttpUserProvider;
+import org.usf.inspect.core.InspectConfiguration;
 import org.usf.inspect.core.InspectCoreConfiguration;
 
 import jakarta.servlet.Filter;
@@ -51,9 +51,9 @@ public class InspectWebMvcConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-	HttpRoutePredicate routePredicate(InspectCollectorProperties conf) {
+	HttpRoutePredicate routePredicate(InspectConfiguration conf) {
     	logRegistringBean("routePredicate", HttpRoutePredicate.class);
-    	return compile(conf.getMonitoring().getWebmvc());
+    	return compile(conf.getProperties().getMonitoring().getWebmvc());
 	}
 
     @Bean

@@ -80,7 +80,7 @@ public class TraceDispatcherHub implements TraceHub {
 			var schc = newSingleThreadScheduledExecutor(daemonThread()); 
 			var delay = properties.getInterval().getSeconds(); //must be >= 10s
 			this.executor = debugMode ? wrap(schc, true) : schc;
-			log.info("◴ scheduling traces dispatch every {} seconds", delay);
+			log.info("◴ scheduling trace dispatching every {} seconds, queue capacity = {}", delay, max);
 			this.executor.scheduleWithFixedDelay(this::schedule, delay, delay, SECONDS);
 			getRuntime().addShutdownHook(new Thread(this::shutdown, "shutdown-hook"));
 		}
@@ -106,10 +106,11 @@ public class TraceDispatcherHub implements TraceHub {
 			flushIfThresholdReached();
 		}
 	}
-	
+
+	//scheduled task will be executed on single thread executor, so no concurrent dispatchTraces() call will be executed
 	protected void flushIfThresholdReached(){
-		if(queue.size() > threshold && dispatchNow.compareAndSet(false, true)) {  //submit task to avoid concurrent flush
-			executor.schedule(()-> { 
+		if(queue.size() > threshold && dispatchNow.compareAndSet(false, true)) { 
+			executor.schedule(()-> {
 				try {
 					if(queue.size() > threshold) { //double check, as queue size may have changed since task submission
 						log.warn("⚠ QUEUE THRESHOLD REACHED: current size = {}, threshold = {}", queue.size(), threshold);

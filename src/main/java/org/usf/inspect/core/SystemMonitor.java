@@ -37,20 +37,20 @@ public final class SystemMonitor implements DispatchHook {
 	private static final OperatingSystemMXBean osBean = getOperatingSystemMXBean();
 	
 	private final File file;
+	private final long totalDiskSpace;
 	private final IntSupplier processCpuLoad;
 	
-	private long totalDiskSpace;
 
 	public SystemMonitor(SystemMonitoringProperties prop) {
 		this.file = prop.getDisk();
 		this.processCpuLoad = processCpuLoadSupplier(osBean);
+		this.totalDiskSpace = file.getTotalSpace();
 	}
 	
 	@Override
 	public void onInstanceEmit(InstanceEnvironment instance) {
 		var heap = memoryBean.getHeapMemoryUsage();
 //		var meta = bean.getNonHeapMemoryUsage()
-		totalDiskSpace = file.getTotalSpace();
 		instance.setResource(new MachineResource(
 				toMb(heap.getInit()), 
 				toMb(heap.getMax()), 
