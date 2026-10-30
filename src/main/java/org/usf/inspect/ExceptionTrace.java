@@ -4,8 +4,6 @@ import static java.time.Instant.ofEpochMilli;
 
 import java.util.UUID;
 
-import org.usf.inspect.core.EventTraceFormatter;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;

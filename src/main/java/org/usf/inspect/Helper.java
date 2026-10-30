@@ -1,4 +1,4 @@
-package org.usf.inspect.core;
+package org.usf.inspect;
 
 import static java.lang.StackWalker.getInstance;
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;

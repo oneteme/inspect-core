@@ -5,8 +5,6 @@ import static java.lang.String.format;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.usf.inspect.core.EventTraceFormatter;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;

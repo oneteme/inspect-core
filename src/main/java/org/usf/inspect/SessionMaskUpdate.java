@@ -22,5 +22,4 @@ public class SessionMaskUpdate implements TracePart {
 	public String toString() {
 		return id + "{set mask=" + mask + "}";
 	}
-
 }

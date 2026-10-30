@@ -6,8 +6,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.UUID;
 
-import org.usf.inspect.core.EventTraceFormatter;
-
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

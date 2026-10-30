@@ -1,4 +1,4 @@
-package org.usf.inspect.core;
+package org.usf.inspect;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Objects.nonNull;

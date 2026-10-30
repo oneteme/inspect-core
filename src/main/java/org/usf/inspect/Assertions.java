@@ -1,4 +1,4 @@
-package org.usf.inspect.core;
+package org.usf.inspect;
 
 import static java.lang.String.format;
 import static java.util.Objects.isNull;

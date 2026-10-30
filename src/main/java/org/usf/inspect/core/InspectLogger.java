@@ -1,14 +1,16 @@
 package org.usf.inspect.core;
 
 import static java.time.Clock.systemUTC;
-import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.Helper.threadName;
+import static org.usf.inspect.LogLevel.ALERT;
+import static org.usf.inspect.LogLevel.ERROR;
+import static org.usf.inspect.LogLevel.INFO;
+import static org.usf.inspect.LogLevel.WARN;
 import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
-import static org.usf.inspect.core.InspectLogger.LogLevel.ALERT;
-import static org.usf.inspect.core.InspectLogger.LogLevel.ERROR;
-import static org.usf.inspect.core.InspectLogger.LogLevel.INFO;
-import static org.usf.inspect.core.InspectLogger.LogLevel.WARN;
 import static org.usf.inspect.core.SessionContextManager.createLog;
 import static org.usf.inspect.core.TraceHub.hub;
+
+import org.usf.inspect.LogLevel;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -42,9 +44,5 @@ public final class InspectLogger {
 		if(getConfiguration().isEnabled()) {
 			hub().emitTrace(createLog(systemUTC().instant(), threadName(), level.name(), msg, null));
 		}
-	}
-
-	public enum LogLevel {
-		INFO, WARN, ERROR, ALERT, @Deprecated(forRemoval = true, since = "v1.2") REPORT;
 	}
 }

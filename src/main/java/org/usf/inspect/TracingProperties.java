@@ -1,7 +1,7 @@
 package org.usf.inspect;
 
 import static java.util.Objects.nonNull;
-import static org.usf.inspect.core.Assertions.assertGreaterOrEquals;
+import static org.usf.inspect.Assertions.assertGreaterOrEquals;
 
 import lombok.Getter;
 import lombok.Setter;

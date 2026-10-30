@@ -2,9 +2,9 @@ package org.usf.inspect;
 
 import static java.net.URI.create;
 import static java.time.Duration.ofDays;
-import static org.usf.inspect.core.Assertions.assertAbsolute;
-import static org.usf.inspect.core.Assertions.assertBetween;
-import static org.usf.inspect.core.Assertions.assertPositive;
+import static org.usf.inspect.Assertions.assertAbsolute;
+import static org.usf.inspect.Assertions.assertBetween;
+import static org.usf.inspect.Assertions.assertPositive;
 
 import java.net.URI;
 

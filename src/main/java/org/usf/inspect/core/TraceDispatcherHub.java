@@ -7,9 +7,9 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.usf.inspect.DispatchState.DISABLE;
 import static org.usf.inspect.core.Constants.DISPATCHER_THREAD_NAME;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.core.DispatchState.DISABLE;
 import static org.usf.inspect.util.ScheduledExecutorServiceWrapper.wrap;
 
 import java.util.Collection;
@@ -27,6 +27,7 @@ import org.usf.inspect.AbstractRequestUpdate;
 import org.usf.inspect.AbstractSessionSignal;
 import org.usf.inspect.AbstractSessionUpdate;
 import org.usf.inspect.AbstractStage;
+import org.usf.inspect.DispatchState;
 import org.usf.inspect.EventTrace;
 import org.usf.inspect.ExceptionTrace;
 import org.usf.inspect.InstanceEnvironment;

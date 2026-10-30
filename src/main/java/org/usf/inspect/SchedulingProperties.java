@@ -2,14 +2,11 @@ package org.usf.inspect;
 
 import static java.time.Duration.ofHours;
 import static java.time.Duration.ofSeconds;
-import static java.util.Objects.isNull;
-import static org.usf.inspect.core.Assertions.assertBetween;
-import static org.usf.inspect.core.Assertions.assertGreaterOrEquals;
-import static org.usf.inspect.core.DispatchState.DISPATCH;
+import static org.usf.inspect.Assertions.assertBetween;
+import static org.usf.inspect.Assertions.assertGreaterOrEquals;
+import static org.usf.inspect.DispatchState.DISPATCH;
 
 import java.time.Duration;
-
-import org.usf.inspect.core.DispatchState;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,9 +1,7 @@
 package org.usf.inspect;
 
 import static java.util.Objects.isNull;
-import static org.usf.inspect.core.InspectLogger.LogLevel.WARN;
-
-import org.usf.inspect.core.InspectLogger.LogLevel;
+import static org.usf.inspect.LogLevel.WARN;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -5,6 +5,7 @@ import static java.net.InetAddress.getLocalHost;
 import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNullElse;
+import static org.usf.inspect.Helper.formatLocation;
 import static org.usf.inspect.InspectCoreModule.jsonMapperBuilder;
 import static org.usf.inspect.InstanceType.SERVER;
 import static org.usf.inspect.MainSessionType.STARTUP;
@@ -15,7 +16,6 @@ import static org.usf.inspect.core.Constants.JDBC_ENABLED;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
 import static org.usf.inspect.core.ExecutionTracer.mainSessionTracer;
-import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.TraceHub.hub;
 import static org.usf.inspect.sql.DataSourceWrapper.wrap;
 

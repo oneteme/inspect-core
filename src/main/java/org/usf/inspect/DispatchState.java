@@ -1,4 +1,4 @@
-package org.usf.inspect.core;
+package org.usf.inspect;
 
 import lombok.RequiredArgsConstructor;
 

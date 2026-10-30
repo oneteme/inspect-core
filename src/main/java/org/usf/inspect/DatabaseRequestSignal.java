@@ -3,8 +3,6 @@ package org.usf.inspect;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.usf.inspect.core.EventTraceFormatter;
-
 import lombok.Getter;
 import lombok.Setter;
 

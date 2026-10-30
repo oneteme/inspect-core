@@ -5,9 +5,9 @@ import static ch.qos.logback.core.spi.FilterReply.NEUTRAL;
 import static java.util.Objects.nonNull;
 import static org.slf4j.LoggerFactory.getILoggerFactory;
 import static org.slf4j.LoggerFactory.getLogger;
+import static org.usf.inspect.Helper.formatLocation;
 import static org.usf.inspect.core.Constants.LOGBACK_ENABLED;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.core.Helper.formatLocation;
 import static org.usf.inspect.core.SessionContextManager.createLog;
 import static org.usf.inspect.core.TraceHub.hub;
 

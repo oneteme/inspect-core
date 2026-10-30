@@ -4,8 +4,6 @@ import static java.util.Objects.nonNull;
 
 import java.util.UUID;
 
-import org.usf.inspect.core.EventTraceFormatter;
-
 import lombok.Getter;
 import lombok.Setter;
 

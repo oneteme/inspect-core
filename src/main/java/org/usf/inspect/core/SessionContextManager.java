@@ -4,6 +4,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
+import static org.usf.inspect.Helper.threadName;
 import static org.usf.inspect.SessionEventMask.EVENT;
 import static org.usf.inspect.SessionEventMask.FTP;
 import static org.usf.inspect.SessionEventMask.JDBC;
@@ -13,7 +14,6 @@ import static org.usf.inspect.SessionEventMask.REST;
 import static org.usf.inspect.SessionEventMask.SMTP;
 import static org.usf.inspect.core.Constants.DISPATCHER_THREAD_NAME;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.core.Helper.threadName;
 
 import java.time.Instant;
 import java.util.UUID;

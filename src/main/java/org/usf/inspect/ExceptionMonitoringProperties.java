@@ -1,6 +1,6 @@
 package org.usf.inspect;
 
-import static org.usf.inspect.core.Assertions.assertGreaterOrEquals;
+import static org.usf.inspect.Assertions.assertGreaterOrEquals;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

@@ -1,11 +1,11 @@
 package org.usf.inspect;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.jsontype.NamedType;
 import tools.jackson.databind.module.SimpleModule;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * 

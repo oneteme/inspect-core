@@ -1,12 +1,10 @@
 package org.usf.inspect;
 
 import static java.time.Clock.systemUTC;
-import static org.usf.inspect.core.Helper.threadName;
+import static org.usf.inspect.Helper.threadName;
 
 import java.time.Instant;
 import java.util.UUID;
-
-import org.usf.inspect.core.EventTraceFormatter;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
