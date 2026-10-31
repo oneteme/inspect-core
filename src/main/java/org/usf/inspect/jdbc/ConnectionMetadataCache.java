@@ -30,11 +30,11 @@ final class ConnectionMetadataCache {
 	private boolean present;
 	
 	public void update(DatabaseMetaData meta) throws SQLException {
-		var arr = decode(meta.getURL());
-		this.scheme = arr[0];
-		this.host = arr[1]; 
-		this.port = nonNull(arr[2]) ? parseInt(arr[2]) : -1;
-		this.name = arr[3];
+		var prt = decode(meta.getURL());
+		this.scheme = prt.getHost();
+		this.host = prt.getHost();
+		this.port = nonNull(prt.getPort()) ? parseInt(prt.getPort()) : -1;
+		this.name = prt.getDatabase();
 		this.schema = getSchema(meta.getConnection());
 		this.user = meta.getUserName();
 		this.productName = meta.getDatabaseProductName();
