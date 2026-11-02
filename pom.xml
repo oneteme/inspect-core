@@ -5,10 +5,11 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.oneteme</groupId>
 	<artifactId>inspect-core</artifactId>
-	<version>1.2.0</version>
+	<version>1.2.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>inspect-core</name>
-	<description>INtegrated System Performance Evaluation and Communication Tracking core libray</description>
+	<description>INtegrated System Performance Evaluation and Communication
+		Tracking core libray</description>
 	<url>https://oneteme.github.io/inspect.io</url>
 	<licenses>
 		<license>
@@ -17,7 +18,7 @@
 		</license>
 	</licenses>
 	<organization>
-	    <name>JARVIS</name>
+		<name>JARVIS</name>
 		<url>https://oneteme.github.io</url>
 	</organization>
 	<developers>
@@ -29,13 +30,14 @@
 		</developer>
 	</developers>
 	<scm>
-	    <url>https://github.com/oneteme/inspect-core</url>
+		<url>https://github.com/oneteme/inspect-core</url>
 		<connection>scm:git:git://github.com/oneteme/inspect-core.git</connection>
-	    <developerConnection>scm:git:ssh://git@github.com:oneteme/inspect-core.git</developerConnection>
+		<developerConnection>
+			scm:git:ssh://git@github.com:oneteme/inspect-core.git</developerConnection>
 	</scm>
 	<issueManagement>
-    	<system>GitHub</system>
-    	<url>https://github.com/oneteme/inspect-core/issues</url>
+		<system>GitHub</system>
+		<url>https://github.com/oneteme/inspect-core/issues</url>
 	</issueManagement>
 	<properties>
 		<java.version>21</java.version>
@@ -89,8 +91,8 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.springframework.boot</groupId>
-		    <artifactId>spring-boot-starter-aspectj</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aspectj</artifactId>
 			<version>${spring.version}</version>
 		</dependency>
 		<dependency>
@@ -306,14 +308,19 @@
 							</execution>
 						</executions>
 					</plugin>
+					<plugin>
+						<groupId>org.sonatype.central</groupId>
+						<artifactId>central-publishing-maven-plugin</artifactId>
+						<version>0.12.0</version> 
+						<extensions>true</extensions>
+						<configuration>
+							<publishingServerId>ossrh</publishingServerId>
+							<autoPublish>true</autoPublish>
+							<waitUntil>published</waitUntil>
+						</configuration>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
 	</profiles>
-	<distributionManagement>
-		<snapshotRepository>
-			<id>ossrh</id>
-			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
-		</snapshotRepository>
-	</distributionManagement>
 </project>
