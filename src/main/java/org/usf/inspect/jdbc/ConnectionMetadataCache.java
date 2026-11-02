@@ -31,7 +31,7 @@ final class ConnectionMetadataCache {
 	
 	public void update(DatabaseMetaData meta) throws SQLException {
 		var prt = decode(meta.getURL());
-		this.scheme = prt.getHost();
+		this.scheme = prt.getVendor();
 		this.host = prt.getHost();
 		this.port = nonNull(prt.getPort()) ? parseInt(prt.getPort()) : -1;
 		this.name = prt.getDatabase();
