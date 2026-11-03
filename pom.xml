@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.oneteme</groupId>
 	<artifactId>inspect-core</artifactId>
-	<version>1.2.1</version>
+	<version>1.2.2-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>inspect-core</name>
 	<description>INtegrated System Performance Evaluation and Communication
@@ -316,7 +316,7 @@
 						<configuration>
 							<publishingServerId>ossrh</publishingServerId>
 							<autoPublish>true</autoPublish>
-							<waitUntil>published</waitUntil>
+							<waitUntil>validated</waitUntil> <!-- published can takes too many hours-->
 						</configuration>
 					</plugin>
 				</plugins>
