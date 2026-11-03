@@ -1,11 +1,11 @@
 name: CI/CD
-#on:
-#  pull_request:
-#    branches: main
-#    types: [opened, synchronize, reopened]
-#  push:
-#    branches: main
-#    paths-ignore: [ "README.md", "doc/**" ]
+on:
+  pull_request:
+    branches: main
+    types: [opened, synchronize, reopened]
+  push:
+    branches: main
+    paths-ignore: [ "README.md", "doc/**" ]
 jobs:
   build:
     runs-on: ubuntu-latest
