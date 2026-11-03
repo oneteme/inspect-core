@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Events {
 
-	//log events 0-10
+	//log events 0-100
 	public static final int LOG = 0; //abstract log event
 	public static final int TRACE_ID = 1;
 	public static final int DEBUG_ID = 2;
@@ -19,4 +19,5 @@ public final class Events {
 	public static final int WARN_ID  = 4;
 	public static final int ERROR_ID = 5;
 	public static final int ALERT_ID = 6;
+	//user event 100-200
 }
