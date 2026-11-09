@@ -18,7 +18,7 @@ import org.usf.inspect.core.InspectCoreConfiguration;
  */
 @Configuration
 @ConditionalOnBean(InspectCoreConfiguration.class) //inspect enabled
-@ConditionalOnClass(name = "org.springframework.boot.web.client.RestTemplateCustomizer") //spring-boot dependency present
+@ConditionalOnClass(name = "org.springframework.boot.restclient.RestTemplateCustomizer") //spring-boot dependency present
 @ConditionalOnProperty(name = HTTP_CLIENT_ENABLED, havingValue = "true", matchIfMissing = true)
 public class InspectHttpClientConfiguration {
 

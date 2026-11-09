@@ -22,7 +22,6 @@ import static org.usf.inspect.core.InspectConfiguration.getConfiguration;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.SessionContextManager.activeContext;
 import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
-import static org.usf.inspect.core.SpelEvaluator.evalMethodTemplate;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -74,7 +73,7 @@ public class InspectAnnotationConfiguration implements Ordered {
 	public static <T, E extends Throwable> T trackCallable(@NonNull LocalRequestType type, String name, SafeCallable<T,E> fn) throws E {
 		if(getConfiguration().isEnabled()) {
 			return call(fn, localRequestTracer(systemUTC().instant(), type, sgn->{
-				var frm = upperStackFrame(InspectAnnotationConfiguration.class); //skip MethodExecutionMonitor
+				var frm = upperStackFrame(InspectAnnotationConfiguration.class); //skip InspectAnnotationConfiguration
 				sgn.setName(name);
 				if(nonNull(frm)) {
 					if(isNull(sgn.getName())) {
@@ -95,7 +94,13 @@ public class InspectAnnotationConfiguration implements Ordered {
 			return point.proceed();
 		}
 		var ctx = activeContext();
-		return isNull(ctx) ? aroundSchedule(point) : aroundMethod(point, EXEC);
+		return isNull(ctx) 
+			? aroundExecution(point) 
+			: call(point::proceed, localRequestTracer(systemUTC().instant(), EXEC, sgn->{
+				var mth = targetMethod(point);
+				sgn.setName(resolveStageName(mth, point.getTarget(), point.getArgs()));
+				sgn.setLocation(locationFrom(mth));
+			}));
 	}
 	
 	@Around("@annotation(org.springframework.scheduling.annotation.Scheduled) "
@@ -108,9 +113,15 @@ public class InspectAnnotationConfiguration implements Ordered {
 		if(nonNull(ctx) && !ctx.isFullyCompleted() && !ctx.isStartup()) { //startup context may still be active on early scheduled jobs
 			REPORTER.warn("InspectAnnotationConfiguration.aroundSchedule: active session context found, but not completed");
 		}
-		return call(point::proceed, mainSessionTracer(systemUTC().instant(), SCHEDULE, sgn-> { 
-			sgn.setName(resolveStageName(point));
-			sgn.setLocation(locationFrom(point));
+		return aroundExecution(point);
+	}
+	
+
+	Object aroundExecution(ProceedingJoinPoint point) throws Throwable {
+		return call(point::proceed, mainSessionTracer(systemUTC().instant(), SCHEDULE, sgn-> { //TODO TraceableStage <> Scheduled
+			var mth = targetMethod(point);
+			sgn.setName(resolveStageName(mth, point.getTarget(), point.getArgs()));
+			sgn.setLocation(locationFrom(mth));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));
 //			if(nonNull(ctx)) {
 //				sgn.setParentId(ctx.getSession().getId());
@@ -118,20 +129,24 @@ public class InspectAnnotationConfiguration implements Ordered {
 		}));
 	}
 
-	@Around("@annotation(org.springframework.cache.annotation.Cacheable) "
+	@Around("(@annotation(org.springframework.cache.annotation.Cacheable) "
 	        + "|| @within(org.springframework.cache.annotation.Cacheable) "
 	        + "|| @annotation(org.springframework.cache.annotation.CachePut) "
 	        + "|| @within(org.springframework.cache.annotation.CachePut) "
 	        + "|| @annotation(org.springframework.cache.annotation.CacheEvict) "
 	        + "|| @within(org.springframework.cache.annotation.CacheEvict) "
 	        + "|| @annotation(org.springframework.cache.annotation.Caching) "
-	        + "|| @within(org.springframework.cache.annotation.Caching) "
+	        + "|| @within(org.springframework.cache.annotation.Caching)) "
 	        + "&& !@annotation(org.usf.inspect.core.TraceableStage)") 
 	Object aroundCacheable(ProceedingJoinPoint point) throws Throwable {
 		if(ignoreCache) {
 			return point.proceed();
 		}
-		return aroundMethod(point, CACHE);
+		return call(point::proceed, localRequestTracer(systemUTC().instant(), CACHE, sgn->{
+			var mth = targetMethod(point);
+			sgn.setName(resolveCacheName(mth, point.getTarget(), point.getArgs()));
+			sgn.setLocation(locationFrom(mth));
+		}));
 	}
 	
 	@Around("(@annotation(org.springframework.transaction.annotation.Transactional) "
@@ -141,13 +156,10 @@ public class InspectAnnotationConfiguration implements Ordered {
 		if(ignoreTransaction) {
 			return point.proceed();
 		}
-		return aroundMethod(point, TRANSACTION);
-	}
-
-	Object aroundMethod(ProceedingJoinPoint point, LocalRequestType type) throws Throwable {
-		return call(point::proceed, localRequestTracer(systemUTC().instant(), type, sgn->{
-			sgn.setName(resolveStageName(point));
-			sgn.setLocation(locationFrom(point));
+		return call(point::proceed, localRequestTracer(systemUTC().instant(), TRANSACTION, sgn->{
+			var mth = targetMethod(point);
+			sgn.setName(resolveTransactionName(mth));
+			sgn.setLocation(locationFrom(mth));
 		}));
 	}
 
@@ -156,45 +168,42 @@ public class InspectAnnotationConfiguration implements Ordered {
 		return HIGHEST_PRECEDENCE;
 	}
 	
-	//TODO check this
-	static String resolveStageName(ProceedingJoinPoint point) {
-		var mth = targetMethod(point);
+	static String resolveStageName(Method mth, Object target, Object[] args) {
 		var ant = findAnnotation(mth, TraceableStage.class); 
-		if(nonNull(ant)) { //keep TraceableStage over Cacheable/Transactional to allow name override
-			return ant.name().isEmpty()
-					? mth.getName()
-					: evalMethodTemplate(ant.name(), point.getTarget(), mth, point.getArgs()); //template: "literal" | "prefix-#{#arg}"
-		}
+		return nonNull(ant) && nonNull(ant.name()) && !ant.name().isBlank() 
+				? evalMethodExpression(ant.name(), target, mth, args) //template: "literal" | #arg | #arg.field | T(class).staticField
+				: mth.getName(); //Scheduled, Caching
+	}
+
+	static String resolveTransactionName(Method mth) {
 		var trx = findMethodOrClassAnnotation(mth, Transactional.class);
-		if(nonNull(trx)) {
-			return trx.label().length == 0
-					? mth.getName()
-					: String.join("_", trx.label());
-		}
-		var key = tryExtractCacheKey(mth);
-		if(nonNull(key)) {
-			return key.isEmpty()  
-					? mth.getName()
-					: evalMethodExpression(key, point.getTarget(), mth, point.getArgs()); //pure SpEL: "#id"
-		}
-		return mth.getName(); //Scheduled, Caching
+			return nonNull(trx) && trx.label().length > 0
+					?  String.join("_", trx.label())
+					: mth.getName();
 	}
 	
-	private static String tryExtractCacheKey(Method method) {
-		var cch = findMethodOrClassAnnotation(method, Cacheable.class);
-		if(nonNull(cch)) {
-			return cch.key();
+	static String resolveCacheName(Method mth, Object target, Object[] args) {
+		String key = null;
+		var cch = findMethodOrClassAnnotation(mth, Cacheable.class);
+		if(isNull(cch)) {
+			var ccp = findMethodOrClassAnnotation(mth, CachePut.class);
+			if(isNull(ccp)) {
+				var cce = findMethodOrClassAnnotation(mth, CacheEvict.class);
+				if(nonNull(cce)) {
+					key = cce.key();
+				}
+			}
+			else {
+				key = ccp.key();
+			}
 		}
-		var ccp = findMethodOrClassAnnotation(method, CachePut.class);
-		if(nonNull(ccp)) {
-			return ccp.key();
+		else {
+			key = cch.key();
 		}
-		var cce = findMethodOrClassAnnotation(method, CacheEvict.class);
-		if(nonNull(cce)) {
-			return cce.key();
-		}
-		return null;
-	} 
+		return nonNull(key) && !key.isBlank()  
+				? evalMethodExpression(key, target, mth, args) //pure SpEL: "#id"
+				: mth.getName();
+	}
 	
 	static <T extends Annotation> T findMethodOrClassAnnotation(Method method, Class<T> annotation) {
 		var trx = findAnnotation(method, annotation);
@@ -210,8 +219,7 @@ public class InspectAnnotationConfiguration implements Ordered {
 		return nonNull(trg) ? getMostSpecificMethod(mth, trg.getClass()) : mth;
 	}
 	
-	static String locationFrom(ProceedingJoinPoint point) {
-		var mth = targetMethod(point);
-		return formatLocation(mth.getDeclaringClass().getName(), mth.getName());
+	static String locationFrom(Method method) {
+		return formatLocation(method.getDeclaringClass().getName(), method.getName());
 	}
 }

@@ -2,6 +2,7 @@ package org.usf.inspect;
 
 import static org.usf.inspect.Events.*;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
  * @author u$f
  *
  */
+@Getter
 @RequiredArgsConstructor
 public enum LogLevel {
 	
@@ -16,5 +18,4 @@ public enum LogLevel {
 	@Deprecated(forRemoval = true, since = "v1.2") REPORT(-1);
 
 	private final int code;
-
 }

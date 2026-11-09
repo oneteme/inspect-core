@@ -144,6 +144,7 @@ public class InspectCoreConfiguration {
 
     @Bean
     @ConditionalOnMissingBean //default implementation, can be provided by application
+    //TODO : support git-commit-id plugin as conditional bean
     ApplicationPropertiesProvider applicationPropertiesProvider(Environment env) {
     	logLoadingBean("applicationPropertiesProvider", ApplicationPropertiesProvider.class);
     	return new DefaultApplicationPropertiesProvider(env);

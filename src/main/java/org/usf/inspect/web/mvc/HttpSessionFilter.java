@@ -8,7 +8,7 @@ import static org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTE
 import static org.springframework.web.servlet.HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE;
 import static org.usf.inspect.Helper.formatLocation;
 import static org.usf.inspect.core.Constants.REPORTER;
-import static org.usf.inspect.core.SpelEvaluator.evalMethodTemplate;
+import static org.usf.inspect.core.SpelEvaluator.evalMethodExpression;
 import static org.usf.inspect.web.WebUtils.TRACE_ID_HEADER;
 import static org.usf.inspect.web.mvc.InspectServletRequestListener.isSessionIgnored;
 import static org.usf.inspect.web.mvc.InspectServletRequestListener.requireSessionTracer;
@@ -144,7 +144,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 		if(handler instanceof HandlerMethod mth) {
 			var ant = mth.getMethodAnnotation(TraceableStage.class);
 			if(nonNull(ant) && !ant.name().isEmpty()) {
-				return evalMethodTemplate(ant.name(), mth.getBean(), mth.getMethod(), null);
+				return evalMethodExpression(ant.name(), mth.getBean(), mth.getMethod(), null);
 //				return Helper.evalExpression(ant.name(), mth.getBean(), mth.getBeanType(), 
 //						new String[] {"request"}, new Object[] {req}).toString()
 			}
