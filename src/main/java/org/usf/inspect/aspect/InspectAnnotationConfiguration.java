@@ -1,5 +1,6 @@
 package org.usf.inspect.aspect;
 
+import static java.lang.String.join;
 import static java.time.Clock.systemUTC;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -177,9 +178,9 @@ public class InspectAnnotationConfiguration implements Ordered {
 
 	static String resolveTransactionName(Method mth) {
 		var trx = findMethodOrClassAnnotation(mth, Transactional.class);
-			return nonNull(trx) && trx.label().length > 0
-					?  String.join("_", trx.label())
-					: mth.getName();
+		return nonNull(trx) && trx.label().length > 0
+				? join("_", trx.label())
+				: mth.getName();
 	}
 	
 	static String resolveCacheName(Method mth, Object target, Object[] args) {
