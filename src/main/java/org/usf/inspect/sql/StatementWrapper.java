@@ -20,7 +20,7 @@ public class StatementWrapper implements Statement {
 
 	@Delegate
 	protected final Statement st;
-	protected final DatabaseConnectionLifecycleTracer tracer;
+	protected final StatementLifecycleTracer tracer;
 	
 	@Override
 	public void addBatch(String sql) throws SQLException {
@@ -49,7 +49,7 @@ public class StatementWrapper implements Statement {
 	
 	@Override
 	public ResultSet executeQuery(String sql) throws SQLException {
-		return new ResultSetWrapper(call(()-> st.executeQuery(sql), tracer.executeQueryStageListener(sql)), tracer);
+		return new ResultSetWrapper(call(()-> st.executeQuery(sql), tracer.executeQueryStageListener(sql)), tracer.getConnectionTracer());
 	}
 	
 	@Override
@@ -104,7 +104,7 @@ public class StatementWrapper implements Statement {
 	
 	@Override
 	public ResultSet getResultSet() throws SQLException {
-		return new ResultSetWrapper(st.getResultSet(), tracer);
+		return new ResultSetWrapper(st.getResultSet(), tracer.getConnectionTracer());
 	}
 	
 	@Override
@@ -119,5 +119,15 @@ public class StatementWrapper implements Statement {
 		var n = st.getLargeUpdateCount();
 		tracer.updateStageRowsCount(n);
 		return n;
+	}
+	
+	@Override
+	public void close() throws SQLException {
+		try {
+			st.close();
+		}
+		finally {
+			tracer.closeStatementStage();
+		}
 	}
 }

@@ -10,6 +10,7 @@ import static org.usf.inspect.CommandType.READ;
 import static org.usf.inspect.CommandType.ROLE;
 import static org.usf.inspect.CommandType.SCRIPT;
 import static org.usf.inspect.CommandType.SETUP;
+import static org.usf.inspect.core.Constants.REPORTER;
 
 import java.util.stream.Stream;
 
@@ -38,7 +39,18 @@ public enum DatabaseCommand {
 	//avoid clone array each time
 	public static final DatabaseCommand[] CACHE = Stream.of(values()).filter(e-> e!= SQL).toArray(DatabaseCommand[]::new);
 
+	
 	public static DatabaseCommand extractCommand(String sql) {
+		try {
+			return internalExtractCommand(sql);
+		}
+		catch (Exception e) {
+			REPORTER.error("DatabaseCommand.extractCommand: failed to parse command", e);
+		}
+		return SQL;
+	}
+	
+	static DatabaseCommand internalExtractCommand(String sql) {
 		if(isNull(sql) || sql.isBlank()) {
 			return null;
 		}

@@ -117,16 +117,12 @@ public class InspectAnnotationConfiguration implements Ordered {
 		return aroundExecution(point);
 	}
 	
-
-	Object aroundExecution(ProceedingJoinPoint point) throws Throwable {
+	private Object aroundExecution(ProceedingJoinPoint point) throws Throwable {
 		return call(point::proceed, mainSessionTracer(systemUTC().instant(), SCHEDULE, sgn-> { //TODO TraceableStage <> Scheduled
 			var mth = targetMethod(point);
 			sgn.setName(resolveStageName(mth, point.getTarget(), point.getArgs()));
 			sgn.setLocation(locationFrom(mth));
 			sgn.setUser(userProvider.getUser(point, sgn.getName()));
-//			if(nonNull(ctx)) {
-//				sgn.setParentId(ctx.getSession().getId());
-//			}
 		}));
 	}
 
@@ -153,7 +149,7 @@ public class InspectAnnotationConfiguration implements Ordered {
 	@Around("(@annotation(org.springframework.transaction.annotation.Transactional) "
 	        + "|| @within(org.springframework.transaction.annotation.Transactional)) "
 	        + "&& !@annotation(org.usf.inspect.core.TraceableStage)") 
-	Object aroundTransactionnal(ProceedingJoinPoint point) throws Throwable {
+	Object aroundTransactional(ProceedingJoinPoint point) throws Throwable {
 		if(ignoreTransaction) {
 			return point.proceed();
 		}
@@ -171,7 +167,7 @@ public class InspectAnnotationConfiguration implements Ordered {
 	
 	static String resolveStageName(Method mth, Object target, Object[] args) {
 		var ant = findAnnotation(mth, TraceableStage.class); 
-		return nonNull(ant) && nonNull(ant.name()) && !ant.name().isBlank() 
+		return nonNull(ant) && !ant.name().isBlank() 
 				? evalMethodExpression(ant.name(), target, mth, args) //template: "literal" | #arg | #arg.field | T(class).staticField
 				: mth.getName(); //Scheduled, Caching
 	}

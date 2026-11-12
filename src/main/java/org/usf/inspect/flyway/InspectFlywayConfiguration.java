@@ -20,6 +20,7 @@ import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.usf.inspect.core.InspectCoreConfiguration;
+import org.usf.inspect.sql.DataSourceWrapper;
 
 /**
  * 
@@ -28,17 +29,22 @@ import org.usf.inspect.core.InspectCoreConfiguration;
  */
 @Configuration
 @ConditionalOnBean(InspectCoreConfiguration.class) //inspect enabled
-@ConditionalOnClass(name="org.flywaydb.core.api.configuration.FluentConfiguration") //flyway dependency present
+@ConditionalOnClass(name="org.springframework.boot.flyway.autoconfigure.FlywayConfigurationCustomizer") //flyway dependency present
 @ConditionalOnProperty(name = FLYWAY_ENABLED, havingValue = "true", matchIfMissing = true)
 public class InspectFlywayConfiguration {
 	
 	@Bean
 	FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
-		return conf-> conf.dataSource(wrap(conf.getDataSource(), "flywayDataSource"));
+		return conf->{
+			var ds = conf.getDataSource();
+			if(!(ds instanceof DataSourceWrapper) && nonNull(ds)) {
+				conf.dataSource(wrap(ds, "flywayDataSource"));
+			}
+		};
 	}
 
 	@Bean
-	FlywayMigrationStrategy flywayMigrationStrategy() {
+	FlywayMigrationStrategy flywayMigrationStrategy() {//TODO wrap default strategy or user defined strategy
 		return fly-> exec(fly::migrate, localRequestTracer(systemUTC().instant(), EXEC, sgn->{
 			sgn.setName("FlywayMigration");
 			sgn.setLocation(scriptLocation(fly));
@@ -49,6 +55,6 @@ public class InspectFlywayConfiguration {
 	static String scriptLocation(Flyway fly) {
 		return nonNull(fly.getConfiguration().getLocations())
 				? stream(fly.getConfiguration().getLocations()).map(Object::toString).collect(joining(","))
-				: formatLocation(Flyway.class.getName(), "migrate");
+				: formatLocation(FlywayMigrationStrategy.class.getName(), "migrate");
 	}
 }

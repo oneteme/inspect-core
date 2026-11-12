@@ -1,5 +1,7 @@
 package org.usf.inspect;
 
+import static org.usf.inspect.TraceType.SMTP_REQ;
+
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -26,6 +28,6 @@ public final class MailRequestUpdate extends AbstractRequestUpdate {
 	
 	@Override
 	public byte traceType() {
-		return TraceType.SMTP_REQ.getValue();
+		return SMTP_REQ.getValue();
 	}
 }
