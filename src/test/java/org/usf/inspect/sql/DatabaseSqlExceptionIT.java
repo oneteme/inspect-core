@@ -78,7 +78,7 @@ class DatabaseSqlExceptionIT {
 
             DatabaseConnectionLifecycleTracer monitor =
                     new DatabaseConnectionLifecycleTracer(
-                            new ConnectionMetadataCache()
+                            new ConnectionMetadata()
                     );
 
             int code = monitor.resolveStatus(exception);
@@ -110,7 +110,7 @@ class DatabaseSqlExceptionIT {
 
             DatabaseConnectionLifecycleTracer monitor =
                     new DatabaseConnectionLifecycleTracer(
-                            new ConnectionMetadataCache()
+                            new ConnectionMetadata()
                     );
 
             int code = monitor.resolveStatus(exception);

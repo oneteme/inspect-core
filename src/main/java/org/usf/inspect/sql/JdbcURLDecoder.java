@@ -20,7 +20,7 @@ public final class JdbcURLDecoder {
 	private static final String H2_VENDOR = "h2";
 
 	public static JdbcUrlParts decode(String url) {
-		if(url == null || !startsWithIgnoreCase(url, JDBC_PREFIX)) {
+		if(isNull(url) || !startsWithIgnoreCase(url, JDBC_PREFIX)) {
 			return UNKNOWN_PARTS;
 		}
 		var dbTypeEnd = url.indexOf(':', JDBC_PREFIX.length());

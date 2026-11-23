@@ -42,7 +42,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	
 	@Override
 	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws IOException, ServletException {
-		var trc = requireSessionTracer(req, "doFilterInternal"); //created in InspectServletRequestListener
+		var trc = requireSessionTracer(req, "HttpSessionFilter.doFilterInternal"); //created in InspectServletRequestListener
 		if(isNull(trc)) {
 			filterChain.doFilter(req, res);
 		}
@@ -85,7 +85,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	@Override
 	public void afterConcurrentHandlingStarted(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 		if(shouldIntercept(handler)) {  //avoid infiltrate request
-			var trc = requireSessionTracer(request, "afterConcurrentHandlingStarted");
+			var trc = requireSessionTracer(request, "HttpSessionFilter.afterConcurrentHandlingStarted");
 			if (nonNull(trc)) {
 				trc.emitDelegationStage(); //context will be propagated by task executor decorator
 			}
@@ -95,7 +95,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 		if(shouldIntercept(handler) && request.getDispatcherType() != ASYNC) {  //avoid infiltrate request
-			var trc = requireSessionTracer(request, "preHandle");
+			var trc = requireSessionTracer(request, "HttpSessionFilter.preHandle");
 			if(nonNull(trc)) {
 				String name = null;
 				String user = null;
@@ -120,7 +120,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	@Override
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
 		if(shouldIntercept(handler) && request.getDispatcherType() != ASYNC) { //avoid infiltrate request
-			var trc = requireSessionTracer(request, "postHandle");
+			var trc = requireSessionTracer(request, "HttpSessionFilter.postHandle");
 			if(nonNull(trc)) {
 				trc.emitExecutionStage();
 			}
@@ -130,7 +130,7 @@ public final class HttpSessionFilter extends OncePerRequestFilter implements Asy
 	@Override
 	public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 		if(shouldIntercept(handler)) { //avoid infiltrate request 
-			var trc = requireSessionTracer(request, "afterCompletion");
+			var trc = requireSessionTracer(request, "HttpSessionFilter.afterCompletion");
 			if(nonNull(trc)) {
 				trc.emitFinalizationStage();
 				if(nonNull(ex)) {

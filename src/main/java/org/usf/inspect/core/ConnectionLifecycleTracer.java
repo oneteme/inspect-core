@@ -90,10 +90,14 @@ public abstract class ConnectionLifecycleTracer implements DualEventTracer {
 	}
 	
 	public <R> ExecutionListener<R> stageListener(StageBuilder<R> stgBuilder){
+		return stageListener(true, stgBuilder);
+	}
+	
+	public <R> ExecutionListener<R> stageListener(boolean emit, StageBuilder<R> stgBuilder){
 		return (s,e,o,t)-> {
 			if(assertActiveTraceUpdate("ConnectionLifecycleTracer.stageListener")) {
 				var stg = stgBuilder.newStage(s, e, o, t);
-				if(nonNull(stg)) {
+				if(emit && nonNull(stg)) {
 					hub().emitTrace(stg);
 				}
 				if(nonNull(t)) {

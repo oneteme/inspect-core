@@ -22,9 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public final class InspectServletRequestListener implements ServletRequestListener {
 
-	
 	static final String SESSION_TRACER = "inspect-http-session-tracer";
-	static final String SESSION_IGNORE = "inspect-http-session-ignore"; 
+	static final String SESSION_IGNORE = "inspect-http-session-ignore";
 
 	private final HttpRoutePredicate routePredicate;
 	
@@ -64,7 +63,7 @@ public final class InspectServletRequestListener implements ServletRequestListen
 	static HttpSessionTracer requireSessionTracer(HttpServletRequest req, String action) {
 		var trc = currentSessionTracer(req);
 		if(isNull(trc)) {
-			REPORTER.warn("HttpSessionFilter.{}: no session tracer found for request {}", action, req.getRequestURI());
+			REPORTER.warn("{}: no session tracer found for request {}", action, req.getRequestURI());
 		}
 		return trc;
 	}

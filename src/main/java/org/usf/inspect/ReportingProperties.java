@@ -16,6 +16,6 @@ public final class ReportingProperties {
 
 	private boolean enabled = true;
 	private boolean errorStackTrace = true;
-	private boolean runtimeStackTrace = true;
+	private boolean runtimeStackTrace = false;
 
 }

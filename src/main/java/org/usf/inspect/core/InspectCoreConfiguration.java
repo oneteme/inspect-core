@@ -12,19 +12,15 @@ import static org.usf.inspect.MainSessionType.STARTUP;
 import static org.usf.inspect.core.BeanUtils.logLoadingBean;
 import static org.usf.inspect.core.BeanUtils.logRegistringBean;
 import static org.usf.inspect.core.Constants.ANNOTATION_ENABLED;
-import static org.usf.inspect.core.Constants.JDBC_ENABLED;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.DualEventTracer.assertActiveTracer;
 import static org.usf.inspect.core.ExecutionTracer.mainSessionTracer;
 import static org.usf.inspect.core.TraceHub.hub;
-import static org.usf.inspect.sql.DataSourceWrapper.wrap;
 
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-
-import javax.sql.DataSource;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -79,17 +75,6 @@ public class InspectCoreConfiguration {
     InspectAnnotationConfiguration methodExecutionMonitor(AspectUserProvider aspectUser, InspectConfiguration config) {
     	logRegistringBean("inspectAnnotationConfiguration", InspectAnnotationConfiguration.class);
     	return new InspectAnnotationConfiguration(aspectUser, config.getProperties().getMonitoring().getAnnotation());
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = JDBC_ENABLED, havingValue = "true", matchIfMissing = true)
-    BeanPostProcessor dataSourceWrapper() {
-    	return new BeanPostProcessor() {
-    		@Override
-    		public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-	            return bean instanceof DataSource ds ? wrap(ds, beanName) : bean;
-    		}
-		};
     }
     
     @Bean

@@ -84,7 +84,7 @@ class DatabaseConnectionFailureIT {
 
         DatabaseConnectionLifecycleTracer monitor =
                 new DatabaseConnectionLifecycleTracer(
-                        new ConnectionMetadataCache()
+                        new ConnectionMetadata()
                 );
 
         int code = monitor.resolveStatus(exception != null ? exception : null);
@@ -123,7 +123,7 @@ class DatabaseConnectionFailureIT {
 
         DatabaseConnectionLifecycleTracer monitor =
                 new DatabaseConnectionLifecycleTracer(
-                        new ConnectionMetadataCache());
+                        new ConnectionMetadata());
 
         int code = monitor.resolveStatus(exception);
 
@@ -178,7 +178,7 @@ void shouldDetectConnectionLostWhenServerStopsDuringQuery() throws Exception {
     assertNotNull(exception, "La requête aurait dû échouer.");
 
     DatabaseConnectionLifecycleTracer monitor =
-            new DatabaseConnectionLifecycleTracer(new ConnectionMetadataCache());
+            new DatabaseConnectionLifecycleTracer(new ConnectionMetadata());
 
     int code = monitor.resolveStatus(exception);
     assertNotEquals(0, code);

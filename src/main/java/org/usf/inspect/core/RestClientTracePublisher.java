@@ -11,14 +11,12 @@ import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.encodeBasicAuth;
 import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.web.WebUtils.TRACE_RETRY_HEADER;
 
 import java.io.ByteArrayOutputStream;
-import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -30,17 +28,16 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.usf.inspect.EventTrace;
 import org.usf.inspect.InstanceEnvironment;
 import org.usf.inspect.RestRemoteServerProperties;
 import org.usf.inspect.web.httpclient.HttpRequestInterceptor;
 
 import jakarta.annotation.Nonnull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -50,12 +47,12 @@ import tools.jackson.databind.json.JsonMapper;
  *
  */
 @Slf4j
-@RequiredArgsConstructor
 public final class RestClientTracePublisher implements TracePublisher {
 
-	private final RestRemoteServerProperties properties;
 	private final RestTemplate template;
-
+	private final UriComponentsBuilder instanceUriBuilder;
+	private final UriComponentsBuilder traceUriBuilder;
+	
 	private InstanceEnvironment instance;
 	private boolean registered;
 	private int attempts;
@@ -64,6 +61,12 @@ public final class RestClientTracePublisher implements TracePublisher {
 
 	public RestClientTracePublisher(RestRemoteServerProperties properties, JsonMapper.Builder mapper, String namespace, boolean debug) {
 		this(properties, defaultRestTemplate(properties, mapper, namespace, debug));
+	}
+	
+	public RestClientTracePublisher(RestRemoteServerProperties properties, RestTemplate template) {
+		this.template = template;
+		this.instanceUriBuilder = fromUriString(properties.getInstanceURI());
+		this.traceUriBuilder = fromUriString(properties.getTracesURI());
 	}
 
 	@Override
@@ -128,7 +131,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 	}
 	
 	URI buildTraceUri(UUID id, int seq, int atm, boolean complete) {
-	    return fromUriString(properties.getTracesURI())
+	    return traceUriBuilder
 	            .queryParam("seq", seq)
 	            .queryParam("atm", atm)
 	            .queryParamIfPresent("end", complete ? Optional.of(systemUTC().instant()) : empty())
@@ -140,8 +143,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 		if(registered) {
 			return instance.getId();
 		}
-		var uri = fromUriString(properties.getInstanceURI())
-				.queryParam("atm", ++attempts).build().toUri();
+		var uri = instanceUriBuilder.queryParam("atm", ++attempts).build().toUri();
 		if(nonNull(instance)) {
 			try {
 				template.put(uri, instance);
@@ -150,17 +152,17 @@ public final class RestClientTracePublisher implements TracePublisher {
 				log.info("instance registered successfully, id={}", instance.getId());
 				return instance.getId();
 			}
-			catch(HttpClientErrorException rsp) {
-				if(rsp.getStatusCode() == CONFLICT) { //409 : instance already registered, ignore
+			catch(HttpClientErrorException e) {
+				if(e.getStatusCode() == CONFLICT) { //409 : instance already registered, ignore
 					registered = true;
 					attempts = 0;
 					log.info("instance already registered, id={}", instance.getId());
 					return instance.getId();
 				}
-				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt #{}: status={}", attempts, rsp.getStatusCode(), rsp);
+				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt={}: status={}", attempts, e.getStatusCode(), e);
 			}
 			catch(RestClientException e) {//server / client ?
-				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt #{}", attempts, e);
+				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt={}", attempts, e);
 			}
 		}
 		else {
@@ -170,25 +172,22 @@ public final class RestClientTracePublisher implements TracePublisher {
 	}
 
 	boolean shouldRetry(RestClientException e) {
-		if(e instanceof HttpClientErrorException rsp) { //40x : BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT
-			REPORTER.error("RestClientTracePublisher.evaluateRetry: status={}", rsp.getStatusCode(), e);
-			return rsp.getStatusCode() == TOO_MANY_REQUESTS; //retry only if server is overloaded, otherwise abort
-		}
-		if(e instanceof HttpServerErrorException rsp) { //50x check header !?
-			var hdr = rsp.getResponseHeaders();
+		Object status = null;
+		if(e instanceof RestClientResponseException rst) {
+			var hdr = rst.getResponseHeaders();
 			if(nonNull(hdr) && hdr.containsHeader(TRACE_RETRY_HEADER)) {
-				return RETRY.equals(hdr.getFirst(TRACE_RETRY_HEADER));
+				return RETRY.equals(hdr.getFirst(TRACE_RETRY_HEADER)); //server synchronization 
 			}
-			REPORTER.error("RestClientTracePublisher.evaluateRetry: '{}' is null", TRACE_RETRY_HEADER, e);
-		}//see https://www.baeldung.com/java-socket-connection-read-timeout
-		if(e instanceof ResourceAccessException rae 
-				&& rae.getCause() instanceof SocketTimeoutException cause) { 
-			REPORTER.error("RestClientTracePublisher.evaluateRetry: timeout", cause);
+			if(rst.getStatusCode() == CONFLICT) {
+				return false; //409 : instance already registered, ignore
+			}
+			status = rst.getStatusCode();
 		}
 		else {
-			REPORTER.error("RestClientTracePublisher.evaluateRetry", e);
+			status = "ERROR";
 		}
-		return true;
+		REPORTER.error("RestClientTracePublisher.shouldRetry: failed to publish traces, attempt={}, status={}", attempts, status, e);
+		return true; //retry on all other errors, including 429 Too Many Requests
 	}
 
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, JsonMapper.Builder mapper, String namespace, boolean debug) {

@@ -18,7 +18,7 @@ import org.usf.inspect.core.InspectCoreConfiguration;
  */
 @Configuration
 @ConditionalOnBean(InspectCoreConfiguration.class) //inspect enabled
-@ConditionalOnClass(name = "org.springframework.web.reactive.function.client.ExchangeFilterFunction")
+@ConditionalOnClass(name = "org.springframework.boot.webclient.WebClientCustomizer") //spring-boot-starter-webflux dependency present
 @ConditionalOnProperty(name = WEB_CLIENT_ENABLED, havingValue = "true", matchIfMissing = true)
 public class InspectWebClientConfiguration {
 

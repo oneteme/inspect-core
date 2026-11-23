@@ -20,7 +20,7 @@ public final class ResultSetWrapper implements ResultSet {
 
 	@Delegate
 	private final ResultSet rs;
-	private final DatabaseConnectionLifecycleTracer tracer;
+	private final ConnectionWrapper connection;
 	private final Instant start = systemUTC().instant();
 	private int rows;
 
@@ -77,6 +77,6 @@ public final class ResultSetWrapper implements ResultSet {
 	
 	@Override
 	public void close() throws SQLException {
-		exec(rs::close, tracer.fetchStageListener(start, rows));
+		exec(rs::close, connection.getTracer().fetchStageListener(start, rows));
 	}
 }

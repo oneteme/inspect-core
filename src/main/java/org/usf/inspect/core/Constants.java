@@ -31,6 +31,7 @@ public final class Constants {
 	public static final String FLYWAY_ENABLED 		= "inspect.collector.monitoring.flyway.enabled";
 	public static final String REACTOR_ENABLED 		= "inspect.collector.monitoring.reactor.enabled";
 	public static final String LDAP_ENABLED 		= "inspect.collector.monitoring.ldap.enabled";
+//	public static final String ELASTICSEARCH_ENABLED= "inspect.collector.monitoring.elasticsearch.enabled";
 
 	public static final String SCHEDULING_ENABLED 	= "inspect.collector.monitoring.scheduling.enabled";
 

@@ -14,8 +14,8 @@ public class CallableStatementWrapper extends PreparedStatementWrapper implement
 	@Delegate
 	private final CallableStatement cs;
 
-	public CallableStatementWrapper(CallableStatement cs, StatementLifecycleTracer tracer) {
-		super(cs, tracer);
+	public CallableStatementWrapper(CallableStatement cs, ConnectionWrapper cnx, StatementLifecycleTracer tracer) {
+		super(cs, cnx, tracer);
 		this.cs = cs;
 	}
 }

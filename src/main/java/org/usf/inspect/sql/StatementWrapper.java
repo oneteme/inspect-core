@@ -3,6 +3,7 @@ package org.usf.inspect.sql;
 import static org.usf.inspect.core.InspectExecutor.call;
 import static org.usf.inspect.core.InspectExecutor.exec;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -20,6 +21,7 @@ public class StatementWrapper implements Statement {
 
 	@Delegate
 	protected final Statement st;
+	protected final ConnectionWrapper connection;
 	protected final StatementLifecycleTracer tracer;
 	
 	@Override
@@ -49,7 +51,7 @@ public class StatementWrapper implements Statement {
 	
 	@Override
 	public ResultSet executeQuery(String sql) throws SQLException {
-		return new ResultSetWrapper(call(()-> st.executeQuery(sql), tracer.executeQueryStageListener(sql)), tracer.getConnectionTracer());
+		return new ResultSetWrapper(call(()-> st.executeQuery(sql), tracer.executeQueryStageListener(sql)), connection);
 	}
 	
 	@Override
@@ -104,7 +106,7 @@ public class StatementWrapper implements Statement {
 	
 	@Override
 	public ResultSet getResultSet() throws SQLException {
-		return new ResultSetWrapper(st.getResultSet(), tracer.getConnectionTracer());
+		return new ResultSetWrapper(st.getResultSet(), connection);
 	}
 	
 	@Override
@@ -122,12 +124,31 @@ public class StatementWrapper implements Statement {
 	}
 	
 	@Override
+	public boolean getMoreResults() throws SQLException {
+		var more = st.getMoreResults();
+		tracer.onMoreResults(more);
+		return more;
+	}
+	
+	@Override
+	public boolean getMoreResults(int current) throws SQLException {
+		var more = st.getMoreResults(current);
+		tracer.onMoreResults(more);
+		return more;
+	}
+	
+	@Override
+	public Connection getConnection() throws SQLException {
+		return connection;
+	}
+
+	@Override
 	public void close() throws SQLException {
 		try {
 			st.close();
 		}
 		finally {
-			tracer.closeStatementStage();
+			tracer.emitCurrentExecutionStage(); //wait for update count to be traced before closing the statement
 		}
 	}
 }

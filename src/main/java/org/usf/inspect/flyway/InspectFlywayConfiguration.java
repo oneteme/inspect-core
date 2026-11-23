@@ -7,9 +7,12 @@ import static java.util.stream.Collectors.joining;
 import static org.usf.inspect.Helper.formatLocation;
 import static org.usf.inspect.LocalRequestType.EXEC;
 import static org.usf.inspect.core.Constants.FLYWAY_ENABLED;
+import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.ExecutionTracer.localRequestTracer;
 import static org.usf.inspect.core.InspectExecutor.exec;
 import static org.usf.inspect.sql.DataSourceWrapper.wrap;
+
+import java.sql.SQLException;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -21,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.usf.inspect.core.InspectCoreConfiguration;
 import org.usf.inspect.sql.DataSourceWrapper;
+import org.usf.inspect.sql.SingleDatasourceMetadataProvider;
 
 /**
  * 
@@ -37,8 +41,12 @@ public class InspectFlywayConfiguration {
 	FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
 		return conf->{
 			var ds = conf.getDataSource();
-			if(!(ds instanceof DataSourceWrapper) && nonNull(ds)) {
-				conf.dataSource(wrap(ds, "flywayDataSource"));
+			try {
+				if(nonNull(ds) && !ds.isWrapperFor(DataSourceWrapper.class)) {
+					conf.dataSource(wrap(ds, new SingleDatasourceMetadataProvider(), "flywayDataSource"));
+				}
+			} catch (SQLException e) {
+				REPORTER.error("cannot wrap flyway datasource", e);
 			}
 		};
 	}

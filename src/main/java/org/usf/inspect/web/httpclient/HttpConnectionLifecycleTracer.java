@@ -1,5 +1,6 @@
 package org.usf.inspect.web.httpclient;
 
+import static java.util.Objects.nonNull;
 import static org.usf.inspect.HttpAction.EXECUTION;
 import static org.usf.inspect.core.Constants.REPORTER;
 
@@ -19,7 +20,12 @@ final class HttpConnectionLifecycleTracer extends AbstractHttpConnectionLifecycl
 	public ExecutionListener<ClientHttpResponse> exchangeStageListener(HttpRequest request) {
 		return connectionListener((s,e,o,t)-> {
 			try {
-				traceHeaders(o.getStatusCode(), o.getHeaders()); 
+				if(nonNull(o)) {
+					traceHeaders(o.getStatusCode(), o.getHeaders());
+				}
+				else {
+					traceHeaders(null, null); 
+				}
 			}
 			catch (Exception ex) {
 				REPORTER.error("HttpConnectionLifecycleTracer.exchangeStageListener: failed to trace headers", ex);

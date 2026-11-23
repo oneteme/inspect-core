@@ -30,8 +30,8 @@ import lombok.RequiredArgsConstructor;
  */
 @RequiredArgsConstructor
 final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer {
-
-	private final ConnectionMetadataCache cache; //required
+	
+	private final MetadataProvider metadataProvider;
 
 	@Override
 	protected DatabaseRequestSignal signal(Instant start) {
@@ -61,14 +61,12 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 	        default -> super.resolveStatus(t);
 	    };
 	}
-	
+
 	public ExecutionListener<Connection> connectionListener() {
 		return connectionListener(stageBuilder(CONNECTION, null), (trc,cnx)->{
-			var sgn = (DatabaseRequestSignal) trc;
-			if(nonNull(cnx) && !cache.isPresent()) {
-				cache.update(cnx.getMetaData());
-			}
-			if(cache.isPresent()) {
+			var cache = metadataProvider.getMetadata(cnx);
+			if(nonNull(cache)) {
+				var sgn = (DatabaseRequestSignal) trc;
 				sgn.setProtocol(cache.getScheme());
 				sgn.setHost(cache.getHost());
 				sgn.setPort(cache.getPort());

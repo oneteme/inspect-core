@@ -1,5 +1,6 @@
 org.usf.inspect.core.InspectConfiguration
 org.usf.inspect.core.InspectCoreConfiguration
+org.usf.inspect.sql.InspectDatasourceConfiguration
 org.usf.inspect.slf4j.InspectLogbackConfiguration
 org.usf.inspect.reactor.InspectReactorConfiguration
 org.usf.inspect.web.mvc.InspectWebMvcConfiguration

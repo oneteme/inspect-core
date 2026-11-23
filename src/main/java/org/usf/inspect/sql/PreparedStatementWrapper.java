@@ -22,8 +22,8 @@ public class PreparedStatementWrapper extends StatementWrapper implements Prepar
 	@Delegate(excludes = Statement.class)
 	private final PreparedStatement ps;
 
-	public PreparedStatementWrapper(PreparedStatement ps, StatementLifecycleTracer tracer) {
-		super(ps, tracer);
+	public PreparedStatementWrapper(PreparedStatement ps, ConnectionWrapper cnx, StatementLifecycleTracer tracer) {
+		super(ps, cnx, tracer);
 		this.ps = ps;
 	}
 
@@ -39,7 +39,7 @@ public class PreparedStatementWrapper extends StatementWrapper implements Prepar
 	
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		return new ResultSetWrapper(call(ps::executeQuery, tracer.executeQueryStageListener(null)), tracer.getConnectionTracer());
+		return new ResultSetWrapper(call(ps::executeQuery, tracer.executeQueryStageListener(null)), connection);
 	}
 	
 	@Override
