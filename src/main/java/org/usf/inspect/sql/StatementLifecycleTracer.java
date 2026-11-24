@@ -7,10 +7,11 @@ import static org.usf.inspect.DatabaseAction.BATCH;
 import static org.usf.inspect.DatabaseAction.EXECUTE;
 import static org.usf.inspect.DatabaseAction.STATEMENT;
 import static org.usf.inspect.DatabaseCommand.SQL;
+import static org.usf.inspect.DatabaseCommand.mergeCommand;
 import static org.usf.inspect.core.Constants.REPORTER;
 import static org.usf.inspect.core.TraceHub.hub;
 
-import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.Instant;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -34,8 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class StatementLifecycleTracer {
 	
-	private static final Function<Integer, long[]> TO_LONG_ARRAY = n-> new long[] {n};
-	private static final Function<Long, long[]> TO_ARRAY = v-> new long[] {v};
+	private static final Function<Number, long[]> TO_ARRAY = v-> new long[] {v.longValue()};
 	
 	@Getter
 	private final DatabaseConnectionLifecycleTracer connectionTracer;
@@ -47,12 +47,22 @@ public class StatementLifecycleTracer {
 	
 	private boolean canUpdateResults;
 
-	public ExecutionListener<Object> statementStageListener(String sql) {
+	public ExecutionListener<Statement> statementStageListener(String sql) {
 		return connectionTracer.stageListener((s,e,o,t)->{
 			if(nonNull(sql)) {
 				mainCommand = extractCommand(sql);
 			} // o may be null, if execution failed
-			return connectionTracer.createStage(s, e, STATEMENT, null, (long[])null);
+			return connectionTracer.createStage(s, e, STATEMENT, null, null);
+		});
+	}
+	
+	public ExecutionListener<Void> clearBatchStage() {
+		return connectionTracer.stageListener((s,e,o,t)->{
+			if(!prepared) { //prepared statement may be reused, so do not clear batch stage
+				mainCommand = null; 
+			}
+			batchStageBuilder = null;
+			return connectionTracer.createStage(s, e, BATCH, null, null, "clear");
 		});
 	}
 
@@ -66,20 +76,12 @@ public class StatementLifecycleTracer {
 		});
 	}
 	
-	public ExecutionListener<ResultSet> executeQueryStageListener(String sql) {
-		return executeStageListener(sql, null); // no count 
-	}
-
-	public ExecutionListener<Boolean> executeStageListener(String sql) {
+	public <T> ExecutionListener<T> executeStageListener(String sql) {
 		return executeStageListener(sql, null); //-1 if select, cannot call  getUpdateCount
 	}
 
-	public ExecutionListener<Integer> executeUpdateStageListener(String sql) {
-		return executeStageListener(sql, TO_LONG_ARRAY);
-	}
-
-	public ExecutionListener<Long> executeLargeUpdateStageListener(String sql) {
-		return executeStageListener(sql, TO_ARRAY);
+	public ExecutionListener<Number> executeUpdateStageListener(String sql) {
+		return executeStageListener(sql, TO_ARRAY); //integer or long, depending on executeUpdate or executeLargeUpdate
 	}
 
 	public ExecutionListener<int[]> executeBatchStageListener(){
@@ -120,30 +122,18 @@ public class StatementLifecycleTracer {
 		}
 	}
 
-	private <T> ExecutionListener<T> executeStageListener(String sql, Function<T, long[]> countFn) {
+	private <T> ExecutionListener<T> executeStageListener(String sql, Function<? super T, long[]> countFn) {
 		emitCurrentExecutionStage(); // multiple statement executes
 		return connectionTracer.stageListener(false, (s,e,o,t)->{ //do not trace stage now
-			canUpdateResults = isNull(countFn); //
 			var count = nonNull(countFn) && nonNull(o) ? countFn.apply(o) : null;
 			var cmd = nonNull(sql) ? extractCommand(sql) : mainCommand;
 			executeStage = connectionTracer.createStage(s, e, EXECUTE, cmd, count);
+			canUpdateResults = isNull(countFn); //false if executeUpdate, batchUpdate
 			if(!prepared) {
 				mainCommand = null; //reset after batch statement
 			}
 			return executeStage;
 		});
-	}
-	
-	public void emitCurrentExecutionStage() {
-		if(nonNull(batchStageBuilder)) {
-			log.warn("batch stage is not null, maybe no executeBatch() was called after addBatch()");
-			emitBatchStage(); //connection may be closed before executeBatch() is called, so emit batch stage now
-		}
-		if(nonNull(executeStage)) {
-			hub().emitTrace(executeStage);
-			executeStage = null;
-			canUpdateResults = false;
-		}
 	}
 	
 	public void updateStageRowsCount(long rows) {
@@ -163,12 +153,24 @@ public class StatementLifecycleTracer {
 			catch (Exception e) {
 				REPORTER.warn("StatementLifecycleTracer.updateStageRowsCount: failed to update last stage rows count", e);
 			}
+			canUpdateResults = false;
 		}
-		canUpdateResults = false;
 	}
 	
-	public void onMoreResults(boolean more) {
-		canUpdateResults = more; //next getMoreResults will update rows count
+	void emitCurrentExecutionStage() {
+		if(nonNull(batchStageBuilder)) {
+			log.warn("batch stage is not null, maybe no executeBatch() was called after addBatch()");
+			emitBatchStage(); //connection may be closed before executeBatch() is called, so emit batch stage now
+		}
+		if(nonNull(executeStage)) {
+			hub().emitTrace(executeStage);
+			executeStage = null;
+			canUpdateResults = false;
+		}
+	}
+	
+	public void onMoreResults() {
+		canUpdateResults = true; // allow to update rows count for getMoreResults
 	}
 	
 	public static DatabaseCommand extractCommand(String sql) {
@@ -179,13 +181,6 @@ public class StatementLifecycleTracer {
 			REPORTER.error("StatementLifecycleTracer.extractCommand: failed to parse command", e);
 		}
 		return SQL;
-	}
-	
-	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
-		if(main == cmd || isNull(cmd)) {
-			return main;
-		}
-		return isNull(main) ? cmd : SQL;
 	}
 	
 	static long[] appendLong(long[]arr, long v) {

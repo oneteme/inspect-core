@@ -11,11 +11,12 @@ import static org.usf.inspect.core.InspectExecutor.call;
 import java.sql.Connection;
 import java.sql.ConnectionBuilder;
 import java.sql.SQLException;
+import java.sql.Wrapper;
 
 import javax.sql.DataSource;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
+import org.usf.inspect.core.SafeCallable;
+
 import lombok.experimental.Delegate;
 
 /**
@@ -23,33 +24,31 @@ import lombok.experimental.Delegate;
  * @author u$f
  *
  */
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public final class DataSourceWrapper implements DataSource {
-	
-	@Delegate
+public final class DataSourceWrapper extends AbstractWrapper<DataSource> implements DataSource {
+
+	@Delegate(excludes = Wrapper.class)
 	private final DataSource ds;
 	private final MetadataProvider metadataProvider;
 
+	public DataSourceWrapper(DataSource ds, MetadataProvider metadataProvider) {
+		super(ds);
+		this.ds = ds;  // duplicated reference, cannot delegate in super class 
+		this.metadataProvider = metadataProvider;
+	}
+
 	@Override
 	public Connection getConnection() throws SQLException {
-		var trc = createConnectionLifecycleTracer();
-		return new ConnectionWrapper(call(ds::getConnection, trc.connectionListener()), trc);
+		return getConnection(ds::getConnection);
 	}
 
 	@Override
 	public Connection getConnection(String username, String password) throws SQLException {
-		var trc = createConnectionLifecycleTracer();
-		return new ConnectionWrapper(call(()-> ds.getConnection(username, password), trc.connectionListener()), trc);
+		return getConnection(()-> ds.getConnection(username, password));
 	}
 	
-	@Override
-	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		return iface.isInstance(this) || ds.isWrapperFor(iface);
-	}
-	
-	@Override
-	public <T> T unwrap(Class<T> iface) throws SQLException {
-		return iface.isInstance(this) ? iface.cast(this) : ds.unwrap(iface);
+	Connection getConnection(SafeCallable<Connection, SQLException> fn) throws SQLException {
+		var trc = new DatabaseConnectionLifecycleTracer(metadataProvider);
+		return new ConnectionWrapper(call(fn, trc.connectionListener()), trc);
 	}
 	
 	@Override
@@ -60,10 +59,6 @@ public final class DataSourceWrapper implements DataSource {
 	@Override
 	public String toString() {
 		return "DataSourceWrapper [ds=" + ds + "]";
-	}
-	
-	DatabaseConnectionLifecycleTracer createConnectionLifecycleTracer() {
-		return new DatabaseConnectionLifecycleTracer(metadataProvider);
 	}
 	
 	public static DataSource wrap(DataSource ds, MetadataProvider provider) {
@@ -82,7 +77,7 @@ public final class DataSourceWrapper implements DataSource {
 				}
 				REPORTER.warn("DataSourceWrapper.wrap: {} is already wrapped", beanName);
 			}
-			catch (SQLException e) {
+			catch (Exception e) { //may throw SQLException or RuntimeException
 				REPORTER.error("DataSourceWrapper.wrap: cannot check if {} is already wrapped", beanName, e);
 			}
 		}

@@ -7,8 +7,8 @@ package org.usf.inspect;
  */
 public enum DatabaseAction {
 	
-	CONNECTION, DISCONNECTION, 
-	METADATA, //explore
+	CONNECTION, DISCONNECTION, ABORT, 
+	METADATA, //DESCRIBE
 	STATEMENT, BATCH, EXECUTE, FETCH, //+WARN
-	SAVEPOINT, COMMIT, ROLLBACK; //TCL
+	
 }

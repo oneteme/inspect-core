@@ -10,6 +10,8 @@ import static org.usf.inspect.CommandType.READ;
 import static org.usf.inspect.CommandType.ROLE;
 import static org.usf.inspect.CommandType.SCRIPT;
 import static org.usf.inspect.CommandType.SETUP;
+import static org.usf.inspect.CommandType.TRANSACTION;
+import static org.usf.inspect.CommandType.isNeutral;
 
 import java.util.stream.Stream;
 
@@ -29,8 +31,8 @@ public enum DatabaseCommand {
 	GRANT(ROLE), REVOKE(ROLE), //DCL
 	INSERT(EMIT), UPDATE(EDIT), DELETE(EDIT), MERGE(EDIT), //DML
 	SELECT(READ), //DQL
-	//TCL 
-	SET(CONTEXT), GET(CONTEXT), SUPPORT(CONTEXT), //OTHER
+	SAVEPOINT(TRANSACTION), COMMIT(TRANSACTION), ROLLBACK(TRANSACTION), RELEASE(TRANSACTION), //TCL 
+	SET(CONTEXT), GET(CONTEXT), DESCRIBE(READ), //OTHER
 	CALL(SCRIPT), SQL(SCRIPT); //multiple command
 	
 	private final CommandType type;
@@ -38,6 +40,7 @@ public enum DatabaseCommand {
 	//avoid clone array each time
 	public static final DatabaseCommand[] CACHE = Stream.of(values()).filter(e-> e!= SQL).toArray(DatabaseCommand[]::new);
 
+	//dosn't handle transaction commands (BEGIN/START, ..)
 	public static DatabaseCommand extractCommand(String sql) {
 		if(isNull(sql) || sql.isBlank()) {
 			return null;
@@ -139,10 +142,13 @@ public enum DatabaseCommand {
 		return isWhitespace(c) || c == ' '; //TODO check this
 	}
 	
-	static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
+	public static DatabaseCommand mergeCommand(DatabaseCommand main, DatabaseCommand cmd) {
 		if(main == cmd || isNull(cmd)) {
 			return main;
 		}
-		return isNull(main) ? cmd : SQL;
+		if(isNull(main) || isNeutral(main.getType())) {
+			return cmd; //accept even neutral command if main is null, else override neutral command
+		}
+		return isNeutral(cmd.getType()) ? main : SQL;
 	}
 }

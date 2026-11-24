@@ -1,12 +1,13 @@
 package org.usf.inspect.sql;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.usf.inspect.CommandType.merge;
 import static org.usf.inspect.DatabaseAction.CONNECTION;
-import static org.usf.inspect.DatabaseAction.DISCONNECTION;
 import static org.usf.inspect.DatabaseAction.EXECUTE;
 import static org.usf.inspect.DatabaseAction.FETCH;
 import static org.usf.inspect.core.SessionContextManager.createDatabaseSignal;
+import static org.usf.inspect.core.TraceHub.hub;
 
 import java.sql.Connection;
 import java.time.Instant;
@@ -80,35 +81,31 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 		});
 	}
 	
-	public ExecutionListener<Object> disconnectionListener() {
-		return disconnectionListener(stageBuilder(DISCONNECTION, null));
+	public ExecutionListener<Object> disconnectionListener(DatabaseAction action) {
+		return disconnectionListener(stageBuilder(action, null));
 	}
 	
 	public StatementLifecycleTracer newStatementTracer(boolean prepared) {
 		return new StatementLifecycleTracer(this, prepared);
 	}
-
-	public <T> ExecutionListener<T> fetchStageListener(Instant start, int n) {
-		return stageListener((s,e,o,t)-> createStage(start, e, FETCH, null, new long[] {n})); //differed start
+	
+	public void emitFetchStage(Instant start, Instant end, long n) {
+		hub().emitTrace(createStage(start, end, FETCH, null, new long[] {n})); //differed start
 	}
 	
 	public <T> ExecutionListener<T> executeStageListener(DatabaseCommand cmd, String... args) {
 		return stageListener(stageBuilder(EXECUTE, cmd, args));
 	}
 	
-	public <T> ExecutionListener<T> stageListener(DatabaseAction action, String... args) {
-		return stageListener(stageBuilder(action, null, args));
+	public <T> ExecutionListener<T> stageListener(DatabaseAction action, DatabaseCommand cmd, String... args) {
+		return stageListener(stageBuilder(action, cmd, args));
 	}
 
 	<R> StageBuilder<R> stageBuilder(DatabaseAction action, DatabaseCommand cmd, String... args) {
-		return (s,e,o,t)-> createStage(s, e, action, cmd, nonNull(args) && args.length > 0  ? new StagePayload(args, null) : null);
+		return (s,e,o,t)-> createStage(s, e, action, cmd, null, args);
 	}
 	
-	DatabaseRequestStage createStage(Instant start, Instant end, DatabaseAction action, DatabaseCommand cmd, long[] count) {
-		return createStage(start, end, action, cmd, nonNull(count) ? new StagePayload(null, count) : null);
-	}
-
-	DatabaseRequestStage createStage(Instant start, Instant end, DatabaseAction action, DatabaseCommand cmd, StagePayload payload) {
+	DatabaseRequestStage createStage(Instant start, Instant end, DatabaseAction action, DatabaseCommand cmd, long[] counts, String... args) {
 		var upd = (DatabaseRequestUpdate)getUpdate();
 		var stg = new DatabaseRequestStage(upd.getId(), getStageCounter().incrementAndGet());
 		stg.setName(action.name());
@@ -118,7 +115,17 @@ final class DatabaseConnectionLifecycleTracer extends ConnectionLifecycleTracer 
 			stg.setCommand(cmd.name());
 			upd.setCommand(merge(upd.getCommand(), cmd.getType())); //update request
 		}
-		stg.setPayload(payload);
+		if(!isEmpty(args) || !isEmpty(counts)) {
+			stg.setPayload(new StagePayload(args, counts));
+		}
 		return stg;
+	}
+	
+	static <T> boolean isEmpty(T[] arr) {
+		return isNull(arr) || arr.length == 0;
+	}
+	
+	static boolean isEmpty(long[] arr) {
+		return isNull(arr) || arr.length == 0;
 	}
 }

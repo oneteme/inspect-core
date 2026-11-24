@@ -1,7 +1,5 @@
 package org.usf.inspect.sql;
 
-import static org.usf.inspect.core.InspectExecutor.call;
-
 import java.sql.Connection;
 import java.sql.ConnectionBuilder;
 import java.sql.SQLException;
@@ -46,7 +44,6 @@ public final class ConnectionBuilderWrapper implements ConnectionBuilder {
 
 	@Override
 	public Connection build() throws SQLException {
-		var trc = ds.createConnectionLifecycleTracer();
-		return new ConnectionWrapper(call(cb::build, trc.connectionListener()), trc);
+		return ds.getConnection(cb::build);
 	}
 }

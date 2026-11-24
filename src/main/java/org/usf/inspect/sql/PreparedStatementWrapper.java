@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Wrapper;
 
 import lombok.experimental.Delegate;
 
@@ -19,12 +20,12 @@ import lombok.experimental.Delegate;
  */
 public class PreparedStatementWrapper extends StatementWrapper implements PreparedStatement {
 
-	@Delegate(excludes = Statement.class)
+	@Delegate(excludes = {Wrapper.class, Statement.class})
 	private final PreparedStatement ps;
 
 	public PreparedStatementWrapper(PreparedStatement ps, ConnectionWrapper cnx, StatementLifecycleTracer tracer) {
 		super(ps, cnx, tracer);
-		this.ps = ps;
+		this.ps = ps;   // duplicated reference, cannot delegate in super class 
 	}
 
 	@Override
@@ -34,26 +35,26 @@ public class PreparedStatementWrapper extends StatementWrapper implements Prepar
 	
 	@Override
 	public boolean execute() throws SQLException {
-		return call(ps::execute, tracer.executeStageListener(null));
-	}
-	
-	@Override
-	public ResultSet executeQuery() throws SQLException {
-		return new ResultSetWrapper(call(ps::executeQuery, tracer.executeQueryStageListener(null)), connection);
+		return releaseAndExecute(ps::execute, tracer.executeStageListener(null));
 	}
 	
 	@Override
 	public int executeUpdate() throws SQLException {
-		return call(ps::executeUpdate, tracer.executeUpdateStageListener(null));
+		return releaseAndExecute(ps::executeUpdate, tracer.executeUpdateStageListener(null));
 	}
 	
 	@Override
 	public long executeLargeUpdate() throws SQLException {
-		return call(ps::executeLargeUpdate, tracer.executeLargeUpdateStageListener(null));
+		return releaseAndExecute(ps::executeLargeUpdate, tracer.executeUpdateStageListener(null));
+	}
+	
+	@Override
+	public ResultSet executeQuery() throws SQLException {
+		return releaseAndExecuteQuery(ps::executeQuery, tracer.executeStageListener(null));
 	}
 	
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
-		return call(ps::getMetaData, tracer.getConnectionTracer().stageListener(METADATA));
+		return call(ps::getMetaData, tracer.getConnectionTracer().stageListener(METADATA, null));
 	}
 }
