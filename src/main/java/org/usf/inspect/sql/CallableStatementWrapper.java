@@ -1,4 +1,4 @@
- package org.usf.inspect.sql;
+package org.usf.inspect.sql;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
