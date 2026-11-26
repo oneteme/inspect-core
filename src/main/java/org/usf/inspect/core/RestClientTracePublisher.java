@@ -131,7 +131,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 	}
 	
 	URI buildTraceUri(UUID id, int seq, int atm, boolean complete) {
-	    return traceUriBuilder
+	    return traceUriBuilder.cloneBuilder()
 	            .queryParam("seq", seq)
 	            .queryParam("atm", atm)
 	            .queryParamIfPresent("end", complete ? Optional.of(systemUTC().instant()) : empty())
@@ -143,7 +143,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 		if(registered) {
 			return instance.getId();
 		}
-		var uri = instanceUriBuilder.queryParam("atm", ++attempts).build().toUri();
+		var uri = instanceUriBuilder.cloneBuilder().queryParam("atm", ++attempts).build().toUri();
 		if(nonNull(instance)) {
 			try {
 				template.put(uri, instance);
