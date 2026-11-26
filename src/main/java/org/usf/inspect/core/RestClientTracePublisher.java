@@ -186,7 +186,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 				return RETRY.equals(hdr.getFirst(TRACE_RETRY_HEADER)); //server synchronization 
 			}
 			var stt = rst.getStatusCode(); //404 : kube ingress during server rollout
-			if(stt.is4xxClientError() && status != NOT_FOUND && status != REQUEST_TIMEOUT && status != TOO_MANY_REQUESTS) {
+			if(stt.is4xxClientError() && stt != NOT_FOUND && stt != REQUEST_TIMEOUT && stt != TOO_MANY_REQUESTS) {
 				if(status != CONFLICT) { //409 : sequence already registered, ignore
 					reportError("RestClientTracePublisher.shouldRetry: failed to publish traces and will not retry, attempt={}, status={}", attempts, status, e);
 				}
