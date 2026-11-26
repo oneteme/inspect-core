@@ -5,12 +5,14 @@ import static java.time.Duration.ofSeconds;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import static java.util.Optional.empty;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_ENCODING;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.encodeBasicAuth;
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.REQUEST_TIMEOUT;
+import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromUriString;
 import static org.usf.inspect.core.Constants.REPORTER;
@@ -19,7 +21,6 @@ import static org.usf.inspect.web.WebUtils.TRACE_RETRY_HEADER;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
@@ -38,17 +39,17 @@ import org.usf.inspect.RestRemoteServerProperties;
 import org.usf.inspect.web.httpclient.HttpRequestInterceptor;
 
 import jakarta.annotation.Nonnull;
-import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 
+ * @NotThreadSafe
+ * 
  * @author u$f
  *
  */
-@Slf4j
 public final class RestClientTracePublisher implements TracePublisher {
-
+	
 	private final RestTemplate template;
 	private final UriComponentsBuilder instanceUriBuilder;
 	private final UriComponentsBuilder traceUriBuilder;
@@ -94,7 +95,9 @@ public final class RestClientTracePublisher implements TracePublisher {
 			attempts = 0;
 		}
 		queue.pollAll(snp->{ 
-			mergeTraceParts(snp);
+			if(!snp.isEmpty()) {
+				mergeTraceParts(snp);
+			} //heartbeat, flush even if empty
 			return flushTraces(id, complete, snp);
 		});
 	}
@@ -111,6 +114,9 @@ public final class RestClientTracePublisher implements TracePublisher {
 			if(shouldRetry(e)) {
 				pendingBatch = arr; //will retry later, do not turn back to queue
 			}
+			else {
+				attempts = 0;
+			}
 			return emptyList();
 		}
 	}
@@ -124,6 +130,7 @@ public final class RestClientTracePublisher implements TracePublisher {
 		}
 		catch (RestClientException e) {
 			if(!shouldRetry(e)) { //abort
+				log.warn("pending batch is not flushed, {} traces will be aborted", pendingBatch.length);
 				pendingBatch = null;
 				attempts = 0;
 			}
@@ -131,10 +138,10 @@ public final class RestClientTracePublisher implements TracePublisher {
 	}
 	
 	URI buildTraceUri(UUID id, int seq, int atm, boolean complete) {
-	    return traceUriBuilder.cloneBuilder()
-	            .queryParam("seq", seq)
-	            .queryParam("atm", atm)
-	            .queryParamIfPresent("end", complete ? Optional.of(systemUTC().instant()) : empty())
+	    return traceUriBuilder
+	    		.replaceQueryParam("seq", seq)
+	            .replaceQueryParam("atm", atm)
+	            .replaceQueryParam("end", complete ? systemUTC().instant() : null)
 	            .buildAndExpand(id)
 	            .toUri();
 	}
@@ -143,8 +150,8 @@ public final class RestClientTracePublisher implements TracePublisher {
 		if(registered) {
 			return instance.getId();
 		}
-		var uri = instanceUriBuilder.cloneBuilder().queryParam("atm", ++attempts).build().toUri();
 		if(nonNull(instance)) {
+			var uri = instanceUriBuilder.replaceQueryParam("atm", ++attempts).build().toUri();
 			try {
 				template.put(uri, instance);
 				registered = true;
@@ -159,14 +166,14 @@ public final class RestClientTracePublisher implements TracePublisher {
 					log.info("instance already registered, id={}", instance.getId());
 					return instance.getId();
 				}
-				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt={}: status={}", attempts, e.getStatusCode(), e);
+				reportError("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt={}: status={}", attempts, e.getStatusCode(), e);
 			}
 			catch(RestClientException e) {//server / client ?
-				REPORTER.error("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt={}", attempts, e);
+				reportError("RestClientTracePublisher.ensureInstanceRegistered: failed to register instance, attempt={}", attempts, e);
 			}
 		}
-		else {
-			REPORTER.warn("RestClientTracePublisher.ensureInstanceRegistered: instance environment is not set, cannot register instance");
+		else { //should not happen, register() should be called before flush()
+			log.warn("instance environment is not set, cannot register instance");
 		}
 		throw new TraceDispatchException("failed to register instance, attempt #"+attempts);
 	}
@@ -178,16 +185,20 @@ public final class RestClientTracePublisher implements TracePublisher {
 			if(nonNull(hdr) && hdr.containsHeader(TRACE_RETRY_HEADER)) {
 				return RETRY.equals(hdr.getFirst(TRACE_RETRY_HEADER)); //server synchronization 
 			}
-			if(rst.getStatusCode() == CONFLICT) {
-				return false; //409 : instance already registered, ignore
+			var stt = rst.getStatusCode(); //404 : kube ingress during server rollout
+			if(stt.is4xxClientError() && status != NOT_FOUND && status != REQUEST_TIMEOUT && status != TOO_MANY_REQUESTS) {
+				if(status != CONFLICT) { //409 : sequence already registered, ignore
+					reportError("RestClientTracePublisher.shouldRetry: failed to publish traces and will not retry, attempt={}, status={}", attempts, status, e);
+				}
+				return false;
 			}
-			status = rst.getStatusCode();
+			status = stt;
 		}
 		else {
 			status = "ERROR";
 		}
-		REPORTER.error("RestClientTracePublisher.shouldRetry: failed to publish traces, attempt={}, status={}", attempts, status, e);
-		return true; //retry on all other errors, including 429 Too Many Requests
+		reportError("RestClientTracePublisher.shouldRetry: failed to publish traces and will retry, attempt={}, status={}", attempts, status, e);
+		return true;
 	}
 
 	static RestTemplate defaultRestTemplate(RestRemoteServerProperties properties, JsonMapper.Builder mapper, String namespace, boolean debug) {
@@ -229,5 +240,14 @@ public final class RestClientTracePublisher implements TracePublisher {
 			}
 			return exec.execute(req, body);
 		};
+	}
+	
+	void reportError(String msg, Object... args) {
+		if(attempts % 10 == 1) { 
+			REPORTER.error(msg, args); //inspect report for alerting, will be repeated every 10 attempts
+		}
+		if(attempts % 50 == 1) {
+			log.warn(msg, args); //standard log for alerting, will be repeated every 50 attempts
+		}
 	}
 }
